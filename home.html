@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sith Holonet</title>
+  <meta name="description" content="Manar's Sith Order - Laws, lore and divisional records." />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+  <meta property="og:title" content="Sith Holonet" />
+  <meta property="og:description" content="Manar's Sith Order - Laws, lore and divisional records." />
+  <meta property="og:image" content="https://holonet.vercel.app/assets/placeholder.png" />
+  <meta property="og:type" content="website" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://holonet.vercel.app/assets/placeholder.png" />
+</head>
+<body>
+
+  <!-- ░░ AMBIENT LAYERS ░░ -->
+  <div id="vignette"  aria-hidden="true"></div>
+  <div id="rune-field" aria-hidden="true"></div>
+  <div id="holo-grid"  aria-hidden="true"></div>
+
+  <!-- ░░ CORNER BRACKETS ░░ -->
+  <div class="corner tl" aria-hidden="true"><span></span></div>
+  <div class="corner tr" aria-hidden="true"><span></span></div>
+  <div class="corner bl" aria-hidden="true"><span></span></div>
+  <div class="corner br" aria-hidden="true"><span></span></div>
+
+  <!-- ░░ BOOT LOADER ░░ -->
+  <div id="loader" role="status" aria-label="Establishing connection">
+    <div class="loader-ring"></div>
+    <div class="loader-text">Establishing Link&hellip;</div>
+    <div class="loader-bar-wrap">
+      <div class="loader-bar"></div>
+    </div>
+  </div>
+
+  <!-- ░░ MAIN APPLICATION ░░ -->
+  <div id="app">
+
+    <!-- ▓▓ HEADER ▓▓ -->
+    <header>
+      <p class="site-eyebrow">MANAR'S THE SITH ORDER </p>
+      <div class="header-rule"></div>
+      <h1 class="site-title">THE HOLONET</h1>
+      <p class="site-subtitle">
+        IMPERIAL TRANSMISSION NETWORK;
+      </p>
+      <div class="header-rule"></div>
+    </header>
+
+    <!-- ▓▓ STATUS BAR ▓▓ -->
+    <div class="status-bar" role="status" aria-live="polite">
+      <span style="color:var(--red-dim)">Node: <span style="color:var(--red-dim)">KOR-7 / HORUSET SYSTEM</span></span>
+      <span class="status-signal" style="color:var(--red-dim)"><span class="blink">● LIVE</span>&nbsp;&nbsp;Signal: <span id="signal-bars">████████░░</span> <span id="signal-percent">82%</span></span>
+      <span style="color:var(--red-dim)"><span id="timestamp">3958.001 / 00:00:00 GST</span></span>
+    </div>
+
+    <!-- ▓▓ NAV GRID ▓▓ -->
+    <main>
+      <nav class="nav-grid" aria-label="Holonet Sections">
+
+        <!-- THE CODEX -->
+        <a href="codex.html" class="nav-card" aria-label="Enter The Codex">
+          <div class="card-inner-border" aria-hidden="true"></div>
+          <div class="card-corners"      aria-hidden="true"></div>
+          <div class="card-vline"        aria-hidden="true"></div>
+          <div class="card-scan"         aria-hidden="true"></div>
+          <div class="card-bg-glyph"     aria-hidden="true">I</div>
+
+          <div class="card-hex" aria-hidden="true">0x1A&nbsp;&nbsp;SECT.01</div>
+          <div class="card-data" aria-hidden="true">
+            CLEARANCE: UNCLASSIFIED<br>
+            DESIGNATION: LEVEL 1<br>
+          </div>
+
+          <span class="card-category">Section 01 &mdash; Doctrine</span>
+          <h2 class="card-title">The Codex</h2>
+          <p class="card-desc">
+            Supreme law.
+          </p>
+          <span class="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
+        </a>
+
+        <!-- THE ARCHIVES -->
+        <a href="archives.html" class="nav-card" aria-label="Enter The Archives">
+          <div class="card-inner-border" aria-hidden="true"></div>
+          <div class="card-corners"      aria-hidden="true"></div>
+          <div class="card-vline"        aria-hidden="true"></div>
+          <div class="card-scan"         aria-hidden="true"></div>
+          <div class="card-bg-glyph"     aria-hidden="true">II</div>
+
+          <div class="card-hex" aria-hidden="true">0x2B&nbsp;&nbsp;SECT.02</div>
+          <div class="card-data" aria-hidden="true">
+            CLEARANCE: UNCLASSIFIED<br>
+            DESIGNATION: LEVEL 1<br>
+          </div>
+
+          <span class="card-category">Section 02 &mdash; Records</span>
+          <h2 class="card-title">The Archives</h2>
+          <p class="card-desc">
+            Sith lore.
+          </p>
+          <span class="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
+        </a>
+
+        <!-- THE INDEX -->
+        <a href="index.html" class="nav-card" aria-label="Enter The Index">
+          <div class="card-inner-border" aria-hidden="true"></div>
+          <div class="card-corners"      aria-hidden="true"></div>
+          <div class="card-vline"        aria-hidden="true"></div>
+          <div class="card-scan"         aria-hidden="true"></div>
+          <div class="card-bg-glyph"     aria-hidden="true">III</div>
+
+          <div class="card-hex" aria-hidden="true">0x3C&nbsp;&nbsp;SECT.03</div>
+          <div class="card-data" aria-hidden="true">
+            CLEARANCE: RESTRICTED<br>
+            DESIGNATION: LEVEL 2<br>
+          </div>
+
+          <span class="card-category">Section 03 &mdash; Departments</span>
+          <h2 class="card-title">The Index</h2>
+          <p class="card-desc">
+            Document directory.
+          </p>
+          <span class="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
+        </a>
+
+      </nav>
+    </main>
+
+    <!-- ▓▓ MARQUEE ▓▓ -->
+    <div class="marquee-wrap" aria-hidden="true">
+      <div class="marquee-track" style="color:var(--red-dim);"></div>
+    </div>
+
+    <!-- ▓▓ FOOTER ▓▓ -->
+    <footer>
+      <p class="footer-glyph" style="color:var(--red-dim);">
+        ᛭ &nbsp; Peace is a lie &mdash; There is only passion &nbsp; ᛭
+      </p>
+      <p class="footer-sig" style="color:var(--red-dim);">
+        Sith Holonet &mdash; Encrypted Transmission &mdash; Node KOR-7
+      </p>
+    </footer>
+
+  </div><!-- /#app -->
+
+  <script src="/js/main.js"></script>
+</body>
+</html>

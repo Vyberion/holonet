@@ -18,7 +18,7 @@
     right: 0;
     z-index: 2000;
     /* same chamfer language as .codex-article / .status-bar */
-    border-bottom: 1px solid var(--red-bright);
+    border-bottom: 1px solid var(--red-dim);
     /* scanline wash on the bar itself */
     /* ambient glow like .nav-grid */
     box-shadow:
@@ -294,7 +294,7 @@
       gap: 0;
       align-items: stretch;
       background: var(--void);
-      border-bottom: 1px solid var(--red-bright);
+      border-bottom: 1px solid var(--red-dim);
       box-shadow: 0 8px 40px rgba(192,0,26,0.18);
       clip-path: none;
       /* closed */

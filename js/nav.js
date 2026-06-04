@@ -1,6 +1,8 @@
 /* Active page highlighting */
 (function () {
-  const page = location.pathname.split('/').pop().replace('.html', '') || 'index';
+  const page = location.pathname === '/'
+    ? 'home'
+    : location.pathname.split('/').pop().replace('.html', '') || 'home';
 
   document.querySelectorAll('.nav-link').forEach(link => {
     if (link.dataset.page === page) {

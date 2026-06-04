@@ -238,7 +238,7 @@
     width: 36px;
     height: 36px;
     background: none;
-    border: 1px solid var(--red-bright);
+    border: 1px solid var(--red-dim);
     box-shadow: 0 0 14px var(--red-glow);
     cursor: crosshair;
     padding: 8px;

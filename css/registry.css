@@ -510,7 +510,7 @@
 
 .dir-card-top {
   min-height: 44px;
-  align-items: baseline;
+  align-items: flex-start;
 }
 
 .dir-card-frame::before,
@@ -555,7 +555,7 @@
   flex: 0 0 auto;
   white-space: nowrap;
   line-height: 1;
-  transform: translateY(1px);
+  margin-top: 2px;
 }
 
 .dir-card-desc {

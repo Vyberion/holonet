@@ -1,15 +1,15 @@
 {
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/codex", "destination": "/pages/codex.html" },
-    { "source": "/codex.html", "destination": "/pages/codex.html" },
-    { "source": "/archives", "destination": "/pages/archives.html" },
-    { "source": "/archives.html", "destination": "/pages/archives.html" },
-    { "source": "/account", "destination": "/pages/account.html" },
-    { "source": "/account.html", "destination": "/pages/account.html" },
-    { "source": "/index", "destination": "/pages/index.html" },
-    { "source": "/index.html", "destination": "/pages/index.html" },
-    { "source": "/index/reaver/reavers", "destination": "/pages/index/reaver/reavers.html" },
-    { "source": "/index/reaver/reavers.html", "destination": "/pages/index/reaver/reavers.html" }
+
+  "routes": [
+    { "src": "/api/auth/login", "dest": "/api/auth/login.js" },
+    { "src": "/api/auth/callback", "dest": "/api/auth/callback.js" },
+    { "src": "/api/auth/check-status", "dest": "/api/auth/check-status.js" },
+    { "src": "/api/auth/check-access", "dest": "/api/auth/check-access.js" },
+    { "src": "/", "dest": "/home.html"},
+    { "src": "/codex", "dest": "/codex.html" },
+    { "src": "/archives", "dest": "/archives.html" },
+    { "src": "/index", "dest": "/index.html" },
+    { "src": "/index/reavers", "dest": "/about.html" }
   ]
 }

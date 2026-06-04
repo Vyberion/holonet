@@ -1,11 +1,19 @@
 {
   "cleanUrls": true,
 
-  "redirects": [
+  "rewrites": [
     {
       "source": "/",
-      "destination": "/home",
-      "permanent": false
+      "destination": "/home.html"
     }
+  ],
+
+  "version": 2,
+  "routes": [
+    { "src": "/api/auth/login", "dest": "/api/auth/login.js" },
+    { "src": "/api/auth/callback", "dest": "/api/auth/callback.js" },
+    { "src": "/api/auth/check-status", "dest": "/api/auth/check-status.js" },
+    { "src": "/api/auth/check-access", "dest": "/api/auth/check-access.js" },
+    { "src": "/(.*)", "dest": "/$1" }
   ]
 }

@@ -75,18 +75,62 @@
   </style>
 </head>
 
-<body class="nav-offset">
+<body>
+
+    <body>
   <div id="nav-container"></div>
+
+  <!-- ░░ AMBIENT LAYERS ░░ -->
+  <div id="vignette"  aria-hidden="true"></div>
+  <div id="rune-field" aria-hidden="true"></div>
+  <div id="holo-grid"  aria-hidden="true"></div>
+
+  <div id="loader" role="status" aria-label="Establishing connection">
+  <div class="loader-ring">
+    <img src="/assets/sith_order.svg" alt="" class="loader-logo">
+  </div>
+
+  <div class="loader-text">Establishing Link&hellip;</div>
+
+  <div class="loader-bar-wrap">
+    <div class="loader-bar"></div>
+  </div>
+</div>
+</div>
+
+<script>
+  const loader = document.getElementById('loader');
+
+  if (sessionStorage.getItem('loaderShown')) {
+    loader.style.display = 'none';
+  } else {
+    sessionStorage.setItem('loaderShown', 'true');
+
+    // Hide loader after animation completes
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        loader.classList.add('hidden'); // or whatever your existing hide animation uses
+      }, 2000);
+    });
+  }
+</script>
   <div id="vignette" aria-hidden="true"></div>
 
   <div id="app">
     <header>
-      <p class="site-eyebrow">NODE SECURITY</p>
+      <p class="site-eyebrow">MANAR'S THE SITH ORDER</p>
       <div class="header-rule"></div>
-      <h1 class="site-title" style="font-size: clamp(2rem, 5vw, 4rem);">ACCOUNT LINKING</h1>
+      <h1 class="site-title">   ACCOUNT</h1>
       <p class="site-subtitle">DEVICE AUTHORIZATION</p>
       <div class="header-rule"></div>
     </header>
+
+    <!-- ▓▓ STATUS BAR ▓▓ -->
+    <div class="status-bar" role="status" aria-live="polite">
+      <span style="color:var(--text-dim)">Node: <span style="color:var(--text-dim)">KOR-7 / HORUSET SYSTEM</span></span>
+      <span class="status-signal" style="color:var(--text-dim)"><span class="blink">● LIVE</span>&nbsp;&nbsp;Signal: <span id="signal-bars">████████░░</span> <span id="signal-percent">82%</span></span>
+      <span style="color:var(--text-dim)"><span id="timestamp">3958.001 / 00:00:00 GST</span></span>
+    </div>
 
     <main>
       <div class="account-panel">
@@ -114,12 +158,17 @@
              </div>
             </div>
 
-        <button class="btn-auth" id="bind-btn">INITIATE OAUTH BIND</button>
+        <button class="btn-auth" id="bind-btn">LOG IN</button>
       </div>
     </main>
 
     <footer>
-      <p class="footer-glyph" style="color:var(--text-dim);">᛭ &nbsp; Security clearance required &nbsp; ᛭</p>
+      <p class="footer-glyph" style="color:var(--text-dim);">
+        ᛭ &nbsp; Peace is a lie &mdash; There is only passion &nbsp; ᛭
+      </p>
+      <p class="footer-sig" style="color:var(--text-dim);">
+        Sith Holonet &mdash; Encrypted Transmission &mdash; Node KOR-7
+      </p>  
     </footer>
   </div>
 
@@ -219,7 +268,7 @@
     document.getElementById('roblox-user').textContent = 'NULL';
     document.getElementById('roblox-user').classList.add('unbound');
 
-    btnEl.textContent = 'INITIATE OAUTH BIND';
+    btnEl.textContent = 'LOG IN';
     btnEl.onclick = () => {
       window.location.href = `/api/auth/login?deviceId=${encodeURIComponent(deviceId)}`;
     };

@@ -87,7 +87,6 @@ function updateSignalReadout() {
 updateSignalReadout();
 setInterval(updateSignalReadout, 1000);
 
-// ─── Card hover: random corrupt text effect ──────
 function initCardCorruption() {
   document.querySelectorAll('.nav-card').forEach(card => {
     const titleEl = card.querySelector('.card-title');

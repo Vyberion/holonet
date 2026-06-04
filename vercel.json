@@ -1,15 +1,12 @@
 {
   "cleanUrls": true,
-
-  "routes": [
-    { "src": "/api/auth/login", "dest": "/api/auth/login.js" },
-    { "src": "/api/auth/callback", "dest": "/api/auth/callback.js" },
-    { "src": "/api/auth/check-status", "dest": "/api/auth/check-status.js" },
-    { "src": "/api/auth/check-access", "dest": "/api/auth/check-access.js" },
-    { "src": "/", "dest": "/home.html"},
-    { "src": "/codex", "dest": "/codex.html" },
-    { "src": "/archives", "dest": "/archives.html" },
-    { "src": "/index", "dest": "/index.html" },
-    { "src": "/index/reavers", "dest": "/about.html" }
+  "rewrites": [
+    { "source": "/registry", "destination": "/registry.html" },
+    { "source": "/registry.html", "destination": "/registry.html" },
+    { "source": "/registry/reaver/reavers", "destination": "/registry/reaver/reavers.html" },
+    { "source": "/registry/reaver/reavers.html", "destination": "/registry/reaver/reavers.html" },
+    { "source": "/index", "destination": "/registry.html" },
+    { "source": "/index/reaver/reavers", "destination": "/registry/reaver/reavers.html" },
+    { "source": "/index/reaver/reavers.html", "destination": "/registry/reaver/reavers.html" }
   ]
 }

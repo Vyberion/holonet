@@ -1,8 +1,11 @@
 /* Active page highlighting */
 (function () {
-  const page = location.pathname === '/'
+  const segments = location.pathname.split('/').filter(Boolean);
+  let page = segments.length === 0
     ? 'home'
-    : location.pathname.split('/').pop().replace('.html', '') || 'home';
+    : segments[0].replace('.html', '') || 'home';
+
+  if (page === 'index') page = 'registry';
 
   document.querySelectorAll('.nav-link').forEach(link => {
     if (link.dataset.page === page) {

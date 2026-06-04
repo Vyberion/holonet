@@ -1,12 +1,14 @@
 import { tierAtLeast } from "./profile.js";
 
 export const PAGE_ACCESS = {
+  registry: { public: true },
+  registry_reaver_reavers: { division: "reavers", minimumTier: "member" },
+  registry_dhg: { division: "dhg", minimumTier: "member" },
+  registry_inquisitor: { division: "inquisitors", minimumTier: "member" },
+  registry_dreadmaster: { division: "dreadmasters", minimumTier: "member" },
+  registry_highrank: { highRankMinimumTier: "lower" },
   index: { public: true },
-  index_reaver_reavers: { division: "reavers", minimumTier: "member" },
-  index_dhg: { division: "dhg", minimumTier: "member" },
-  index_inquisitor: { division: "inquisitors", minimumTier: "member" },
-  index_dreadmaster: { division: "dreadmasters", minimumTier: "member" },
-  index_highrank: { highRankMinimumTier: "lower" }
+  index_reaver_reavers: { division: "reavers", minimumTier: "member" }
 };
 
 const HIGH_RANK_TIERS = ["none", "lower", "upper", "overseer"];

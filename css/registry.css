@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   INDEX.CSS — Sith Holonet / The Index
+   registry.CSS — Sith Holonet / The registry
    Modular Directory System with Permissions Engine
    Inherited from style.css & codex.css
 ═══════════════════════════════════════════════════════════════ */
@@ -9,7 +9,7 @@
 /* ─────────────────────────────────────────────
    PAGE HEADER (Synchronized with Codex Titles)
 ───────────────────────────────────────────── */
-.index-header {
+.registry-header {
   width: 100%;
   max-width: 900px; /* Aligns matching codex-document width */
   text-align: center;
@@ -17,7 +17,7 @@
   margin: 0 auto;
 }
 
-.index-header-eyebrow {
+.registry-header-eyebrow {
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.65rem;
   letter-spacing: 0.6em;
@@ -26,7 +26,7 @@
   margin-bottom: 14px;
 }
 
-.index-title {
+.registry-title {
   font-family: 'Cinzel', serif;
   font-size: clamp(2.2rem, 5vw, 3.8rem);
   font-weight: 900;
@@ -36,7 +36,7 @@
   line-height: 1.1;
 }
 
-.index-subtitle {
+.registry-subtitle {
   font-family: 'Orbitron', monospace;
   font-size: 0.65rem;
   letter-spacing: 0.4em;
@@ -45,7 +45,7 @@
   margin-top: 16px;
 }
 
-.index-rule {
+.registry-rule {
   width: 100%;
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--border-hot) 20%, var(--red) 50%, var(--border-hot) 80%, transparent);
@@ -55,7 +55,7 @@
 /* ─────────────────────────────────────────────
    STATUS BAR
 ───────────────────────────────────────────── */
-.index-status-bar {
+.registry-status-bar {
   width: 100%;
   max-width: 900px;
   display: flex;
@@ -73,22 +73,22 @@
   clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
 }
 
-.index-status-bar .blink {
+.registry-status-bar .blink {
   color: var(--red-bright);
-  animation: indexBlink 1.5s step-start infinite;
+  animation: registryBlink 1.5s step-start infinite;
 }
-@keyframes indexBlink { 50% { opacity: 0; } }
+@keyframes registryBlink { 50% { opacity: 0; } }
 
 /* ─────────────────────────────────────────────
    DIRECTORY SECTIONS & GRIDS
 ───────────────────────────────────────────── */
-.index-main {
+.registry-main {
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
 }
 
-.index-section {
+.registry-section {
   margin-bottom: 50px;
 }
 
@@ -279,9 +279,9 @@
 .redact-line:nth-child(2) { width: 60%; }
 
 /* ─────────────────────────────────────────────
-   INDEX FOOTER
+   registry FOOTER
 ───────────────────────────────────────────── */
-.index-footer {
+.registry-footer {
   width: 100%;
   max-width: 900px;
   text-align: center;
@@ -290,7 +290,7 @@
   margin: 40px auto 0;
 }
 
-.index-footer .footer-glyph {
+.registry-footer .footer-glyph {
   font-family: 'Cinzel', serif;
   font-size: 0.65rem;
   letter-spacing: 0.5em;
@@ -298,7 +298,7 @@
   text-transform: uppercase;
 }
 
-.index-footer .footer-sig {
+.registry-footer .footer-sig {
   margin-top: 10px;
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.55rem;
@@ -311,7 +311,7 @@
    RESPONSIVE OVERRIDES
 ───────────────────────────────────────────── */
 @media (max-width: 860px) {
-  .index-title { letter-spacing: 0.15em; }
+  .registry-title { letter-spacing: 0.15em; }
   .dir-grid { grid-template-columns: 1fr 1fr; }
 }
 
@@ -418,15 +418,15 @@
 }
 
 /* ==========================================================================
-   FINAL INDEX VISUAL PASS
-   Aligns the Index with the Home cards and Codex document panels.
+   FINAL registry VISUAL PASS
+   Aligns the registry with the Home cards and Codex document panels.
    ========================================================================== */
 
-.index-main {
+.registry-main {
   max-width: 980px;
 }
 
-.index-section {
+.registry-section {
   margin-bottom: 56px;
 }
 
@@ -510,7 +510,7 @@
 
 .dir-card-top {
   min-height: 44px;
-  align-items: flex-start;
+  align-items: baseline;
 }
 
 .dir-card-frame::before,
@@ -554,6 +554,8 @@
   box-shadow: inset 0 0 12px rgba(192, 0, 26, 0.04);
   flex: 0 0 auto;
   white-space: nowrap;
+  line-height: 1;
+  transform: translateY(1px);
 }
 
 .dir-card-desc {
@@ -565,6 +567,7 @@
 
 .dir-card-bottom {
   border-top-color: rgba(90, 0, 32, 0.78);
+  align-items: baseline;
 }
 
 .dir-card-node {
@@ -681,8 +684,27 @@
 }
 
 .dir-card-enter {
+  display: inline-block;
+  padding: 0;
+  border: 0;
+  clip-path: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.35em;
+  line-height: 1;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 0.3s, letter-spacing 0.4s, text-shadow 0.3s;
+}
+
+.dir-card:hover .dir-card-enter,
+.dir-card-enter:hover,
+.dir-card-enter:focus-visible {
   color: var(--red);
-  background: rgba(0, 0, 0, 0.72);
+  letter-spacing: 0.55em;
+  text-shadow: 0 0 10px var(--red-glow);
 }
 
 .dir-card[data-href] {

@@ -53,7 +53,7 @@
 
     document.getElementById("restricted-go-back")?.addEventListener("click", () => {
       if (history.length > 1) history.back();
-      else window.location.href = "/index";
+      else window.location.href = "/registry";
     });
   }
 

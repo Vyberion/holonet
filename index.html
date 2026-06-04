@@ -3,21 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Index — Sith Holonet</title>
-  <meta name="description" content="The Index: Departmental and divisional directory of the Sith Order." />
-
+  <title>Sith Holonet</title>
+  <meta name="description" content="Manar's Sith Order - Laws, lore and divisional records." />
   <link rel="stylesheet" href="/css/style.css" />
-  <link rel="stylesheet" href="/css/index.css" />
   <link rel="stylesheet" href="/css/nav.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+  <meta property="og:title" content="Sith Holonet" />
+  <meta property="og:description" content="Laws, lore and archives of the Sith Order." />
+  <meta property="og:image" content="https://holonet.vercel.app/assets/placeholder.png" />
+  <meta property="og:url" content="https://holonet.vercel.app/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Sith Holonet" />
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Sith Holonet" />
+  <meta name="twitter:description" content="Laws, lore and archives of the Sith Order." />
+  <meta name="twitter:image" content="https://holonet.vercel.app/assets/placeholder.png" />
 </head>
 
 <body>
-
   <div id="nav-container"></div>
 
-  <div id="vignette"   aria-hidden="true"></div>
+  <!-- ░░ AMBIENT LAYERS ░░ -->
+  <div id="vignette"  aria-hidden="true"></div>
   <div id="rune-field" aria-hidden="true"></div>
   <div id="holo-grid"  aria-hidden="true"></div>
 
@@ -31,14 +41,16 @@
     </div>
   </div>
 
+  <!-- ░░ MAIN APPLICATION ░░ -->
   <div id="app">
+
     <!-- ▓▓ HEADER ▓▓ -->
     <header>
       <p class="site-eyebrow">MANAR'S THE SITH ORDER</p>
       <div class="header-rule"></div>
-      <h1 class="site-title">THE INDEX</h1>
+      <h1 class="site-title">THE HOLONET</h1>
       <p class="site-subtitle">
-        RESOURCE DIRECTORY
+        IMPERIAL TRANSMISSION NETWORK
       </p>
       <div class="header-rule"></div>
     </header>
@@ -50,128 +62,92 @@
       <span style="color:var(--text-dim)"><span id="timestamp">3958.001 / 00:00:00 GST</span></span>
     </div>
 
-    <!-- ═══ MAIN ═══ -->
-    <main class="index-main">
+    <!-- ▓▓ NAV GRID ▓▓ -->
+    <main>
+      <nav class="nav-grid" aria-label="Holonet Sections">
 
-      <!-- SECTION: INTERNAL DEPARTMENTS -->
-      <section class="index-section" aria-labelledby="sec-internal">
-        <div class="section-header">
-          <span class="section-tag" id="sec-internal">// INTERNAL DEPARTMENTS</span>
-          <div class="section-rule"></div>
-        </div>
+        <!-- THE CODEX -->
+        <a href="/codex" class="nav-card" aria-label="Enter The Codex">
+          <div class="card-inner-border" aria-hidden="true"></div>
+          <div class="card-corners"      aria-hidden="true"></div>
+          <div class="card-vline"        aria-hidden="true"></div>
+          <div class="card-scan"         aria-hidden="true"></div>
+          <div class="card-bg-glyph"     aria-hidden="true">I</div>
 
-        <div class="dir-grid dir-grid--internal">
-
-          <!-- HIGH RANKS - offline -->
-          <div class="dir-card dir-card--locked" aria-label="High Ranks - offline">
-            <div class="dir-card-frame" aria-hidden="true"></div>
-            <div class="dir-card-top">
-              <h2 class="dir-card-title">HIGH RANKS</h2>
-              <span class="dir-card-badge">[ OFFLINE ]</span>
-            </div>
-            <p class="dir-card-desc">
-              High rank administrative handbooks and command resources are not yet connected.
-            </p>
-            <div class="dir-card-bottom">
-              <span class="dir-card-node">NODE: OFFLINE</span>
-              <span class="dir-card-node">DATABASE SEALED</span>
-            </div>
+          <div class="card-hex" aria-hidden="true">0x1A&nbsp;&nbsp;SECT.01</div>
+          <div class="card-data" aria-hidden="true">
+            CLEARANCE: UNCLASSIFIED<br>
+            DESIGNATION: LEVEL 1<br>
           </div>
 
-          <!-- WARLORDS ADVISORY - offline -->
-          <div class="dir-card dir-card--locked" aria-label="Warlords Advisory - offline">
-            <div class="dir-card-frame" aria-hidden="true"></div>
-            <div class="dir-card-top">
-              <h2 class="dir-card-title">WARLORDS</h2>
-              <span class="dir-card-badge">[ OFFLINE ]</span>
-            </div>
-            <p class="dir-card-desc">
-              Warlord advisory records and operational documents are not yet connected.
-            </p>
-            <div class="dir-card-bottom">
-              <span class="dir-card-node">NODE: OFFLINE</span>
-              <span class="dir-card-node">DATABASE SEALED</span>
-            </div>
+          <span class="card-category">Section 01 &mdash; Doctrine</span>
+          <h2 class="card-title">The Codex</h2>
+          <p class="card-desc">
+            Supreme law.
+          </p>
+          <span class="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
+        </a>
+
+        <!-- THE ARCHIVES -->
+        <a href="/archives" class="nav-card" aria-label="Enter The Archives">
+          <div class="card-inner-border" aria-hidden="true"></div>
+          <div class="card-corners"      aria-hidden="true"></div>
+          <div class="card-vline"        aria-hidden="true"></div>
+          <div class="card-scan"         aria-hidden="true"></div>
+          <div class="card-bg-glyph"     aria-hidden="true">II</div>
+
+          <div class="card-hex" aria-hidden="true">0x2B&nbsp;&nbsp;SECT.02</div>
+          <div class="card-data" aria-hidden="true">
+            CLEARANCE: UNCLASSIFIED<br>
+            DESIGNATION: LEVEL 1<br>
           </div>
 
-        </div>
-      </section>
+          <span class="card-category">Section 02 &mdash; Records</span>
+          <h2 class="card-title">The Archives</h2>
+          <p class="card-desc">
+            Sith lore.
+          </p>
+          <span class="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
+        </a>
 
-      <!-- SECTION: MILITARY & MYSTIC DIVISIONS -->
-      <section class="index-section" aria-labelledby="sec-divisions">
-        <div class="section-header">
-          <span class="section-tag" id="sec-divisions">// MILITARY &amp; MYSTIC DIVISIONS</span>
-          <div class="section-rule"></div>
-        </div>
+        <!-- THE REGISTRY -->
+        <a href="/registry" class="nav-card" aria-label="Enter The Registry">
+          <div class="card-inner-border" aria-hidden="true"></div>
+          <div class="card-corners"      aria-hidden="true"></div>
+          <div class="card-vline"        aria-hidden="true"></div>
+          <div class="card-scan"         aria-hidden="true"></div>
+          <div class="card-bg-glyph"     aria-hidden="true">III</div>
 
-        <div class="dir-grid dir-grid--divisions">
-
-          <article class="dir-card" id="card-reavers" data-status="restricted" data-href="/index/reaver/reavers" aria-label="Reaver Division">
-            <div class="dir-card-frame" aria-hidden="true"></div>
-            <div class="dir-card-top">
-              <h2 class="dir-card-title">REAVERS</h2>
-              <span class="dir-card-badge status-badge">[ RESTRICTED ]</span>
-            </div>
-            
-            <p class="dir-card-desc">
-              Combat rosters, operation handbooks, performance
-              spreadsheets, and offensive tactical deployment logs.
-            </p>
-            
-            <div class="dir-card-bottom">
-              <span class="dir-card-node">NODE: RVR-1</span>
-              <a href="/index/reaver/reavers" class="dir-card-enter action-btn">ENTER TERMINAL &rsaquo;&rsaquo;</a>
-            </div>
-          </article>
-
-          <!-- DARK HONOR GUARD — offline -->
-          <div class="dir-card dir-card--locked" aria-label="Dark Honor Guard — offline">
-            <div class="dir-card-frame" aria-hidden="true"></div>
-            <div class="dir-card-top">
-              <h2 class="dir-card-title">DARK HONOR GUARD</h2>
-              <span class="dir-card-badge">[ OFFLINE ]</span>
-            </div>
-            <p class="dir-card-desc">Imperial protection detachment protocols.</p>
-            <div class="dir-card-bottom">
-              <span class="dir-card-node">NODE: DHG-2 &mdash; OFFLINE</span>
-            </div>
+          <div class="card-hex" aria-hidden="true">0x3C&nbsp;&nbsp;SECT.03</div>
+          <div class="card-data" aria-hidden="true">
+            CLEARANCE: RESTRICTED<br>
+            DESIGNATION: LEVEL 2<br>
           </div>
 
-          <!-- INQUISITORIUS — offline -->
-          <div class="dir-card dir-card--locked" aria-label="Inquisitorius — offline">
-            <div class="dir-card-frame" aria-hidden="true"></div>
-            <div class="dir-card-top">
-              <h2 class="dir-card-title">INQUISITORIUS</h2>
-              <span class="dir-card-badge">[ OFFLINE ]</span>
-            </div>
-            <p class="dir-card-desc">Purity enforcement and intelligence tracking indexes.</p>
-            <div class="dir-card-bottom">
-              <span class="dir-card-node">NODE: INQ-3 &mdash; OFFLINE</span>
-            </div>
-          </div>
+          <span class="card-category">Section 03 &mdash; Departments</span>
+          <h2 class="card-title">The Registry</h2>
+          <p class="card-desc">
+            Document directory.
+          </p>
+          <span class="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
+        </a>
 
-          <!-- DREAD MASTERS - offline -->
-          <div class="dir-card dir-card--locked" aria-label="Dread Masters - offline">
-            <div class="dir-card-frame" aria-hidden="true"></div>
-            <div class="dir-card-top">
-              <h2 class="dir-card-title">DREAD MASTERS</h2>
-              <span class="dir-card-badge">[ OFFLINE ]</span>
-            </div>
-            <p class="dir-card-desc">Phobos dynamic mental manipulation matrices.</p>
-            <div class="dir-card-bottom">
-              <span class="dir-card-node">NODE: DRM-4 &mdash; OFFLINE</span>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
+      </nav>
     </main>
 
-    <!-- ═══ FOOTER ═══ -->
-    <footer class="index-footer">
-      <p class="footer-glyph">᛭ &nbsp; Peace is a lie &mdash; There is only passion &nbsp; ᛭</p>
-      <p class="footer-sig">Sith Holonet &mdash; Encrypted Transmission &mdash; Node KOR-7</p>
+    <!-- ▓▓ MARQUEE ▓▓ -->
+    <div class="marquee-wrap" aria-hidden="true">
+      <div class="marquee-track" style="color:var(--text-dim);"></div>
+    </div>
+
+    <!-- ▓▓ FOOTER ▓▓ -->
+    <footer>
+      <p class="footer-glyph" style="color:var(--text-dim);">
+        ᛭ &nbsp; Peace is a lie &mdash; There is only passion &nbsp; ᛭
+      </p>
+      <p class="footer-sig" style="color:var(--text-dim);">
+        Sith Holonet &mdash; Encrypted Transmission &mdash; Node KOR-7
+      </p>
     </footer>
 
   </div><!-- /#app -->

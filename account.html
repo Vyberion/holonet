@@ -96,19 +96,23 @@
         </p>
 
         <div class="terminal-box">
-          <div class="data-row">
-            <span class="data-label">Device Hash:</span>
-            <span class="data-value" id="device-id">GENERATING...</span>
-          </div>
-          <div class="data-row">
-            <span class="data-label">Network Status:</span>
-            <span class="data-value unbound" id="auth-status">UNBOUND</span>
-          </div>
-          <div class="data-row">
-            <span class="data-label">Roblox UID:</span>
-            <span class="data-value unbound" id="roblox-id">NULL</span>
-          </div>
-        </div>
+  <         div class="data-row">
+                <span class="data-label">Device Hash:</span>
+              <span class="data-value" id="device-id">GENERATING...</span>
+             </div>
+             <div class="data-row">
+              <span class="data-label">Network Status:</span>
+               <span class="data-value unbound" id="auth-status">UNBOUND</span>
+             </div>
+              <div class="data-row">
+                <span class="data-label">Roblox Identity:</span>
+               <span class="data-value unbound" id="roblox-user">NULL</span>
+             </div>
+             <div class="data-row">
+              <span class="data-label">Roblox UID:</span>
+              <span class="data-value unbound" id="roblox-id">NULL</span>
+             </div>
+            </div>
 
         <button class="btn-auth" id="bind-btn">INITIATE OAUTH BIND</button>
       </div>
@@ -133,7 +137,6 @@
 
     // Device Management Logic
     document.addEventListener("DOMContentLoaded", async () => {
-  // 1. Resolve or mint device hash signature properties
   let deviceId = localStorage.getItem('sith_device_id');
   if (!deviceId) {
     deviceId = 'DEV-' + crypto.getRandomValues(new Uint32Array(1))[0].toString(16).toUpperCase();
@@ -141,28 +144,25 @@
   }
   document.getElementById('device-id').textContent = deviceId;
 
-  // 2. Parse query parameters sent during auth redirection
   const urlParams = new URLSearchParams(window.location.search);
   const statusParam = urlParams.get('status');
   const rblxParam = urlParams.get('rblx');
+  const userParam = urlParams.get('user');
   const errorMsg = urlParams.get('msg');
 
-  if (statusParam === 'success' && rblxParam) {
-    // Save to local device storage cache for fast subsequent page loads
+  if (statusParam === 'success' && rblxParam && userParam) {
     localStorage.setItem('sith_roblox_id', rblxParam);
-    // Clear URL parameters cleanly
+    localStorage.setItem('sith_roblox_user', userParam);
     window.history.replaceState({}, document.title, window.location.pathname);
-    updateUiBound(rblxParam);
+    updateUiBound(rblxParam, userParam);
   } else if (statusParam === 'error') {
     alert(`Matrix Error: ${errorMsg || 'Authorization Rejected'}`);
     window.history.replaceState({}, document.title, window.location.pathname);
     fetchDatabaseVerificationStatus(deviceId);
   } else {
-    // Normal routing navigation, check Supabase real status trace
     fetchDatabaseVerificationStatus(deviceId);
   }
 
-  // 3. Connect to background database infrastructure to confirm active link status
   async function fetchDatabaseVerificationStatus(id) {
     try {
       const res = await fetch(`/api/auth/check-status?deviceId=${encodeURIComponent(id)}`);
@@ -170,23 +170,26 @@
       
       if (res.ok && data.bound) {
         localStorage.setItem('sith_roblox_id', data.robloxId);
-        updateUiBound(data.robloxId);
+        localStorage.setItem('sith_roblox_user', data.robloxUsername);
+        updateUiBound(data.robloxId, data.robloxUsername);
       } else {
         localStorage.removeItem('sith_roblox_id');
+        localStorage.removeItem('sith_roblox_user');
         updateUiUnbound();
       }
     } catch (e) {
       console.error("Failed looking up security clearance mapping status:", e);
-      // Fallback check against device storage cache if server fails
       const cachedId = localStorage.getItem('sith_roblox_id');
-      if (cachedId) updateUiBound(cachedId);
+      const cachedUser = localStorage.getItem('sith_roblox_user');
+      if (cachedId && cachedUser) updateUiBound(cachedId, cachedUser);
       else updateUiUnbound();
     }
   }
 
-  function updateUiBound(robloxId) {
+  function updateUiBound(robloxId, username) {
     const statusEl = document.getElementById('auth-status');
     const robloxEl = document.getElementById('roblox-id');
+    const userEl = document.getElementById('roblox-user');
     const btnEl = document.getElementById('bind-btn');
 
     statusEl.textContent = 'SECURE LINK ACTIVE';
@@ -195,20 +198,29 @@
     robloxEl.textContent = robloxId;
     robloxEl.classList.remove('unbound');
 
+    userEl.textContent = '@' + username;
+    userEl.classList.remove('unbound');
+
     btnEl.textContent = 'TERMINATE SESSION';
     btnEl.onclick = () => {
-      // Unbinding removes tracking maps cleanly from client side state
-      // (Optionally, add a clean clear route handling table drops if desired)
       localStorage.removeItem('sith_roblox_id');
+      localStorage.removeItem('sith_roblox_user');
       location.reload();
     };
   }
 
   function updateUiUnbound() {
     const btnEl = document.getElementById('bind-btn');
+    
+    document.getElementById('auth-status').textContent = 'UNBOUND';
+    document.getElementById('auth-status').classList.add('unbound');
+    document.getElementById('roblox-id').textContent = 'NULL';
+    document.getElementById('roblox-id').classList.add('unbound');
+    document.getElementById('roblox-user').textContent = 'NULL';
+    document.getElementById('roblox-user').classList.add('unbound');
+
     btnEl.textContent = 'INITIATE OAUTH BIND';
     btnEl.onclick = () => {
-      // Redirect to authorization API routing matrix
       window.location.href = `/api/auth/login?deviceId=${encodeURIComponent(deviceId)}`;
     };
   }

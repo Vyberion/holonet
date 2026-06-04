@@ -38,9 +38,11 @@ export default async function handler(req, res) {
       throw new Error('Could not fetch Roblox identity profile data.');
     }
 
-    const robloxUid = userData.sub; // This is the user's stable Roblox UserID string
+    const robloxUid = userData.sub; 
+    const robloxUser = userData.preferred_username; // Official Roblox Username (@handle)
+    const robloxDisplay = userData.name;              // Current Display Name
 
-    // 3. Upsert device-to-roblox map mapping inside Supabase
+    // 3. Upsert device-to-roblox map inside Supabase
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -50,11 +52,13 @@ export default async function handler(req, res) {
         'apikey': supabaseKey,
         'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates' // Acts as an Upsert statement
+        'Prefer': 'resolution=merge-duplicates'
       },
       body: JSON.stringify({
         device_id: deviceId,
-        roblox_id: robloxUid
+        roblox_id: robloxUid,
+        roblox_username: robloxUser,
+        roblox_display_name: robloxDisplay
       })
     });
 
@@ -64,8 +68,8 @@ export default async function handler(req, res) {
       throw new Error('Database insertion failed.');
     }
 
-    // 4. Send user back to client dashboard with confirmation keys
-    return res.redirect(`/account.html?status=success&rblx=${robloxUid}`);
+    // Pass username and ID back through params to allow immediate frontend caching
+    return res.redirect(`/account.html?status=success&rblx=${robloxUid}&user=${encodeURIComponent(robloxUser)}`);
 
   } catch (err) {
     return res.redirect(`/account.html?status=error&msg=${encodeURIComponent(err.message)}`);

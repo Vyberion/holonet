@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    const response = await fetch(`${supabaseUrl}/rest/v1/device_bindings?device_id=eq.${encodeURIComponent(deviceId)}&select=roblox_id`, {
+    const response = await fetch(`${supabaseUrl}/rest/v1/device_bindings?device_id=eq.${encodeURIComponent(deviceId)}&select=roblox_id,roblox_username`, {
       headers: {
         'apikey': supabaseKey,
         'Authorization': `Bearer ${supabaseKey}`
@@ -21,7 +21,11 @@ export default async function handler(req, res) {
     const data = await response.json();
     
     if (data && data.length > 0) {
-      return res.status(200).json({ bound: true, robloxId: data[0].roblox_id });
+      return res.status(200).json({ 
+        bound: true, 
+        robloxId: data[0].roblox_id, 
+        robloxUsername: data[0].roblox_username 
+      });
     } else {
       return res.status(200).json({ bound: false });
     }

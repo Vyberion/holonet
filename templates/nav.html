@@ -1,10 +1,8 @@
 <nav class="site-nav" aria-label="Site navigation">
-  <!-- one-shot horizontal scan sweep on load -->
   <div class="nav-scan" aria-hidden="true"></div>
 
   <div class="nav-inner">
 
-    <!-- Mobile toggle -->
     <button
       class="nav-toggle"
       aria-controls="nav-links"
@@ -16,47 +14,65 @@
       <span></span>
     </button>
 
-    <!-- Links -->
-    <ul class="nav-links" id="nav-links" role="list">
+    <div class="nav-center">
+      <ul class="nav-links" id="nav-links" role="list">
 
-      <li class="nav-item">
-        <a href="home.html" class="nav-link" data-page="home">
-          <div class="nav-link-corners" aria-hidden="true"></div>
-          <span class="nav-link-prefix">00</span>
-          <span class="nav-link-label">Home</span>
-        </a>
-      </li>
+        <li class="nav-item">
+          <a href="home.html" class="nav-link" data-page="home">
+            <div class="nav-link-corners" aria-hidden="true"></div>
+            <span class="nav-link-prefix">00</span>
+            <span class="nav-link-label">Home</span>
+          </a>
+        </li>
 
-      <li class="nav-sep" aria-hidden="true"></li>
+        <li class="nav-sep" aria-hidden="true"></li>
 
-      <li class="nav-item">
-        <a href="codex.html" class="nav-link" data-page="codex">
-          <div class="nav-link-corners" aria-hidden="true"></div>
-          <span class="nav-link-prefix">01</span>
-          <span class="nav-link-label">Codex</span>
-        </a>
-      </li>
+        <li class="nav-item">
+          <a href="codex.html" class="nav-link" data-page="codex">
+            <div class="nav-link-corners" aria-hidden="true"></div>
+            <span class="nav-link-prefix">01</span>
+            <span class="nav-link-label">Codex</span>
+          </a>
+        </li>
 
-      <li class="nav-sep" aria-hidden="true"></li>
+        <li class="nav-sep" aria-hidden="true"></li>
 
-      <li class="nav-item">
-        <a href="archives.html" class="nav-link" data-page="archives">
-          <div class="nav-link-corners" aria-hidden="true"></div>
-          <span class="nav-link-prefix">02</span>
-          <span class="nav-link-label">Archives</span>
-        </a>
-      </li>
+        <li class="nav-item">
+          <a href="archives.html" class="nav-link" data-page="archives">
+            <div class="nav-link-corners" aria-hidden="true"></div>
+            <span class="nav-link-prefix">02</span>
+            <span class="nav-link-label">Archives</span>
+          </a>
+        </li>
 
-      <li class="nav-sep" aria-hidden="true"></li>
+        <li class="nav-sep" aria-hidden="true"></li>
 
-      <li class="nav-item">
-        <a href="index.html" class="nav-link" data-page="index">
-          <div class="nav-link-corners" aria-hidden="true"></div>
-          <span class="nav-link-prefix">03</span>
-          <span class="nav-link-label">Index</span>
-        </a>
-      </li>
+        <li class="nav-item">
+          <a href="index.html" class="nav-link" data-page="index">
+            <div class="nav-link-corners" aria-hidden="true"></div>
+            <span class="nav-link-prefix">03</span>
+            <span class="nav-link-label">Index</span>
+          </a>
+        </li>
 
-    </ul>
+      </ul>
+    </div>
+
+    <div class="nav-right">
+      <a href="account.html" class="nav-link account-link" data-page="account">
+        <div class="account-text">
+          <span class="nav-link-prefix">XX</span>
+          <span class="nav-link-label">Account</span>
+        </div>
+        <div class="account-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
+        <div class="nav-link-corners" aria-hidden="true"></div>
+      </a>
+    </div>
+
   </div>
 </nav>

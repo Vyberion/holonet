@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account Manager — Sith Holonet</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/nav.css" />
+  <style>
+    .account-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: 0 0 40px rgba(192,0,26,0.08);
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .account-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 80% at 50% -20%, rgba(192,0,26,0.1) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .terminal-box {
+      background: var(--dark);
+      border: 1px solid var(--border-hot);
+      padding: 20px;
+      margin: 30px 0;
+      font-family: 'Share Tech Mono', monospace;
+      text-align: left;
+    }
+
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 0.8rem;
+      border-bottom: 1px dashed var(--border);
+      padding-bottom: 4px;
+    }
+
+    .data-label { color: var(--text-faint); letter-spacing: 0.2em; text-transform: uppercase; }
+    .data-value { color: var(--red-bright); text-shadow: 0 0 8px var(--red-glow); }
+    .data-value.unbound { color: var(--text-dim); text-shadow: none; }
+
+    .btn-auth {
+      display: inline-block;
+      background: transparent;
+      color: var(--red-bright);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      padding: 16px 32px;
+      border: 1px solid var(--red-dim);
+      cursor: crosshair;
+      position: relative;
+      transition: all 0.3s;
+      text-decoration: none;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    }
+
+    .btn-auth:hover {
+      background: rgba(192,0,26,0.1);
+      border-color: var(--red-bright);
+      box-shadow: inset 0 0 20px var(--red-glow), 0 0 20px var(--red-glow);
+      text-shadow: 0 0 10px var(--red-bright);
+    }
+  </style>
+</head>
+
+<body class="nav-offset">
+  <div id="nav-container"></div>
+  <div id="vignette" aria-hidden="true"></div>
+
+  <div id="app">
+    <header>
+      <p class="site-eyebrow">NODE SECURITY</p>
+      <div class="header-rule"></div>
+      <h1 class="site-title" style="font-size: clamp(2rem, 5vw, 4rem);">ACCOUNT LINKING</h1>
+      <p class="site-subtitle">DEVICE AUTHORIZATION</p>
+      <div class="header-rule"></div>
+    </header>
+
+    <main>
+      <div class="account-panel">
+        <p style="font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.1em; line-height: 1.6;">
+          Bind your Roblox account your device. 
+          This connection acts as your clearance pass.
+        </p>
+
+        <div class="terminal-box">
+          <div class="data-row">
+            <span class="data-label">Device Hash:</span>
+            <span class="data-value" id="device-id">GENERATING...</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">Network Status:</span>
+            <span class="data-value unbound" id="auth-status">UNBOUND</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">Roblox UID:</span>
+            <span class="data-value unbound" id="roblox-id">NULL</span>
+          </div>
+        </div>
+
+        <button class="btn-auth" id="bind-btn">INITIATE OAUTH BIND</button>
+      </div>
+    </main>
+
+    <footer>
+      <p class="footer-glyph" style="color:var(--text-dim);">᛭ &nbsp; Security clearance required &nbsp; ᛭</p>
+    </footer>
+  </div>
+
+  <script src="/js/main.js"></script>
+  <script>
+    // Navigation Fetch
+    fetch('/templates/nav.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('nav-container').innerHTML = html;
+        const script = document.createElement('script');
+        script.src = '/js/nav.js';
+        document.body.appendChild(script);
+      });
+
+    // Device Management Logic
+    document.addEventListener("DOMContentLoaded", async () => {
+  // 1. Resolve or mint device hash signature properties
+  let deviceId = localStorage.getItem('sith_device_id');
+  if (!deviceId) {
+    deviceId = 'DEV-' + crypto.getRandomValues(new Uint32Array(1))[0].toString(16).toUpperCase();
+    localStorage.setItem('sith_device_id', deviceId);
+  }
+  document.getElementById('device-id').textContent = deviceId;
+
+  // 2. Parse query parameters sent during auth redirection
+  const urlParams = new URLSearchParams(window.location.search);
+  const statusParam = urlParams.get('status');
+  const rblxParam = urlParams.get('rblx');
+  const errorMsg = urlParams.get('msg');
+
+  if (statusParam === 'success' && rblxParam) {
+    // Save to local device storage cache for fast subsequent page loads
+    localStorage.setItem('sith_roblox_id', rblxParam);
+    // Clear URL parameters cleanly
+    window.history.replaceState({}, document.title, window.location.pathname);
+    updateUiBound(rblxParam);
+  } else if (statusParam === 'error') {
+    alert(`Matrix Error: ${errorMsg || 'Authorization Rejected'}`);
+    window.history.replaceState({}, document.title, window.location.pathname);
+    fetchDatabaseVerificationStatus(deviceId);
+  } else {
+    // Normal routing navigation, check Supabase real status trace
+    fetchDatabaseVerificationStatus(deviceId);
+  }
+
+  // 3. Connect to background database infrastructure to confirm active link status
+  async function fetchDatabaseVerificationStatus(id) {
+    try {
+      const res = await fetch(`/api/auth/check-status?deviceId=${encodeURIComponent(id)}`);
+      const data = await res.json();
+      
+      if (res.ok && data.bound) {
+        localStorage.setItem('sith_roblox_id', data.robloxId);
+        updateUiBound(data.robloxId);
+      } else {
+        localStorage.removeItem('sith_roblox_id');
+        updateUiUnbound();
+      }
+    } catch (e) {
+      console.error("Failed looking up security clearance mapping status:", e);
+      // Fallback check against device storage cache if server fails
+      const cachedId = localStorage.getItem('sith_roblox_id');
+      if (cachedId) updateUiBound(cachedId);
+      else updateUiUnbound();
+    }
+  }
+
+  function updateUiBound(robloxId) {
+    const statusEl = document.getElementById('auth-status');
+    const robloxEl = document.getElementById('roblox-id');
+    const btnEl = document.getElementById('bind-btn');
+
+    statusEl.textContent = 'SECURE LINK ACTIVE';
+    statusEl.classList.remove('unbound');
+
+    robloxEl.textContent = robloxId;
+    robloxEl.classList.remove('unbound');
+
+    btnEl.textContent = 'TERMINATE SESSION';
+    btnEl.onclick = () => {
+      // Unbinding removes tracking maps cleanly from client side state
+      // (Optionally, add a clean clear route handling table drops if desired)
+      localStorage.removeItem('sith_roblox_id');
+      location.reload();
+    };
+  }
+
+  function updateUiUnbound() {
+    const btnEl = document.getElementById('bind-btn');
+    btnEl.textContent = 'INITIATE OAUTH BIND';
+    btnEl.onclick = () => {
+      // Redirect to authorization API routing matrix
+      window.location.href = `/api/auth/login?deviceId=${encodeURIComponent(deviceId)}`;
+    };
+  }
+});
+  </script>
+</body>
+</html>

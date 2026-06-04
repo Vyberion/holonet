@@ -343,3 +343,64 @@
   .nav-offset {
     padding-top: 62px;
   }
+
+  /* ─────────────────────────────────────────────
+   NAV ALIGNMENT UPDATES
+───────────────────────────────────────────── */
+.nav-inner {
+  justify-content: space-between; /* Replaces center */
+}
+
+.nav-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+}
+
+.account-icon {
+  display: none; /* Hide icon on PC */
+  width: 20px;
+  height: 20px;
+  color: var(--text-dim);
+  transition: color 0.3s;
+}
+
+.account-link:hover .account-icon,
+.account-link.active .account-icon {
+  color: var(--red-bright);
+  filter: drop-shadow(0 0 6px rgba(255,0,34,0.5));
+}
+
+/* ─────────────────────────────────────────────
+   MOBILE OVERRIDES FOR NAV
+───────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .nav-center {
+    position: static; /* Let the absolute nav-links take over */
+  }
+  
+  .account-text {
+    display: none; /* Hide text on mobile */
+  }
+  
+  .account-icon {
+    display: block; /* Show icon on mobile */
+  }
+
+  .account-link {
+    padding: 8px; /* Square it up for mobile */
+    clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+    border: 1px solid var(--red-dim);
+  }
+  
+  /* Prevent the account button from looking like a dropdown item */
+  .nav-right .nav-link {
+    border-bottom: none;
+    flex-direction: column;
+  }
+}

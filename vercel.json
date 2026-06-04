@@ -1,7 +1,6 @@
 {
   "cleanUrls": true,
 
-  "version": 2,
   "routes": [
     { "src": "/", "dest": "/home.html" },
     { "src": "/api/auth/login", "dest": "/api/auth/login.js" },

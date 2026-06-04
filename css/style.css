@@ -680,14 +680,43 @@ footer {
 }
 
 .loader-ring {
+  position: relative;
   width: 90px;
   height: 90px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
   border: 1px solid var(--border);
   border-top-color: var(--red-bright);
   border-right-color: rgba(0,200,255,0.3);
   border-radius: 50%;
+
   animation: spin 0.9s linear infinite;
-  box-shadow: 0 0 30px var(--red-glow), inset 0 0 20px rgba(192,0,26,0.05);
+
+  box-shadow:
+    0 0 30px var(--red-glow),
+    inset 0 0 20px rgba(192,0,26,0.05);
+}
+
+.loader-logo {
+  width: 55%;
+  height: 55%;
+  object-fit: contain;
+
+  /*filter:
+    drop-shadow(0 0 5px var(--red-bright))
+    drop-shadow(0 0 5px var(--red-glow))
+    drop-shadow(0 0 3px var(--red-glow));*/
+  
+  animation: spin 7.2s linear infinite reverse
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }

@@ -18,11 +18,11 @@
     right: 0;
     z-index: 2000;
     /* same chamfer language as .codex-article / .status-bar */
-    border-bottom: 1px solid var(--border-hot);
+    border-bottom: 1px solid var(--red-dim);
     /* scanline wash on the bar itself */
     /* ambient glow like .nav-grid */
     box-shadow:
-      0 0 0 1px var(--border),
+      0 0 0 1px var(--red-dim),
       0 4px 40px rgba(192,0,26,0.12),
       0 0 80px rgba(192,0,26,0.05);
   }

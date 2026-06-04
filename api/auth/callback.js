@@ -62,11 +62,14 @@ export default async function handler(req, res) {
       })
     });
 
-    if (!supabaseResponse.ok) {
-      const dbErr = await supabaseResponse.text();
-      console.error('Supabase Error:', dbErr);
-      throw new Error('Database insertion failed.');
-    }
+    // Replace the old error throwing code block inside /api/auth/callback.js with this:
+if (!supabaseResponse.ok) {
+  const dbErr = await supabaseResponse.text();
+  console.error('Supabase Error Payload:', dbErr);
+  
+  // This will pass the EXACT raw database error message straight back to your client UI alert
+  throw new Error(`DB Rejection: ${dbErr}`);
+}
 
     // Pass username and ID back through params to allow immediate frontend caching
     return res.redirect(`/account.html?status=success&rblx=${robloxUid}&user=${encodeURIComponent(robloxUser)}`);

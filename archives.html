@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/css/nav.css" />
   <link rel="stylesheet" href="/css/codex.css" />
+  <link rel="stylesheet" href="/css/search.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 </head>
@@ -26,29 +27,12 @@
   <div class="corner br" aria-hidden="true"><span></span></div>
 
   <div id="loader" role="status" aria-label="Establishing connection">
-  <div class="loader-ring"></div>
-  <div class="loader-text">Establishing Link&hellip;</div>
-  <div class="loader-bar-wrap">
-    <div class="loader-bar"></div>
+    <div class="loader-ring"></div>
+    <div class="loader-text">Establishing Link&hellip;</div>
+    <div class="loader-bar-wrap">
+      <div class="loader-bar"></div>
+    </div>
   </div>
-</div>
-
-<script>
-  const loader = document.getElementById('loader');
-
-  if (sessionStorage.getItem('loaderShown')) {
-    loader.style.display = 'none';
-  } else {
-    sessionStorage.setItem('loaderShown', 'true');
-
-    // Hide loader after animation completes
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        loader.classList.add('hidden'); // or whatever your existing hide animation uses
-      }, 2000);
-    });
-  }
-</script>
 
   <!-- ░░ MAIN APPLICATION ░░ -->
   <div id="app">
@@ -101,29 +85,14 @@
       </p>
     </footer>
 
-    <script src="/js/main.js"></script>
+  </div><!-- /#app -->
 
-    <script>
-      fetch('/templates/nav.html')
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`Failed to load nav: ${response.status}`);
-          }
-          return response.text();
-        })
-        .then(html => {
-          const container = document.getElementById('nav-container');
-          if (!container) return;
+  <div id="search-overlay">
+    <div id="search-container"></div>
+  </div>
 
-          container.innerHTML = html;
-
-          const script = document.createElement('script');
-          script.src = '/js/nav.js';
-          document.body.appendChild(script);
-        })
-        .catch(error => {
-          console.error(error);
-        });
-    </script>
+  <script src="/js/main.js"></script>
+  <script src="/modules/client/site.js"></script>
+  <script src="/js/search.js"></script>
 </body>
 </html>

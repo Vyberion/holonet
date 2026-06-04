@@ -32,34 +32,14 @@
   <div id="holo-grid"  aria-hidden="true"></div>
 
   <div id="loader" role="status" aria-label="Establishing connection">
-  <div class="loader-ring">
-    <img src="/assets/sith_order.svg" alt="" class="loader-logo">
+    <div class="loader-ring">
+      <img src="/assets/sith_order.svg" alt="" class="loader-logo">
+    </div>
+    <div class="loader-text">Establishing Link&hellip;</div>
+    <div class="loader-bar-wrap">
+      <div class="loader-bar"></div>
+    </div>
   </div>
-
-  <div class="loader-text">Establishing Link&hellip;</div>
-
-  <div class="loader-bar-wrap">
-    <div class="loader-bar"></div>
-  </div>
-</div>
-</div>
-
-<script>
-  const loader = document.getElementById('loader');
-
-  if (sessionStorage.getItem('loaderShown')) {
-    loader.style.display = 'none';
-  } else {
-    sessionStorage.setItem('loaderShown', 'true');
-
-    // Hide loader after animation completes
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        loader.classList.add('hidden'); // or whatever your existing hide animation uses
-      }, 2000);
-    });
-  }
-</script>
 
   <!-- ░░ MAIN APPLICATION ░░ -->
   <div id="app">
@@ -173,28 +153,6 @@
   </div><!-- /#app -->
 
   <script src="/js/main.js"></script>
-
-  <script>
-      fetch('/templates/nav.html')
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`Failed to load nav: ${response.status}`);
-          }
-          return response.text();
-        })
-        .then(html => {
-          const container = document.getElementById('nav-container');
-          if (!container) return;
-
-          container.innerHTML = html;
-
-          const script = document.createElement('script');
-          script.src = '/js/nav.js';
-          document.body.appendChild(script);
-        })
-        .catch(error => {
-          console.error(error);
-        });
-    </script>
+  <script src="/modules/client/site.js"></script>
 </body>
 </html>

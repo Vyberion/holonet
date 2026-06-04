@@ -26,22 +26,6 @@
 <div class="loader-bar"></div>
 </div>
 </div>
-<script>
-  const loader = document.getElementById('loader');
-
-  if (sessionStorage.getItem('loaderShown')) {
-    loader.style.display = 'none';
-  } else {
-    sessionStorage.setItem('loaderShown', 'true');
-
-    // Hide loader after animation completes
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        loader.classList.add('hidden'); // or whatever your existing hide animation uses
-      }, 2000);
-    });
-  }
-</script>
 <!-- ░░ MAIN APPLICATION ░░ -->
 <div id="app">
 <!-- ▓▓ HEADER ▓▓ -->
@@ -1036,29 +1020,8 @@
 <div class="search-results" id="search-results"></div>
 </div>
 </div>
-<script>
-      fetch('/templates/nav.html')
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`Failed to load nav: ${response.status}`);
-          }
-          return response.text();
-        })
-        .then(html => {
-          const container = document.getElementById('nav-container');
-          if (!container) return;
-
-          container.innerHTML = html;
-
-          const script = document.createElement('script');
-          script.src = '/js/nav.js';
-          document.body.appendChild(script);
-        })
-        .catch(error => {
-          console.error(error);
-        });
-    </script>
 <script src="/js/main.js"></script>
+<script src="/modules/client/site.js"></script>
 <script src="/js/search.js"></script>
 </body>
 </html>

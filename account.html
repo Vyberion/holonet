@@ -76,8 +76,6 @@
 </head>
 
 <body>
-
-    <body>
   <div id="nav-container"></div>
 
   <!-- ░░ AMBIENT LAYERS ░░ -->
@@ -86,35 +84,14 @@
   <div id="holo-grid"  aria-hidden="true"></div>
 
   <div id="loader" role="status" aria-label="Establishing connection">
-  <div class="loader-ring">
-    <img src="/assets/sith_order.svg" alt="" class="loader-logo">
+    <div class="loader-ring">
+      <img src="/assets/sith_order.svg" alt="" class="loader-logo">
+    </div>
+    <div class="loader-text">Establishing Link&hellip;</div>
+    <div class="loader-bar-wrap">
+      <div class="loader-bar"></div>
+    </div>
   </div>
-
-  <div class="loader-text">Establishing Link&hellip;</div>
-
-  <div class="loader-bar-wrap">
-    <div class="loader-bar"></div>
-  </div>
-</div>
-</div>
-
-<script>
-  const loader = document.getElementById('loader');
-
-  if (sessionStorage.getItem('loaderShown')) {
-    loader.style.display = 'none';
-  } else {
-    sessionStorage.setItem('loaderShown', 'true');
-
-    // Hide loader after animation completes
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        loader.classList.add('hidden'); // or whatever your existing hide animation uses
-      }, 2000);
-    });
-  }
-</script>
-  <div id="vignette" aria-hidden="true"></div>
 
   <div id="app">
     <header>
@@ -135,7 +112,7 @@
     <main>
       <div class="account-panel">
         <p style="font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.1em; line-height: 1.6;">
-          Bind your Roblox account your device. 
+          Bind your Roblox account to your device. 
           This connection acts as your clearance pass.
         </p>
 
@@ -173,107 +150,7 @@
   </div>
 
   <script src="/js/main.js"></script>
-  <script>
-    // Navigation Fetch
-    fetch('/templates/nav.html')
-      .then(response => response.text())
-      .then(html => {
-        document.getElementById('nav-container').innerHTML = html;
-        const script = document.createElement('script');
-        script.src = '/js/nav.js';
-        document.body.appendChild(script);
-      });
-
-    // Device Management Logic
-    document.addEventListener("DOMContentLoaded", async () => {
-  let deviceId = localStorage.getItem('sith_device_id');
-  if (!deviceId) {
-    deviceId = 'DEV-' + crypto.getRandomValues(new Uint32Array(1))[0].toString(16).toUpperCase();
-    localStorage.setItem('sith_device_id', deviceId);
-  }
-  document.getElementById('device-id').textContent = deviceId;
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const statusParam = urlParams.get('status');
-  const rblxParam = urlParams.get('rblx');
-  const userParam = urlParams.get('user');
-  const errorMsg = urlParams.get('msg');
-
-  if (statusParam === 'success' && rblxParam && userParam) {
-    localStorage.setItem('sith_roblox_id', rblxParam);
-    localStorage.setItem('sith_roblox_user', userParam);
-    window.history.replaceState({}, document.title, window.location.pathname);
-    updateUiBound(rblxParam, userParam);
-  } else if (statusParam === 'error') {
-    alert(`Matrix Error: ${errorMsg || 'Authorization Rejected'}`);
-    window.history.replaceState({}, document.title, window.location.pathname);
-    fetchDatabaseVerificationStatus(deviceId);
-  } else {
-    fetchDatabaseVerificationStatus(deviceId);
-  }
-
-  async function fetchDatabaseVerificationStatus(id) {
-    try {
-      const res = await fetch(`/api/auth/check-status?deviceId=${encodeURIComponent(id)}`);
-      const data = await res.json();
-      
-      if (res.ok && data.bound) {
-        localStorage.setItem('sith_roblox_id', data.robloxId);
-        localStorage.setItem('sith_roblox_user', data.robloxUsername);
-        updateUiBound(data.robloxId, data.robloxUsername);
-      } else {
-        localStorage.removeItem('sith_roblox_id');
-        localStorage.removeItem('sith_roblox_user');
-        updateUiUnbound();
-      }
-    } catch (e) {
-      console.error("Failed looking up security clearance mapping status:", e);
-      const cachedId = localStorage.getItem('sith_roblox_id');
-      const cachedUser = localStorage.getItem('sith_roblox_user');
-      if (cachedId && cachedUser) updateUiBound(cachedId, cachedUser);
-      else updateUiUnbound();
-    }
-  }
-
-  function updateUiBound(robloxId, username) {
-    const statusEl = document.getElementById('auth-status');
-    const robloxEl = document.getElementById('roblox-id');
-    const userEl = document.getElementById('roblox-user');
-    const btnEl = document.getElementById('bind-btn');
-
-    statusEl.textContent = 'SECURE LINK ACTIVE';
-    statusEl.classList.remove('unbound');
-
-    robloxEl.textContent = robloxId;
-    robloxEl.classList.remove('unbound');
-
-    userEl.textContent = '@' + username;
-    userEl.classList.remove('unbound');
-
-    btnEl.textContent = 'TERMINATE SESSION';
-    btnEl.onclick = () => {
-      localStorage.removeItem('sith_roblox_id');
-      localStorage.removeItem('sith_roblox_user');
-      location.reload();
-    };
-  }
-
-  function updateUiUnbound() {
-    const btnEl = document.getElementById('bind-btn');
-    
-    document.getElementById('auth-status').textContent = 'UNBOUND';
-    document.getElementById('auth-status').classList.add('unbound');
-    document.getElementById('roblox-id').textContent = 'NULL';
-    document.getElementById('roblox-id').classList.add('unbound');
-    document.getElementById('roblox-user').textContent = 'NULL';
-    document.getElementById('roblox-user').classList.add('unbound');
-
-    btnEl.textContent = 'LOG IN';
-    btnEl.onclick = () => {
-      window.location.href = `/api/auth/login?deviceId=${encodeURIComponent(deviceId)}`;
-    };
-  }
-});
-  </script>
+  <script src="/modules/client/site.js"></script>
+  <script src="/modules/client/account.js"></script>
 </body>
 </html>

@@ -98,6 +98,8 @@
   // ─── SEARCH MARKUP GENERATION & CACHING ──────────────────────────
 
   function buildSearchHTML() {
+    const searchScope = getSearchScopeLabel();
+
     searchContainer.innerHTML = `
       <div class="search-topbar">
         <span class="search-eyebrow">&#x2731;&nbsp; Holonet Search Protocol</span>
@@ -108,8 +110,8 @@
         <input
           type="text"
           id="search-input"
-          placeholder="Search the Codex..."
-          aria-label="Search codex"
+          placeholder="Search ${searchScope}..."
+          aria-label="Search ${searchScope}"
           autocomplete="off"
           spellcheck="false"
         />
@@ -126,6 +128,12 @@
         <span class="search-hint"><kbd>Esc</kbd>&nbsp;close</span>  
       </div>
     `;
+  }
+
+  function getSearchScopeLabel() {
+    const title = document.querySelector('.site-title')?.textContent.trim();
+    if (!title) return 'records';
+    return title.toLowerCase().replace(/^the\s+/, 'the ');
   }
 
   function cacheSearchElements() {

@@ -32,8 +32,19 @@
     content: '';
     position: absolute;
     inset: 0;
+    z-index: 20;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        var(--scanline) 2px,
+        var(--scanline) 4px
+      );
+    opacity: 0.9;
     pointer-events: none;
     clip-path: inherit;
+    animation: scanlines 6s linear infinite;
   }
 
   /* glowing bottom rule — .header-rule treatment */
@@ -334,6 +345,11 @@
     0%,91%,93%,95%,100% { opacity: 1; }
     92%  { opacity: 0.4; }
     94%  { opacity: 0.75; }
+  }
+
+  @keyframes scanlines {
+    from { background-position: 0 0; }
+    to { background-position: 0 4px; }
   }
 
   /* ─────────────────────────────────────────────

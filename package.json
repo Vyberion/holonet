@@ -4,7 +4,7 @@
   "description": "",
   "license": "ISC",
   "author": "",
-  "type": "commonjs",
+  "type": "module",
   "main": "js/main.js",
   "scripts": {
     "start": "live-server --open=home.html",

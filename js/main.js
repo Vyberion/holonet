@@ -88,8 +88,10 @@ updateSignalReadout();
 setInterval(updateSignalReadout, 1000);
 
 function initCardCorruption() {
-  document.querySelectorAll('.nav-card').forEach(card => {
-    const titleEl = card.querySelector('.card-title');
+  document.querySelectorAll('.nav-card, .dir-card').forEach(card => {
+    const titleEl = card.querySelector('.card-title, .dir-card-title');
+    if (!titleEl) return;
+
     const originalText = titleEl.textContent;
     const CORRUPT_CHARS = '█▓▒░⟁⊗☿᛭ꖐ⌖✦✧⌘';
 

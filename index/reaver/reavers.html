@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Reavers — Sith Holonet</title>
   <meta name="description" content="The Reavers: The Emperor’s Assassins." />
-  <script src="/js/guard.js"></script>
+  <script src="/modules/client/access-guard.js"></script>
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/css/codex.css" />
   <link rel="stylesheet" href="/css/nav.css" />
@@ -27,29 +27,12 @@
   <div class="corner br" aria-hidden="true"><span></span></div>
 
   <div id="loader" role="status" aria-label="Establishing connection">
-  <div class="loader-ring"></div>
-  <div class="loader-text">Establishing Link&hellip;</div>
-  <div class="loader-bar-wrap">
-    <div class="loader-bar"></div>
+    <div class="loader-ring"></div>
+    <div class="loader-text">Establishing Link&hellip;</div>
+    <div class="loader-bar-wrap">
+      <div class="loader-bar"></div>
+    </div>
   </div>
-</div>
-
-<script>
-  const loader = document.getElementById('loader');
-
-  if (sessionStorage.getItem('loaderShown')) {
-    loader.style.display = 'none';
-  } else {
-    sessionStorage.setItem('loaderShown', 'true');
-
-    // Hide loader after animation completes
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        loader.classList.add('hidden'); // or whatever your existing hide animation uses
-      }, 2000);
-    });
-  }
-</script>
 
   <!-- ░░ MAIN APPLICATION ░░ -->
   <div id="app">
@@ -103,28 +86,6 @@
     </footer>
 
     <script src="/js/main.js"></script>
-
-    <script>
-      fetch('/templates/nav.html')
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`Failed to load nav: ${response.status}`);
-          }
-          return response.text();
-        })
-        .then(html => {
-          const container = document.getElementById('nav-container');
-          if (!container) return;
-
-          container.innerHTML = html;
-
-          const script = document.createElement('script');
-          script.src = '/js/nav.js';
-          document.body.appendChild(script);
-        })
-        .catch(error => {
-          console.error(error);
-        });
-    </script>
+    <script src="/modules/client/site.js"></script>
 </body>
 </html>

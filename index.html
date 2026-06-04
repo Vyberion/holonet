@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Index — Sith Holonet</title>
+  <meta name="description" content="The Index: Departmental and divisional directory." />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/codex.css" />
+  <link rel="stylesheet" href="/css/nav.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+</head>
+<body>
+  <div id="nav-container"></div>
+
+  <!-- ░░ AMBIENT LAYERS ░░ -->
+  <div id="vignette"  aria-hidden="true"></div>
+  <div id="rune-field" aria-hidden="true"></div>
+  <div id="holo-grid"  aria-hidden="true"></div>
+
+  <!-- ░░ CORNER BRACKETS ░░ -->
+  <div class="corner tl" aria-hidden="true"><span></span></div>
+  <div class="corner tr" aria-hidden="true"><span></span></div>
+  <div class="corner bl" aria-hidden="true"><span></span></div>
+  <div class="corner br" aria-hidden="true"><span></span></div>
+
+  <div id="loader" role="status" aria-label="Establishing connection">
+  <div class="loader-ring"></div>
+  <div class="loader-text">Establishing Link&hellip;</div>
+  <div class="loader-bar-wrap">
+    <div class="loader-bar"></div>
+  </div>
+</div>
+
+<script>
+  const loader = document.getElementById('loader');
+
+  if (sessionStorage.getItem('loaderShown')) {
+    loader.style.display = 'none';
+  } else {
+    sessionStorage.setItem('loaderShown', 'true');
+
+    // Hide loader after animation completes
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        loader.classList.add('hidden'); // or whatever your existing hide animation uses
+      }, 2000);
+    });
+  }
+</script>
+
+  <!-- ░░ MAIN APPLICATION ░░ -->
+  <div id="app">
+
+    <!-- ▓▓ HEADER ▓▓ -->
+    <header>
+      <p class="site-eyebrow">MANAR'S THE SITH ORDER</p>
+      <div class="header-rule"></div>
+      <h1 class="site-title">THE INDEX</h1>
+      <p class="site-subtitle">
+        DEPARTMENTAL DIRECTORY
+      </p>
+      <div class="header-rule"></div>
+    </header>
+
+    <!-- ▓▓ STATUS BAR ▓▓ -->
+    <div class="status-bar" role="status" aria-live="polite">
+      <span style="color:var(--text-dim)">Node: <span style="color:var(--text-dim)">KOR-7 / HORUSET SYSTEM</span></span>
+      <span class="status-signal" style="color:var(--text-dim)"><span class="blink">● LIVE</span>&nbsp;&nbsp;SIGNAL: <span id="signal-bars">███████░░░</span> <span id="signal-percent">82%</span></span>
+      <span style="color:var(--text-dim)"><span id="timestamp">Last Updated: 3958.001</span></span>
+    </div>
+
+    <!-- ▓▓ INDEX DOCUMENT ▓▓ -->
+    <main>
+      <div class="codex-document">
+
+        <!-- NOTICE -->
+        <article class="codex-article">
+          <div class="article-header">
+            <h2 class="article-title">Notice</h2>
+          </div>
+          <div class="article-content">
+            <div class="regulation">
+              <p class="reg-text">The Index is under construction and will be available soon.</p>
+            </div>
+          </div>
+        </article>
+
+
+      </div>
+    </main>
+
+    <!-- ▓▓ FOOTER ▓▓ -->
+    <footer>
+      <p class="footer-glyph" style="color:var(--text-dim);">
+        ᛭ &nbsp; Peace is a lie &mdash; There is only passion &nbsp; ᛭
+      </p>
+      <p class="footer-sig" style="color:var(--text-dim);">
+        Sith Holonet &mdash; Encrypted Transmission &mdash; Node KOR-7
+      </p>
+    </footer>
+
+    <script src="/js/main.js"></script>
+
+    <script>
+      fetch('/templates/nav.html')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Failed to load nav: ${response.status}`);
+          }
+          return response.text();
+        })
+        .then(html => {
+          const container = document.getElementById('nav-container');
+          if (!container) return;
+
+          container.innerHTML = html;
+
+          const script = document.createElement('script');
+          script.src = '/js/nav.js';
+          document.body.appendChild(script);
+        })
+        .catch(error => {
+          console.error(error);
+        });
+    </script>
+</body>
+</html>

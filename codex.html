@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Codex — Sith Holonet</title>
+<meta content="The Codex: Supreme law of The Sith Order." name="description"/>
+<link href="/css/style.css" rel="stylesheet"/>
+<link href="/css/codex.css" rel="stylesheet"/>
+<link href="/css/nav.css" rel="stylesheet"/>
+<link href="/css/search.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+</head>
+<body>
+<div id="nav-container"></div>
+<!-- ░░ AMBIENT LAYERS ░░ -->
+<div aria-hidden="true" id="vignette"></div>
+<div aria-hidden="true" id="rune-field"></div>
+<div aria-hidden="true" id="holo-grid"></div>
+<div aria-label="Establishing connection" id="loader" role="status">
+<div class="loader-ring"></div>
+<div class="loader-text">Establishing Link…</div>
+<div class="loader-bar-wrap">
+<div class="loader-bar"></div>
+</div>
+</div>
+<script>
+  const loader = document.getElementById('loader');
+
+  if (sessionStorage.getItem('loaderShown')) {
+    loader.style.display = 'none';
+  } else {
+    sessionStorage.setItem('loaderShown', 'true');
+
+    // Hide loader after animation completes
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        loader.classList.add('hidden'); // or whatever your existing hide animation uses
+      }, 2000);
+    });
+  }
+</script>
+<!-- ░░ MAIN APPLICATION ░░ -->
+<div id="app">
+<!-- ▓▓ HEADER ▓▓ -->
+<header>
+<p class="site-eyebrow">MANAR'S THE SITH ORDER</p>
+<div class="header-rule"></div>
+<h1 class="site-title">THE CODEX</h1>
+<p class="site-subtitle">
+        SUPREME LAW
+      </p>
+<div class="header-rule"></div>
+</header>
+<!-- ▓▓ STATUS BAR ▓▓ -->
+<div aria-live="polite" class="status-bar" role="status">
+<span style="color:var(--text-dim)">Node: <span style="color:var(--text-dim)">KOR-7 / HORUSET SYSTEM</span></span>
+<span class="status-signal" style="color:var(--text-dim)"><span class="blink">● LIVE</span>  SIGNAL: <span id="signal-bars">███████░░░</span> <span id="signal-percent">82%</span></span>
+<span style="color:var(--text-dim)"><span id="timestamp">Last Updated: 3958.001</span></span>
+</div>
+<!-- ▓▓ CODEX DOCUMENT ▓▓ -->
+<main>
+<div class="codex-document">
+<!-- ARTICLE I -->
+<article class="codex-article">
+<div class="article-header">
+<span class="article-number">ARTICLE I</span>
+<h2 class="article-title">Order Regulations</h2>
+</div>
+<div class="article-content">
+<div class="regulation" id="reg-01-01">
+<h3 class="reg-title">Regulation I</h3>
+<p class="reg-text">The Sith Codex is to be followed by everyone at all times.</p>
+</div>
+<div class="regulation" id="reg-01-02">
+<h3 class="reg-title">Regulation II</h3>
+<p class="reg-text">Sith are to obey the commands of Overseer+ or Division Members when valid and lawful.</p>
+</div>
+<div class="regulation" id="reg-01-03">
+<h3 class="reg-title">Regulation III</h3>
+<p class="reg-text">Team Killing is only permissible in the act of self defense, or while in the proper areas (dueling mats or outside of the temple).</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Conscripts ranking Division Member and Sith Overseer+ are permitted to kill Sith when enforcing the codex.</p>
+</div>
+</div>
+<div class="regulation" id="reg-01-04">
+<h3 class="reg-title">Regulation IV</h3>
+<p class="reg-text">Sith must treat others with respect, regardless of rank.</p>
+</div>
+<div class="regulation" id="reg-01-05">
+<h3 class="reg-title">Regulation V</h3>
+<p class="reg-text">Correct morphs must be worn at all times, unless given specific permission by the host of an event, or a member of High Command.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Contractors, Architects, and Supporters are exempt unless acting in an official capacity.</p>
+</div>
+</div>
+<div class="regulation" id="reg-01-06">
+<h3 class="reg-title">Regulation VI</h3>
+<p class="reg-text">Sith Codex violations are to be reported via #ticket-support in the communications server, or to on planet Law Enforcement (Dark Honor Guards, or Inquisitors.)</p>
+</div>
+<div class="regulation" id="reg-01-07">
+<h3 class="reg-title">Regulation VII</h3>
+<p class="reg-text">Sith are forbidden from joining the Raider or Off-Worlders teams, unless given specific permission by event hosts or High Command.</p>
+</div>
+<div class="regulation" id="reg-01-08">
+<h3 class="reg-title">Regulation VIII</h3>
+<p class="reg-text">Academy Student+, Supporters, and Contractors may freely enter and exit the temple.</p>
+</div>
+<div class="regulation" id="reg-01-09">
+<h3 class="reg-title">Regulation IX</h3>
+<p class="reg-text">Exploiting is strictly prohibited and will result in a permanent ban.</p>
+</div>
+<div class="regulation" id="reg-01-10">
+<h3 class="reg-title">Regulation X</h3>
+<p class="reg-text">All forms of trolling are prohibited and will result in punishment.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Severe offenses are punishable via execution, imprisonment, or banishment, based on the scale of the offense.</p>
+</div>
+</div>
+<div class="regulation" id="reg-01-11">
+<h3 class="reg-title">Regulation XI</h3>
+<p class="reg-text">Sith ranking Academy Student+ are to use grammar, syntax, and act in a mature manner at all times.</p>
+</div>
+<div class="regulation" id="reg-01-12">
+<h3 class="reg-title">Regulation XII</h3>
+<p class="reg-text">Illegitimate events are forbidden, High Ranks are to adhere and follow the 'HR General Handbook' when hosting.</p>
+</div>
+<div class="regulation" id="reg-01-13">
+<h3 class="reg-title">Regulation XIII</h3>
+<p class="reg-text">Permission to spectate trainings or trials must be granted by the event host. High Ranks, Division Members, and Supporters may freely spectate unless dismissed by the event host.</p>
+</div>
+<div class="regulation" id="reg-01-14">
+<h3 class="reg-title">Regulation XIV</h3>
+<p class="reg-text">Permission to spectate Divisional Tryouts may be granted by the Commander or Overseer of said division.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Dark Councilors may spectate Divisional Tryouts freely, with the exception of Inquisitorial Tryouts. High Command and Inquisitors may spectate any event freely.</p>
+</div>
+</div>
+<div class="regulation" id="reg-01-15">
+<h3 class="reg-title">Regulation XV</h3>
+<p class="reg-text">Sith are to kneel to members of High Command, bow to Dark Councilors until told to rise, and must bow swiftly to High Ranks.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Those of superior rank do not bow or kneel to those of inferior rank.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Dark Councilors and above may bow to High Command till told to rise.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section III</span>
+<p>Project Managers and Ownership are only to be knelt to when morphed.</p>
+</div>
+</div>
+<div class="regulation" id="reg-01-16">
+<h3 class="reg-title">Regulation XVI</h3>
+<p class="reg-text">Sith Overseer+, Senior Reaver+, Senior Inquisitor+, Guard Lieutenant+, Dread Masters, and Supporters may at-ease or remove their helmets.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>High Ranks require permission to at-ease or remove their helmets from DC+ when present.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Shadow Guards may at-ease or remove their helmets when ranked Guard Lieutenant+.</p>
+</div>
+</div>
+<div class="regulation" id="reg-01-17">
+<h3 class="reg-title">Regulation XVII</h3>
+<p class="reg-text">Usage of multiple accounts is prohibited. Alternative accounts must be authorized by High Command.</p>
+</div>
+<div class="regulation" id="reg-01-18">
+<h3 class="reg-title">Regulation XVIII</h3>
+<p class="reg-text">Intentionally glitching yourself or others is prohibited. 'Glitching' is defined as the intentional misuse of tools or abilities in an attempt to create disarray.</p>
+</div>
+<div class="regulation" id="reg-01-19">
+<h3 class="reg-title">Regulation XIX</h3>
+<p class="reg-text">Podium access is only granted to Dark Council+.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>High Ranks and Division Members are permitted to remove trespassers from the podium.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Division High Ranks and Lord+ may go on the podium while hosting events.</p>
+</div>
+</div>
+<div class="regulation" id="reg-01-20">
+<h3 class="reg-title">Regulation XX</h3>
+<p class="reg-text">Exploiting loopholes in the Sith Codex is prohibited and should be reported via suggestions the communications server.</p>
+</div>
+<div class="regulation" id="reg-01-21">
+<h3 class="reg-title">Regulation XXI</h3>
+<p class="reg-text">Avatar items that conflict or collide with morphs or tools are prohibited.</p>
+</div>
+<div class="regulation" id="reg-01-22">
+<h3 class="reg-title">Regulation XXII</h3>
+<p class="reg-text">High Command has supreme authority over group function.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>The Emperor's Wrath has supreme authority over Divisions.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>The Emperor's Voice has supreme authority over the Dark Council.</p>
+</div>
+</div>
+<div class="regulation" id="reg-01-23">
+<h3 class="reg-title">Regulation XXIII</h3>
+<p class="reg-text">Spawn camping or killing is prohibited. Spawns are identified by capture points.</p>
+</div>
+<div class="regulation" id="reg-01-24">
+<h3 class="reg-title">Regulation XXIV</h3>
+<p class="reg-text">Display and usernames are to comply with Roblox Terms of Service.</p>
+</div>
+<div class="regulation" id="reg-01-25">
+<h3 class="reg-title">Regulation XXV</h3>
+<p class="reg-text">Event Hosts are permitted to set reasonable regulations for the duration of the event.</p>
+</div>
+<div class="regulation" id="reg-01-26">
+<h3 class="reg-title">Regulation XXVI</h3>
+<p class="reg-text">Trespassing into locked halls is prohibited. Locked halls can be identified by the presence of announcements in the communication server.</p>
+</div>
+<div class="regulation" id="reg-01-27">
+<h3 class="reg-title">Regulation XXVII</h3>
+<p class="reg-text">Sith and Division High Ranks may grant admittance into their respective rooms.</p>
+</div>
+<div class="regulation" id="reg-01-28">
+<h3 class="reg-title">Regulation XXVIII</h3>
+<p class="reg-text">An inactivity notice may last no less than two (2) days and no more than one (1) month.</p>
+</div>
+<div class="regulation" id="reg-01-29">
+<h3 class="reg-title">Regulation XXIX</h3>
+<p class="reg-text">Custom Morphs may be freely worn by all ranks, except for current Division Members.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Division Members may wear custom morphs to publicly hosted events (CTs, MMPs, FFAs, Tournaments, Raids, Practice Raids, etc.)</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>In the event a Dark Councilor or member of High Command prefers their custom morph to a group assigned morph, they may freely do so.</p>
+</div>
+</div>
+</div>
+</article>
+<!-- ARTICLE II -->
+<article class="codex-article">
+<div class="article-header">
+<span class="article-number">ARTICLE II</span>
+<h2 class="article-title">Apprentice Regulations</h2>
+</div>
+<div class="article-content">
+<div class="regulation" id="reg-02-01">
+<h3 class="reg-title">Regulation I</h3>
+<p class="reg-text">Apprentices are to be of an inferior rank to their master.</p>
+</div>
+<div class="regulation" id="reg-02-02">
+<h3 class="reg-title">Regulation II</h3>
+<p class="reg-text">Apprentices must hold the rank of Sith Apprentice or superior.</p>
+</div>
+<div class="regulation" id="reg-02-03">
+<h3 class="reg-title">Regulation III</h3>
+<p class="reg-text">Quantity of apprentices is determined by rank. One: High Command, Sith Marauder, Sith Seer. Two: Darth Mortis, Darth Baras, Sith Master, Sith Overseer. Three: Darth Acina, Darth Aruk, Darth Jadus, Darth Marr, General Malgus, Darth Nox, Darth Ravage, Darth Vowrawn, Darth, Sith Lord.</p>
+</div>
+<div class="regulation" id="reg-02-04">
+<h3 class="reg-title">Regulation IV</h3>
+<p class="reg-text">Apprentices require the approval of their master to be released from their tutorship.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>A denied request allows the apprentice to invoke their right to a trial by combat.</p>
+</div>
+</div>
+<div class="regulation" id="reg-02-05">
+<h3 class="reg-title">Regulation V</h3>
+<p class="reg-text">Apprentices of Dark Councilors or High Command are permitted to accompany their master to any areas their master is authorized to access.</p>
+</div>
+</div>
+</article>
+<!-- ARTICLE III -->
+<article class="codex-article">
+<div class="article-header">
+<span class="article-number">ARTICLE III</span>
+<h2 class="article-title">Kaggath Regulations</h2>
+</div>
+<div class="article-content">
+<div class="regulation" id="reg-03-01">
+<h3 class="reg-title">Regulation I</h3>
+<p class="reg-text">To be valid, Kaggaths must be authorized by the appropriate party.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Kaggath documents targeting Sith ranked Darth and its equivalents or beneath are to be submitted to the Warmaster and voted on by the Dark Council.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Kaggath documents targeting Dark Councilors are to be submitted to The Emperor's Voice.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section III</span>
+<p>Kaggath documents targeting High Command are to be submitted to the Project Manager.</p>
+</div>
+</div>
+<div class="regulation" id="reg-03-02">
+<h3 class="reg-title">Regulation II</h3>
+<p class="reg-text">Kaggaths may be justified only by a select set of reasons, including incompetence, abuse, immaturity, corruption, and inactivity.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>A Humiliation Kaggath may be officiated solely off the basis of insult or disdain, with merit.</p>
+</div>
+</div>
+<div class="regulation" id="reg-03-03">
+<h3 class="reg-title">Regulation III</h3>
+<p class="reg-text">Kaggath documents must be written solely by the challenger without the use of artificial intelligence or third-party assistance.</p>
+</div>
+<div class="regulation" id="reg-03-04">
+<h3 class="reg-title">Regulation IV</h3>
+<p class="reg-text">Sith ranking Sith Apprentice+ may attend Kaggaths.</p>
+</div>
+<div class="regulation" id="reg-03-05">
+<h3 class="reg-title">Regulation V</h3>
+<p class="reg-text">There are three officially recognized types of Kaggaths: Ascension, Humiliation, and Domination. Powerbase vs Powerbase is the default Kaggath game mode. Both parties may settle and agree on an alternative game mode.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>An Ascension Kaggath is a formal challenge with the intent to claim the opponent's rank or position, within three (3) ranks or two (2) ranks above the plaintiff's current rank. i.e. A Senior Guard may Kaggath a Guard Captain, but not the Guard Commander.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>A Humiliation Kaggath is issued to disgrace or discredit the target. These may be fought as 1v1 duels or with group-wide support, where any Sith Apprentice+ may participate.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section III</span>
+<p>A Humiliation Kaggath may be issued against any individual, regardless of division/rank.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section IV</span>
+<p>A Domination Kaggath is a large-scale conflict sanctioned by the Dark Council, pitting entire powerbases or Divisions against one another to assert dominance. Only members of the Dark Council may authorize this type of Kaggath.</p>
+</div>
+</div>
+<div class="regulation" id="reg-03-06">
+<h3 class="reg-title">Regulation VI</h3>
+<p class="reg-text">Kaggath victors may determine the fate of the losing party.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Repercussions for defeat include: demotion, public humiliation.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Forfeiture will result in a demotion to the rank of Grotthu, and a one week rank-lock. Alternative forfeiture terms are prohibited by the opposing party.</p>
+</div>
+</div>
+<div class="regulation" id="reg-03-07">
+<h3 class="reg-title">Regulation VII</h3>
+<p class="reg-text">The Emperor attains a grace period of 3 weeks upon taking the throne.</p>
+</div>
+<div class="regulation" id="reg-03-08">
+<h3 class="reg-title">Regulation VIII</h3>
+<p class="reg-text">Upon submission of a Kaggath, a mandatory 1-day buffer period is set in place before the event to allow for review.</p>
+</div>
+<div class="regulation" id="reg-03-09">
+<h3 class="reg-title">Regulation IX</h3>
+<p class="reg-text">Submitting multiple Kaggath documents within 7 days is prohibited.</p>
+</div>
+<div class="regulation" id="reg-03-10">
+<h3 class="reg-title">Regulation X</h3>
+<p class="reg-text">Unofficial Kaggaths targeting High Command are treason.</p>
+</div>
+<div class="regulation" id="reg-03-11">
+<h3 class="reg-title">Regulation XI</h3>
+<p class="reg-text">Divisional entry ranks are prohibited from submitting Kaggaths.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Dread Host Kaggaths against Dread Masters are permissible.</p>
+</div>
+</div>
+<div class="regulation" id="reg-03-12">
+<h3 class="reg-title">Regulation XII</h3>
+<p class="reg-text">Withdrawing from a Kaggath after submission to the appropriate party is considered a forfeit.</p>
+</div>
+<div class="regulation" id="reg-03-13">
+<h3 class="reg-title">Regulation XIII</h3>
+<p class="reg-text">A mandatory wait time of one week is to be completed before submitting a Kaggath, at the plaintiffs given rank.</p>
+</div>
+<div class="regulation" id="reg-03-14">
+<h3 class="reg-title">Regulation XIV</h3>
+<p class="reg-text">Conscripts recruited to a division or Powerbase after the date of a Kaggath's approval are prohibited from participating.</p>
+</div>
+</div>
+</article>
+<!-- ARTICLE IV -->
+<article class="codex-article">
+<div class="article-header">
+<span class="article-number">ARTICLE IV</span>
+<h2 class="article-title">Vouch Regulations</h2>
+</div>
+<div class="article-content">
+<div class="regulation" id="reg-04-01">
+<h3 class="reg-title">Regulation I</h3>
+<p class="reg-text">Vouches are to be used for trial requirements and trial re-take requirements.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Dark Council vouches may be used alternatively to normal vouches, including Combat, Lore, and Codex vouches respectively.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>High Command vouches may be used to supplement any vouch.</p>
+</div>
+</div>
+<div class="regulation" id="reg-04-02">
+<h3 class="reg-title">Regulation II</h3>
+<p class="reg-text">Vouches are attainable from superiors for excelling at either duties or events.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Acquiring vouches in knowledge based events requires a flawless performance.</p>
+</div>
+</div>
+<div class="regulation" id="reg-04-03">
+<h3 class="reg-title">Regulation III</h3>
+<p class="reg-text">Division High Ranks, Lord+, and Dread Masters are permitted to vouch for Sith.</p>
+</div>
+<div class="regulation" id="reg-04-04">
+<h3 class="reg-title">Regulation IV</h3>
+<p class="reg-text">Vouches are invalidated once applied.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Vouches are invalidated after one month if not applied.</p>
+</div>
+</div>
+<div class="regulation" id="reg-04-05">
+<h3 class="reg-title">Regulation V</h3>
+<p class="reg-text">Sith ranking Dark Council or higher may not receive vouches.</p>
+</div>
+<div class="regulation" id="reg-04-06">
+<h3 class="reg-title">Regulation VI</h3>
+<p class="reg-text">Vouches cannot be used to bypass trial failure cooldowns.</p>
+</div>
+<div class="regulation" id="reg-04-07">
+<h3 class="reg-title">Regulation VII</h3>
+<p class="reg-text">Relinquishing vouches to other Sith is prohibited.</p>
+</div>
+</div>
+</article>
+<!-- ARTICLE V -->
+<article class="codex-article">
+<div class="article-header">
+<span class="article-number">ARTICLE V</span>
+<h2 class="article-title">Supporter Regulations</h2>
+</div>
+<div class="article-content">
+<div class="regulation" id="reg-05-01">
+<h3 class="reg-title">Regulation I</h3>
+<p class="reg-text">Supporters are permitted to at-ease at any rank without asking permission.</p>
+</div>
+<div class="regulation" id="reg-05-02">
+<h3 class="reg-title">Regulation II</h3>
+<p class="reg-text">Supporters may be morphless, unless they are a High Rank or Divisional Member.</p>
+</div>
+<div class="regulation" id="reg-05-03">
+<h3 class="reg-title">Regulation III</h3>
+<p class="reg-text">All supporters are permitted to exit the temple freely.</p>
+</div>
+<div class="regulation" id="reg-05-04">
+<h3 class="reg-title">Regulation IV</h3>
+<p class="reg-text">Supporters are authorized to wear any cape regardless of rank.</p>
+</div>
+<div class="regulation" id="reg-05-05">
+<h3 class="reg-title">Regulation V</h3>
+<p class="reg-text">Supporters are allowed to spectate any public event without need for permission, however they may be removed if necessary.</p>
+</div>
+<div class="regulation" id="reg-05-06">
+<h3 class="reg-title">Regulation VI</h3>
+<p class="reg-text">Supporters may use administrative commands on Sith ranking Marauder/Seer or inferior.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Supporters must attain permission from the affected prior to executing the command.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Usage of administrative commands must be in accordance with the administrative regulations.</p>
+</div>
+</div>
+<div class="regulation" id="reg-05-07">
+<h3 class="reg-title">Regulation VII</h3>
+<p class="reg-text">Supporters affiliated in a Division or at a High Rank are to obey orders issued by superiors.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Division Members and High Ranks hold no authority regarding Supporter regulations.</p>
+</div>
+</div>
+</div>
+</article>
+<!-- ARTICLE VI -->
+<article class="codex-article">
+<div class="article-header">
+<span class="article-number">ARTICLE VI</span>
+<h2 class="article-title">Division Regulations</h2>
+</div>
+<div class="article-content">
+<div class="regulation" id="reg-06-01">
+<h3 class="reg-title">Regulation I</h3>
+<p class="reg-text">Conscripts must choose between Division or High Rank enlistment.</p>
+</div>
+<div class="regulation" id="reg-06-02">
+<h3 class="reg-title">Regulation II</h3>
+<p class="reg-text">Sith of any Division or at any High Rank are to remain on duty at all times.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Division or High Ranking conscripts may temporarily go off-duty within their chambers.</p>
+</div>
+</div>
+<div class="regulation" id="reg-06-03">
+<h3 class="reg-title">Regulation III</h3>
+<p class="reg-text">Sith must be Academy Student+ to tryout for a division.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Specialized Divisions may have additional or alternative requirements.</p>
+</div>
+</div>
+<div class="regulation" id="reg-06-04">
+<h3 class="reg-title">Regulation IV</h3>
+<p class="reg-text">Division Members are bound to professionalism and appropriate conduct.</p>
+</div>
+<div class="regulation" id="reg-06-05">
+<h3 class="reg-title">Regulation V</h3>
+<p class="reg-text">A Division Commander or Overseer may grant ranks upon the discharging of conscripts.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Honorably discharged conscripts may be granted a rank no higher than their equivalent and must server at least 2 weeks within their Division, honorably.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Dishonorably discharged conscripts are forcibly removed or abandon their Division before their minimum 2 weeks of service.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section III</span>
+<p>Dishonorably discharged conscripts may be ranked no higher than Academy Student.</p>
+</div>
+</div>
+<div class="regulation" id="reg-06-06">
+<h3 class="reg-title">Regulation VI</h3>
+<p class="reg-text">Division Members are bound by the Oath of Silence, only permitting them to speak within their respective team chats or whisper. Oath of Silence may be temporarily lifted by authorized event hosts, the designated Division Overseer, and High Command.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Conscripts ranking Senior Reaver+, Full Inquisitor+, Guard Lieutenant+, and Dread Master+ are free of their Oaths of Silence.</p>
+</div>
+</div>
+<div class="regulation" id="reg-06-07">
+<h3 class="reg-title">Regulation VII</h3>
+<p class="reg-text">Acts of minor disrespect toward Division Members are to be ignored.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Action may be taken, if an individual makes racist or profoundly offensive remarks.</p>
+</div>
+</div>
+<div class="regulation" id="reg-06-08">
+<h3 class="reg-title">Regulation VIII</h3>
+<p class="reg-text">Division Members are required to fulfill their weekly quota and requirements, to be determined by current Division leadership.</p>
+</div>
+<div class="regulation" id="reg-06-09">
+<h3 class="reg-title">Regulation IX</h3>
+<p class="reg-text">Division High Ranks and Dread Masters are permitted to host trainings and trials for Low Ranks and Middle Ranks.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Senior Reaver+ may host Combat Trainings.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Senior Inquisitor+ and Guard Lieutenant+ may host Codex Trainings.</p>
+</div>
+</div>
+<div class="regulation" id="reg-06-10">
+<h3 class="reg-title">Regulation X</h3>
+<p class="reg-text">Division Members must acquire permission from the highest ranking conscript present to remove their helmets or at-ease.</p>
+</div>
+<div class="regulation" id="reg-06-11">
+<h3 class="reg-title">Regulation XI</h3>
+<p class="reg-text">Users may be blacklisted from Divisions upon being dishonorably discharged, or for any reason the Commander or Overseer deems fit.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Upon being dishonorably discharged from a Division, you will be blacklisted for 2 weeks. Further duration is up to the Commander or Overseer, depending on the severity.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>High Command may issue indefinite blacklists for Divisions, and may remove user blacklists from Divisions at their own discretion.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section III</span>
+<p>High Command may blacklist people from all Divisions at their own discretion.</p>
+</div>
+</div>
+<div class="regulation" id="reg-06-12">
+<h3 class="reg-title">Regulation XII</h3>
+<p class="reg-text">Division Members are required to log a minimum of 2 hours per week on planet.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Division High Ranks must host at least 2 Division Events (trainings or tryouts) per week.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Division High Ranks must host at least 1 TSO Event per week.</p>
+</div>
+</div>
+</div>
+</article>
+<!-- ARTICLE VII -->
+<article class="codex-article">
+<div class="article-header">
+<span class="article-number">ARTICLE VII</span>
+<h2 class="article-title">Dark Honor Guard Regulations</h2>
+</div>
+<div class="article-content">
+<div class="regulation" id="reg-07-01">
+<h3 class="reg-title">Regulation I</h3>
+<p class="reg-text">Darth Mortis retains absolute authority over the Dark Honor Guard, with the exception of the Emperor's Wrath.</p>
+</div>
+<div class="regulation" id="reg-07-02">
+<h3 class="reg-title">Regulation II</h3>
+<p class="reg-text">Lieutenants and above may order all guards of an inferior rank.</p>
+</div>
+<div class="regulation" id="reg-07-03">
+<h3 class="reg-title">Regulation III</h3>
+<p class="reg-text">Guards must bow to any Guard Captain and above, as well as Dark Councilors. They must kneel to High Command.</p>
+</div>
+<div class="regulation" id="reg-07-04">
+<h3 class="reg-title">Regulation IV</h3>
+<p class="reg-text">The Oath of Silence shall be lifted upon attaining the rank of Lieutenant.</p>
+</div>
+<div class="regulation" id="reg-07-05">
+<h3 class="reg-title">Regulation V</h3>
+<p class="reg-text">Event Hosts, Darth Mortis and High Command are authorized to temporarily lift the Oath of Silence for any guard.</p>
+</div>
+<div class="regulation" id="reg-07-06">
+<h3 class="reg-title">Regulation VI</h3>
+<p class="reg-text">Dark Honor Guards require permission to go off-duty from the highest ranking officer present.</p>
+</div>
+<div class="regulation" id="reg-07-07">
+<h3 class="reg-title">Regulation VII</h3>
+<p class="reg-text">The Dark Honor Guard is not restricted to a distinct amount of Sith.</p>
+</div>
+<div class="regulation" id="reg-07-08">
+<h3 class="reg-title">Regulation VIII</h3>
+<p class="reg-text">Conscripts ranking Sith Overseer+ are not to be detained or arrested without explicit permission from High Command.</p>
+</div>
+<div class="regulation" id="reg-07-09">
+<h3 class="reg-title">Regulation IX</h3>
+<p class="reg-text">Lieutenants and above may step onto the podium in the Guard Chambers.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Senior Guards may utilize the podium when hosting events.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Full Guards may go on the podium whilst assisting an event.</p>
+</div>
+</div>
+<div class="regulation" id="reg-07-10">
+<h3 class="reg-title">Regulation X</h3>
+<p class="reg-text">Conscripts ranking DHG Lieutenant+ and High Command may issue orders to Shadow Guards.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Shadow Guards are equivalent to Senior Guards but are capable of progressing to Guard Lieutenant while retaining their title.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Whilst guarding High Command, Shadow Guards may not be commanded by other entities.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section III</span>
+<p>Only worthy conscripts ranking Senior Guard+ may be admitted into the Shadow Guard, Champion of the Sith winners may also be granted admittance upon passing a Guard Tryout.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section IV</span>
+<p>Shadow Guards are to preform traditional guard duties when High Command is absent.</p>
+</div>
+</div>
+<div class="regulation" id="reg-07-11">
+<h3 class="reg-title">Regulation XI</h3>
+<p class="reg-text">Shadow Guards are to primarily guard members of High Command, prioritizing the DHG VIP list second.</p>
+</div>
+<div class="regulation" id="reg-07-12">
+<h3 class="reg-title">Regulation XII</h3>
+<p class="reg-text">The maximum rank that may be granted upon honorably discharging is determined by position. DHG Initiate: Sith Apprentice. Full Guard: Sith Warrior/Sith Sorcerer. Senior Guard: Sith Marauder/Sith Seer. Guard Lieutenant: Sith Master. Guard Captain: Sith Lord. Guard Commander: Darth.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Shadow Guards are equal to Senior Guard, or Sith Marauder/Sith Seer, but are capable of ascending to Guard Lieutenant, being equal to Sith Master.</p>
+</div>
+</div>
+<div class="regulation" id="reg-07-13">
+<h3 class="reg-title">Regulation XIII</h3>
+<p class="reg-text">Shadow Guards are permitted in all rooms and restricted areas while guarding their VIP.</p>
+</div>
+</div>
+</article>
+<!-- ARTICLE VIII -->
+<article class="codex-article">
+<div class="article-header">
+<span class="article-number">ARTICLE VIII</span>
+<h2 class="article-title">Dread Master Regulations</h2>
+</div>
+<div class="article-content">
+<div class="regulation" id="reg-08-01">
+<h3 class="reg-title">Regulation I</h3>
+<p class="reg-text">Darth Nox retains absolute authority over the Dread Master, with the exception of the Emperor's Wrath.</p>
+</div>
+<div class="regulation" id="reg-08-02">
+<h3 class="reg-title">Regulation II</h3>
+<p class="reg-text">Dread Master Tyrans+ may issue orders to Dread Masters and Dread Hosts.</p>
+</div>
+<div class="regulation" id="reg-08-03">
+<h3 class="reg-title">Regulation III</h3>
+<p class="reg-text">Dread Masters must bow to Dread Master Raptus and Dark Councilors. They must kneel to High Command.</p>
+</div>
+<div class="regulation" id="reg-08-04">
+<h3 class="reg-title">Regulation IV</h3>
+<p class="reg-text">Dread Masters require permission from Darth Nox or High Command to at-ease.</p>
+</div>
+<div class="regulation" id="reg-08-05">
+<h3 class="reg-title">Regulation V</h3>
+<p class="reg-text">The Dread Masters are restricted to a maximum of six Masters and six Hosts.</p>
+</div>
+<div class="regulation" id="reg-08-06">
+<h3 class="reg-title">Regulation VI</h3>
+<p class="reg-text">Event hosts, Darth Nox and High Command may lift Dread Hosts OOS.</p>
+</div>
+<div class="regulation" id="reg-08-07">
+<h3 class="reg-title">Regulation VII</h3>
+<p class="reg-text">The maximum rank that may be granted upon honorably discharging is determined by position. Dread Host: Sith Apprentice. Dread Master: Sith Master. Dread Master Tyrans: Sith Lord. Dread Master Raptus: Darth.</p>
+</div>
+</div>
+</article>
+<!-- ARTICLE IX -->
+<article class="codex-article">
+<div class="article-header">
+<span class="article-number">ARTICLE IX</span>
+<h2 class="article-title">Reaver Regulations</h2>
+</div>
+<div class="article-content">
+<div class="regulation" id="reg-09-01">
+<h3 class="reg-title">Regulation I</h3>
+<p class="reg-text">Darth Baras retains absolute authority over Reavers, with the exception of the Emperor's Wrath.</p>
+</div>
+<div class="regulation" id="reg-09-02">
+<h3 class="reg-title">Regulation II</h3>
+<p class="reg-text">Senior Reavers and above may order all Reavers of an inferior rank.</p>
+</div>
+<div class="regulation" id="reg-09-03">
+<h3 class="reg-title">Regulation III</h3>
+<p class="reg-text">Reavers must bow to any Reaver Lord and above. They are required to kneel to High Command.</p>
+</div>
+<div class="regulation" id="reg-09-04">
+<h3 class="reg-title">Regulation IV</h3>
+<p class="reg-text">Initiates and Full Reavers are bound by the Oath of Silence.</p>
+</div>
+<div class="regulation" id="reg-09-05">
+<h3 class="reg-title">Regulation V</h3>
+<p class="reg-text">Event Hosts, Darth Baras and High Command are permitted to temporarily lift the Oath of Silence for any Reaver.</p>
+</div>
+<div class="regulation" id="reg-09-06">
+<h3 class="reg-title">Regulation VI</h3>
+<p class="reg-text">Reavers require permission to go off-duty from the highest ranking Reaver present.</p>
+</div>
+<div class="regulation" id="reg-09-07">
+<h3 class="reg-title">Regulation VII</h3>
+<p class="reg-text">The Reavers are constrained to a maximum of twelve conscripts.</p>
+</div>
+<div class="regulation" id="reg-09-08">
+<h3 class="reg-title">Regulation VIII</h3>
+<p class="reg-text">Reavers are to honor one-on-one duels.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Reavers may use any weapon unless their opponent wishes a duel with single-blades.</p>
+</div>
+</div>
+<div class="regulation" id="reg-09-09">
+<h3 class="reg-title">Regulation IX</h3>
+<p class="reg-text">Reavers require permission from Darth Baras or High Command before emulating or deploying smoke bombs.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Reavers are permitted to emulate and deploy smoke bombs during sanctioned assassinations.</p>
+</div>
+</div>
+<div class="regulation" id="reg-09-10">
+<h3 class="reg-title">Regulation X</h3>
+<p class="reg-text">The maximum rank that may be granted upon honorably discharging is determined by position. Reaver Initiate: Sith Apprentice. Full Reaver: Sith Marauder/Sith Seer. Senior Reaver: Sith Overseer. Reaver Lord: Sith Lord. Reaver Commander: Darth.</p>
+</div>
+</div>
+</article>
+<!-- ARTICLE X -->
+<article class="codex-article">
+<div class="article-header">
+<span class="article-number">ARTICLE X</span>
+<h2 class="article-title">Visitor Regulations</h2>
+</div>
+<div class="article-content">
+<div class="regulation" id="reg-10-01">
+<h3 class="reg-title">Regulation I</h3>
+<p class="reg-text">The term 'Visitor' is used to describe non-Sith, including Raiders and Off-Worlders.</p>
+</div>
+<div class="regulation" id="reg-10-02">
+<h3 class="reg-title">Regulation II</h3>
+<p class="reg-text">Visitors are allowed to express themselves freely, provided they are not offensive, racist or impactful on mental well-being.</p>
+</div>
+<div class="regulation" id="reg-10-03">
+<h3 class="reg-title">Regulation III</h3>
+<p class="reg-text">Visitors are not allowed to trespass or interfere with any duties. Violations of this rule will result in execution or arrest.</p>
+</div>
+<div class="regulation" id="reg-10-04">
+<h3 class="reg-title">Regulation IV</h3>
+<p class="reg-text">Visitors are prohibited from exploiting and bug abuse.</p>
+</div>
+<div class="regulation" id="reg-10-05">
+<h3 class="reg-title">Regulation V</h3>
+<p class="reg-text">Visitors are to follow: Article XI, Force Regulations; Article X, Visitor Regulations; Regulations of Article I, Order Regulations, that are not related to being a member of the Order.</p>
+</div>
+<div class="regulation" id="reg-10-06">
+<h3 class="reg-title">Regulation VI</h3>
+<p class="reg-text">Visitors are not allowed to impersonate any member of The Sith Order. Any impersonation is to be reported to High Command.</p>
+</div>
+<div class="regulation" id="reg-10-07">
+<h3 class="reg-title">Regulation VII</h3>
+<p class="reg-text">Visitors may not utilize loopholes in the Sith Codex.</p>
+</div>
+<div class="regulation" id="reg-10-08">
+<h3 class="reg-title">Regulation VIII</h3>
+<p class="reg-text">Visitors are compelled to fight while on the 'Raiders' team.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Raiders are to be killed on sight within the temple.</p>
+</div>
+</div>
+<div class="regulation" id="reg-10-09">
+<h3 class="reg-title">Regulation IX</h3>
+<p class="reg-text">Raiding as an Off-Worlder is prohibited.</p>
+</div>
+</div>
+</article>
+<!-- ARTICLE XI -->
+<article class="codex-article">
+<div class="article-header">
+<span class="article-number">ARTICLE XI</span>
+<h2 class="article-title">Force Regulations</h2>
+</div>
+<div class="article-content">
+<div class="regulation" id="reg-11-01">
+<h3 class="reg-title">Regulation I</h3>
+<p class="reg-text">Unprovoked use of the Force is not allowed.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>The Force may be used against Raiders who employ it against you. Force use is allowed only if the Raider used it against you first. Once the Raider is dead, use of the Force is not allowed, until they again use it against you.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Division and High Ranking conscripts may use the Force against rule-breakers. Using the Force on Division and High Ranking members is not allowed.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section III</span>
+<p>Dark Councilors are allowed to use the Force on disrespectful individuals.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section IV</span>
+<p>Guards are allowed to use Force Restrain on rule-breakers.</p>
+</div>
+</div>
+<div class="regulation" id="reg-11-02">
+<h3 class="reg-title">Regulation II</h3>
+<p class="reg-text">Interfering or disrupting events with the use of the Force is prohibited.</p>
+</div>
+<div class="regulation" id="reg-11-03">
+<h3 class="reg-title">Regulation III</h3>
+<p class="reg-text">Sith are allowed to use Force Pull on Raiders that are scaling mountains, walls or in hard-to-reach areas.</p>
+</div>
+<div class="regulation" id="reg-11-04">
+<h3 class="reg-title">Regulation IV</h3>
+<p class="reg-text">Violation of this article is considered 'Force Abuse'. Breaking the regulations will result in punishment, including removal of the Force gamepass without refund.</p>
+</div>
+<div class="regulation" id="reg-11-05">
+<h3 class="reg-title">Regulation V</h3>
+<p class="reg-text">Using Force Teleport to escape combat is not allowed.</p>
+</div>
+<div class="regulation" id="reg-11-06">
+<h3 class="reg-title">Regulation VI</h3>
+<p class="reg-text">Force usage outside of the Temple is unregulated and permitted on all conscripts. Raiders must initiate contact with Force before Sith may reciprocate.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Conscripts may only utilize Gamepass &amp; Divisional/Departmental Force while outside of the Temple.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Conscripts are not to interfere with divisional duties while using the Force outside.</p>
+</div>
+</div>
+</div>
+</article>
+<!-- ARTICLE XII -->
+<article class="codex-article">
+<div class="article-header">
+<span class="article-number">ARTICLE XII</span>
+<h2 class="article-title">Administrative Regulations</h2>
+</div>
+<div class="article-content">
+<div class="regulation" id="reg-12-01">
+<h3 class="reg-title">Regulation I</h3>
+<p class="reg-text">Moderators are not allowed to use commands outside of when fulfilling their duties.</p>
+</div>
+<div class="regulation" id="reg-12-02">
+<h3 class="reg-title">Regulation II</h3>
+<p class="reg-text">":events" is the standard protocol for hosting events. ":n" may be used as the announcement function when :events fails</p>
+</div>
+<div class="regulation" id="reg-12-03">
+<h3 class="reg-title">Regulation III</h3>
+<p class="reg-text">":pm" may be used freely by anyone, with a meaningful purpose.</p>
+</div>
+<div class="regulation" id="reg-12-04">
+<h3 class="reg-title">Regulation IV</h3>
+<p class="reg-text">Commands are not to be used to gain access to restricted areas.</p>
+</div>
+<div class="regulation" id="reg-12-05">
+<h3 class="reg-title">Regulation V</h3>
+<p class="reg-text">Commands that affect players are not to be used on Division and High Ranking conscripts without permission. Using commands on others is allowed when the situation demands it.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Unaffecting, one-sided commands may be used freely</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Using commands on High Command, Dark Councilors, or Inquisitors is prohibited unless they are attending your event (Art.XII, Reg.XI)</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section III</span>
+<p>You may only use the :view command on those under your direct authority. Dark Councilors, High Command, and IQ may use :view on anyone.</p>
+</div>
+</div>
+<div class="regulation" id="reg-12-06">
+<h3 class="reg-title">Regulation VI</h3>
+<p class="reg-text">Commands may not be used in combat, in a non-professional manner, offensively, or to cause disruption.</p>
+</div>
+<div class="regulation" id="reg-12-07">
+<h3 class="reg-title">Regulation VII</h3>
+<p class="reg-text">All Sith ranked Sith Lord, Dread Master, Senior Reaver or Inquisitor and above are allowed to use the :cape command. The cape must be appropriate and fit with attire.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Supporters of all ranks may use the cape command as long as it follows Divisional or High Ranking regulations.</p>
+</div>
+</div>
+<div class="regulation" id="reg-12-08">
+<h3 class="reg-title">Regulation VIII</h3>
+<p class="reg-text">All commands that grant access to logs require permission from High Command before they are used.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>Division and High Ranking conscripts with access to commands are allowed to use join-logs.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>Inquisitors or members of the Dark Council and above do not need this permission and may freely use these commands.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section III</span>
+<p>Conscripts are not allowed to use the ':privatechat' command. Only members of the Dark Council and Inquisitors have permission to use this command.</p>
+</div>
+</div>
+<div class="regulation" id="reg-12-09">
+<h3 class="reg-title">Regulation IX</h3>
+<p class="reg-text">Off-worlders that avoid fighting may be teamed Civilians.</p>
+</div>
+<div class="regulation" id="reg-12-10">
+<h3 class="reg-title">Regulation X</h3>
+<p class="reg-text">Event hosts can use commands on attendees. Event attendance grants automatic consent.</p>
+</div>
+<div class="regulation" id="reg-12-11">
+<h3 class="reg-title">Regulation XI</h3>
+<p class="reg-text">The ":cdpm" should be used instead of ":cd" in all private or divisional events.</p>
+</div>
+<div class="regulation" id="reg-12-12">
+<h3 class="reg-title">Regulation XII</h3>
+<p class="reg-text">Misuse and abuse of commands is to be reported to High Command.</p>
+</div>
+</div>
+</article>
+<!-- ARTICLE XIII -->
+<article class="codex-article">
+<div class="article-header">
+<span class="article-number">ARTICLE XIII</span>
+<h2 class="article-title">Bloodline Regulations</h2>
+</div>
+<div class="article-content">
+<div class="regulation" id="reg-13-01">
+<h3 class="reg-title">Regulation I</h3>
+<p class="reg-text">Bloodlines must have 10 named conscripts within the Sith Order to be considered an official bloodline, 5 of which having active status.</p>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section I</span>
+<p>"Active" details being a current Division Member or High Rank+.</p>
+</div>
+<div class="sub-clause">
+<span class="sub-marker">Sub-Section II</span>
+<p>The Emperor and Owner is required to be in the bloodline Discord server.</p>
+</div>
+</div>
+<div class="regulation" id="reg-13-02">
+<h3 class="reg-title">Regulation II</h3>
+<p class="reg-text">Bloodlines are expected to hold a positive reputation within the Order.</p>
+</div>
+<div class="regulation" id="reg-13-03">
+<h3 class="reg-title">Regulation III</h3>
+<p class="reg-text">Bloodlines with an official status are allowed to advertise their bloodline.</p>
+</div>
+<div class="regulation" id="reg-13-04">
+<h3 class="reg-title">Regulation IV</h3>
+<p class="reg-text">The Emperor, Project Manager and Group Owner decide over bloodline officiality.</p>
+</div>
+<div class="regulation" id="reg-13-05">
+<h3 class="reg-title">Regulation V</h3>
+<p class="reg-text">Bloodlines that violate Bloodline Regulations may be put under review or recourse.</p>
+</div>
+</div>
+</article>
+</div><!-- /.codex-document -->
+</main>
+<!-- ▓▓ FOOTER ▓▓ -->
+<footer>
+<p class="footer-glyph" style="color:var(--text-dim);">
+        ᛭   Peace is a lie — There is only passion   ᛭
+      </p>
+<p class="footer-sig" style="color:var(--text-dim);">
+        Sith Holonet — Encrypted Transmission — Node KOR-7
+      </p>
+</footer>
+</div><!-- /#app -->
+<!-- Search Overlay -->
+<div id="search-overlay">
+<div id="search-container">
+<button aria-label="Close search" class="search-close">✕</button>
+<input aria-label="Search codex" id="search-input" placeholder="Search articles..." type="text"/>
+<div class="search-results" id="search-results"></div>
+</div>
+</div>
+<script>
+      fetch('/templates/nav.html')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Failed to load nav: ${response.status}`);
+          }
+          return response.text();
+        })
+        .then(html => {
+          const container = document.getElementById('nav-container');
+          if (!container) return;
+
+          container.innerHTML = html;
+
+          const script = document.createElement('script');
+          script.src = '/js/nav.js';
+          document.body.appendChild(script);
+        })
+        .catch(error => {
+          console.error(error);
+        });
+    </script>
+<script src="/js/main.js"></script>
+<script src="/js/search.js"></script>
+</body>
+</html>

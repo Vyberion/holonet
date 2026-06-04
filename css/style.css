@@ -4,22 +4,22 @@
    ROOT & RESET
 ───────────────────────────────────────────── */
 :root {
-  --red:        #c0001a;
+  --red:         #c0001a;
   --red-bright: #ff0022;
-  --red-glow:   #ff002255;
   --red-dim:    #6b0010;
+  --red-glow:   #ff002255;
   --red-deep:   #3a0008;
   --amber:      #ff4400;
   --black:      #000000;
-  --void:       rgb(9, 1, 1);
+  --void:       rgb(0, 0, 0);
   --dark:       #060003;
   --surface:    #0b0006;
   --panel:      #100009;
   --border:     #2e0018;
   --border-hot: #5a0020;
   --text:       #cc0018;
-  --text-dim:   #550010;
-  --text-faint: #200006;
+  --text-dim:   #c0001a;
+  --text-faint: #640113;
   --scanline:   rgba(255,0,30,0.025);
   /* holographic spectrum */
   --holo-r:     rgba(255,0,34,0.15);
@@ -56,7 +56,7 @@ body::before {
       var(--scanline) 4px
     );
   pointer-events: none;
-  z-index: 1000;
+  z-index: 3500;
   animation: scanlines 6s linear infinite;
 }
 
@@ -69,10 +69,9 @@ body::after {
     radial-gradient(ellipse 60% 50% at 50% 50%, rgba(160,0,22,0.1) 0%, transparent 65%),
     radial-gradient(ellipse 100% 100% at 50% 0%, rgba(100,0,15,0.07) 0%, transparent 60%);
   pointer-events: none;
-  z-index: 999;
+  z-index: 3500;
   animation: pulseGlow 5s ease-in-out infinite;
 }
-
 
 @keyframes pulseGlow { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
 
@@ -85,113 +84,6 @@ body::after {
   background: radial-gradient(ellipse 100% 100% at 50% 50%, transparent 30%, rgba(0,0,0,0.85) 100%);
   pointer-events: none;
   z-index: 997;
-}
-
-/* ─────────────────────────────────────────────
-   HOLOGRAPHIC GRID FLOOR
-───────────────────────────────────────────── */
-#holo-grid {
-  position: fixed;
-  bottom: 0;
-  left: 0; right: 0;
-  height: 45vh;
-  pointer-events: none;
-  z-index: 1;
-  perspective: 400px;
-  overflow: hidden;
-}
-
-#holo-grid::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(192,0,26,0.18) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(192,0,26,0.18) 1px, transparent 1px);
-  background-size: 60px 60px;
-  transform: rotateX(72deg) translateY(-30%) scaleY(2.5);
-  transform-origin: bottom center;
-  animation: gridPulse 4s ease-in-out infinite;
-  mask-image: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 70%);
-  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 70%);
-}
-
-#holo-grid::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(192,0,26,0.06) 0%, transparent 60%);
-}
-
-@keyframes gridPulse {
-  0%,100% { opacity: 0.5; }
-  50%      { opacity: 1; }
-}
-
-
-/* ─────────────────────────────────────────────
-   SCAN SWEEP
-───────────────────────────────────────────── */
-#scan-sweep {
-  position: fixed;
-  left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, var(--red-dim) 15%, var(--red-bright) 50%, var(--red-dim) 85%, transparent 100%);
-  box-shadow: 0 0 25px var(--red-bright), 0 0 80px var(--red-glow), 0 0 2px rgba(0,200,255,0.3);
-  z-index: 996;
-  animation: scanSweep 6s ease-in-out infinite;
-  opacity: 0.5;
-}
-
-@keyframes scanSweep {
-  0%   { top: -2px; opacity: 0; }
-  5%   { opacity: 0.5; }
-  95%  { opacity: 0.5; }
-  100% { top: 100vh; opacity: 0; }
-}
-
-/* ─────────────────────────────────────────────
-   CORNER BRACKETS — upgraded
-───────────────────────────────────────────── */
-.corner {
-  position: fixed;
-  width: 70px;
-  height: 70px;
-  z-index: 1001;
-}
-
-.corner::before,
-/*.corner::after {
-  content: '';
-  position: absolute;
-  background: var(--red);
-  box-shadow: 0 0 12px var(--red-glow), 0 0 3px rgba(0,200,255,0.2);
-  animation: cornerPulse 3s ease-in-out infinite;
-}
-
-.corner::before { width: 2px; height: 40px; }
-.corner::after  { width: 40px; height: 2px; }
-
-/* inner corner pip */
-/*.corner > span {
-  position: absolute;
-  width: 4px; height: 4px;
-  background: var(--red-bright);
-  box-shadow: 0 0 8px var(--red-bright);
-  border-radius: 50%;
-} */
-
-.corner.tl { top: 20px; left: 20px; }
-.corner.tr { top: 20px; right: 20px; transform: scaleX(-1); }
-.corner.bl { bottom: 20px; left: 20px; transform: scaleY(-1); }
-.corner.br { bottom: 20px; right: 20px; transform: scale(-1,-1); }
-
-.corner.tl::before, .corner.tl::after { top:0; left:0; }
-.corner.tl > span { top: 0; left: 0; }
-
-@keyframes cornerPulse {
-  0%,100% { opacity: 0.5; }
-  50%      { opacity: 1; box-shadow: 0 0 20px var(--red-bright), 0 0 4px rgba(0,200,255,0.3); }
 }
 
 /* ─────────────────────────────────────────────
@@ -227,7 +119,6 @@ header {
   position: relative;
 }
 
-/* header rule corner diamonds */
 .header-rule::before,
 .header-rule::after {
   content: '◆';
@@ -277,7 +168,7 @@ header {
 }
 
 /* ─────────────────────────────────────────────
-   STATUS BAR
+   STATUS BAR & SIGNAL MATRIX
 ───────────────────────────────────────────── */
 .status-bar {
   width: 100%;
@@ -318,13 +209,16 @@ header {
 
 @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
 
-/* ─────────────────────────────────────────────
-   SIGNAL BARS
-───────────────────────────────────────────── */
 .sig-bar {
-  transition: height 0.2s, opacity 0.2s;
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: 2px;
   box-shadow: 0 0 4px var(--red-glow);
   animation: sigPulse 1.7s ease-in-out infinite;
+  transition: opacity 0.2s, filter 0.2s, background-color 0.2s;
 }
 
 @keyframes sigPulse {
@@ -353,7 +247,7 @@ main {
 }
 
 /* ─────────────────────────────────────────────
-   NAV CARDS — holographic overhaul
+   NAV CARDS
 ───────────────────────────────────────────── */
 .nav-card {
   position: relative;
@@ -366,19 +260,12 @@ main {
   overflow: hidden;
   background: var(--surface);
   transition: background 0.4s;
-  animation: cardEntrance 0.9s ease backwards;
 }
 
 .nav-card:nth-child(1) { animation-delay: 0.15s; }
 .nav-card:nth-child(2) { animation-delay: 0.3s; }
 .nav-card:nth-child(3) { animation-delay: 0.45s; }
 
-@keyframes cardEntrance {
-  from { opacity: 0; transform: translateY(24px) scaleY(0.96); }
-  to   { opacity: 1; transform: translateY(0) scaleY(1); }
-}
-
-/* ── Holographic iridescent background ── */
 .nav-card::before {
   content: '';
   position: absolute;
@@ -393,7 +280,6 @@ main {
       rgba(0,0,0,0) 100%
     );
   background-size: 400% 400%;
-  /* start idle: no animation and hidden; animate on hover only */
   animation: none;
   opacity: 0;
   transition: opacity 0.4s, transform 0.4s;
@@ -412,7 +298,6 @@ main {
   100% { background-position: 0% 0%;   }
 }
 
-/* ── Bottom glow accent line ── */
 .nav-card::after {
   content: '';
   position: absolute;
@@ -427,7 +312,6 @@ main {
 
 .nav-card:hover::after { transform: scaleX(1); }
 
-/* ── Inner border frame ── */
 .card-inner-border {
   position: absolute;
   inset: 8px;
@@ -442,7 +326,6 @@ main {
   box-shadow: inset 0 0 30px rgba(192,0,26,0.06), 0 0 20px rgba(192,0,26,0.06);
 }
 
-/* ── Corner pip decorations ── */
 .card-corners {
   position: absolute;
   inset: 12px;
@@ -475,6 +358,7 @@ main {
   border-color: var(--red-bright);
   opacity: 1;
 }
+
 .nav-card:hover .card-scan {
   animation: cardScan 2s ease-in-out infinite;
   opacity: 1;
@@ -485,7 +369,6 @@ main {
   100% { top: 101%; }
 }
 
-/* ── Large background numeral — holographic ── */
 .card-bg-glyph {
   position: absolute;
   top: 50%;
@@ -498,19 +381,17 @@ main {
   pointer-events: none;
   user-select: none;
   line-height: 1;
-  /* layered holographic numeral */
   color: transparent;
   background-image: linear-gradient(135deg,
-    rgba(192,0,26,0.12) 0%,
-    rgba(255,0,34,0.06) 40%,
-    rgba(0,120,255,0.04) 60%,
-    rgba(192,0,26,0.08) 100%
+    rgba(192, 0, 26, 0.469) 0%,
+    rgba(255, 0, 34, 0.215) 40%,
+    rgba(255, 0, 106, 0.052) 60%,
+    rgba(192, 0, 26, 0.507) 100%
   );
   background-size: 200% 200%;
   background-position: 0% 0%;
   -webkit-background-clip: text;
   background-clip: text;
-  text-shadow: none;
   animation: numeralHolo 12s ease-in-out infinite alternate;
   transition: opacity 0.4s;
   filter: blur(0px);
@@ -535,22 +416,6 @@ main {
   }
 }
 
-@keyframes numeralHoloHover {
-  0%,100% {
-    background: linear-gradient(135deg, rgba(255,0,34,0.22) 0%, rgba(0,200,255,0.08) 50%, rgba(192,0,26,0.18) 100%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    transform: translate(-50%,-50%) scale(1.02);
-    filter: blur(0px);
-  }
-  50% {
-    background: linear-gradient(220deg, rgba(0,200,255,0.1) 0%, rgba(255,0,34,0.25) 50%, rgba(0,100,255,0.06) 100%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    transform: translate(-50%,-50%) scale(1.04);
-    filter: blur(0.8px);
-  }
-}
-
-/* ── Category label ── */
 .card-category {
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.52rem;
@@ -562,7 +427,6 @@ main {
   z-index: 2;
 }
 
-/* ── Card title ── */
 .card-title {
   font-family: 'Cinzel', serif;
   font-size: clamp(1.5rem, 2.5vw, 2.1rem);
@@ -585,7 +449,6 @@ main {
     0 0 100px var(--red-glow);
 }
 
-/* ── Card description ── */
 .card-desc {
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.62rem;
@@ -606,7 +469,6 @@ main {
   transform: translateY(0);
 }
 
-/* ── Card enter arrow ── */
 .card-enter {
   position: absolute;
   bottom: 22px;
@@ -626,7 +488,6 @@ main {
   text-shadow: 0 0 10px var(--red-glow);
 }
 
-/* ── Data readout on card top-right ── */
 .card-data {
   position: absolute;
   top: 16px;
@@ -646,7 +507,6 @@ main {
   opacity: 1;
 }
 
-/* ── Hex accent top-left ── */
 .card-hex {
   position: absolute;
   top: 14px;
@@ -659,7 +519,6 @@ main {
   opacity: 0.6;
 }
 
-/* ── Vertical side accent line ── */
 .card-vline {
   position: absolute;
   top: 0;
@@ -714,7 +573,7 @@ main {
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.58rem;
   letter-spacing: 0.4em;
-  color: var(--red-dim);
+  color: var(--text-dim);
   text-transform: uppercase;
   white-space: nowrap;
   flex-shrink: 0;
@@ -767,15 +626,6 @@ footer {
   94%  { opacity: 0.8; }
 }
 
-@keyframes glitch {
-  0%,100% { clip-path: none; transform: none; }
-  20%      { clip-path: polygon(0 10%, 100% 10%, 100% 25%, 0 25%); transform: translateX(-5px); }
-  21%      { clip-path: polygon(0 50%, 100% 50%, 100% 65%, 0 65%); transform: translateX(5px); }
-  22%      { clip-path: none; transform: none; }
-  80%      { clip-path: polygon(0 75%, 100% 75%, 100% 85%, 0 85%); transform: translateX(3px); }
-  81%      { clip-path: none; transform: none; }
-}
-
 /* ─────────────────────────────────────────────
    LOADER
 ───────────────────────────────────────────── */
@@ -792,8 +642,6 @@ footer {
   animation: loaderOut 0.6s ease 2.5s forwards;
 }
 
-/* replicate body ambient layers inside the loader so it visually matches
-   but remains opaque and covers underlying UI */
 #loader::before {
   content: '';
   position: absolute;
@@ -824,7 +672,6 @@ footer {
   opacity: 1;
 }
 
-/* ensure loader content sits above the replicated ambient layers */
 #loader > * { position: relative; z-index: 1; }
 
 @keyframes loaderOut {
@@ -884,7 +731,4 @@ footer {
   .nav-grid { grid-template-columns: 1fr; background: transparent; gap: 2px; }
   .nav-card { height: 240px; }
   #app { padding: 40px 20px 60px; }
-  .corner { width: 40px; height: 40px; }
-  .corner::before { height: 25px; }
-  .corner::after  { width: 25px; }
 }

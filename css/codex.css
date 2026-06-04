@@ -1,0 +1,448 @@
+/* ─────────────────────────────────────────────
+   CODEX DOCUMENT STYLES
+   Assumes style.css (root vars, fonts, keyframes)
+   is loaded first. These rules extend it.
+───────────────────────────────────────────── */
+
+.codex-document {
+  width: 100%;
+  max-width: 900px;
+  position: relative;
+  margin: auto;
+}
+
+/* ─────────────────────────────────────────────
+   ARTICLE LAYOUT
+───────────────────────────────────────────── */
+.codex-article {
+  margin-bottom: 50px;
+  padding: 30px;
+  border: 2px solid var(--border-hot);
+  position: relative;
+  margin: auto;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, rgba(192,0,26,0.05) 0%, transparent 60%);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  /* glow on the container itself, matching nav-card hover treatment */
+  box-shadow:
+    0 0 30px rgba(192,0,26,0.06),
+    0 0 80px rgba(192,0,26,0.03),
+    inset 0 0 40px rgba(192,0,26,0.03);
+  transition: box-shadow 0.4s;
+}
+
+.codex-article:hover {
+  box-shadow:
+    0 0 40px rgba(192,0,26,0.12),
+    0 0 120px rgba(192,0,26,0.06),
+    inset 0 0 40px rgba(192,0,26,0.05);
+}
+
+/* inner inset border, same technique as style.css .codex-article::before */
+.codex-article::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--border);
+  pointer-events: none;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  opacity: 0.5;
+}
+
+/* holographic spectrum wash — matches the ::after on nav-card area elements */
+.codex-article::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  pointer-events: none;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+/* ─────────────────────────────────────────────
+   ARTICLE HEADER
+───────────────────────────────────────────── */
+.article-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+/* slim glowing rule under the header, mirrors .header-rule in style.css */
+.article-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--red-dim) 15%, var(--red-bright) 50%, var(--red-dim) 85%, transparent);
+  box-shadow: 0 0 10px var(--red-glow), 0 0 2px rgba(0,200,255,0.1);
+  opacity: 0.6;
+}
+
+.article-number {
+  display: inline-block;
+  font-size: 0.7rem;
+  letter-spacing: 0.4em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 8px;
+  /* subtle flicker like .site-eyebrow */
+  animation: flicker 8s steps(1) infinite;
+}
+
+.article-title {
+  font-family: 'Cinzel', serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--red-bright);
+  letter-spacing: 0.1em;
+  /* layered glow matching .site-title / .card-title hover in style.css */
+  text-shadow:
+    0 0 6px rgba(255,0,34,0.55),
+    0 0 20px rgba(255,0,34,0.35),
+    0 0 50px rgba(192,0,26,0.2);
+  margin: 0;
+  transition: text-shadow 0.3s;
+}
+
+.codex-article:hover .article-title {
+  text-shadow:
+    0 0 4px rgba(255,0,34,0.5),
+    0 0 20px var(--red-bright),
+    0 0 50px var(--red),
+    0 0 100px var(--red-glow);
+}
+
+/* ─────────────────────────────────────────────
+   ARTICLE CONTENT
+───────────────────────────────────────────── */
+.article-content {
+  position: relative;
+  z-index: 5;
+}
+
+/* ─────────────────────────────────────────────
+   REGULATION
+───────────────────────────────────────────── */
+.regulation {
+  margin-bottom: 28px;
+  padding-left: 24px;
+  border-left: 3px solid var(--border-hot);
+  position: relative;
+}
+
+/* top accent pip with glow — matches the vline / corner treatment in style.css */
+.regulation::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: 0;
+  width: 3px;
+  height: 24px;
+  background: linear-gradient(180deg, var(--red-bright) 0%, var(--border-hot) 100%);
+  box-shadow:
+    0 0 8px var(--red-glow),
+    0 0 2px rgba(0,200,255,0.15);
+  transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s ease;
+}
+
+.reg-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--red);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin: 0 0 12px;
+  line-height: 1.3;
+  /* light glow matching status-bar / card-hex text in style.css */
+  text-shadow: 0 0 10px var(--red-glow);
+  transition: text-shadow 0.3s;
+}
+
+.regulation:hover .reg-title {
+  text-shadow:
+    0 0 6px rgba(255,0,34,0.4),
+    0 0 18px var(--red-glow);
+}
+
+.reg-text {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ─────────────────────────────────────────────
+   SUB-CLAUSES
+───────────────────────────────────────────── */
+.sub-clause {
+  margin-top: 14px;
+  margin-left: 16px;
+  padding: 12px 16px;
+  border-left: 2px solid var(--border);
+  position: relative;
+  /* slightly deeper background than the article itself */
+  background: rgba(192,0,26,0.04);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  /* holographic micro-accent matching ::after on articles */
+  box-shadow: inset 0 0 12px rgba(192,0,26,0.03);
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.sub-clause:hover {
+  background: rgba(192,0,26,0.07);
+  border-left-color: var(--red-dim);
+}
+
+.sub-clause::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2px;
+  height: 12px;
+  background: linear-gradient(180deg, var(--red-dim) 0%, transparent 100%);
+  box-shadow: 0 0 4px rgba(192,0,26,0.2);
+}
+
+.sub-marker {
+  display: inline-block;
+  min-width: 50px;
+  font-weight: 700;
+  color: var(--red);
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  margin-right: 8px;
+  /* match the dim text treatment across style.css */
+  text-shadow: 0 0 6px rgba(192,0,26,0.15);
+  transition: color 0.3s, text-shadow 0.3s;
+}
+
+.sub-clause:hover .sub-marker {
+  color: var(--red);
+  text-shadow: 0 0 10px var(--red-glow);
+}
+
+.sub-clause p {
+  margin: 0;
+  color: var(--red);
+  transition: color 0.3s;
+}
+
+.sub-clause:hover p {
+  color: var(--text);
+}
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .codex-document {
+    max-width: 100%;
+  }
+
+  .codex-article {
+    padding: 20px;
+    margin-bottom: 30px;
+  }
+
+  .article-title {
+    font-size: 1.3rem;
+  }
+
+  .reg-title {
+    font-size: 0.85rem;
+  }
+
+  .reg-text,
+  .sub-clause {
+    font-size: 0.9rem;
+  }
+
+  #app {
+    padding: 40px 20px 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .codex-article {
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+
+  .article-header {
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+
+  .article-title {
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+  }
+
+  .article-number {
+    font-size: 0.6rem;
+  }
+
+  .regulation {
+    margin-bottom: 20px;
+    padding-left: 16px;
+  }
+
+  .reg-title {
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+  }
+
+  .reg-text {
+    font-size: 0.88rem;
+  }
+
+  .sub-clause {
+    margin-left: 12px;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+
+  .sub-marker {
+    min-width: 45px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Target State Rule Configuration */
+.regulation:target,
+.regulation.is-targeted {
+  border-left-color: var(--red-bright);
+  animation: codexTargetFlash 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Enriched holographic text response under target lock */
+.regulation:target .reg-title,
+.regulation.is-targeted .reg-title {
+  color: var(--red-bright) !important;
+  text-shadow: 
+    0 0 8px var(--red-bright),
+    0 0 24px var(--red-glow) !important;
+}
+
+/* Stretches and excites the top side-pip into a solid neon status bar */
+.regulation:target::before,
+.regulation.is-targeted::before {
+  height: 100% !important; /* Overrides the static 24px height during active state */
+  background: linear-gradient(180deg, var(--red-bright) 0%, var(--red) 100%) !important;
+  box-shadow: 
+    0 0 16px var(--red-bright),
+    0 0 4px rgba(0, 200, 255, 0.3) !important;
+  transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+
+/* ==========================================================================
+   ADVANCED TWO-PHASE REGULATION TARGET LOCK HOOKS
+   ========================================================================== */
+
+/* ── PHASE 1: Active Scrolling Tracking State (Persistent Alert) ── */
+.regulation.reg-scrolling {
+  border-left-color: var(--red-bright) !important;
+  background: linear-gradient(90deg, rgba(255, 0, 34, 0.14) 0%, rgba(255, 0, 34, 0.02) 60%, transparent 100%) !important;
+  box-shadow: inset 8px 0 16px rgba(255, 0, 34, 0.05) !important;
+  transition: none; /* Instant snap response on enter keypress */
+}
+
+.regulation.reg-scrolling .reg-title {
+  color: var(--red-bright) !important;
+  text-shadow: 0 0 10px var(--red-bright), 0 0 20px var(--red-glow) !important;
+}
+
+/* Extend structural left anchor pip down the entire element during tracking */
+.regulation.reg-scrolling::before {
+  height: 100% !important;
+  background: var(--red-bright) !important;
+  box-shadow: 0 0 14px var(--red-bright) !important;
+  transition: none;
+}
+
+
+/* ── PHASE 2: Post-Scroll Impact State (1.5s Thermal Discharge) ── */
+.regulation.reg-flash {
+  /* Handles the smooth fade-out of the base container's border color and inner shadow */
+  animation: codexImpactPulse 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
+}
+
+/* NEW LAYER: Isolates the gradient so it can fade cleanly via opacity */
+.regulation.reg-flash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(90deg, rgba(255, 0, 34, 0.18) 0%, rgba(255, 0, 34, 0.04) 50%, transparent 100%);
+  animation: codexGradientFade 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.regulation.reg-flash .reg-title {
+  position: relative;
+  z-index: 2; /* Keeps text layered cleanly above the background flash */
+  animation: codexTextImpact 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* UNTOUCHED PIP: Retains your exact custom keyframe movement and structural properties */
+.regulation.reg-flash::before {
+  height: 100% !important;
+  animation: codexPipImpact 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+
+/* ── IMMACULATE KEYFRAME ENGINE (Exactly 1.5s Expiration Profiles) ── */
+
+@keyframes codexImpactPulse {
+  0% {
+    box-shadow: inset 10px 0 24px rgba(255, 0, 34, 0.12);
+    border-left-color: var(--red-bright);
+  }
+  100% {
+    box-shadow: none;
+    border-left-color: var(--border-hot);
+  }
+}
+
+/* Linearly cross-fades the opacity layer to fix the jumping gradient bug */
+@keyframes codexGradientFade {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes codexTextImpact {
+  0% {
+    color: var(--red-bright);
+    text-shadow: 0 0 10px rgba(255, 0, 34, 0.7), 0 0 22px var(--red-glow);
+  }
+  100% {
+    color: var(--red);
+    text-shadow: 0 0 10px var(--red-glow);
+  }
+}
+
+/* Original Pip behavior—collapses fluidly from 100% down to its native layout anchor */
+@keyframes codexPipImpact {
+  0% {
+    background: linear-gradient(180deg, var(--red-bright) 0%, var(--red) 60%, var(--border-hot) 100%);
+    box-shadow: 0 0 10px rgba(192, 0, 26, 0.5);
+  }
+  100% {
+    background: linear-gradient(180deg, var(--red-bright) 0%, var(--border-hot) 100%);
+    box-shadow: 0 0 8px var(--red-glow);
+  }
+}

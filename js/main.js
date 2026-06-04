@@ -37,7 +37,7 @@ function buildMarquee() {
   const track = document.querySelector('.marquee-track');
   if (!track) return;
 
-  // Double the items for seamless loop
+  // Double the items for loop
   const full = [...MARQUEE_ITEMS, ...MARQUEE_ITEMS];
   full.forEach((item, i) => {
     const span = document.createElement('span');
@@ -57,9 +57,9 @@ function updateTimestamp() {
   const el = document.getElementById('timestamp');
   if (!el) return;
 
-  // Fictional Sith timestamp format
+  // Timestamp format
   const now = new Date();
-  const galYear = 3956 + (now.getFullYear() - 2024); // set in ~Old Republic era
+  const galYear = 3956 + (now.getFullYear() - 2024); // set in ~OR
   const day  = String(now.getDate()).padStart(3, '0');
   const hr   = String(now.getHours()).padStart(2, '0');
   const min  = String(now.getMinutes()).padStart(2, '0');
@@ -69,6 +69,7 @@ function updateTimestamp() {
 }
 
 setInterval(updateTimestamp, 1000);
+
 function updateSignalReadout() {
   const barsEl = document.getElementById('signal-bars');
   const percentEl = document.getElementById('signal-percent');
@@ -76,8 +77,12 @@ function updateSignalReadout() {
 
   const pct = 72 + Math.floor(Math.random() * 19);
   const lit = Math.max(0, Math.min(10, Math.round(pct / 10)));
-  barsEl.textContent = '█'.repeat(lit) + '░'.repeat(10 - lit);
-  percentEl.textContent = `${pct}%`; 
+  
+  barsEl.innerHTML =
+    '<span style="vertical-align:middle">' + '█'.repeat(lit) + '</span>' +
+    '<span style="vertical-align:middle;opacity:0.35">' + '█'.repeat(10 - lit) + '</span>';
+  
+  percentEl.textContent = `${pct}%`;
 }
 updateSignalReadout();
 setInterval(updateSignalReadout, 1000);
@@ -127,8 +132,6 @@ function initCardCorruption() {
 function boot() {
   // Build marquee immediately
   buildMarquee();
-
-
   // Timestamp
   updateTimestamp();
 

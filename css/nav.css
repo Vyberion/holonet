@@ -1,0 +1,345 @@
+ @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  /* ── RESET (scoped to nav) ── */
+  .site-nav *, .site-nav *::before, .site-nav *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* ─────────────────────────────────────────────
+     NAV SHELL
+  ───────────────────────────────────────────── */
+  .site-nav {
+    position: fixed;
+    background: var(--void);
+    top: 0;
+    left: -3px;
+    right: 0;
+    z-index: 2000;
+    /* same chamfer language as .codex-article / .status-bar */
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px));
+    border-bottom: 1px solid var(--border-hot);
+    /* scanline wash on the bar itself */
+    /* ambient glow like .nav-grid */
+    box-shadow:
+      0 0 0 1px var(--border),
+      0 4px 40px rgba(192,0,26,0.12),
+      0 0 80px rgba(192,0,26,0.05);
+  }
+
+  /* holographic inner wash — same as .codex-article::after */
+  .site-nav::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    clip-path: inherit;
+  }
+
+  /* glowing bottom rule — .header-rule treatment */
+  .site-nav::after {
+    content: '';
+    position: relative;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    box-shadow: 0 0 16px var(--red-glow), 0 0 2px rgba(0,200,255,0.15);
+    pointer-events: none;
+  }
+
+  /* ─────────────────────────────────────────────
+     INNER LAYOUT
+  ───────────────────────────────────────────── */
+  .nav-inner {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 32px;
+    height: 62px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+
+
+  /* ─────────────────────────────────────────────
+     NAV LINKS
+  ───────────────────────────────────────────── */
+  .nav-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    list-style: none;
+  }
+
+  .nav-item {
+    position: relative;
+  }
+
+  .nav-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 18px;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+    clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+  }
+
+  /* hover background — like nav-card hover */
+  .nav-link::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 120% at 50% 130%, rgba(192,0,26,0.14) 0%, transparent 65%),
+      linear-gradient(135deg,
+        rgba(0,0,0,0) 0%,
+        rgba(192,0,26,0.07) 40%,
+        rgba(0,180,255,0.03) 60%,
+        rgba(0,0,0,0) 100%
+      );
+    opacity: 0;
+    transition: opacity 0.35s;
+    pointer-events: none;
+  }
+
+  .nav-link:hover::before,
+  .nav-link.active::before {
+    opacity: 1;
+  }
+
+  /* bottom accent line — .nav-card::after */
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--red-bright), transparent);
+    box-shadow: 0 0 12px var(--red-bright);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.4s cubic-bezier(0.23,1,0.32,1);
+  }
+
+  .nav-link:hover::after,
+  .nav-link.active::after {
+    transform: scaleX(1);
+  }
+
+  /* section prefix — card-category treatment */
+  .nav-link-prefix {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.38rem;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    line-height: 1;
+    margin-bottom: 3px;
+    transition: color 0.3s;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* main label — card-title treatment */
+  .nav-link-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-shadow: none;
+    transition: color 0.3s, text-shadow 0.3s, letter-spacing 0.4s;
+    position: relative;
+    z-index: 2;
+    white-space: nowrap;
+  }
+
+  .nav-link:hover .nav-link-prefix,
+  .nav-link.active .nav-link-prefix {
+    color: var(--text-dim);
+  }
+
+  .nav-link:hover .nav-link-label,
+  .nav-link.active .nav-link-label {
+    color: var(--red-bright);
+    letter-spacing: 0.2em;
+    text-shadow:
+      0 0 6px rgba(255,0,34,0.5),
+      0 0 20px var(--red),
+      0 0 50px var(--red-glow);
+  }
+
+  /* corner pip — .card-corners treatment */
+  .nav-link-corners {
+    position: absolute;
+    inset: 4px;
+    pointer-events: none;
+  }
+
+  .nav-link-corners::before,
+  .nav-link-corners::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-color: var(--red-dim);
+    border-style: solid;
+    opacity: 0;
+    transition: opacity 0.3s, border-color 0.3s;
+  }
+
+  .nav-link-corners::before {
+    top: 0; left: 0;
+    border-width: 1px 0 0 1px;
+  }
+
+  .nav-link-corners::after {
+    bottom: 0; right: 0;
+    border-width: 0 1px 1px 0;
+  }
+
+  .nav-link:hover .nav-link-corners::before,
+  .nav-link:hover .nav-link-corners::after,
+  .nav-link.active .nav-link-corners::before,
+  .nav-link.active .nav-link-corners::after {
+    opacity: 1;
+    border-color: var(--red-bright);
+  }
+
+  /* ─────────────────────────────────────────────
+     DIVIDER PIPS between links
+  ───────────────────────────────────────────── */
+  .nav-sep {
+    width: 1px;
+    height: 0px;
+    background: linear-gradient(to bottom, transparent, var(--border-hot), transparent);
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+
+  /* ─────────────────────────────────────────────
+     MOBILE TOGGLE (hamburger)
+  ───────────────────────────────────────────── */
+  .nav-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: 1px solid var(--border-hot);
+    cursor: crosshair;
+    padding: 8px;
+    clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+    transition: border-color 0.3s, box-shadow 0.3s;
+    position: relative;
+    z-index: 6;
+  }
+
+  .nav-toggle:hover {
+    border-color: var(--red-bright);
+    box-shadow: 0 0 14px var(--red-glow);
+  }
+
+  .nav-toggle span {
+    display: block;
+    height: 1px;
+    background: var(--red-dim);
+    transition: background 0.3s, transform 0.35s, opacity 0.2s;
+    transform-origin: center;
+  }
+
+  .nav-toggle:hover span,
+  .nav-toggle[aria-expanded="true"] span {
+    background: var(--red-bright);
+  }
+
+  .nav-toggle[aria-expanded="true"] span:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+  }
+  .nav-toggle[aria-expanded="true"] span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  .nav-toggle[aria-expanded="true"] span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+
+  /* ─────────────────────────────────────────────
+     MOBILE DRAWER
+  ───────────────────────────────────────────── */
+  @media (max-width: 700px) {
+    .nav-toggle {
+      display: flex;
+    }
+
+    .nav-links {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      gap: 0;
+      align-items: stretch;
+      background: var(--void);
+      border-bottom: 1px solid var(--border-hot);
+      box-shadow: 0 8px 40px rgba(192,0,26,0.18);
+      clip-path: none;
+      /* closed */
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.23,1,0.32,1);
+    }
+
+    .nav-links.open {
+      max-height: 400px;
+    }
+
+    .nav-sep { display: none; }
+
+    .nav-link {
+      flex-direction: row;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 24px;
+      clip-path: none;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-link-prefix {
+      font-size: 0.42rem;
+      margin-bottom: 0;
+      min-width: 28px;
+    }
+
+    .nav-signal { display: none; }
+  }
+
+  /* ─────────────────────────────────────────────
+     KEYFRAMES (self-contained if style.css absent)
+  ───────────────────────────────────────────── */
+  @keyframes flicker {
+    0%,91%,93%,95%,100% { opacity: 1; }
+    92%  { opacity: 0.4; }
+    94%  { opacity: 0.75; }
+  }
+
+  /* ─────────────────────────────────────────────
+     PAGE-PUSH: add this class to your <body> or
+     outermost layout wrapper so content clears the nav
+  ───────────────────────────────────────────── */
+  .nav-offset {
+    padding-top: 62px;
+  }

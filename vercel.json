@@ -7,11 +7,11 @@
     { "src": "/api/auth/callback", "dest": "/api/auth/callback.js" },
     { "src": "/api/auth/check-status", "dest": "/api/auth/check-status.js" },
     { "src": "/api/auth/check-access", "dest": "/api/auth/check-access.js" },
-    { "src": "/codex(?:\\.html)?", "dest": "/public/codex.html" },
-    { "src": "/archives(?:\\.html)?", "dest": "/public/archives.html" },
-    { "src": "/account(?:\\.html)?", "dest": "/public/account.html" },
-    { "src": "/index/reaver/reavers(?:\\.html)?", "dest": "/index/reaver/reavers.html" },
-    { "src": "/index(?:\\.html)?", "dest": "/public/index.html" },
+    { "src": "/codex(?:\\.html)?", "dest": "/pages/codex.html" },
+    { "src": "/archives(?:\\.html)?", "dest": "/pages/archives.html" },
+    { "src": "/account(?:\\.html)?", "dest": "/pages/account.html" },
+    { "src": "/index/reaver/reavers(?:\\.html)?", "dest": "/pages/index/reaver/reavers.html" },
+    { "src": "/index(?:\\.html)?", "dest": "/pages/index.html" },
     { "src": "/(.*)", "dest": "/$1" }
   ]
 }

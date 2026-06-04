@@ -46,14 +46,14 @@
         <p style="font-size: 0.9rem; letter-spacing: 0.1em; text-transform: uppercase;">${message}</p>
         <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 30px;">
           <button type="button" id="restricted-go-back" style="${buttonStyle}" onmouseover="this.style.background='rgba(192,0,26,0.1)'" onmouseout="this.style.background='transparent'">GO BACK</button>
-          <a href="/account.html" style="${buttonStyle}" onmouseover="this.style.background='rgba(192,0,26,0.1)'" onmouseout="this.style.background='transparent'">MANAGE ACCOUNT</a>
+          <a href="/account" style="${buttonStyle}" onmouseover="this.style.background='rgba(192,0,26,0.1)'" onmouseout="this.style.background='transparent'">MANAGE ACCOUNT</a>
         </div>
       </div>
     `;
 
     document.getElementById("restricted-go-back")?.addEventListener("click", () => {
       if (history.length > 1) history.back();
-      else window.location.href = "/index.html";
+      else window.location.href = "/index";
     });
   }
 

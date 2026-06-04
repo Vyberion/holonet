@@ -18,7 +18,6 @@
     right: 0;
     z-index: 2000;
     /* same chamfer language as .codex-article / .status-bar */
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px));
     border-bottom: 1px solid var(--border-hot);
     /* scanline wash on the bar itself */
     /* ambient glow like .nav-grid */

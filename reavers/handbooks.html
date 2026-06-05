@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reaver Handbooks - Sith Holonet</title>
+  <meta name="description" content="Guarded Reaver handbook archive." />
+  <style>
+    html,
+    body {
+      background: #0e0000;
+    }
+  </style>
+  <script src="/modules/client/access-guard.js"></script>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/codex.css" />
+  <link rel="stylesheet" href="/css/legal.css" />
+  <link rel="stylesheet" href="/css/document.css" />
+  <link rel="stylesheet" href="/css/nav.css" />
+</head>
+
+<body>
+  <div id="nav-container"></div>
+
+  <div id="vignette" aria-hidden="true"></div>
+  <div id="rune-field" aria-hidden="true"></div>
+  <div id="holo-grid" aria-hidden="true"></div>
+
+  <div id="loader" role="status" aria-label="Establishing connection">
+    <div class="loader-ring"></div>
+    <div class="loader-text">Establishing Link&hellip;</div>
+    <div class="loader-bar-wrap">
+      <div class="loader-bar"></div>
+    </div>
+  </div>
+
+  <div id="app">
+    <header>
+      <p class="site-eyebrow">MANAR'S THE SITH ORDER</p>
+      <div class="header-rule"></div>
+      <h1 class="site-title">REAVER HANDBOOKS</h1>
+      <p class="site-subtitle">DIVISIONAL ARCHIVE</p>
+      <div class="header-rule"></div>
+    </header>
+
+    <div class="status-bar" role="status" aria-live="polite">
+      <span style="color:var(--text-dim)">Node: <span style="color:var(--text-dim)">RVR-01 / HORUSET SYSTEM</span></span>
+      <span class="status-signal" style="color:var(--text-dim)"><span class="blink">LIVE</span>&nbsp;&nbsp;Archive: <span id="signal-bars">||||||||..</span> <span id="signal-percent">82%</span></span>
+      <span style="color:var(--text-dim)"><span id="timestamp">Last Updated: 3958.001</span></span>
+    </div>
+
+    <main>
+      <div class="codex-document document-shell">
+        <article class="codex-article">
+          <div class="article-header">
+            <span class="article-number">RVR-01 / Secure Document Viewer</span>
+            <h2 class="article-title">Handbook Archive</h2>
+          </div>
+
+          <div class="article-content pdf-terminal">
+            <div class="regulation">
+              <h3 class="reg-title">Access Notice</h3>
+              <p class="reg-text">
+                Reaver divisional documents are restricted to authorized Reaver personnel.
+                Select a transmission tab to load one handbook at a time.
+              </p>
+            </div>
+
+            <div class="pdf-tab-strip" role="tablist" aria-label="Reaver handbook documents">
+              <button
+                type="button"
+                class="pdf-tab is-active"
+                role="tab"
+                aria-selected="true"
+                data-pdf-tab
+                data-pdf-title="RVR Divisional Handbook"
+                data-pdf-meta="Clearance: Reaver / Document: Divisional"
+                data-pdf-src="/assets/RVR%20Divisional%20Handbook.pdf"
+              >
+                Divisional
+              </button>
+              <button
+                type="button"
+                class="pdf-tab"
+                role="tab"
+                aria-selected="false"
+                data-pdf-tab
+                data-pdf-title="RVR Formations Handbook"
+                data-pdf-meta="Clearance: Reaver / Document: Formations"
+                data-pdf-src="/assets/RVR%20Formations%20Handbook.pdf"
+              >
+                Formations
+              </button>
+            </div>
+
+            <div class="pdf-reader-header">
+              <span class="pdf-reader-title" data-pdf-title>RVR Divisional Handbook</span>
+              <span class="pdf-reader-meta" data-pdf-meta>Clearance: Reaver / Document: Divisional</span>
+            </div>
+
+            <div class="pdf-box">
+              <iframe
+                data-pdf-frame
+                src="/assets/RVR%20Divisional%20Handbook.pdf"
+                title="RVR Divisional Handbook"
+              ></iframe>
+            </div>
+          </div>
+        </article>
+      </div>
+    </main>
+
+    <footer>
+      <p class="footer-glyph" style="color:var(--text-dim);">
+        ᛭ &nbsp; Peace is a lie &mdash; There is only passion &nbsp; ᛭
+      </p>
+      <p class="footer-sig" style="color:var(--text-dim);">
+        Sith Holonet &mdash; Encrypted Transmission &mdash; Node RVR-01
+      </p>
+      <nav class="footer-links" aria-label="Legal links">
+        <a href="/the-serious-stuff/terms-of-service.html">Terms</a>
+        <a href="/the-serious-stuff/privacy-policy.html">Privacy</a>
+      </nav>
+    </footer>
+  </div>
+
+  <script src="/js/main.js"></script>
+  <script src="/modules/client/site.js"></script>
+  <script src="/modules/client/pdf-tabs.js"></script>
+</body>
+</html>

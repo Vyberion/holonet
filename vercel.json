@@ -2,13 +2,7 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/registry", "destination": "/registry.html" },
-    { "source": "/registry.html", "destination": "/registry.html" },
-    { "source": "/registry/reaver/reavers", "destination": "/registry/reaver/reavers.html" },
-    { "source": "/registry/reaver/reavers.html", "destination": "/registry/reaver/reavers.html" },
-    { "source": "/index", "destination": "/registry.html" },
-    { "source": "/index/reaver/reavers", "destination": "/registry/reaver/reavers.html" },
-    { "source": "/index/reaver/reavers.html", "destination": "/registry/reaver/reavers.html" },
-    { "source": "/privacy", "destination": "/the serious stuff/privacy-policy.html" },
-    { "source": "/terms", "destination": "/the serious stuff/terms-of-service.html" }
+    { "source": "/registry/reavers/reavers", "destination": "/registry/reavers/reavers.html" },
+    { "source": "/registry/reavers/reavers.html", "destination": "/registry/reavers/reavers.html" }
   ]
 }

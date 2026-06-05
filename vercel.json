@@ -1,8 +1,3 @@
 {
-  "cleanUrls": true,
-  "rewrites": [
-    { "source": "/registry", "destination": "/registry.html" },
-    { "source": "/registry/reavers/reavers", "destination": "/registry/reavers/reavers.html" },
-    { "source": "/registry/reavers/reavers.html", "destination": "/registry/reavers/reavers.html" }
-  ]
+  "cleanUrls": true
 }

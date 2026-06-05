@@ -12,7 +12,7 @@
     return segments.join("_") || "home";
   }
 
-  function rejectAccess(message) {
+  function rejectAccess(message, options = {}) {
     const buttonStyle = `
       color: #ff0022;
       text-decoration: none;
@@ -46,7 +46,7 @@
         <p style="font-size: 0.9rem; letter-spacing: 0.1em; text-transform: uppercase;">${message}</p>
         <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 30px;">
           <button type="button" id="restricted-go-back" style="${buttonStyle}" onmouseover="this.style.background='rgba(192,0,26,0.1)'" onmouseout="this.style.background='transparent'">GO BACK</button>
-          <a href="/account.html" style="${buttonStyle}" onmouseover="this.style.background='rgba(192,0,26,0.1)'" onmouseout="this.style.background='transparent'">MANAGE ACCOUNT</a>
+          ${options.showAccount ? `<a href="/account.html" style="${buttonStyle}" onmouseover="this.style.background='rgba(192,0,26,0.1)'" onmouseout="this.style.background='transparent'">MANAGE ACCOUNT</a>` : ""}
         </div>
       </div>
     `;
@@ -58,16 +58,9 @@
   }
 
   async function verifyAccess() {
-    const deviceId = localStorage.getItem("sith_device_id");
-
-    if (!deviceId) {
-      rejectAccess("ACCESS DENIED");
-      return;
-    }
-
     try {
       const pageKey = getPageKey();
-      const response = await fetch(`/api/auth/check-access?deviceId=${encodeURIComponent(deviceId)}&page=${encodeURIComponent(pageKey)}`);
+      const response = await fetch(`/api/auth/check-access?page=${encodeURIComponent(pageKey)}`);
       const access = await response.json();
 
       if (response.ok && access.authorized) {
@@ -76,7 +69,8 @@
       }
 
       const reason = access.reason || "INSUFFICIENT_CLEARANCE_LEVEL";
-      rejectAccess(`ACCESS DENIED: ${reason.replace(/_/g, " ")}`);
+      const showAccount = ["SESSION_MISSING", "SESSION_INVALID", "SESSION_EXPIRED", "USER_NOT_FOUND"].includes(reason);
+      rejectAccess(`ACCESS DENIED: ${reason.replace(/_/g, " ")}`, { showAccount });
     } catch (error) {
       console.error("Security grid error:", error);
       rejectAccess("ACCESS DENIED");

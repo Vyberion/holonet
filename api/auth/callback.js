@@ -1,80 +1,82 @@
+import {
+  clearCookie,
+  createSessionForUser,
+  deleteSessionToken,
+  getCookie,
+  serializeCookie,
+  SESSION_COOKIE,
+  SESSION_MAX_AGE_SECONDS,
+  STATE_COOKIE
+} from "../../modules/auth/session-store.js";
+
 export default async function handler(req, res) {
-  const { code, state: deviceId, error } = req.query;
+  const { code, state, error } = req.query;
 
   if (error) {
     return res.redirect(`/account.html?status=error&msg=${encodeURIComponent(error)}`);
   }
 
-  if (!code || !deviceId) {
-    return res.redirect('/account.html?status=error&msg=Invalid+callback+payload');
+  if (!code || !state) {
+    return res.redirect("/account.html?status=error&msg=Invalid+callback+payload");
+  }
+
+  const expectedState = getCookie(req, STATE_COOKIE);
+
+  if (!expectedState || state !== expectedState) {
+    res.setHeader("Set-Cookie", clearCookie(STATE_COOKIE));
+    return res.redirect("/account.html?status=error&msg=OAuth+state+verification+failed");
   }
 
   try {
-    // 1. Exchange access code for token from Roblox
-    const tokenResponse = await fetch('https://apis.roblox.com/oauth/v1/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    const tokenResponse = await fetch("https://apis.roblox.com/oauth/v1/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         client_id: process.env.ROBLOX_CLIENT_ID,
         client_secret: process.env.ROBLOX_CLIENT_SECRET,
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: process.env.ROBLOX_REDIRECT_URI,
-      }),
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: process.env.ROBLOX_REDIRECT_URI
+      })
     });
 
     const tokenData = await tokenResponse.json();
     if (!tokenResponse.ok) {
-      throw new Error(tokenData.error_description || 'Failed token transaction exchange');
+      throw new Error(tokenData.error_description || "Failed token transaction exchange");
     }
 
-    // 2. Query Roblox UserInfo Endpoint for user profile details
-    const userResponse = await fetch('https://apis.roblox.com/oauth/v1/userinfo', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    const userResponse = await fetch("https://apis.roblox.com/oauth/v1/userinfo", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` }
     });
 
     const userData = await userResponse.json();
     if (!userResponse.ok) {
-      throw new Error('Could not fetch Roblox identity profile data.');
+      throw new Error("Could not fetch Roblox identity profile data.");
     }
 
-    const robloxUid = userData.sub; 
-    const robloxUser = userData.preferred_username; // Official Roblox Username (@handle)
-    const robloxDisplay = userData.name;              // Current Display Name
+    const robloxId = String(userData.sub);
+    const robloxUsername = userData.preferred_username;
+    const robloxDisplayName = userData.name;
 
-    // 3. Upsert device-to-roblox map inside Supabase
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    await deleteSessionToken(getCookie(req, SESSION_COOKIE));
 
-    const supabaseResponse = await fetch(`${supabaseUrl}/rest/v1/device_bindings`, {
-      method: 'POST',
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify({
-        device_id: deviceId,
-        roblox_id: robloxUid,
-        roblox_username: robloxUser,
-        roblox_display_name: robloxDisplay
-      })
+    const { token, expiresAt } = await createSessionForUser({
+      robloxId,
+      robloxUsername,
+      robloxDisplayName
     });
 
-    // Replace the old error throwing code block inside /api/auth/callback.js with this:
-if (!supabaseResponse.ok) {
-  const dbErr = await supabaseResponse.text();
-  console.error('Supabase Error Payload:', dbErr);
-  
-  // This will pass the EXACT raw database error message straight back to your client UI alert
-  throw new Error(`DB Rejection: ${dbErr}`);
-}
+    res.setHeader("Set-Cookie", [
+      clearCookie(STATE_COOKIE),
+      serializeCookie(SESSION_COOKIE, token, {
+        maxAge: SESSION_MAX_AGE_SECONDS,
+        expires: expiresAt
+      })
+    ]);
 
-    // Pass username and ID back through params to allow immediate frontend caching
-    return res.redirect(`/account.html?status=success&rblx=${robloxUid}&user=${encodeURIComponent(robloxUser)}`);
-
+    return res.redirect("/account.html?status=success");
   } catch (err) {
+    res.setHeader("Set-Cookie", clearCookie(STATE_COOKIE));
     return res.redirect(`/account.html?status=error&msg=${encodeURIComponent(err.message)}`);
   }
 }

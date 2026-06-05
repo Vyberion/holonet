@@ -1,12 +1,3 @@
 {
-  "cleanUrls": true,
-  "rewrites": [
-    { "source": "/registry", "destination": "/registry.html" },
-    { "source": "/registry.html", "destination": "/registry.html" },
-    { "source": "/registry/reaver/reavers", "destination": "/registry/reaver/reavers.html" },
-    { "source": "/registry/reaver/reavers.html", "destination": "/registry/reaver/reavers.html" },
-    { "source": "/index", "destination": "/registry.html" },
-    { "source": "/index/reaver/reavers", "destination": "/registry/reaver/reavers.html" },
-    { "source": "/index/reaver/reavers.html", "destination": "/registry/reaver/reavers.html" }
-  ]
+  "cleanUrls": true
 }

@@ -4,23 +4,23 @@
    ROOT & RESET
 ───────────────────────────────────────────── */
 :root {
-  --red:         #c0001a;
-  --red-bright: #ff0022;
-  --red-dim:    #6b0010;
-  --red-glow:   #ff002255;
-  --red-deep:   #3a0008;
-  --amber:      #ff4400;
+  --red:         #d1243a;
+  --red-bright: #ff3b4f;
+  --red-dim:    #7a1a28;
+  --red-glow:   #ff3b4f44;
+  --red-deep:   #351018;
+  --amber:      #ff9a3d;
   --black:      #000000;
-  --void:       rgb(0, 0, 0);
-  --dark:       #060003;
-  --surface:    #0b0006;
-  --panel:      #100009;
-  --border:     #2e0018;
-  --border-hot: #5a0020;
-  --text:       #cc0018;
-  --text-dim:   #c0001a;
-  --text-faint: #640113;
-  --scanline:   rgba(255,0,30,0.025);
+  --void:       #0e0000;
+  --dark:       #080607;
+  --surface:    #0d0a0d;
+  --panel:      #00000053;  
+  --border:     #31232a;
+  --border-hot: #4a1c27;
+  --text:       #e8d8d2;
+  --text-dim:   #b99591;
+  --text-faint: #7f6668;
+  --scanline:   rgba(255,210,210,0.018);
   /* holographic spectrum */
   --holo-r:     rgba(255,0,34,0.15);
   --holo-g:     rgba(0,255,120,0.04);
@@ -180,7 +180,7 @@ header {
   font-size: 0.58rem;
   letter-spacing: 0.3em;
   color: var(--text-faint);
-  border: 1px solid var(--border);
+  border: 1px solid var(--red-dim);
   margin: 10px 0 30px;
   text-transform: uppercase;
   background: linear-gradient(90deg, rgba(192,0,26,0.03) 0%, transparent 50%, rgba(192,0,26,0.03) 100%);
@@ -239,27 +239,37 @@ main {
   grid-template-columns: repeat(3, 1fr);
   gap: 1px;
   position: relative;
-  background: var(--border);
-  box-shadow:
-    0 0 0 1px var(--border),
-    0 0 60px rgba(192,0,26,0.08),
-    0 0 120px rgba(192,0,26,0.04);
 }
 
 /* ─────────────────────────────────────────────
    NAV CARDS
 ───────────────────────────────────────────── */
 .nav-card {
+  margin: 2.5px;
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  isolation: isolate;
   height: 380px;
-  padding: 32px 28px;
+  padding: 32px 24px;
+  padding-right: 5px;
   text-decoration: none;
   overflow: hidden;
-  background: var(--surface);
-  transition: background 0.4s;
+  background:
+    radial-gradient(ellipse 92% 84% at 50% 112%, rgba(155, 0, 24, 0.2), transparent 63%),
+    linear-gradient(145deg, rgba(41, 0, 8, 0.42) 0%, rgba(15, 2, 8, 0.98) 46%, rgba(4, 3, 4, 1) 100%);
+  background-size: 100% 100%, 180% 180%;
+  background-position: center, 0% 50%;
+  border: 1px solid var(--border-hot);
+  box-shadow:
+    0 0 34px rgba(170, 0, 24, 0.1),
+    inset 0 0 30px rgba(155, 0, 24, 0.04);
+  transition:
+    background 0.4s,
+    background-position 0.55s cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 0.35s,
+    box-shadow 0.35s;
 }
 
 .nav-card:nth-child(1) { animation-delay: 0.15s; }
@@ -270,19 +280,15 @@ main {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 0;
   background:
-    radial-gradient(ellipse 80% 80% at 50% 110%, rgba(192,0,26,0.12) 0%, transparent 60%),
-    linear-gradient(135deg,
-      rgba(0,0,0,0) 0%,
-      rgba(192,0,26,0.06) 25%,
-      rgba(0,180,255,0.03) 50%,
-      rgba(192,0,26,0.06) 75%,
-      rgba(0,0,0,0) 100%
-    );
-  background-size: 400% 400%;
+    radial-gradient(ellipse 80% 80% at 50% 110%, rgba(192, 0, 26, 0.16) 0%, transparent 60%),
+    linear-gradient(135deg, transparent 0%, rgba(192, 0, 26, 0.075) 24%, rgba(0, 180, 255, 0.04) 50%, rgba(192, 0, 26, 0.075) 76%, transparent 100%);
+  background-size: 100% 100%, 400% 400%;
+  background-position: center, 0% 50%;
   animation: none;
   opacity: 0;
-  transition: opacity 0.4s, transform 0.4s;
+  transition: opacity 0.4s, background-position 0.65s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .nav-card:hover::before {
@@ -302,6 +308,7 @@ main {
   content: '';
   position: absolute;
   bottom: 0; left: 0; right: 0;
+  z-index: 3;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--red-bright), transparent);
   transform: scaleX(0);
@@ -421,7 +428,7 @@ main {
   font-size: 0.52rem;
   letter-spacing: 0.55em;
   text-transform: uppercase;
-  color: var(--text-dim);
+  color: #ba777b;
   margin-bottom: 12px;
   position: relative;
   z-index: 2;
@@ -431,10 +438,10 @@ main {
   font-family: 'Cinzel', serif;
   font-size: clamp(1.5rem, 2.5vw, 2.1rem);
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: var(--red-bright);
-  text-shadow: 0 0 20px var(--red-glow);
+  color: #ff3348;
+  text-shadow: 0 0 16px rgba(255, 36, 62, 0.45);
   line-height: 1.1;
   position: relative;
   z-index: 2;
@@ -451,9 +458,9 @@ main {
 
 .card-desc {
   font-family: 'Share Tech Mono', monospace;
-  font-size: 0.62rem;
-  line-height: 1.85;
-  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: #ecd6d0;
   margin-top: 12px;
   position: relative;
   z-index: 2;
@@ -476,7 +483,7 @@ main {
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.5rem;
   letter-spacing: 0.35em;
-  color: var(--text-faint);
+  color: #ba777b;
   text-transform: uppercase;
   transition: color 0.3s, letter-spacing 0.4s, text-shadow 0.3s;
   z-index: 2;
@@ -495,7 +502,7 @@ main {
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.42rem;
   letter-spacing: 0.2em;
-  color: var(--text-faint);
+  color: #ba777b;
   text-align: right;
   line-height: 1.8;
   z-index: 2;
@@ -514,7 +521,7 @@ main {
   font-family: 'Orbitron', monospace;
   font-size: 0.38rem;
   letter-spacing: 0.25em;
-  color: var(--text-faint);
+  color: #ba777b;
   z-index: 2;
   opacity: 0.6;
 }
@@ -613,7 +620,7 @@ footer {
   margin-top: 10px;
   font-size: 0.48rem;
   letter-spacing: 0.4em;
-  color: rgba(80,0,12,0.35);
+  color: var(--text-faint);
   text-transform: uppercase;
 }
 

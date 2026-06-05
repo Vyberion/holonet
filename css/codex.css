@@ -17,7 +17,7 @@
 .codex-article {
   margin-bottom: 50px;
   padding: 30px;
-  border: 2px solid var(--border-hot);
+  border: 1px solid var(--border-hot);
   position: relative;
   margin: auto;
   margin-bottom: 10px;
@@ -231,7 +231,7 @@
 
 .sub-clause p {
   margin: 0;
-  color: var(--red);
+  color: var(--text-dim);
   transition: color 0.3s;
 }
 

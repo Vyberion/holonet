@@ -148,7 +148,7 @@
   background: transparent;
   border: none;
   outline: none;
-  color: var(--red-bright);
+  color: var(--text);
   font-family: 'Share Tech Mono', monospace;
   font-size: 1.1rem;
   letter-spacing: 0.05em;
@@ -267,7 +267,7 @@
 
 .search-result-snippet {
   font-size: 0.88rem;
-  color: var(--red);
+  color: var(--text-dim);
   font-family: 'Share Tech Mono', monospace;
   letter-spacing: 0.02em;
   line-height: 1.5;

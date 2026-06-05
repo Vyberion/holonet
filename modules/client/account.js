@@ -20,8 +20,8 @@
     localStorage.setItem("sith_roblox_id", robloxId);
     localStorage.setItem("sith_roblox_user", username);
 
-    setText("auth-status", "SECURE LINK ACTIVE");
-    setText("session-id", "SERVER COOKIE");
+    setText("auth-status", "ACTIVE");
+    setText("session-id", "COOKIE");
     setText("roblox-id", robloxId);
     setText("roblox-user", `@${username}`);
 

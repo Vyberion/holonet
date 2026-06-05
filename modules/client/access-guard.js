@@ -1,5 +1,6 @@
 (function () {
-  document.documentElement.style.display = "none";
+  document.documentElement.style.background = "#0e0000";
+  document.documentElement.style.visibility = "hidden";
 
   function getPageKey() {
     const segments = location.pathname.split("/").filter(Boolean);
@@ -26,7 +27,7 @@
       cursor: crosshair;
     `;
 
-    document.documentElement.style.display = "";
+    document.documentElement.style.visibility = "";
     document.body.innerHTML = `
       <div style="
         background: #060003;
@@ -53,7 +54,7 @@
 
     document.getElementById("restricted-go-back")?.addEventListener("click", () => {
       if (history.length > 1) history.back();
-      else window.location.href = "/registry";
+      else window.location.href = "/registry.html";
     });
   }
 
@@ -64,7 +65,7 @@
       const access = await response.json();
 
       if (response.ok && access.authorized) {
-        document.documentElement.style.display = "";
+        document.documentElement.style.visibility = "";
         return;
       }
 

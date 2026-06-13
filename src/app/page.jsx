@@ -1,5 +1,11 @@
 import { HolonetFrame } from "../components/HolonetFrame.jsx";
 import { PageScripts } from "../components/PageScripts.jsx";
+import { holonetMetadata } from "../lib/metadata.js";
+
+export const metadata = holonetMetadata({
+  title: "The Holonet",
+  description: "Laws, lore, ranks, records and division resources for Manar's The Sith Order."
+});
 
 export default function HomePage() {
   return (

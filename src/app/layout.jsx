@@ -1,4 +1,5 @@
 import { Analytics } from "@vercel/analytics/next";
+import { defaultMetadata } from "../lib/metadata.js";
 
 import "../../css/style.css";
 import "../../css/themes.css";
@@ -13,8 +14,8 @@ import "../../css/nexus-classified.css";
 import "../../css/legal.css";
 
 export const metadata = {
-  title: "Sith Holonet",
-  description: "Manar's Sith Order - Laws, lore and divisional records."
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://sith-holonet.vercel.app"),
+  ...defaultMetadata
 };
 
 export default function RootLayout({ children }) {

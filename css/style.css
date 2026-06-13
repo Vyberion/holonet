@@ -15,9 +15,9 @@
   --panel:      #00000053;  
   --border:     #31232a;
   --border-hot: #4a1c27;
-  --text:       #e8d8d2;
-  --text-dim:   #b99591;
-  --text-faint: #7f6668;
+  --text:       #ffffff;
+  --text-dim:   #ffffff;
+  --text-faint: #ffffff;
   --scanline:   rgba(255,210,210,0.018);
   --holo-r:     rgba(255,0,34,0.15);
   --holo-g:     rgba(0,255,120,0.04);

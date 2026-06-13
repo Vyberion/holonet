@@ -1,5 +1,11 @@
 import { HolonetFrame } from "../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../components/PageScripts.jsx";
+import { holonetMetadata } from "../../lib/metadata.js";
+
+export const metadata = holonetMetadata({
+  title: "The Codex",
+  description: "The supreme law of the Sith Order."
+});
 
 export default function CodexPage() {
   return (

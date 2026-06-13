@@ -1,0 +1,15 @@
+[Unit]
+Description=Holonet Discord Bot
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/holonet/bot
+EnvironmentFile=/opt/holonet/bot/.env
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=10
+User=ubuntu
+
+[Install]
+WantedBy=multi-user.target

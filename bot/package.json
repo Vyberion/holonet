@@ -1,0 +1,18 @@
+{
+  "name": "holonet-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node index.js",
+    "deploy-commands": "node deploy-commands.js"
+  },
+  "dependencies": {
+    "@discordjs/rest": "^2.6.0",
+    "@supabase/supabase-js": "^2.58.0",
+    "discord-api-types": "^0.38.31",
+    "discord.js": "^14.25.1"
+  }
+}

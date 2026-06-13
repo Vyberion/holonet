@@ -1,0 +1,44 @@
+.legal-panel {
+  background:
+    radial-gradient(ellipse 92% 84% at 50% 112%, rgba(155, 0, 24, 0.16), transparent 63%),
+    linear-gradient(145deg, rgba(41, 0, 8, 0.38) 0%, rgba(15, 2, 8, 0.98) 46%, rgba(4, 3, 4, 1) 100%);
+  border: 1px solid var(--border-hot);
+  box-shadow: 0 0 40px rgba(192, 0, 26, 0.08);
+  margin: 0 auto;
+  max-width: 860px;
+  padding: 36px;
+  position: relative;
+}
+
+.legal-panel h2 {
+  color: var(--red-bright);
+  font-family: 'Orbitron', monospace;
+  font-size: 0.88rem;
+  letter-spacing: 0.24em;
+  margin: 28px 0 10px;
+  text-transform: uppercase;
+}
+
+.legal-panel h2:first-child {
+  margin-top: 0;
+}
+
+.legal-panel p,
+.legal-panel li {
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.legal-panel ul {
+  margin: 10px 0 0;
+  padding-left: 22px;
+}
+
+.legal-note {
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  margin-top: 28px;
+  padding-top: 18px;
+}

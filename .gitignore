@@ -1,0 +1,11 @@
+ignore/
+node_modules/
+dist/
+build/
+.next/
+database/
+bot/.env
+bot/config/config.local.js
+.env
+.vercel
+.env*

@@ -1,5 +1,6 @@
 import { Analytics } from "@vercel/analytics/next";
 import { defaultMetadata } from "../lib/metadata.js";
+import { preloadImages } from "../lib/preload-images.js";
 
 import "../../css/style.css";
 import "../../css/themes.css";
@@ -21,6 +22,11 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {preloadImages.map(src => (
+          <link href={src} key={src} rel="preload" as="image" />
+        ))}
+      </head>
       <body>
         {children}
         <Analytics />

@@ -1,5 +1,6 @@
 export const preloadImages = [
   "/assets/favicon.ico",
+  "/assets/logo.png",
   "/assets/sith_order.svg",
   "/assets/darth_nihilus.jpg",
   "/assets/darth_revan.jpg",
@@ -8,6 +9,7 @@ export const preloadImages = [
   "/assets/marka_ragnos.png",
   "/assets/naga_sadow.jpg",
   "/assets/placeholder.png",
+  "/assets/problematic_medias.gif",
   "/assets/sorzus_syn.png",
   "/assets/tulak_hord.jpg",
   "/assets/morphs/academy_student.png",

@@ -20,8 +20,9 @@ export function holonetMetadata({ title = DEFAULT_TITLE, description = DEFAULT_D
       images: [
         {
           url: EMBED_IMAGE,
-          width: 256,
-          height: 256,
+          width: 150,
+          height: 150,
+          type: "image/png",
           alt: SITE_NAME
         }
       ]

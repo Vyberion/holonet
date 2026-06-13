@@ -105,7 +105,7 @@ export function HolonetNav() {
   const pathname = usePathname();
   const activePage = currentPageKey(pathname);
   const divisionContext = currentDivisionContext(pathname);
-  const showDivisionReturn = divisionContext && divisionContext.section !== "home";
+  const showDivisionReturn = divisionContext && !["home", "info"].includes(divisionContext.section);
   const centerLinks = [
     { href: "/", page: "home", prefix: "00", label: "Home" },
     { href: "/codex", page: "codex", prefix: "01", label: "Codex" },
@@ -162,67 +162,78 @@ export function HolonetNav() {
   }, []);
 
   const closeNav = () => setOpen(false);
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
-    <nav className="site-nav" aria-label="Site navigation">
-      <div className="nav-scan" aria-hidden="true" />
-      <div className="nav-inner">
-        <div className="nav-left">
-          {showDivisionReturn ? (
-            <NavLink href={`${divisionContext.base}/home`} page="division-return" account activePage="" onClick={closeNav}>
-              <div className="account-text"><span className="nav-link-label">Return</span></div>
+    <>
+      <nav className="site-nav" aria-label="Site navigation">
+        <div className="nav-scan" aria-hidden="true" />
+        <div className="nav-inner">
+          <div className="nav-left">
+            {showDivisionReturn ? (
+              <NavLink href={`${divisionContext.base}/home`} page="division-return" account activePage="" onClick={closeNav}>
+                <div className="account-text"><span className="nav-link-label">Return</span></div>
+                <div className="account-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m12 19-7-7 7-7" />
+                    <path d="M19 12H5" />
+                  </svg>
+                </div>
+                <div className="nav-link-corners" aria-hidden="true" />
+              </NavLink>
+            ) : null}
+          </div>
+
+          <button
+            className="nav-toggle"
+            aria-controls="nav-links"
+            aria-expanded={open}
+            aria-label="Toggle navigation"
+            onClick={() => setOpen(value => !value)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+
+          <div className="nav-center">
+            <ul className={`nav-links${open ? " open" : ""}`} id="nav-links" role="list">
+              {centerLinks.map((link, index) => (
+                <React.Fragment key={link.page}>
+                  {index ? <li className="nav-sep" aria-hidden="true" /> : null}
+                  <li className="nav-item"><NavLink {...link} activePage={activePage} onClick={closeNav} /></li>
+                </React.Fragment>
+              ))}
+            </ul>
+          </div>
+
+          <div className="nav-right">
+            <div className="nav-privileged" data-nav-privileged>
+              <PrivilegedLinks permissions={access?.permissions} activePage={activePage} onClick={closeNav} />
+            </div>
+            <NavLink href="/account" page="account" account activePage={activePage} onClick={closeNav}>
+              <div className="account-text">
+                <span className="nav-link-label">Account</span>
+              </div>
               <div className="account-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m12 19-7-7 7-7" />
-                  <path d="M19 12H5" />
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
                 </svg>
               </div>
               <div className="nav-link-corners" aria-hidden="true" />
             </NavLink>
-          ) : null}
-        </div>
-
-        <button
-          className="nav-toggle"
-          aria-controls="nav-links"
-          aria-expanded={open}
-          aria-label="Toggle navigation"
-          onClick={() => setOpen(value => !value)}
-        >
-          <span />
-          <span />
-          <span />
-        </button>
-
-        <div className="nav-center">
-          <ul className={`nav-links${open ? " open" : ""}`} id="nav-links" role="list">
-            {centerLinks.map((link, index) => (
-              <React.Fragment key={link.page}>
-                {index ? <li className="nav-sep" aria-hidden="true" /> : null}
-                <li className="nav-item"><NavLink {...link} activePage={activePage} onClick={closeNav} /></li>
-              </React.Fragment>
-            ))}
-          </ul>
-        </div>
-
-        <div className="nav-right">
-          <div className="nav-privileged" data-nav-privileged>
-            <PrivilegedLinks permissions={access?.permissions} activePage={activePage} onClick={closeNav} />
           </div>
-          <NavLink href="/account" page="account" account activePage={activePage} onClick={closeNav}>
-            <div className="account-text">
-              <span className="nav-link-label">Account</span>
-            </div>
-            <div className="account-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </div>
-            <div className="nav-link-corners" aria-hidden="true" />
-          </NavLink>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      <button type="button" className="back-to-top-btn" aria-label="Back to top" onClick={scrollToTop}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m18 15-6-6-6 6" />
+        </svg>
+      </button>
+    </>
   );
 }

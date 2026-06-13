@@ -1,6 +1,12 @@
 import { HolonetFrame } from "../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../components/PageScripts.jsx";
 import { hierarchyItems, HIERARCHY_GROUPS } from "../../../modules/data/hierarchy.js";
+import { holonetMetadata } from "../../lib/metadata.js";
+
+export const metadata = holonetMetadata({
+  title: "Hierarchy",
+  description: "Rank paths, progression and divisional information."
+});
 
 function HierarchyCard({ item }) {
   return (

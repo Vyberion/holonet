@@ -4,6 +4,7 @@ import { PageScripts } from "../../../components/PageScripts.jsx";
 import { ThemeClass } from "../../../components/ThemeClass.jsx";
 import { getHierarchyItem } from "../../../../modules/data/hierarchy.js";
 import { getDivisionByRouteSlug } from "../../../lib/divisions.js";
+import { holonetMetadata } from "../../../lib/metadata.js";
 import { HierarchyDetail } from "../../hierarchy/HierarchyDetail.jsx";
 
 function sectionTitle(section) {
@@ -37,6 +38,72 @@ function divisionTitleName(division) {
     highranks: "High Rank",
     darkCouncil: "Dark Council"
   }[division.id] || division.shortName;
+}
+
+function divisionSingularName(division) {
+  return {
+    reavers: "Reaver",
+    dhg: "Dark Honor Guard",
+    inquisitors: "Inquisitor",
+    dreadmasters: "Dread Master",
+    highranks: "High Rank",
+    darkCouncil: "Dark Council"
+  }[division.id] || division.shortName;
+}
+
+export async function generateMetadata({ params }) {
+  const routeParams = await params;
+  const division = getDivisionByRouteSlug(routeParams.division);
+  const section = String(routeParams.section || "").toLowerCase();
+
+  if (!division) return {};
+  if (!["home", "info", "handbooks", "transmissions", "reports", "trackers", "council-floor"].includes(section)) return {};
+  if (section === "council-floor" && division.id !== "darkCouncil") return {};
+
+  const singularName = divisionSingularName(division);
+
+  if (section === "info") {
+    const hierarchySlug = {
+      reavers: "reavers",
+      dhg: "dark-honor-guards",
+      dreadmasters: "dread-masters",
+      inquisitors: "inquisitors"
+    }[division.id];
+    const item = hierarchySlug ? getHierarchyItem("divisions", hierarchySlug) : null;
+
+    return holonetMetadata({
+      title: item?.name || singularName,
+      description: `${singularName} requirements and divisional information.`
+    });
+  }
+
+  if (section === "council-floor") {
+    return holonetMetadata({
+      title: "Council Floor",
+      description: "Dark Council legislative floor."
+    });
+  }
+
+  const descriptions = {
+    home: `${singularName} dashboard.`,
+    handbooks: `${singularName} handbook and guide archive.`,
+    transmissions: `${singularName} transmission console.`,
+    reports: `${singularName} reporting console.`,
+    trackers: `${singularName} tracking console.`
+  };
+
+  const titles = {
+    home: singularName,
+    handbooks: `${singularName} Handbooks`,
+    transmissions: `${singularName} Transmissions`,
+    reports: `${singularName} Reports`,
+    trackers: `${singularName} Tracking`
+  };
+
+  return holonetMetadata({
+    title: titles[section] || singularName,
+    description: descriptions[section] || `${singularName} dashboard.`
+  });
 }
 
 export default async function DivisionSectionPage({ params }) {

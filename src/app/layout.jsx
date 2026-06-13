@@ -1,4 +1,6 @@
 import { Analytics } from "@vercel/analytics/next";
+import { defaultMetadata } from "../lib/metadata.js";
+import { preloadImages } from "../lib/preload-images.js";
 
 import "../../css/style.css";
 import "../../css/themes.css";
@@ -12,14 +14,29 @@ import "../../css/hub.css";
 import "../../css/nexus-classified.css";
 import "../../css/legal.css";
 
+function siteUrl() {
+  const url =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    process.env.VERCEL_URL ||
+    "http://localhost:3000";
+
+  return url.startsWith("http") ? url : `https://${url}`;
+}
+
 export const metadata = {
-  title: "Sith Holonet",
-  description: "Manar's Sith Order - Laws, lore and divisional records."
+  metadataBase: new URL(siteUrl()),
+  ...defaultMetadata
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {preloadImages.map(src => (
+          <link href={src} key={src} rel="preload" as="image" />
+        ))}
+      </head>
       <body>
         {children}
         <Analytics />

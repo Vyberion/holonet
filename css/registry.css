@@ -533,7 +533,7 @@
 .dir-card-badge {
   background: rgba(5, 2, 4, 0.78);
   border-color: #763141;
-  color: #d6aaa4;
+  color: #ffffff;
   box-shadow: inset 0 0 12px rgba(192, 0, 26, 0.04);
   flex: 0 0 auto;
   white-space: nowrap;
@@ -542,7 +542,7 @@
 }
 
 .dir-card-desc {
-  color: #ecd6d0;
+  color: #ffffff;
   font-size: 0.82rem;
   line-height: 1.65;
   opacity: 0.95;
@@ -554,7 +554,7 @@
 }
 
 .dir-card-node {
-  color: #ba777b;
+  color: #ffffff;
   opacity: 1;
 }
 
@@ -593,13 +593,13 @@
 
 .dir-card--locked .dir-card-title,
 .dir-card[data-status="locked"] .dir-card-title {
-  color: #9f6b6c;
+  color: #ffffff;
   text-shadow: none;
 }
 
 .dir-card--locked .dir-card-desc,
 .dir-card[data-status="locked"] .dir-card-desc {
-  color: #836568;
+  color: #ffffff;
   opacity: 0.78;
 }
 
@@ -699,7 +699,7 @@
   border: 0;
   clip-path: none;
   background: transparent;
-  color: #ba777b;
+  color: #ffffff;
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.5rem;
   letter-spacing: 0.35em;
@@ -759,19 +759,19 @@
 
 .dir-card--locked:hover .dir-card-title,
 .dir-card[data-status="locked"]:hover .dir-card-title {
-  color: #9f6b6c;
+  color: #ffffff;
   text-shadow: none;
 }
 
 .dir-card--locked .dir-card-node,
 .dir-card[data-status="locked"] .dir-card-node {
-  color: #836568;
+  color: #ffffff;
   opacity: 0.78;
 }
 
 .dir-card--locked .dir-card-badge,
 .dir-card[data-status="locked"] .dir-card-badge {
-  color: #8f6769;
+  color: #ffffff;
   border-color: #4a2a31;
 }
 

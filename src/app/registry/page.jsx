@@ -1,6 +1,12 @@
 import { HolonetFrame } from "../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../components/PageScripts.jsx";
 import { getDivision } from "../../lib/divisions.js";
+import { holonetMetadata } from "../../lib/metadata.js";
+
+export const metadata = holonetMetadata({
+  title: "The Registry",
+  description: "Divisional directory."
+});
 
 function statusLabel(status) {
   return status === "offline" ? "[ OFFLINE ]" : "[ RESTRICTED ]";

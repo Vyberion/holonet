@@ -1,5 +1,11 @@
 import { HolonetFrame } from "../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../components/PageScripts.jsx";
+import { holonetMetadata } from "../../lib/metadata.js";
+
+export const metadata = holonetMetadata({
+  title: "Nexus",
+  description: "Divisional weekly and inspection reports."
+});
 
 export default function NexusPage() {
   return (

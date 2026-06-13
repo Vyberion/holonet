@@ -105,7 +105,7 @@ export function HolonetNav() {
   const pathname = usePathname();
   const activePage = currentPageKey(pathname);
   const divisionContext = currentDivisionContext(pathname);
-  const showDivisionReturn = divisionContext && divisionContext.section !== "home";
+  const showDivisionReturn = divisionContext && !["home", "info"].includes(divisionContext.section);
   const centerLinks = [
     { href: "/", page: "home", prefix: "00", label: "Home" },
     { href: "/codex", page: "codex", prefix: "01", label: "Codex" },

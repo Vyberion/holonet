@@ -417,8 +417,27 @@
   }
 
   .codex-contents {
-    max-height: none;
+    position: relative;
+    top: auto;
+    max-height: min(320px, 45vh);
     margin-bottom: 28px;
+    overflow: hidden;
+    padding: 16px;
+  }
+
+  .codex-contents-panel {
+    gap: 8px;
+  }
+
+  .codex-contents-title {
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+  }
+
+  .codex-contents-list {
+    max-height: min(230px, 32vh);
+    overscroll-behavior: contain;
+    padding-right: 6px;
   }
 
   .codex-document {
@@ -457,6 +476,20 @@
 }
 
 @media (max-width: 480px) {
+  .codex-contents {
+    max-height: min(260px, 40vh);
+    padding: 14px;
+  }
+
+  .codex-contents-list {
+    max-height: min(180px, 28vh);
+  }
+
+  .contents-link {
+    font-size: 0.74rem;
+    line-height: 1.35;
+  }
+
   .codex-article {
     padding: 16px;
     margin-bottom: 20px;

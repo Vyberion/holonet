@@ -647,3 +647,204 @@
     box-shadow: 0 0 8px var(--red-glow);
   }
 }
+
+/* Beta Codex/document treatment */
+.codex-shell {
+  gap: 18px;
+  grid-template-columns: minmax(230px, 310px) minmax(0, 1fr);
+  max-width: 1280px;
+}
+
+.codex-contents,
+.codex-article {
+  background:
+    radial-gradient(ellipse 78% 92% at 50% -12%, rgba(185, 38, 47, 0.075), transparent 62%),
+    linear-gradient(180deg, rgba(18, 18, 20, 0.72), rgba(7, 7, 8, 0.88));
+  border: 1px solid rgba(152, 152, 162, 0.17);
+  box-shadow: inset 0 0 0 1px rgba(227, 69, 70, 0.035), 0 18px 52px rgba(0, 0, 0, 0.38);
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%, 0 8px);
+}
+
+.codex-contents {
+  max-height: calc(100vh - 106px);
+  padding: 28px 24px;
+  top: 76px;
+}
+
+.codex-contents::before,
+.codex-article::before {
+  border-color: rgba(255, 255, 255, 0.045);
+  clip-path: inherit;
+  opacity: 1;
+}
+
+.codex-contents::after,
+.codex-article::after {
+  background:
+    linear-gradient(90deg, rgba(227, 69, 70, 0.26), transparent 42%) 0 58px / 100% 1px no-repeat,
+    repeating-linear-gradient(0deg, transparent 0 2px, rgba(255, 255, 255, 0.012) 2px 4px);
+  clip-path: inherit;
+  opacity: 0.72;
+}
+
+.codex-contents-panel {
+  gap: 18px;
+}
+
+.codex-contents-title {
+  color: #dd4446;
+  font-family: 'Cinzel', serif;
+  font-size: 0.84rem;
+  letter-spacing: 0.34em;
+}
+
+.codex-contents-list {
+  gap: 0;
+  max-height: calc(100vh - 204px);
+}
+
+.contents-link {
+  border-left: 2px solid transparent;
+  color: #9f9998;
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  padding: 10px 0 10px 14px;
+  text-transform: uppercase;
+}
+
+.contents-link:hover,
+.contents-link:focus-visible {
+  border-left-color: #dd4446;
+  color: #df4546;
+  outline: none;
+  text-shadow: 0 0 12px rgba(227, 69, 70, 0.22);
+}
+
+.codex-article {
+  margin-bottom: 18px;
+  padding: 34px 36px;
+}
+
+.codex-article:hover {
+  box-shadow: inset 0 0 0 1px rgba(227, 69, 70, 0.05), 0 20px 56px rgba(0, 0, 0, 0.44);
+}
+
+.article-header {
+  border-bottom-color: rgba(227, 69, 70, 0.32);
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+}
+
+.article-header::after,
+.codex-toolbar::after {
+  background: linear-gradient(90deg, rgba(227, 69, 70, 0.62), rgba(227, 69, 70, 0.18), transparent);
+  box-shadow: none;
+}
+
+.article-number {
+  color: #cb393d;
+  font-family: 'Cinzel', serif;
+  font-size: 0.74rem;
+  letter-spacing: 0.32em;
+}
+
+.article-title {
+  color: #e6dfdc;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.4rem, 2.5vw, 2.15rem);
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.05);
+}
+
+.codex-article:hover .article-title {
+  text-shadow: 0 0 14px rgba(227, 69, 70, 0.14);
+}
+
+.regulation {
+  border-left: 2px solid rgba(185, 38, 47, 0.52);
+  margin-bottom: 24px;
+  padding-left: 22px;
+}
+
+.regulation::before {
+  background: #d54243;
+  box-shadow: 0 0 12px rgba(227, 69, 70, 0.34);
+  height: 19px;
+  left: -2px;
+  width: 2px;
+}
+
+.reg-title {
+  color: #d54243;
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.26em;
+  text-shadow: 0 0 10px rgba(227, 69, 70, 0.18);
+}
+
+.reg-text {
+  color: #ddd7d4;
+  font-size: 0.92rem;
+  letter-spacing: 0.035em;
+  line-height: 1.62;
+}
+
+.sub-clause {
+  background: rgba(227, 69, 70, 0.035);
+  border: 1px solid rgba(227, 69, 70, 0.18);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.18);
+  margin-left: 14px;
+  padding: 12px 16px;
+}
+
+.sub-clause::after {
+  background: rgba(227, 69, 70, 0.32);
+}
+
+.sub-marker {
+  color: #c83f42;
+  display: block;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.18em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.sub-clause p {
+  color: #b9b2b0;
+}
+
+.archive-image {
+  border-color: rgba(152, 152, 162, 0.17);
+  clip-path: none;
+}
+
+@media (max-width: 900px) {
+  .codex-shell {
+    display: block;
+  }
+
+  .codex-contents {
+    margin-bottom: 18px;
+    max-height: min(320px, 45vh);
+    position: relative;
+    top: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .codex-article {
+    padding: 22px 18px;
+  }
+
+  .article-title {
+    letter-spacing: 0.12em;
+  }
+
+  .regulation {
+    padding-left: 16px;
+  }
+}

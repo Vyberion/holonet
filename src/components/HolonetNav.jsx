@@ -172,6 +172,9 @@ export function HolonetNav() {
         <div className="nav-scan" aria-hidden="true" />
         <div className="nav-inner">
           <div className="nav-left">
+            <a className="nav-brand" href="/" aria-label="Holonet home" onClick={closeNav}>
+              <img src="/assets/sith_order.svg" alt="" />
+            </a>
             {showDivisionReturn ? (
               <NavLink href={`${divisionContext.base}/home`} page="division-return" account activePage="" onClick={closeNav}>
                 <div className="account-text"><span className="nav-link-label">Return</span></div>

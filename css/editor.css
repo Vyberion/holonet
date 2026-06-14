@@ -597,15 +597,30 @@
 }
 
 #library-editor-overlay .library-entry-editor {
-  background: rgba(31, 10, 14, 0.72);
+  background:
+    linear-gradient(145deg, rgba(14, 3, 6, 0.94), rgba(8, 1, 3, 0.98)),
+    rgba(0, 0, 0, 0.88);
   border-color: color-mix(in srgb, var(--editor-accent-dim) 78%, rgba(255, 255, 255, 0.18));
   box-shadow:
     inset 0 0 24px color-mix(in srgb, var(--editor-accent) 4%, transparent),
     0 0 18px rgba(0, 0, 0, 0.22);
 }
 
+#library-editor-overlay .library-entry-toolbar {
+  background:
+    linear-gradient(90deg, rgba(16, 2, 5, 0.98), rgba(31, 7, 12, 0.84), rgba(16, 2, 5, 0.96)),
+    rgba(0, 0, 0, 0.86);
+  border-bottom-color: color-mix(in srgb, var(--editor-accent-dim) 64%, rgba(0, 0, 0, 0.8));
+}
+
+#library-editor-overlay .library-entry-title {
+  color: color-mix(in srgb, var(--editor-accent-dim) 82%, var(--text-dim));
+}
+
 #library-editor-overlay .resource-editor-field {
-  background: rgba(38, 13, 17, 0.64);
+  background:
+    linear-gradient(135deg, rgba(18, 3, 6, 0.92), rgba(10, 1, 3, 0.96)),
+    rgba(0, 0, 0, 0.84);
   border-bottom-color: color-mix(in srgb, var(--editor-accent-dim) 54%, rgba(255, 255, 255, 0.16));
 }
 

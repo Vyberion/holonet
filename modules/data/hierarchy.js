@@ -190,7 +190,8 @@ export const HIERARCHY_GROUPS = [
         name: "Lord Emperor Torreto",
         body: "The 40th Sith Emperor.",
         category: "TorretoTerminus",
-        path: "The 40th Sith Emperor"
+        path: "The 40th Sith Emperor",
+        pathOwnRow: true
       },
       {
         slug: "the_voice",
@@ -256,44 +257,44 @@ export const HIERARCHY_GROUPS = [
         path: "Sith Architect"
       },
       {
-      slug: "fallen-gawk",
-      href: "/group-administration/gawk_aktuun",
-      image: "/assets/morphs/gawk_aktuun.png",
-      name: "Gawk",
-      body: "Fallen Advisor.",
-      category: "Gawk Aktuun",
-      path: "Fallen Advisors"
-    },
-    {
-      slug: "naktisterminus",
-      name: "Naktis",
-      body: "Fallen Advisor.",
-      category: "Naktisterminus",
-      path: "Fallen Advisors"
-    },
-    {
-      slug: "fallen-rdn",
-      href: "/group-administration/project-manager",
-      image: "/assets/morphs/project_manager.png",
-      name: "Rdn",
-      body: "Fallen Advisor.",
-      category: "Project Manager",
-      path: "Fallen Advisors"
-    },
-    {
-      slug: "terrabiome",
-      name: "Terrabiome",
-      body: "Fallen Advisor.",
-      category: "Terrabiome",
-      path: "Fallen Advisors"
-    },
-    {
-      slug: "tranom_x",
-      name: "Tranom",
-      body: "Fallen Advisor.",
-      category: "Tranom X",
-      path: "Fallen Advisors"
-    }
+        slug: "fallen-gawk",
+        href: "/group-administration/gawk_aktuun",
+        image: "/assets/morphs/gawk_aktuun.png",
+        name: "Gawk",
+        body: "Fallen Advisor.",
+        category: "Gawk Aktuun",
+        path: "Fallen Advisors"
+      },
+      {
+        slug: "naktisterminus",
+        name: "Naktis",
+        body: "Fallen Advisor.",
+        category: "Naktisterminus",
+        path: "Fallen Advisors"
+      },
+      {
+        slug: "fallen-rdn",
+        href: "/group-administration/project-manager",
+        image: "/assets/morphs/project_manager.png",
+        name: "Rdn",
+        body: "Fallen Advisor.",
+        category: "Project Manager",
+        path: "Fallen Advisors"
+      },
+      {
+        slug: "terrabiome",
+        name: "Terrabiome",
+        body: "Fallen Advisor.",
+        category: "Terrabiome",
+        path: "Fallen Advisors"
+      },
+      {
+        slug: "tranom_x",
+        name: "Tranom",
+        body: "Fallen Advisor.",
+        category: "Tranom X",
+        path: "Fallen Advisors"
+      }
     ]
   }
 ];

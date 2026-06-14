@@ -235,11 +235,11 @@ export const HIERARCHY_GROUPS = [
         path: "Project Manager"
       },
       {
-        slug: "head-architect",
+        slug: "athli0s_aktuun",
         name: "Athlios",
-        body: "Head Architect.",
-        category: "Head Architect",
-        path: "Head Architect"
+        body: "Sith Architect.",
+        category: "Athli0s Aktuun",
+        path: "Sith Architect"
       },
       {
         slug: "gawk_aktuun",
@@ -252,7 +252,7 @@ export const HIERARCHY_GROUPS = [
         slug: "blueakuji",
         name: "Blue",
         body: "Sith Architect.",
-        category: "Blueakuji",
+        category: "BlueAkuji",
         path: "Sith Architect"
       },
       {

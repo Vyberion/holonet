@@ -82,6 +82,10 @@ function chunkPathItems(items) {
   return rows;
 }
 
+function pathCardRowColumns(items, rowItems) {
+  return items.length > MAX_PATH_ROW_CARDS ? MAX_PATH_ROW_CARDS : rowItems.length;
+}
+
 function HierarchyPathCardRows({ items }) {
   return (
     <div className="hierarchy-path-card-rows">
@@ -89,7 +93,7 @@ function HierarchyPathCardRows({ items }) {
         <div
           className="hierarchy-path-card-row"
           key={rowItems.map(item => item.slug).join("-") || rowIndex}
-          style={{ "--path-card-row-count": rowItems.length }}
+          style={{ "--path-card-row-columns": pathCardRowColumns(items, rowItems) }}
         >
           {rowItems.map(item => (
             <HierarchyCard item={item} key={`${item.groupId}-${item.slug}`} />

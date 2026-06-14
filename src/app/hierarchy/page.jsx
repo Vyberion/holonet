@@ -32,24 +32,37 @@ function HierarchyGrid({ items }) {
   );
 }
 
-function MiddleRanks({ items }) {
-  const coreRanks = items.filter(item => !item.path);
-  const loreRanks = items.filter(item => item.path === "Lore Path");
-  const combatRanks = items.filter(item => item.path === "Combat Path");
+function HierarchyPathGroups({ items }) {
+  const directItems = items.filter(item => !item.path);
+
+  const pathGroups = items
+    .filter(item => item.path)
+    .reduce((groups, item) => {
+      if (!groups[item.path]) groups[item.path] = [];
+      groups[item.path].push(item);
+      return groups;
+    }, {});
 
   return (
     <>
-      <HierarchyGrid items={coreRanks} />
-      <div className="hierarchy-path-grid">
-        <section className="hierarchy-path-column" aria-labelledby="lore-path-title">
-          <h3 id="lore-path-title">Lore Path</h3>
-          <HierarchyGrid items={loreRanks} />
-        </section>
-        <section className="hierarchy-path-column" aria-labelledby="combat-path-title">
-          <h3 id="combat-path-title">Combat Path</h3>
-          <HierarchyGrid items={combatRanks} />
-        </section>
-      </div>
+      {directItems.length ? <HierarchyGrid items={directItems} /> : null}
+
+      {Object.entries(pathGroups).length ? (
+        <div className="hierarchy-path-grid">
+          {Object.entries(pathGroups).map(([path, pathItems]) => (
+            <section
+              className="hierarchy-path-column"
+              aria-labelledby={`path-${path.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+              key={path}
+            >
+              <h3 id={`path-${path.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
+                {path}
+              </h3>
+              <HierarchyGrid items={pathItems} />
+            </section>
+          ))}
+        </div>
+      ) : null}
     </>
   );
 }
@@ -67,9 +80,7 @@ export default function HierarchyPage() {
               <div className="section-rule" />
             </div>
             {group.description ? <p className="hierarchy-section-copy">{group.description}</p> : null}
-            {group.id === "middle-ranks"
-              ? <MiddleRanks items={items.filter(item => item.groupId === group.id)} />
-              : <HierarchyGrid items={items.filter(item => item.groupId === group.id)} />}
+            <HierarchyPathGroups items={items.filter(item => item.groupId === group.id)} />
           </section>
         ))}
       </div>

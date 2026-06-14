@@ -7,6 +7,7 @@ export const criticalPreloadImages = [
 export const hierarchyPreloadImages = [
   "/assets/morphs/academy_student.png",
   "/assets/morphs/acolyte.png",
+  "/assets/morphs/clown.jpg",
   "/assets/morphs/dark_honor_guard.png",
   "/assets/morphs/darth.png",
   "/assets/morphs/dread_master.png",

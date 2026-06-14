@@ -109,6 +109,7 @@ function PrivilegedLinks({ permissions, activePage, onClick }) {
 
 export function HolonetNav() {
   const [open, setOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null);
   const [access, setAccess] = useState(null);
   const pathname = usePathname();
   const activePage = currentPageKey(pathname);
@@ -117,7 +118,15 @@ export function HolonetNav() {
   const centerLinks = [
     { href: "/", page: "home", prefix: "00", label: "Home" },
     { href: "/codex", page: "codex", prefix: "01", label: "Codex" },
-    { href: "/archives", page: "archives", prefix: "02", label: "Archives" },
+    {
+      href: "/archives",
+      page: "archives",
+      prefix: "02",
+      label: "Archives",
+      dropdown: [
+        { href: "/archives/emperors", page: "archives", prefix: "02A", label: "Emperors" }
+      ]
+    },
     { href: "/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
     ...(access?.permissions?.canAccessRegistry
       ? [{ href: "/registry", page: "registry", prefix: "04", label: "Registry" }]
@@ -169,7 +178,15 @@ export function HolonetNav() {
     };
   }, []);
 
-  const closeNav = () => setOpen(false);
+  const closeNav = () => {
+    setOpen(false);
+    setOpenDropdown(null);
+  };
+
+  const toggleDropdown = page => {
+    setOpenDropdown(value => (value === page ? null : page));
+  };
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -208,20 +225,60 @@ export function HolonetNav() {
 
           <div className="nav-center">
             <ul className={`nav-links${open ? " open" : ""}`} id="nav-links" role="list">
-              {centerLinks.map((link, index) => (
+              {centerLinks.map((link, index) => {
+                const dropdownOpen = openDropdown === link.page;
+
+                return (
                 <React.Fragment key={link.page}>
                   {index ? <li className="nav-sep" aria-hidden="true" /> : null}
-                  <li className="nav-item">
-                    <NavLink
-                      {...link}
-                      activePage={activePage}
-                      onClick={closeNav}
-                      onFocus={link.preload}
-                      onPointerEnter={link.preload}
-                    />
+                  <li className={`nav-item${link.dropdown ? " nav-item--dropdown" : ""}${dropdownOpen ? " dropdown-open" : ""}`}>
+                    {link.dropdown ? (
+                      <>
+                        <div className="nav-split">
+                          <NavLink
+                            {...link}
+                            activePage={activePage}
+                            onClick={closeNav}
+                            onFocus={link.preload}
+                            onPointerEnter={link.preload}
+                          />
+                          <button
+                            type="button"
+                            className="nav-dropdown-toggle"
+                            aria-controls={`nav-dropdown-${link.page}`}
+                            aria-expanded={dropdownOpen}
+                            aria-label={`${link.label} sections`}
+                            onClick={() => toggleDropdown(link.page)}
+                            onFocus={link.preload}
+                            onPointerEnter={link.preload}
+                          >
+                            <span className="nav-dropdown-caret" aria-hidden="true" />
+                          </button>
+                        </div>
+                        <ul className="nav-dropdown-menu" id={`nav-dropdown-${link.page}`} role="list">
+                          {link.dropdown.map(child => (
+                            <li key={child.href}>
+                              <a className="nav-dropdown-link" href={child.href} onClick={closeNav}>
+                                <span className="nav-link-prefix">{child.prefix}</span>
+                                <span className="nav-link-label">{child.label}</span>
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : (
+                      <NavLink
+                        {...link}
+                        activePage={activePage}
+                        onClick={closeNav}
+                        onFocus={link.preload}
+                        onPointerEnter={link.preload}
+                      />
+                    )}
                   </li>
                 </React.Fragment>
-              ))}
+                );
+              })}
             </ul>
           </div>
 

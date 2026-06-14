@@ -1,3 +1,16 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
+const MORPH_FALLBACK_IMAGE = "/assets/morphs/clown.jpg";
+const CURRENT_EMPEROR_SLUG = "the-40th-emperor";
+
+function ordinal(value) {
+  const tens = value % 100;
+  if (tens >= 11 && tens <= 13) return `${value}th`;
+
+  return `${value}${{ 1: "st", 2: "nd", 3: "rd" }[value % 10] || "th"}`;
+}
+
 export const HIERARCHY_GROUPS = [
   {
     id: "low-ranks",
@@ -173,10 +186,57 @@ export const HIERARCHY_GROUPS = [
     section: "DARK COUNCIL",
     items: [
       {
-        slug: "dark-council-placeholder",
-        name: "Dark Council",
-        body: "Dark Council entries will be added later.",
-        category: "Dark Council"
+        slug: "hro",
+        name: "The Emperor's Wrath",
+        body: "The High Rank Overseer represents the Dark Council's authority over the high ranks.",
+        category: "High Rank Overseer",
+        path: "High Rank Overseer",
+        pathOwnRow: true
+      },
+      {
+        slug: "dhgo",
+        name: "Darth Mortis",
+        body: "The Guard Overseer directs the Dark Honor Guard on behalf of the Dark Council.",
+        category: "Guard Overseer",
+        path: "Guard Overseer",
+        pathOwnRow: true,
+        active: false
+      },
+      {
+        slug: "rvro",
+        name: "Darth Baras",
+        body: "The Reaver Overseer directs the Reavers on behalf of the Dark Council.",
+        category: "Reaver Overseer",
+        path: "Reaver Overseer",
+        pathOwnRow: true,
+        active: false
+      },
+      {
+        slug: "iqo",
+        name: "Darth Jadus",
+        body: "The Inquisitor Overseer directs the Inquisitorius on behalf of the Dark Council.",
+        category: "Inquisitor Overseer",
+        path: "Inquisitor Overseer",
+        pathOwnRow: true,
+        active: false
+      },
+      {
+        slug: "dmo",
+        name: "Darth Nox",
+        body: "The Dread Master Overseer directs the Dread Masters on behalf of the Dark Council.",
+        category: "Dread Master Overseer",
+        path: "Dread Master Overseer",
+        pathOwnRow: true,
+        active: false
+      },
+      {
+        slug: "wm",
+        name: "Warmaster",
+        body: "The Warmaster commands military direction for the Dark Council.",
+        category: "Warmaster",
+        path: "Warmaster",
+        pathOwnRow: true,
+        active: false
       }
     ]
   },
@@ -186,33 +246,36 @@ export const HIERARCHY_GROUPS = [
     section: "HIGH COMMAND",
     items: [
       {
-        slug: "torretoterminus",
+        slug: CURRENT_EMPEROR_SLUG,
+        href: `/archives/emperors/${CURRENT_EMPEROR_SLUG}`,
         name: "Lord Emperor Torreto",
         body: "The 40th Sith Emperor.",
-        category: "TorretoTerminus",
+        category: "The 40th Sith Emperor",
         path: "The 40th Sith Emperor",
-        pathOwnRow: true
+        pathOwnRow: true,
+        routable: false
       },
       {
         slug: "the_voice",
         name: "The Emperor's Voice",
-        body: "The Emperor's Voice.",
-        category: "The Voice",
+        body: "The Emperor's Voice carries the will of the Emperor and speaks with the authority of the throne.",
+        category: "The Emperor's Voice",
         path: "The Emperor's Powerbase"
       },
       {
         slug: "the_wrath",
         name: "The Emperor's Wrath",
-        body: "The Emperor's Wrath.",
-        category: "The Wrath",
+        body: "The Emperor's Wrath serves as the blade of the throne and enforces the Emperor's command.",
+        category: "The Emperor's Wrath",
         path: "The Emperor's Powerbase"
       },
       {
         slug: "servant_one",
         name: "Servant One",
-        body: "Servant One.",
+        body: "",
         category: "Servant One",
-        path: "The Emperor's Powerbase"
+        path: "The Emperor's Powerbase",
+        classified: true
       }
     ]
   },
@@ -258,7 +321,7 @@ export const HIERARCHY_GROUPS = [
       },
       {
         slug: "fallen-gawk",
-        href: "/group-administration/gawk_aktuun",
+        href: "/administration/gawk_aktuun",
         image: "/assets/morphs/gawk_aktuun.png",
         name: "Gawk",
         body: "Fallen Advisor.",
@@ -274,7 +337,7 @@ export const HIERARCHY_GROUPS = [
       },
       {
         slug: "fallen-rdn",
-        href: "/group-administration/project-manager",
+        href: "/administration/project-manager",
         image: "/assets/morphs/project_manager.png",
         name: "Rdn",
         body: "Fallen Advisor.",
@@ -307,22 +370,72 @@ const IMAGE_BY_SLUG = {
   reavers: "reaver"
 };
 
-function imageForItem(item) {
-  if (item.slug === "torretoterminus") { return "assets/morphs/clown.jpg"; }
-  return `/assets/morphs/${IMAGE_BY_SLUG[item.slug] || item.slug.replace(/-/g, "_")}.png`;
+function emperorArchiveRecord(index) {
+  const title = ordinal(index);
+  const current = index === 40;
+
+  return {
+    slug: `the-${title}-emperor`.toLowerCase(),
+    name: current ? "Lord Emperor Torreto" : `The ${title} Emperor`,
+    body: current ? "The 40th Sith Emperor. Biography pending archival upload." : "Biography pending archival upload.",
+    category: `The ${title} Sith Emperor`,
+    current
+  };
 }
 
-export function hierarchyItems() {
+export const EMPEROR_ARCHIVE_GROUP = {
+  id: "emperor-archive",
+  title: "Emperor Archive",
+  section: "EMPERORS",
+  items: Array.from({ length: 40 }, (_, index) => emperorArchiveRecord(index + 1))
+};
+
+function isActiveItem(item) {
+  return item.active !== false;
+}
+
+function normalizeAssetPath(src) {
+  if (!src) return "";
+  if (/^(?:https?:)?\/\//.test(src) || src.startsWith("data:")) return src;
+
+  return src.startsWith("/") ? src : `/${src}`;
+}
+
+function morphExists(src) {
+  const normalized = normalizeAssetPath(src);
+  if (!normalized.startsWith("/assets/morphs/")) return true;
+
+  return existsSync(join(process.cwd(), "public", normalized.replace(/^\/+/, "")));
+}
+
+function imageForItem(item) {
+  if (item.image) {
+    const explicitImage = normalizeAssetPath(item.image);
+    return morphExists(explicitImage) ? explicitImage : MORPH_FALLBACK_IMAGE;
+  }
+
+  const imageName = IMAGE_BY_SLUG[item.slug] || item.slug.replace(/-/g, "_");
+  const image = `/assets/morphs/${imageName}.png`;
+  return morphExists(image) ? image : MORPH_FALLBACK_IMAGE;
+}
+
+function decorateHierarchyItem(group, item, index, fallbackHref) {
+  return {
+    ...item,
+    image: imageForItem(item),
+    groupId: group.id,
+    groupTitle: group.title,
+    section: group.section,
+    order: index + 1,
+    href: item.href || fallbackHref
+  };
+}
+
+export function hierarchyItems({ includeInactive = false } = {}) {
   return HIERARCHY_GROUPS.flatMap(group =>
-    group.items.map((item, index) => ({
-      ...item,
-      image: item.image || imageForItem(item),
-      groupId: group.id,
-      groupTitle: group.title,
-      section: group.section,
-      order: index + 1,
-      href: item.href || `/${group.id}/${item.slug}`
-    }))
+    group.items
+      .filter(item => includeInactive || isActiveItem(item))
+      .map((item, index) => decorateHierarchyItem(group, item, index, `/${group.id}/${item.slug}`))
   );
 }
 
@@ -330,10 +443,44 @@ export function getHierarchyGroup(id) {
   return HIERARCHY_GROUPS.find(group => group.id === id) || null;
 }
 
-export function getHierarchyItem(groupId, slug) {
+export function getVisibleHierarchyGroup(id) {
+  const group = getHierarchyGroup(id);
+  if (!group) return null;
+
+  return {
+    ...group,
+    items: group.items.filter(isActiveItem)
+  };
+}
+
+export function visibleHierarchyGroups() {
+  return HIERARCHY_GROUPS.map(group => ({
+    ...group,
+    items: group.items.filter(isActiveItem)
+  })).filter(group => group.items.length);
+}
+
+export function getHierarchyItem(groupId, slug, { includeInactive = false } = {}) {
   const group = getHierarchyGroup(groupId);
   if (!group) return null;
 
   const item = group.items.find(entry => entry.slug === slug);
-  return item ? { ...item, image: item.image || imageForItem(item), groupId: group.id, groupTitle: group.title, section: group.section, href: item.href || `/${group.id}/${item.slug}` } : null;
+  if (!item || (!includeInactive && !isActiveItem(item))) return null;
+
+  const index = group.items.indexOf(item);
+  return decorateHierarchyItem(group, item, index, `/${group.id}/${item.slug}`);
+}
+
+export function emperorArchiveItems() {
+  return EMPEROR_ARCHIVE_GROUP.items.map((item, index) =>
+    decorateHierarchyItem(EMPEROR_ARCHIVE_GROUP, item, index, `/archives/emperors/${item.slug}`)
+  );
+}
+
+export function getEmperorArchiveItem(slug) {
+  const item = EMPEROR_ARCHIVE_GROUP.items.find(entry => entry.slug === slug);
+  if (!item) return null;
+
+  const index = EMPEROR_ARCHIVE_GROUP.items.indexOf(item);
+  return decorateHierarchyItem(EMPEROR_ARCHIVE_GROUP, item, index, `/archives/emperors/${item.slug}`);
 }

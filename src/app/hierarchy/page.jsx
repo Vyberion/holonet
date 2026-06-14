@@ -1,192 +1,27 @@
 import { HolonetFrame } from "../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../components/PageScripts.jsx";
-import { hierarchyItems, HIERARCHY_GROUPS } from "../../../modules/data/hierarchy.js";
+import { hierarchyItems, visibleHierarchyGroups } from "../../../modules/data/hierarchy.js";
 import { holonetMetadata } from "../../lib/metadata.js";
+import { HierarchySection } from "./HierarchyList.jsx";
 
 export const metadata = holonetMetadata({
   title: "Hierarchy",
   description: "Rank paths, progression and divisional information."
 });
 
-const MAX_PATH_ROW_CARDS = 4;
-
-function HierarchyCard({ item }) {
-  return (
-    <a className="nav-card hierarchy-card" href={item.href} aria-label={`Open ${item.name}`}>
-      <div className="card-inner-border" aria-hidden="true" />
-      <div className="card-corners" aria-hidden="true" />
-      <div className="card-vline" aria-hidden="true" />
-      <div className="card-scan" aria-hidden="true" />
-      <img className="hierarchy-card-bg" src={item.image} alt="" loading="lazy" aria-hidden="true" />
-      <h2 className="card-title">{item.name}</h2>
-      <span className="card-enter" aria-hidden="true">Open &rsaquo;&rsaquo;</span>
-    </a>
-  );
-}
-
-function HierarchyGrid({ items }) {
-  return (
-    <div className="hierarchy-grid">
-      {items.map(item => (
-        <HierarchyCard item={item} key={`${item.groupId}-${item.slug}`} />
-      ))}
-    </div>
-  );
-}
-
-function pathHeadingId(path) {
-  return `path-${path.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
-}
-
-function pathWeight(pathItems) {
-  return Math.max(1, Math.min(pathItems.length, MAX_PATH_ROW_CARDS));
-}
-
-function pathTakesOwnRow(pathItems) {
-  return pathItems.some(item => item.pathOwnRow || item.ownPathRow || item.forceOwnPathRow);
-}
-
-function buildPathRows(pathEntries) {
-  const rows = [];
-  let currentRow = [];
-  let currentWeight = 0;
-
-  pathEntries.forEach(([path, pathItems]) => {
-    const weight = pathWeight(pathItems);
-    const ownRow = pathTakesOwnRow(pathItems);
-    const entry = { path, pathItems, weight, ownRow };
-
-    if (ownRow) {
-      if (currentRow.length) {
-        rows.push(currentRow);
-        currentRow = [];
-        currentWeight = 0;
-      }
-
-      rows.push([entry]);
-      return;
-    }
-
-    if (currentRow.length && currentWeight + weight > MAX_PATH_ROW_CARDS) {
-      rows.push(currentRow);
-      currentRow = [];
-      currentWeight = 0;
-    }
-
-    currentRow.push(entry);
-    currentWeight += weight;
-
-    if (currentWeight >= MAX_PATH_ROW_CARDS) {
-      rows.push(currentRow);
-      currentRow = [];
-      currentWeight = 0;
-    }
-  });
-
-  if (currentRow.length) rows.push(currentRow);
-
-  return rows;
-}
-
-function chunkPathItems(items) {
-  const rows = [];
-
-  for (let index = 0; index < items.length; index += MAX_PATH_ROW_CARDS) {
-    rows.push(items.slice(index, index + MAX_PATH_ROW_CARDS));
-  }
-
-  return rows;
-}
-
-function pathCardRowColumns(items, rowItems) {
-  return items.length > MAX_PATH_ROW_CARDS ? MAX_PATH_ROW_CARDS : rowItems.length;
-}
-
-function HierarchyPathCardRows({ items }) {
-  return (
-    <div className="hierarchy-path-card-rows">
-      {chunkPathItems(items).map((rowItems, rowIndex) => (
-        <div
-          className="hierarchy-path-card-row"
-          key={rowItems.map(item => item.slug).join("-") || rowIndex}
-          style={{ "--path-card-row-columns": pathCardRowColumns(items, rowItems) }}
-        >
-          {rowItems.map(item => (
-            <HierarchyCard item={item} key={`${item.groupId}-${item.slug}`} />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function HierarchyPathGroups({ items }) {
-  const directItems = items.filter(item => !item.path);
-
-  const pathGroups = items
-    .filter(item => item.path)
-    .reduce((groups, item) => {
-      if (!groups[item.path]) groups[item.path] = [];
-      groups[item.path].push(item);
-      return groups;
-    }, {});
-
-  const pathRows = buildPathRows(Object.entries(pathGroups));
-
-  return (
-    <>
-      {directItems.length ? <HierarchyGrid items={directItems} /> : null}
-
-      {pathRows.length ? (
-        <div className="hierarchy-path-grid">
-          {pathRows.map((row, rowIndex) => {
-            const rowWeight = row.reduce((total, entry) => total + entry.weight, 0);
-
-            return (
-              <div
-                className="hierarchy-path-row"
-                key={row.map(entry => entry.path).join("-") || rowIndex}
-                style={{ "--path-row-cards": rowWeight }}
-              >
-                {row.map(({ path, pathItems, weight }) => {
-                  const headingId = pathHeadingId(path);
-
-                  return (
-                    <section
-                      className="hierarchy-path-column"
-                      aria-labelledby={headingId}
-                      key={path}
-                      style={{ "--path-span": weight }}
-                    >
-                      <h3 id={headingId}>{path}</h3>
-                      <HierarchyPathCardRows items={pathItems} />
-                    </section>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      ) : null}
-    </>
-  );
-}
-
 export default function HierarchyPage() {
+  const groups = visibleHierarchyGroups();
   const items = hierarchyItems();
 
   return (
     <HolonetFrame title="RANKS" subtitle="SITH HIERARCHY" footerNode="HRK-03">
       <div className="hierarchy-main">
-        {HIERARCHY_GROUPS.map(group => (
-          <section className="registry-section hierarchy-section" aria-labelledby={`hierarchy-${group.id}`} key={group.id}>
-            <div className="section-header">
-              <span className="section-tag" id={`hierarchy-${group.id}`}>// {group.title}</span>
-              <div className="section-rule" />
-            </div>
-            {group.description ? <p className="hierarchy-section-copy">{group.description}</p> : null}
-            <HierarchyPathGroups items={items.filter(item => item.groupId === group.id)} />
-          </section>
+        {groups.map(group => (
+          <HierarchySection
+            group={group}
+            items={items.filter(item => item.groupId === group.id)}
+            key={group.id}
+          />
         ))}
       </div>
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} />

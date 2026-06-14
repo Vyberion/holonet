@@ -921,6 +921,80 @@ footer {
   grid-area: 1 / 1;
 }
 
+.hierarchy-detail--classified .codex-article {
+  border-color: rgba(255, 59, 79, 0.34);
+  box-shadow: inset 0 0 44px rgba(255, 0, 34, 0.08), 0 0 28px rgba(255, 0, 34, 0.08);
+}
+
+.hierarchy-detail-hero--classified {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 59, 79, 0.08) 0 1px, transparent 1px 38px),
+    radial-gradient(ellipse 70% 70% at 50% 42%, rgba(255, 59, 79, 0.2), transparent 64%),
+    linear-gradient(145deg, rgba(42, 4, 10, 0.94), rgba(3, 1, 2, 1));
+}
+
+.hierarchy-detail-hero--classified::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 59, 79, 0.42), transparent);
+  content: '';
+  height: 1px;
+  left: 8%;
+  position: absolute;
+  right: 8%;
+  top: 50%;
+  box-shadow: 0 0 20px rgba(255, 59, 79, 0.44);
+  z-index: 2;
+}
+
+.hierarchy-detail-hero--classified span {
+  color: rgba(255, 59, 79, 0.56);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(1.5rem, 6vw, 4.6rem);
+  letter-spacing: 0.34em;
+}
+
+.hierarchy-classified-bars {
+  display: grid;
+  gap: 18px;
+  grid-area: 1 / 1;
+  max-width: min(620px, 80%);
+  width: 100%;
+  z-index: 3;
+}
+
+.hierarchy-classified-bars i,
+.hierarchy-classified-line {
+  background: linear-gradient(90deg, rgba(255, 59, 79, 0.2), rgba(255, 59, 79, 0.86), rgba(255, 59, 79, 0.2));
+  display: block;
+  height: 12px;
+  box-shadow: 0 0 18px rgba(255, 59, 79, 0.22);
+}
+
+.hierarchy-classified-bars i:nth-child(2) {
+  width: 74%;
+}
+
+.hierarchy-classified-bars i:nth-child(3) {
+  width: 42%;
+}
+
+.hierarchy-classified-record {
+  background: rgba(14, 0, 4, 0.72);
+}
+
+.hierarchy-classified-line {
+  height: 10px;
+  margin-top: 14px;
+  width: 82%;
+}
+
+.hierarchy-classified-line--short {
+  width: 48%;
+}
+
+.hierarchy-classified-line--wide {
+  width: 100%;
+}
+
 @media (max-width: 980px) {
   .hierarchy-grid,
   .hierarchy-path-column .hierarchy-grid {

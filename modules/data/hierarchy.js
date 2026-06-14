@@ -293,10 +293,10 @@ export const HIERARCHY_GROUPS = [
       {
         slug: CURRENT_EMPEROR_SLUG,
         href: `/archives/emperors/${CURRENT_EMPEROR_SLUG}`,
-        name: "Pending Emperor Record",
-        body: "The 40th Sith Emperor. Archive record pending.",
-        category: "The 40th Sith Emperor",
-        path: "The 40th Sith Emperor",
+        name: "Lord Emperor Torreto",
+        body: "PENDING.",
+        category: "The Quadragennial",
+        path: "The Quadragennial",
         pathOwnRow: true,
         routable: false
       },
@@ -430,11 +430,11 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Lord Emperor Rok",
-    body: "iRoklas was declared and ranked as the fourth Emperor of TSO by iWakers. His tenure lasted less than a day and remained unofficial in practice because he did not accept the title before being demoted.\n\nHe is retained in the imperial archive because he was formally selected, ranked, and considered a serious choice for the throne."
+    body: "iRoklas was declared and ranked as the fourth Emperor of TSO by iWakers. His tenure lasted less than a day and remained unofficial in practice because he did not accept the title before being demoted.\n\nHe is retained in the imperial archive because he was formally selected, ranked and considered a serious choice for the throne."
   },
   {
     name: "Lord Emperor Domitius (I)",
-    body: "Domitius_Drahavos was the fifth Emperor of TSO and was appointed by iWakers. His first reign was strict and enforcement-focused, with mass reforms, high standards, and harsh punishment used against perceived incompetence.\n\nHe was known as a skilled combatant for his era and for severe divisional inspections. After his Fall, his results allowed him to continue as an advisor."
+    body: "Domitius_Drahavos was the fifth Emperor of TSO and was appointed by iWakers. His first reign was strict and enforcement focused, with mass reforms, high standards, and harsh punishment used against perceived incompetence.\n\nHe was known as a skilled combatant for his era and for his extreme judgment in divisional inspections. After his Fall, his results allowed him to carry on as an advisor."
   },
   {
     name: "Lord Emperor Zacho",
@@ -446,11 +446,11 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Lord Emperor Domitius (II)",
-    body: "Domitius became the eighth Emperor of TSO and the first person to hold a second imperial reign. He returned from Fallen status under iWakers.\n\nHis second reign was stricter than his first, with heavy involvement in divisional quality, standards, and administration. Near the end of this period, iWakers withdrew from ownership and Domitius ascended to The Force as owner of TSO."
+    body: "Domitius became the eighth Emperor of TSO and the first person to hold a second imperial reign. He returned from Fallen status under iWakers.\n\nHis second reign was stricter than his first, with heavy involvement in divisional administration. Near the end of this period, iWakers withdrew from ownership and Domitius ascended to The Force as owner of TSO."
   },
   {
     name: "Lady Empress Bella",
-    body: "Bella_Drahavos was the ninth sovereign of TSO and the first Lady Empress of the Sith. She was the first sovereign appointed by Lord Dom.\n\nDetailed information about her reign is limited, though the archive records her as interactive and associated with quality inspections across the group."
+    body: "Bella_Drahavos was the ninth sovereign of TSO and the first Lady Empress of the Sith. She was the first sovereign appointed by Lord Dom.\n\nDetailed information about her reign is limited, though the archive records her as interactive and associated with quality inspections on all group members."
   },
   {
     name: "Lord Emperor Dalton",
@@ -458,7 +458,7 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Lord Emperor Tenebrae",
-    body: "Tenebrae_Lycan was the eleventh Emperor of TSO and the third Emperor appointed by Lord Dom. His reign was brief, lasting nine days.\n\nHe Fell after a change in preference from the owner-level administration."
+    body: "Tenebrae_Lycan was the eleventh Emperor of TSO and the third Emperor appointed by Lord Dom. His reign was brief, lasting nine days.\n\nHe Fell after a change in preference from the Ancient One."
   },
   {
     name: "Lord Emperor Spectre",
@@ -470,7 +470,7 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Lord Emperor Gurt",
-    body: "Gurt_Kalazar was the fourteenth Emperor of TSO and the first official Emperor to ascend from a Sith Architect or developer position. He was the third Emperor appointed by Lord Zach.\n\nHis administration organized High Command and the Dark Council, corrected early selection issues, and reigned during a more active period. His reign lasted nearly four months, the longest for its time, before he ascended through The Force as owner of TSO in March 2019."
+    body: "Gurt_Kalazar was the fourteenth Emperor of TSO and the first official Emperor to ascend from a developer position. He was the third Emperor appointed by Lord Zach.\n\nHis administration organized High Command and the Dark Council, questionable selections were made, but ultimately were rectified in better judgment. His administration proved effective, and he reigned during a more active period. His reign lasted nearly four months, the longest for its time, before he ascended through The Force as owner of TSO in March 2019."
   },
   {
     name: "Lord Emperor Avextriux",
@@ -490,7 +490,7 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Lord Emperor Asura",
-    body: "Asuramarumaru was the nineteenth official Emperor of TSO and the only Emperor chosen by Lord Nazgulaz and Narvog. The archive also notes an unofficial transitional emperor-elect period under Brody before Asura's reign.\n\nAsura emphasized the Shadow Guard and early Kaggath policy. He was the first Emperor to receive Architect permissions due to building, development, and morph-making ability. Misuse of those permissions contributed to his Fall in November 2019."
+    body: "Asuramarumaru was the nineteenth official Emperor of TSO and the only Emperor chosen by Lord Nazgulaz and Narvog. The archive also notes an unofficial transitional emperor-elect period under Brody before Asura's reign.\n\nAsura emphasized the Shadow Guard and early Kaggath policy. He was the first Emperor to receive Architect permissions due to proficiency in building, development, and morph-making. Misuse of those permissions contributed to his Fall in November 2019."
   },
   {
     name: "Lord Emperor Chaos (I)",
@@ -498,7 +498,7 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Lord Emperor Kronos (II)",
-    body: "Kronos_Kalazar was the twenty-first Emperor of TSO and the tenth Emperor chosen by iWakers. His second reign occurred during map transitions and restructuring of the ranking system.\n\nHis policy focused on maintaining and improving activity during the summer. Rising bloodline conflict and threats to his position culminated in a challenge for the throne in July 2020."
+    body: "Kronos_Kalazar was the twenty-first Emperor of TSO and the tenth Emperor chosen by iWakers. His second reign occurred during map transitions and restructuring of the ranking system.\n\nHis policy focused on maintaining and improving activity during the summer. Rising conflict between the bloodlines of Aktuun and Kalazar and threats to his position culminated in a challenge for the throne in July 2020."
   },
   {
     name: "Lord Emperor Manar",
@@ -506,7 +506,7 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Lord Emperor Sprinkle",
-    body: "Sprinkle_Kalazar was the twenty-third Emperor of TSO, the second Emperor to win the title by Kaggath, and an Emperor under Kactussman.\n\nHis reign was hands-off, with significant responsibility placed on High Command. He was eventually challenged for the throne due to inactivity around September 2020."
+    body: "Sprinkle_Kalazar was the twenty-third Emperor of TSO, the second Emperor to win the title by Kaggath, and an Emperor under Kactussman (previously, Gurt_Kalazar).\n\nHis reign was hands-off, with significant responsibility placed on High Command. He was eventually challenged for the throne due to inactivity around September 2020."
   },
   {
     name: "Lord Emperor Timo",
@@ -514,7 +514,7 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Lord Emperor Zeus",
-    body: "Zeus_Kalazar, also known as Stormkrieg or Ekori, was the twenty-fifth Emperor of TSO and the fourth Emperor to win the title by Kaggath. He was remembered for strong combat skill and for remaining outside bloodline politics.\n\nHis reign included controversial communications policy changes and disciplinary action against High Command. He was regarded as fair by some, but resistance grew after sanctions against his Lord Wrath, leading to a challenge in February 2021."
+    body: "Zeus_Kalazar, also known as Stormkrieg or Ekori, was the First Black Emperor of TSO, the twenty-fifth Emperor overall and the fourth Emperor to win the title by Kaggath. He was remembered for strong combat skill and for remaining outside bloodline politics.\n\nHis reign included controversial communications policy changes and disciplinary action against High Command. He was regarded as fair by some, but resistance grew after sanctions against his Lord Wrath, leading to a challenge in February 2021."
   },
   {
     name: "Lord Emperor Terrabiome (III)",
@@ -526,11 +526,11 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Lord Emperor Gawking",
-    body: "Gawk_Aktuun, also known as Gawking, was the twenty-eighth Emperor of TSO and the longest-serving Emperor. He was appointed after serving as Dark Honor Guard Commander and overcame challenges from remaining High Command members.\n\nHis reign lasted more than thirteen months and is remembered for policy revisions, the shutdown of the Shadow Guard, unique events, and Architect privileges used for cosmetic map updates. The transition of ownership between Kactussman and CroczTerminus destabilized the era, leading to his Fall in November 2022. He remained as an advisor."
+    body: "Gawk_Aktuun, also known as Gawking, was the twenty-eighth Emperor of TSO and the longest-serving Emperor. He was appointed after serving as Dark Honor Guard Commander and overcame challenges from remaining High Command members.\n\nHis reign lasted more than thirteen months and is remembered for policy revisions, the shutdown of the Shadow Guard, and the hosting of unique events. He was the second Emperor to achieve Architect privileges.The transition of ownership between Kactussman and CroczTerminus destabilized the era, leading to his Fall in November 2022. He remained as an advisor."
   },
   {
     name: "Lord Emperor Legacy",
-    body: "Legacy_Lycan was the twenty-ninth Emperor of TSO and the first Emperor chosen by Manar_Aktuun. He ascended from Dread Master Raptus while the group was recovering from major instability left by previous ownership.\n\nLegacy proposed many ideas, though many were viewed as impractical or disconnected from the group's needs. Heavy resistance developed during his tenure, and he was challenged for his position in December 2022."
+    body: "Legacy_Lycan was the twenty-ninth Emperor of TSO and the first Emperor chosen by Manar_Aktuun. He ascended from Dread Master Raptus while the group was recovering from major instability left by previous ownership.\n\nLegacy proposed many ideas that he was insistent on implementing, though many were viewed as impractical. Heavy resistance developed during his tenure, and he was challenged for his position in December 2022."
   },
   {
     name: "Lord Emperor Aramis",
@@ -538,11 +538,11 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Lord Emperor Poncake",
-    body: "PoncakeTerminus was the thirty-first Emperor of TSO and the third Emperor under Manar_Aktuun. He was remembered for efforts to improve the Dark Honor Guard and for bringing elitism to the Shadow Guard.\n\nPoncake was an exceptional combatant and held Champion of the Sith multiple times, but his judgment was often questioned. His reign ended after rank and money-related misconduct came to light, resulting in banishment rather than advisor status."
+    body: "PoncakeTerminus was the thirty-first Emperor of TSO and the third Emperor under Manar_Aktuun. He was remembered for efforts to improve the Dark Honor Guard and for bringing elitism to the Shadow Guard.\n\nPoncake was an exceptional combatant and held Champion of the Sith multiple times, but his judgment was often questioned. His reign ended after rank and money-related misconduct came to light; he faced banishment, and did not remain as an advisor."
   },
   {
-    name: "Lord Emperor Naktis",
-    body: "NaktisTerminus, also known as Chaos, was the thirty-second Emperor of TSO and the fourth Emperor under Manar_Aktuun. His second imperial rule followed a philosophy of firm, hands-on authority.\n\nNaktis prioritized standards and results within his administration. Some resistance formed beneath him, but it did not seriously threaten his rule. After some time, he Fell and remained as an advisor."
+    name: "Lord Emperor Naktis (II)",
+    body: "NaktisTerminus, also known as Chaos, was the thirty-second Emperor of TSO and the fourth Emperor under Manar_Aktuun. His second imperial rule followed a philosophy of an iron rule.\n\nNaktis prioritized standards and results within his administration. Some resistance formed beneath him, but it did not seriously threaten his rule. After some time, he Fell and remained as an advisor."
   },
   {
     name: "Lord Emperor Tranom",
@@ -550,7 +550,11 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Lord Emperor Vyberon",
-    body: "Vyberon was the thirty-fourth Emperor of TSO and the sixth Emperor under Manar_Aktuun. His reign introduced ideas affecting the ranking structure and regulation guides.\n\nHe also established precedent for supreme decrees and declarations. Prolonged stagnation, pressure from advisors and subordinates, and limited owner support led Vyberon and his High Command to resign in July 2024. Though many reforms did not last, his reign is remembered for innovation."
+    body: "Vyberon was the thirty-fourth Emperor of TSO and the sixth Emperor under Manar_Aktuun. His reign introduced ideas affecting the ranking structure and regulation guides.\n\nHe also established precedent for supreme decrees and declarations. Prolonged stagnation, pressure from advisors and subordinates, and limited owner support led Vyberon, his High Command and Dark Council to resign in July 2024. Though many reforms did not last, his reign is remembered for innovation."
+  },
+  {
+    name: "Lord Emperor Athlios",
+    body: "PENDING: PSEUDO-EMPEROR ARCHITECT."
   },
   {
     name: "Lord Emperor Torreto",
@@ -589,7 +593,6 @@ function emperorArchiveRecord(index) {
     body: source.body || "Biography pending archival upload.",
     category: `The ${title} Sith Emperor`,
     path: emperorPathTitle(index),
-    pathOwnRow: true,
     current: source.current || index === 40
   };
 }

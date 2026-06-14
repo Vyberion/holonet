@@ -165,19 +165,19 @@ function councilRoleForRank(rank) {
 
 function councilPermissions(profile) {
   const rank = councilRank(profile);
-  const isCoreAccess = hasCoreAccess(profile);
+  const isSuperUser = Boolean(profile?.isSuperUser);
   const floorAccess = profile ? checkPageAccess(profile, "dark-council/council-floor") : { authorized: false };
   const hasFloorOverride = floorAccess.reason === "OVERRIDE_GRANT";
-  const canUseFloor = isCoreAccess || COUNCIL_VOTING_RANKS.includes(rank) || hasFloorOverride;
+  const canUseFloor = isSuperUser || COUNCIL_VOTING_RANKS.includes(rank) || hasFloorOverride;
 
   return {
     rank,
-    role: profile?.isSuperUser ? "Super User" : profile?.hasFullAccess ? "Full Access" : councilRoleForRank(rank) || (hasFloorOverride ? "Override Authority" : ""),
+    role: isSuperUser ? "Super User" : councilRoleForRank(rank) || (hasFloorOverride ? "Override Authority" : ""),
     canView: floorAccess.authorized || canUseFloor,
     canPropose: canUseFloor,
     canVote: canUseFloor,
-    canVeto: isCoreAccess || COUNCIL_VETO_RANKS.includes(rank),
-    canReopen: isCoreAccess || COUNCIL_VETO_RANKS.includes(rank),
+    canVeto: isSuperUser || COUNCIL_VETO_RANKS.includes(rank),
+    canReopen: isSuperUser || COUNCIL_VETO_RANKS.includes(rank),
     countsTowardsMajority: COUNCIL_COUNTING_RANKS.includes(rank)
   };
 }

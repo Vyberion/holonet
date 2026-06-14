@@ -12,6 +12,7 @@
   function clearCachedIdentity() {
     localStorage.removeItem("sith_roblox_id");
     localStorage.removeItem("sith_roblox_user");
+    window.HolonetSite?.clearAllCanonPayloads?.();
     window.HolonetSite?.clearAccessPayload?.();
     window.dispatchEvent(new CustomEvent("holonet:access-updated", { detail: null }));
   }
@@ -21,6 +22,7 @@
 
     localStorage.setItem("sith_roblox_id", robloxId);
     localStorage.setItem("sith_roblox_user", username);
+    window.HolonetSite?.clearAllCanonPayloads?.();
     window.HolonetSite?.clearAccessPayload?.();
     window.dispatchEvent(new CustomEvent("holonet:access-updated", { detail: null }));
 
@@ -128,6 +130,7 @@
     }
 
     if (status === "success") {
+      window.HolonetSite?.clearAllCanonPayloads?.();
       window.HolonetSite?.clearAccessPayload?.();
       window.history.replaceState({}, document.title, window.location.pathname);
     }

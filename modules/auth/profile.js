@@ -57,6 +57,7 @@ export function buildProfile({ robloxId, groupRoles }) {
   const userGroups = buildGroupRankMap(groupRoles);
   const darkCouncilRank = userGroups[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0;
   const highRank = userGroups[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0;
+  const isSuperUser = SUPER_USER_IDS.includes(String(robloxId));
   const authorityRoles = Object.fromEntries(
     Object.entries(ROBLOX_GROUPS.DARK_COUNCIL.ranks).map(([role, ranks]) => [
       role,
@@ -66,10 +67,10 @@ export function buildProfile({ robloxId, groupRoles }) {
 
   const profile = {
     robloxId: String(robloxId),
-    isSuperUser: SUPER_USER_IDS.includes(String(robloxId)),
+    isSuperUser,
     groupRanks: userGroups,
     authorityRoles,
-    hasFullAccess: FULL_ACCESS_AUTHORITY_ROLES.some(role => authorityRoles[role]),
+    hasFullAccess: isSuperUser || FULL_ACCESS_AUTHORITY_ROLES.some(role => authorityRoles[role]),
     highRank: getTierFromRankList(highRank, ROBLOX_GROUPS.HIGH_RANKS.ranks, HIGH_RANK_TIERS),
     divisions: {}
   };

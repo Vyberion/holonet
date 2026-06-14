@@ -10,43 +10,95 @@
     return "holonet:access:global";
   }
 
-  function canonEndpoint(key) {
-    if (key === "archives") return "/api/archives";
-    return `/api/library?library=${encodeURIComponent(key)}`;
-  }
-
-  function readCanonFromStorage(key) {
+  function readAccessFromStorage() {
     try {
-      const raw = sessionStorage.getItem(canonStorageKey(key));
+      const raw = sessionStorage.getItem(accessStorageKey());
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
     }
   }
 
-  function writeCanonToStorage(key, payload) {
+  function canonAccessSignature() {
+    const access = readAccessFromStorage();
+    const profile = access?.profile;
+
+    if (!access?.authorized || !profile?.robloxId) {
+      return "anonymous";
+    }
+
+    const accessKind = profile.isSuperUser ? "superuser" : profile.hasFullAccess ? "full-access" : "standard";
+    return `${profile.robloxId}:${accessKind}`;
+  }
+
+  function canonFetchKey(key, signature = canonAccessSignature()) {
+    return `${key}:${signature}`;
+  }
+
+  function canonEndpoint(key) {
+    if (key === "archives") return "/api/archives";
+    return `/api/library?library=${encodeURIComponent(key)}`;
+  }
+
+  function canonRecordFor(payload, signature = canonAccessSignature()) {
+    return {
+      accessSignature: signature,
+      payload
+    };
+  }
+
+  function payloadFromCanonRecord(record) {
+    if (!record?.payload || !record?.accessSignature) return null;
+    return record.accessSignature === canonAccessSignature() ? record.payload : null;
+  }
+
+  function readCanonFromStorage(key) {
     try {
-      sessionStorage.setItem(canonStorageKey(key), JSON.stringify(payload));
+      const raw = sessionStorage.getItem(canonStorageKey(key));
+      return raw ? payloadFromCanonRecord(JSON.parse(raw)) : null;
     } catch {
       return null;
     }
   }
 
-  function rememberCanon(key, payload) {
-    canonCache.set(key, payload);
-    writeCanonToStorage(key, payload);
+  function writeCanonToStorage(key, record) {
+    try {
+      sessionStorage.setItem(canonStorageKey(key), JSON.stringify(record));
+    } catch {
+      return null;
+    }
+  }
+
+  function rememberCanon(key, payload, signature = canonAccessSignature()) {
+    const record = canonRecordFor(payload, signature);
+    canonCache.set(key, record);
+    writeCanonToStorage(key, record);
     return payload;
   }
 
   function getCanonPayload(key) {
-    return canonCache.get(key) || readCanonFromStorage(key) || null;
+    return payloadFromCanonRecord(canonCache.get(key)) || readCanonFromStorage(key) || null;
   }
 
   function clearCanonPayload(key) {
     canonCache.delete(key);
-    canonFetches.delete(key);
+    Array.from(canonFetches.keys())
+      .filter(fetchKey => fetchKey.startsWith(`${key}:`))
+      .forEach(fetchKey => canonFetches.delete(fetchKey));
     try {
       sessionStorage.removeItem(canonStorageKey(key));
+    } catch {
+      return null;
+    }
+  }
+
+  function clearAllCanonPayloads() {
+    canonCache.clear();
+    canonFetches.clear();
+    try {
+      Object.keys(sessionStorage)
+        .filter(key => key.startsWith("holonet:canon:"))
+        .forEach(key => sessionStorage.removeItem(key));
     } catch {
       return null;
     }
@@ -55,6 +107,7 @@
   function clearAccessPayload() {
     try {
       sessionStorage.removeItem(accessStorageKey());
+      clearAllCanonPayloads();
     } catch {
       return null;
     }
@@ -65,39 +118,32 @@
       clearCanonPayload(key);
     }
 
-    if (canonFetches.has(key)) return canonFetches.get(key);
+    const signature = canonAccessSignature();
+    const fetchKey = canonFetchKey(key, signature);
+    if (canonFetches.has(fetchKey)) return canonFetches.get(fetchKey);
 
     const cached = getCanonPayload(key);
     if (cached) {
       const resolved = Promise.resolve(cached);
-      canonFetches.set(key, resolved);
+      canonFetches.set(fetchKey, resolved);
       return resolved;
     }
 
-    const request = fetch(canonEndpoint(key))
+    const request = fetch(canonEndpoint(key), { cache: "no-store" })
       .then(response => response.json())
       .then(payload => {
         if (!payload || payload.ok === false) {
           throw new Error(payload?.reason || payload?.error || "CANON_PREFETCH_FAILED");
         }
-        return rememberCanon(key, payload);
+        return rememberCanon(key, payload, signature);
       })
       .catch(error => {
-        canonFetches.delete(key);
+        canonFetches.delete(fetchKey);
         throw error;
       });
 
-    canonFetches.set(key, request);
+    canonFetches.set(fetchKey, request);
     return request;
-  }
-
-  function readAccessFromStorage() {
-    try {
-      const raw = sessionStorage.getItem(accessStorageKey());
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
   }
 
   function writeAccessToStorage(payload) {
@@ -238,6 +284,7 @@
     getCanonPayload,
     warmCanonPayload,
     clearCanonPayload,
+    clearAllCanonPayloads,
     clearAccessPayload,
     boot() {
       initLoader();
@@ -251,4 +298,8 @@
   } else {
     window.HolonetSite.boot();
   }
+
+  window.addEventListener("holonet:access-updated", () => {
+    clearAllCanonPayloads();
+  });
 })();

@@ -1,6 +1,7 @@
 import { PermissionFlagsBits } from "discord.js";
 import { config } from "../config/index.js";
 import { ROBLOX_GROUPS, SUPER_USER_IDS } from "../../modules/auth/roblox-groups.js";
+import { hasCoreAccess } from "../../modules/auth/permissions.js";
 import { loadProfileForRoblox, loadRobloxUser, rawRanksFromProfile } from "./roblox.js";
 import { audit, supabase } from "./supabase.js";
 
@@ -116,7 +117,7 @@ export function canManageBot(profile, member = null) {
   const roles = profile?.authorityRoles || {};
   return Boolean(
     isDiscordAdmin(member) ||
-    profile?.isSuperUser ||
+    hasCoreAccess(profile) ||
     roles.groupOwner ||
     roles.projectManager ||
     roles.emperor ||
@@ -126,7 +127,7 @@ export function canManageBot(profile, member = null) {
 
 export function canManageEmperorVote(profile, member = null) {
   const roles = profile?.authorityRoles || {};
-  return Boolean(isDiscordAdmin(member) || profile?.isSuperUser || roles.groupOwner || roles.projectManager);
+  return Boolean(isDiscordAdmin(member) || hasCoreAccess(profile) || roles.groupOwner || roles.projectManager);
 }
 
 export function canVoteEmperor(profile) {
@@ -134,7 +135,7 @@ export function canVoteEmperor(profile) {
 }
 
 export function isHighCommand(profile) {
-  return Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) >= 252;
+  return Boolean(hasCoreAccess(profile) || Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) >= 252);
 }
 
 export function inferScope(profile) {
@@ -166,6 +167,7 @@ export async function getVerifiedProfile(discordUserId) {
 
   const profile = await loadProfileForRoblox(data.roblox_user_id);
   profile.isSuperUser = SUPER_USER_IDS.includes(String(data.roblox_user_id));
+  profile.hasFullAccess = profile.hasFullAccess || profile.isSuperUser;
   return { link: data, profile };
 }
 
@@ -212,7 +214,7 @@ export function divisionTierWeight(tier) {
 export function canAdjustTime(actorProfile, targetProfile, targetScope, sameUser = false) {
   if (sameUser) return true;
   if (!actorProfile || !targetProfile) return false;
-  if (actorProfile.isSuperUser || Object.values(actorProfile.authorityRoles || {}).some(Boolean)) return true;
+  if (hasCoreAccess(actorProfile) || Object.values(actorProfile.authorityRoles || {}).some(Boolean)) return true;
   if (["highCommand", "darkCouncil", "highranks"].includes(targetScope)) return false;
 
   const actorTier = divisionTierWeight(actorProfile.divisions?.[targetScope] || "none");

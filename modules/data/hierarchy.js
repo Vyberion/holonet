@@ -623,6 +623,9 @@ function imageForItem(item) {
     const explicitImage = normalizeAssetPath(item.image);
     return morphExists(explicitImage) ? explicitImage : MORPH_FALLBACK_IMAGE;
   }
+  else if (item.slug === "servant_one") {
+    return "assets/morphs/serious.avif"
+  }
 
   const imageName = IMAGE_BY_SLUG[item.slug] || item.slug.replace(/-/g, "_");
   const image = `/assets/morphs/${imageName}.png`;

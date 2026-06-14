@@ -1,0 +1,52 @@
+/* Preview branch visual fixes and selective overlay priority. */
+body::before,
+body::after {
+  z-index: 5000;
+}
+
+#vignette {
+  opacity: 0;
+}
+
+[data-admin-root] .hub-hero,
+[data-admin-root] .hub-panel,
+[data-admin-root] .hub-row,
+[data-admin-root] .resource-editor-field {
+  background: linear-gradient(135deg, rgba(192, 0, 26, 0.05) 0%, transparent 60%) !important;
+  border-color: var(--border-hot) !important;
+  box-shadow:
+    0 0 30px rgba(192, 0, 26, 0.06),
+    0 0 80px rgba(192, 0, 26, 0.03),
+    inset 0 0 40px rgba(192, 0, 26, 0.03) !important;
+}
+
+[data-admin-root] .hub-panel {
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  padding: 18px;
+}
+
+[data-admin-root] .hub-row {
+  border-left: 3px solid var(--border-hot) !important;
+  padding: 12px 14px;
+  position: relative;
+}
+
+[data-admin-root] .hub-panel:hover,
+[data-admin-root] .hub-row:hover {
+  box-shadow:
+    0 0 40px rgba(192, 0, 26, 0.12),
+    0 0 120px rgba(192, 0, 26, 0.06),
+    inset 0 0 40px rgba(192, 0, 26, 0.05) !important;
+}
+
+[data-admin-root] .resource-editor-field {
+  border: 1px solid var(--border-hot) !important;
+  margin-bottom: 8px;
+}
+
+[data-admin-root] .resource-editor-actions,
+[data-admin-root] .admin-filter-row select,
+[data-admin-root] .admin-filter-row input {
+  background: linear-gradient(135deg, rgba(192, 0, 26, 0.05) 0%, transparent 60%) !important;
+  border-color: var(--border-hot) !important;
+}

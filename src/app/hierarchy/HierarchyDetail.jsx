@@ -18,7 +18,7 @@ export function HierarchyDetail({ item }) {
             <h2 className="article-title">{item.name}</h2>
           </div>
           <div className="hierarchy-detail-hero" aria-hidden="true">
-            <img src={item.image} alt="" />
+            <img src={item.image} alt="" loading="eager" />
             <span>{item.name}</span>
           </div>
           <div className="article-content">

@@ -223,9 +223,7 @@
 
   .nav-dropdown-toggle {
     align-items: center;
-    background:
-      radial-gradient(ellipse 80% 120% at 50% 130%, var(--theme-nav-card-hover-a) 0%, transparent 65%),
-      rgba(0, 0, 0, 0.12);
+    background: transparent;
     border: 0;
     border-left: 1px solid var(--theme-accent-dim);
     color: var(--text-dim);
@@ -234,7 +232,7 @@
     justify-content: center;
     padding: 0 10px;
     position: relative;
-    transition: color 0.3s, background 0.3s, border-color 0.3s, filter 0.3s;
+    transition: color 0.3s, border-color 0.3s, filter 0.3s;
     clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
   }
 

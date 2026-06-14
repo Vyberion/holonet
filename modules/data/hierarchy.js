@@ -307,6 +307,7 @@ const IMAGE_BY_SLUG = {
 };
 
 function imageForItem(item) {
+  if (item.slug === "torretoterminus") { return "assets/morphs/clown.jpg"; }
   return `/assets/morphs/${IMAGE_BY_SLUG[item.slug] || item.slug.replace(/-/g, "_")}.png`;
 }
 

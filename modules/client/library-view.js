@@ -281,8 +281,16 @@ function ensureEditorOverlay() {
 
   document.body.appendChild(overlay);
   overlay.querySelector("[data-library-close]").addEventListener("click", () => overlay.classList.remove("active"));
-  overlay.addEventListener("click", event => {
-    if (event.target === overlay) overlay.classList.remove("active");
+  let pointerStartedOnOverlay = false;
+  overlay.addEventListener("pointerdown", event => {
+    pointerStartedOnOverlay = event.target === overlay;
+  });
+  overlay.addEventListener("pointerup", event => {
+    if (pointerStartedOnOverlay && event.target === overlay) overlay.classList.remove("active");
+    pointerStartedOnOverlay = false;
+  });
+  overlay.addEventListener("pointercancel", () => {
+    pointerStartedOnOverlay = false;
   });
   document.addEventListener("keydown", event => {
     if (event.key === "Escape") overlay.classList.remove("active");
@@ -425,25 +433,32 @@ async function initLibraryView() {
       if (archiveMode) {
         form.innerHTML = `
           <input type="hidden" name="id" value="${escapeHtml(workingDocument.id || "")}">
-          <div class="resource-editor-field">
-            <label>Article Title</label>
-            <input name="title" value="${escapeHtml(workingDocument.title || "")}" required>
-          </div>
-          <div class="resource-editor-field">
-            <label>Article Body</label>
-            <textarea name="body" required>${escapeHtml(workingDocument.body || "")}</textarea>
-          </div>
-          <div class="resource-editor-field">
-            <label>Image Asset Path</label>
-            <input name="imagePath" value="${escapeHtml(workingDocument.imagePath || "")}" placeholder="archives/example.png">
-          </div>
-          <div class="resource-editor-field">
-            <label>Image Alt</label>
-            <input name="imageAlt" value="${escapeHtml(workingDocument.imageAlt || "")}">
-          </div>
-          <div class="resource-editor-field">
-            <label>Article Number</label>
-            <input type="number" min="1" max="13" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}" required>
+          <div class="library-entry-stack">
+            <section class="library-entry-editor">
+              <div class="library-entry-toolbar">
+                <span class="library-entry-title">Archive Article</span>
+              </div>
+              <div class="resource-editor-field">
+                <label>Article Title</label>
+                <input name="title" value="${escapeHtml(workingDocument.title || "")}" required>
+              </div>
+              <div class="resource-editor-field">
+                <label>Article Body</label>
+                <textarea name="body" required>${escapeHtml(workingDocument.body || "")}</textarea>
+              </div>
+              <div class="resource-editor-field">
+                <label>Image Asset Path</label>
+                <input name="imagePath" value="${escapeHtml(workingDocument.imagePath || "")}" placeholder="archives/example.png">
+              </div>
+              <div class="resource-editor-field">
+                <label>Image Alt</label>
+                <input name="imageAlt" value="${escapeHtml(workingDocument.imageAlt || "")}">
+              </div>
+              <div class="resource-editor-field">
+                <label>Article Number</label>
+                <input type="number" min="1" max="13" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}" required>
+              </div>
+            </section>
           </div>
           <div class="library-editor-buttons">
             ${workingDocument.id ? `<button type="button" class="library-inline-btn danger" data-library-delete>DELETE ARTICLE</button>` : ""}
@@ -459,10 +474,6 @@ async function initLibraryView() {
       form.innerHTML = `
         <input type="hidden" name="id" value="${escapeHtml(workingDocument.id || "")}">
         <input type="hidden" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}">
-        <div class="library-editor-locked-meta">
-          <span> ARTICLE LOCKED</span>
-          <strong>${escapeHtml(workingDocument.articleNumber || "")} / ${escapeHtml(workingDocument.title || "Untitled Article")}</strong>
-        </div>
         <div class="library-entry-stack">
           ${workingDocument.entries.map((entry, index) => formEntryMarkup(entry, index)).join("")}
         </div>

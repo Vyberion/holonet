@@ -578,6 +578,47 @@
   color: var(--editor-accent-dim);
 }
 
+#library-editor-overlay {
+  background: rgba(12, 4, 6, 0.74);
+  --editor-panel: color-mix(in srgb, var(--theme-panel, var(--panel)) 82%, #3a141a 18%);
+  --editor-void: color-mix(in srgb, var(--theme-bg, var(--void)) 82%, #2c1014 18%);
+  --editor-wash: color-mix(in srgb, var(--theme-accent, #ff3b4f) 12%, transparent);
+}
+
+#library-editor-overlay .library-editor-container {
+  background:
+    radial-gradient(ellipse 85% 70% at 50% -10%, color-mix(in srgb, var(--editor-accent) 12%, transparent), transparent 66%),
+    linear-gradient(145deg, color-mix(in srgb, var(--editor-panel) 92%, #3d151b 8%), var(--editor-void));
+  border-color: color-mix(in srgb, var(--editor-accent) 54%, var(--border-hot));
+  box-shadow:
+    0 0 34px color-mix(in srgb, var(--editor-accent-glow) 80%, transparent),
+    0 24px 70px rgba(0, 0, 0, 0.76),
+    inset 0 0 34px color-mix(in srgb, var(--editor-accent) 5%, transparent);
+}
+
+#library-editor-overlay .library-entry-editor {
+  background: rgba(31, 10, 14, 0.72);
+  border-color: color-mix(in srgb, var(--editor-accent-dim) 78%, rgba(255, 255, 255, 0.18));
+  box-shadow:
+    inset 0 0 24px color-mix(in srgb, var(--editor-accent) 4%, transparent),
+    0 0 18px rgba(0, 0, 0, 0.22);
+}
+
+#library-editor-overlay .resource-editor-field {
+  background: rgba(38, 13, 17, 0.64);
+  border-bottom-color: color-mix(in srgb, var(--editor-accent-dim) 54%, rgba(255, 255, 255, 0.16));
+}
+
+#library-editor-overlay .resource-editor-field input,
+#library-editor-overlay .resource-editor-field select,
+#library-editor-overlay .resource-editor-field textarea {
+  color: color-mix(in srgb, var(--text) 94%, #ffffff 6%);
+}
+
+#library-editor-overlay .resource-editor-field textarea {
+  background: rgba(255, 255, 255, 0.018);
+}
+
 @media (max-width: 680px) {
   #resource-editor-overlay,
   #library-editor-overlay,
@@ -600,5 +641,123 @@
   .library-editor-buttons {
     padding-left: 16px;
     padding-right: 16px;
+  }
+}
+
+/* Preview branch visual fixes and selective overlay priority. */
+body::before,
+body::after {
+  z-index: 5000;
+}
+
+#vignette {
+  opacity: 0;
+}
+
+[data-admin-root] .hub-hero,
+[data-admin-root] .hub-panel,
+[data-admin-root] .hub-row,
+[data-admin-root] .resource-editor-field {
+  background: linear-gradient(135deg, rgba(192, 0, 26, 0.05) 0%, transparent 60%) !important;
+  border-color: var(--border-hot) !important;
+  box-shadow:
+    0 0 30px rgba(192, 0, 26, 0.06),
+    0 0 80px rgba(192, 0, 26, 0.03),
+    inset 0 0 40px rgba(192, 0, 26, 0.03) !important;
+}
+
+[data-admin-root] .hub-panel {
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  padding: 18px;
+}
+
+[data-admin-root] .hub-row {
+  border-left: 3px solid var(--border-hot) !important;
+  padding: 12px 14px;
+  position: relative;
+}
+
+[data-admin-root] .hub-panel:hover,
+[data-admin-root] .hub-row:hover {
+  box-shadow:
+    0 0 40px rgba(192, 0, 26, 0.12),
+    0 0 120px rgba(192, 0, 26, 0.06),
+    inset 0 0 40px rgba(192, 0, 26, 0.05) !important;
+}
+
+[data-admin-root] .resource-editor-field {
+  border: 1px solid var(--border-hot) !important;
+  margin-bottom: 8px;
+}
+
+[data-admin-root] .resource-editor-actions,
+[data-admin-root] .admin-filter-row select,
+[data-admin-root] .admin-filter-row input {
+  background: linear-gradient(135deg, rgba(192, 0, 26, 0.05) 0%, transparent 60%) !important;
+  border-color: var(--border-hot) !important;
+}
+
+.hierarchy-path-grid {
+  display: grid !important;
+  gap: 30px;
+  grid-template-columns: 1fr !important;
+  margin-top: 24px;
+}
+
+.hierarchy-path-row {
+  align-items: flex-start;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(var(--path-row-cards, 1), minmax(0, 1fr));
+}
+
+.hierarchy-path-column {
+  grid-column: span var(--path-span, 1);
+  min-width: 0;
+}
+
+.hierarchy-path-column h3 {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.hierarchy-path-column h3::after {
+  background: linear-gradient(90deg, var(--theme-accent-dim), transparent);
+  content: '';
+  height: 1px;
+  min-width: 34px;
+  opacity: 0.75;
+}
+
+.hierarchy-path-card-rows {
+  display: grid;
+  gap: 16px;
+}
+
+.hierarchy-path-card-row {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(var(--path-card-row-columns, 1), minmax(0, 1fr));
+}
+
+@media (max-width: 980px) {
+  .hierarchy-path-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hierarchy-path-column {
+    grid-column: auto;
+  }
+
+  .hierarchy-path-card-row {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .hierarchy-path-card-row {
+    grid-template-columns: 1fr !important;
   }
 }

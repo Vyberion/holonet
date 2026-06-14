@@ -6,13 +6,12 @@ import "../../css/style.css";
 import "../../css/themes.css";
 import "../../css/nav.css";
 import "../../css/codex.css";
-import "../../css/editor.css";
 import "../../css/search.css";
 import "../../css/document.css";
 import "../../css/registry.css";
 import "../../css/hub.css";
 import "../../css/legal.css";
-import "../../css/preview-adjustments.css";
+import "../../css/editor.css";
 
 function siteUrl() {
   const url =

@@ -31,6 +31,8 @@ function clearCachedAccess() {
 
 function currentPageKey(pathname = "/") {
   const segments = String(pathname || "/").split("/").filter(Boolean);
+  if (segments[0] === "archives" && segments[1]) return `archives-${segments[1]}`;
+
   const page = segments.length === 0 ? "home" : segments[0].replace(".html", "") || "home";
   return page === "index" ? "home" : page;
 }
@@ -124,7 +126,7 @@ export function HolonetNav() {
       prefix: "02",
       label: "Archives",
       dropdown: [
-        { href: "/archives/emperors", page: "archives", prefix: "02A", label: "Emperors" }
+        { href: "/archives/emperors", page: "archives-emperors", prefix: "02A", label: "Emperors" }
       ]
     },
     { href: "/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
@@ -252,13 +254,19 @@ export function HolonetNav() {
                             onFocus={link.preload}
                             onPointerEnter={link.preload}
                           >
+                            <div className="nav-link-corners" aria-hidden="true" />
                             <span className="nav-dropdown-caret" aria-hidden="true" />
                           </button>
                         </div>
                         <ul className="nav-dropdown-menu" id={`nav-dropdown-${link.page}`} role="list">
                           {link.dropdown.map(child => (
                             <li key={child.href}>
-                              <a className="nav-dropdown-link" href={child.href} onClick={closeNav}>
+                              <a
+                                className={`nav-dropdown-link${activePage === child.page ? " active" : ""}`}
+                                href={child.href}
+                                onClick={closeNav}
+                              >
+                                <div className="nav-link-corners" aria-hidden="true" />
                                 <span className="nav-link-prefix">{child.prefix}</span>
                                 <span className="nav-link-label">{child.label}</span>
                               </a>

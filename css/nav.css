@@ -247,6 +247,16 @@
     outline: none;
   }
 
+  .nav-dropdown-toggle:hover .nav-link-corners::before,
+  .nav-dropdown-toggle:hover .nav-link-corners::after,
+  .nav-dropdown-toggle:focus-visible .nav-link-corners::before,
+  .nav-dropdown-toggle:focus-visible .nav-link-corners::after,
+  .nav-dropdown-toggle[aria-expanded="true"] .nav-link-corners::before,
+  .nav-dropdown-toggle[aria-expanded="true"] .nav-link-corners::after {
+    opacity: 1;
+    border-color: var(--theme-accent);
+  }
+
   .nav-dropdown-caret {
     border-left: 4px solid transparent;
     border-right: 4px solid transparent;
@@ -283,8 +293,6 @@
     clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
   }
 
-  .nav-item--dropdown:hover .nav-dropdown-menu,
-  .nav-item--dropdown:focus-within .nav-dropdown-menu,
   .nav-item--dropdown.dropdown-open .nav-dropdown-menu {
     opacity: 1;
     pointer-events: auto;
@@ -314,22 +322,37 @@
   }
 
   .nav-dropdown-link:hover,
-  .nav-dropdown-link:focus-visible {
+  .nav-dropdown-link:focus-visible,
+  .nav-dropdown-link.active {
     background: var(--theme-nav-card-hover-b);
     outline: none;
   }
 
   .nav-dropdown-link:hover::after,
-  .nav-dropdown-link:focus-visible::after {
+  .nav-dropdown-link:focus-visible::after,
+  .nav-dropdown-link.active::after {
     opacity: 1;
   }
 
   .nav-dropdown-link:hover .nav-link-prefix,
   .nav-dropdown-link:focus-visible .nav-link-prefix,
+  .nav-dropdown-link.active .nav-link-prefix,
   .nav-dropdown-link:hover .nav-link-label,
-  .nav-dropdown-link:focus-visible .nav-link-label {
+  .nav-dropdown-link:focus-visible .nav-link-label,
+  .nav-dropdown-link.active .nav-link-label {
     color: var(--theme-accent);
+    letter-spacing: 0.2em;
     text-shadow: 0 0 8px var(--theme-accent-glow);
+  }
+
+  .nav-dropdown-link:hover .nav-link-corners::before,
+  .nav-dropdown-link:hover .nav-link-corners::after,
+  .nav-dropdown-link:focus-visible .nav-link-corners::before,
+  .nav-dropdown-link:focus-visible .nav-link-corners::after,
+  .nav-dropdown-link.active .nav-link-corners::before,
+  .nav-dropdown-link.active .nav-link-corners::after {
+    opacity: 1;
+    border-color: var(--theme-accent);
   }
 
 /* Divider pips */
@@ -474,11 +497,6 @@
       transform: none;
       transition: max-height 0.28s ease, padding 0.28s ease;
       width: 100%;
-    }
-
-    .nav-item--dropdown:hover .nav-dropdown-menu,
-    .nav-item--dropdown:focus-within .nav-dropdown-menu {
-      transform: none;
     }
 
     .nav-item--dropdown.dropdown-open .nav-dropdown-menu {

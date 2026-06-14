@@ -553,10 +553,6 @@ const EMPEROR_ARCHIVE_DATA = [
     body: "Vyberon was the thirty-fourth Emperor of TSO and the sixth Emperor under Manar_Aktuun. His reign introduced ideas affecting the ranking structure and regulation guides.\n\nHe also established precedent for supreme decrees and declarations. Prolonged stagnation, pressure from advisors and subordinates, and limited owner support led Vyberon, his High Command and Dark Council to resign in July 2024. Though many reforms did not last, his reign is remembered for innovation."
   },
   {
-    name: "Lord Emperor Athlios",
-    body: "PENDING: PSEUDO-EMPEROR ARCHITECT."
-  },
-  {
     name: "Lord Emperor Torreto",
     body: "TorretoTerminus was the thirty-fifth Emperor of TSO and the seventh Emperor under Manar_Aktuun. His reign was swift and marked by active use of executive decision-making.\n\nSome decisions were considered poorly advised due to limited counsel, but his rule still affected the community through High Command appointments, a Dark Council appointment, and continued divisional strength. He resigned in December 2024 after the likelihood of a challenge."
   },

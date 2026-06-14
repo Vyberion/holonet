@@ -431,11 +431,220 @@
 }
 
 .library-entry-title {
-  color: var(--editor-accent-dim);
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.56rem;
-  letter-spacing: 0.2em;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
+}
+
+#library-editor-overlay {
+  background:
+    repeating-linear-gradient(0deg, rgba(201, 194, 188, 0.035) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(200, 58, 57, 0.018) 0 1px, transparent 1px 48px),
+    radial-gradient(ellipse at 50% 18%, rgba(112, 32, 32, 0.22), transparent 58%),
+    rgba(3, 3, 4, 0.94);
+  backdrop-filter: blur(2px) contrast(1.12);
+}
+
+#library-editor-overlay .library-editor-container {
+  background:
+    linear-gradient(180deg, rgba(200, 58, 57, 0.07), transparent 22%),
+    repeating-linear-gradient(0deg, rgba(201, 194, 188, 0.018) 0 1px, transparent 1px 5px),
+    #070708;
+  border-color: rgba(112, 32, 32, 0.78);
+  box-shadow:
+    0 0 0 1px rgba(8, 8, 9, 0.92),
+    0 26px 86px rgba(0, 0, 0, 0.86),
+    inset 0 0 0 1px rgba(201, 194, 188, 0.045),
+    inset 0 0 34px rgba(200, 58, 57, 0.055);
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+
+#library-editor-overlay .library-editor-container::before {
+  border-color: rgba(200, 58, 57, 0.2);
+  inset: 7px;
+}
+
+#library-editor-overlay .library-editor-container::after {
+  background:
+    linear-gradient(90deg, transparent, rgba(200, 58, 57, 0.54), transparent),
+    linear-gradient(180deg, rgba(184, 149, 105, 0.18), transparent);
+  content: "";
+  height: 1px;
+  left: 18px;
+  opacity: 0.88;
+  pointer-events: none;
+  position: absolute;
+  right: 18px;
+  top: 42px;
+  z-index: 2;
+}
+
+#library-editor-overlay .resource-editor-topbar {
+  background:
+    linear-gradient(90deg, rgba(112, 32, 32, 0.24), rgba(8, 8, 9, 0.92) 36%, rgba(112, 32, 32, 0.14)),
+    rgba(5, 5, 6, 0.96);
+  border-bottom-color: rgba(112, 32, 32, 0.78);
+  min-height: 46px;
+  padding: 11px 16px;
+}
+
+#library-editor-overlay .resource-editor-title {
+  color: var(--red);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 12px rgba(200, 58, 57, 0.24);
+}
+
+#library-editor-overlay .resource-editor-title::before {
+  color: var(--amber);
+  content: "SYS// ";
+}
+
+#library-editor-overlay .resource-editor-form,
+#library-editor-overlay .library-editor-form {
+  background:
+    linear-gradient(90deg, rgba(112, 32, 32, 0.06), transparent 16%, transparent 84%, rgba(112, 32, 32, 0.04)),
+    rgba(6, 6, 7, 0.78);
+  gap: 1px;
+  max-height: min(68vh, 660px);
+}
+
+#library-editor-overlay .resource-editor-field {
+  background:
+    linear-gradient(90deg, rgba(112, 32, 32, 0.12), transparent 30%),
+    rgba(8, 8, 9, 0.88);
+  border-color: rgba(52, 50, 50, 0.82);
+  gap: 7px;
+  padding: 12px 16px;
+}
+
+#library-editor-overlay .resource-editor-field label {
+  color: var(--amber);
+  font-size: 0.61rem;
+  letter-spacing: 0.18em;
+}
+
+#library-editor-overlay .resource-editor-field label::before {
+  content: ">";
+}
+
+#library-editor-overlay .resource-editor-field input,
+#library-editor-overlay .resource-editor-field textarea {
+  background:
+    repeating-linear-gradient(0deg, rgba(201, 194, 188, 0.016) 0 1px, transparent 1px 4px),
+    rgba(2, 2, 3, 0.86);
+  border-color: rgba(112, 32, 32, 0.66);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.52);
+  color: var(--text-strong);
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  padding: 10px 11px;
+}
+
+#library-editor-overlay .resource-editor-field textarea {
+  min-height: 118px;
+}
+
+#library-editor-overlay .resource-editor-field input:focus,
+#library-editor-overlay .resource-editor-field textarea:focus {
+  border-color: var(--red);
+  box-shadow:
+    inset 0 0 18px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(200, 58, 57, 0.28),
+    0 0 20px rgba(200, 58, 57, 0.08);
+}
+
+#library-editor-overlay .library-entry-stack,
+#library-editor-overlay .library-editor-buttons {
+  background: rgba(5, 5, 6, 0.62);
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+#library-editor-overlay .library-entry-editor {
+  background:
+    linear-gradient(180deg, rgba(200, 58, 57, 0.045), transparent 32%),
+    rgba(9, 9, 10, 0.94);
+  border-color: rgba(112, 32, 32, 0.68);
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+}
+
+#library-editor-overlay .library-entry-toolbar {
+  background: rgba(4, 4, 5, 0.86);
+  border-bottom-color: rgba(112, 32, 32, 0.64);
+  padding: 9px 12px;
+}
+
+#library-editor-overlay .library-entry-title {
+  color: var(--red);
+  font-size: 0.62rem;
+}
+
+#library-editor-overlay .library-entry-title::before {
+  color: var(--text-faint);
+  content: "REG// ";
+}
+
+#library-editor-overlay .library-editor-locked-meta {
+  background:
+    linear-gradient(90deg, rgba(184, 149, 105, 0.12), transparent 42%),
+    rgba(8, 8, 9, 0.92);
+  border: 1px solid rgba(184, 149, 105, 0.34);
+  display: grid;
+  gap: 6px;
+  margin: 14px 16px 0;
+  padding: 12px 14px;
+}
+
+#library-editor-overlay .library-editor-locked-meta span {
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+#library-editor-overlay .library-editor-locked-meta strong {
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+#library-editor-overlay .resource-editor-actions,
+#library-editor-overlay .resource-editor-footer {
+  background:
+    linear-gradient(90deg, rgba(112, 32, 32, 0.2), transparent 44%),
+    rgba(5, 5, 6, 0.96);
+  border-top-color: rgba(112, 32, 32, 0.74);
+  padding: 11px 16px;
+}
+
+#library-editor-overlay .resource-editor-status,
+#library-editor-overlay .resource-editor-hint {
+  color: var(--amber);
+  font-size: 0.6rem;
+}
+
+#library-editor-overlay .resource-editor-close,
+#library-editor-overlay .resource-editor-submit,
+#library-editor-overlay .library-inline-btn {
+  background:
+    linear-gradient(180deg, rgba(200, 58, 57, 0.16), rgba(8, 8, 9, 0.92));
+  border-color: rgba(112, 32, 32, 0.82);
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  color: var(--red);
+  min-height: 34px;
+}
+
+#library-editor-overlay .library-inline-btn.danger {
+  border-color: rgba(200, 58, 57, 0.86);
+  color: #e26864;
 }
 
 .library-editor-buttons {

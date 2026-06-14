@@ -166,6 +166,96 @@ export const HIERARCHY_GROUPS = [
         category: "Division"
       }
     ]
+  },
+  {
+    id: "dark-council",
+    title: "Dark Council",
+    section: "DARK COUNCIL",
+    items: [
+      {
+        slug: "dark-council-placeholder",
+        name: "Dark Council",
+        body: "Dark Council entries will be added later.",
+        category: "Dark Council"
+      }
+    ]
+  },
+  {
+    id: "high-command",
+    title: "High Command",
+    section: "HIGH COMMAND",
+    items: [
+      {
+        slug: "torretoterminus",
+        name: "Torreto",
+        body: "The 40th Sith Emperor.",
+        category: "TorretoTerminus",
+        path: "The 40th Sith Emperor"
+      },
+      {
+        slug: "the_voice",
+        name: "The Emperor's Voice",
+        body: "The Emperor's Voice.",
+        category: "The Voice",
+        path: "The Emperor's Powerbase"
+      },
+      {
+        slug: "the_wrath",
+        name: "The Emperor's Wrath",
+        body: "The Emperor's Wrath.",
+        category: "The Wrath",
+        path: "The Emperor's Powerbase"
+      },
+      {
+        slug: "servant_one",
+        name: "Servant One",
+        body: "Servant One.",
+        category: "Servant One",
+        path: "The Emperor's Powerbase"
+      }
+    ]
+  },
+  {
+    id: "group-administration",
+    title: "Group Administration",
+    section: "GROUP ADMINISTRATION",
+    items: [
+      {
+        slug: "group-owner",
+        name: "Manar",
+        body: "Group Owner.",
+        category: "Group Owner",
+        path: "Group Owner"
+      },
+      {
+        slug: "project-manager",
+        name: "Rdn",
+        body: "Project Manager.",
+        category: "Project Manager",
+        path: "Project Manager"
+      },
+      {
+        slug: "head-architect",
+        name: "Athlios",
+        body: "Head Architect.",
+        category: "Head Architect",
+        path: "Head Architect"
+      },
+      {
+        slug: "gawk_aktuun",
+        name: "Gawk",
+        body: "Sith Architect.",
+        category: "Gawk Aktuun",
+        path: "Sith Architect"
+      },
+      {
+        slug: "blueakuji",
+        name: "Blue",
+        body: "Sith Architect.",
+        category: "Blueakuji",
+        path: "Sith Architect"
+      }
+    ]
   }
 ];
 

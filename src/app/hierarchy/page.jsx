@@ -42,6 +42,10 @@ function pathWeight(pathItems) {
   return Math.max(1, Math.min(pathItems.length, MAX_PATH_ROW_CARDS));
 }
 
+function pathTakesOwnRow(pathItems) {
+  return pathItems.some(item => item.pathOwnRow || item.ownPathRow || item.forceOwnPathRow);
+}
+
 function buildPathRows(pathEntries) {
   const rows = [];
   let currentRow = [];
@@ -49,7 +53,19 @@ function buildPathRows(pathEntries) {
 
   pathEntries.forEach(([path, pathItems]) => {
     const weight = pathWeight(pathItems);
-    const entry = { path, pathItems, weight };
+    const ownRow = pathTakesOwnRow(pathItems);
+    const entry = { path, pathItems, weight, ownRow };
+
+    if (ownRow) {
+      if (currentRow.length) {
+        rows.push(currentRow);
+        currentRow = [];
+        currentWeight = 0;
+      }
+
+      rows.push([entry]);
+      return;
+    }
 
     if (currentRow.length && currentWeight + weight > MAX_PATH_ROW_CARDS) {
       rows.push(currentRow);

@@ -14,7 +14,7 @@ export default function EmperorArchivePage() {
 
   return (
     <HolonetFrame title="EMPERORS" subtitle="SITH EMPEROR ARCHIVE" footerNode="ARC-02">
-      <div className="hierarchy-main emperor-archive-main">
+      <div className="hierarchy-main">
         <HierarchySection group={EMPEROR_ARCHIVE_GROUP} items={items} />
       </div>
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} />

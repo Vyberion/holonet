@@ -126,7 +126,7 @@ export function HolonetNav() {
       prefix: "02",
       label: "Archives",
       dropdown: [
-        { href: "/archives/emperors", page: "archives-emperors", prefix: "02A", label: "Emperors" }
+        { href: "/archives/emperors", page: "archives-emperors", label: "Emperors" }
       ]
     },
     { href: "/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
@@ -254,7 +254,6 @@ export function HolonetNav() {
                             onFocus={link.preload}
                             onPointerEnter={link.preload}
                           >
-                            <div className="nav-link-corners" aria-hidden="true" />
                             <span className="nav-dropdown-caret" aria-hidden="true" />
                           </button>
                         </div>
@@ -267,7 +266,6 @@ export function HolonetNav() {
                                 onClick={closeNav}
                               >
                                 <div className="nav-link-corners" aria-hidden="true" />
-                                <span className="nav-link-prefix">{child.prefix}</span>
                                 <span className="nav-link-label">{child.label}</span>
                               </a>
                             </li>

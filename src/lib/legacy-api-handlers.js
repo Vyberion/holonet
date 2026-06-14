@@ -8,7 +8,8 @@ import {
   canEditLibrary,
   canUploadHandbookSlot,
   checkPageAccess,
-  checkResourceWriteAccess
+  checkResourceWriteAccess,
+  hasCoreAccess
 } from "../../modules/auth/permissions.js";
 import {
   clearCookie,
@@ -164,19 +165,19 @@ function councilRoleForRank(rank) {
 
 function councilPermissions(profile) {
   const rank = councilRank(profile);
-  const isSuperUser = Boolean(profile?.isSuperUser);
+  const isCoreAccess = hasCoreAccess(profile);
   const floorAccess = profile ? checkPageAccess(profile, "dark-council/council-floor") : { authorized: false };
   const hasFloorOverride = floorAccess.reason === "OVERRIDE_GRANT";
-  const canUseFloor = isSuperUser || COUNCIL_VOTING_RANKS.includes(rank) || hasFloorOverride;
+  const canUseFloor = isCoreAccess || COUNCIL_VOTING_RANKS.includes(rank) || hasFloorOverride;
 
   return {
     rank,
-    role: isSuperUser ? "Super User" : councilRoleForRank(rank) || (hasFloorOverride ? "Override Authority" : ""),
+    role: profile?.isSuperUser ? "Super User" : profile?.hasFullAccess ? "Full Access" : councilRoleForRank(rank) || (hasFloorOverride ? "Override Authority" : ""),
     canView: floorAccess.authorized || canUseFloor,
     canPropose: canUseFloor,
     canVote: canUseFloor,
-    canVeto: isSuperUser || COUNCIL_VETO_RANKS.includes(rank),
-    canReopen: isSuperUser || COUNCIL_VETO_RANKS.includes(rank),
+    canVeto: isCoreAccess || COUNCIL_VETO_RANKS.includes(rank),
+    canReopen: isCoreAccess || COUNCIL_VETO_RANKS.includes(rank),
     countsTowardsMajority: COUNCIL_COUNTING_RANKS.includes(rank)
   };
 }
@@ -184,7 +185,7 @@ function councilPermissions(profile) {
 function hasPowerbasePlus(profile) {
   const roles = profile?.authorityRoles || {};
   return Boolean(
-    profile?.isSuperUser ||
+    hasCoreAccess(profile) ||
     roles.groupOwner ||
     roles.projectManager ||
     roles.emperor ||
@@ -196,7 +197,7 @@ function canViewInquisitorOverview(profile) {
   const roles = profile?.authorityRoles || {};
 
   return Boolean(
-    profile?.isSuperUser ||
+    hasCoreAccess(profile) ||
     tierAtLeast(profile?.divisions?.inquisitors || "none", "member") ||
     roles.groupOwner ||
     roles.projectManager ||
@@ -206,12 +207,12 @@ function canViewInquisitorOverview(profile) {
 }
 
 function hasDarkCouncilPlus(profile) {
-  return Boolean(profile?.isSuperUser || Object.values(profile?.authorityRoles || {}).some(Boolean));
+  return Boolean(hasCoreAccess(profile) || Object.values(profile?.authorityRoles || {}).some(Boolean));
 }
 
 function canWriteDivisionWeeklyReport(profile, division) {
   return Boolean(
-    profile?.isSuperUser ||
+    hasCoreAccess(profile) ||
     tierAtLeast(profile?.divisions?.[division] || "none", "co") ||
     hasPowerbasePlus(profile)
   );
@@ -220,7 +221,7 @@ function canWriteDivisionWeeklyReport(profile, division) {
 function canWriteBoardBroadcast(profile) {
   const division1ic = Object.values(profile?.divisions || {}).some(tier => tierAtLeast(tier, "1ic"));
   return Boolean(
-    profile?.isSuperUser ||
+    hasCoreAccess(profile) ||
     division1ic ||
     ["upper", "overseer"].includes(profile?.highRank) ||
     hasDarkCouncilPlus(profile)
@@ -228,7 +229,7 @@ function canWriteBoardBroadcast(profile) {
 }
 
 function boardChannelsFor(profile) {
-  if (profile?.isSuperUser || ["upper", "overseer"].includes(profile?.highRank) || hasDarkCouncilPlus(profile)) {
+  if (hasCoreAccess(profile) || ["upper", "overseer"].includes(profile?.highRank) || hasDarkCouncilPlus(profile)) {
     return ["holonet", "reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil"];
   }
 

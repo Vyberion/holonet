@@ -98,19 +98,23 @@ function tierListAtLeast(list, actualTier, requiredTier) {
   return list.indexOf(actualTier) >= list.indexOf(requiredTier);
 }
 
-function hasCoreOverride(profile) {
-  return profile.isSuperUser || profile.hasFullAccess;
+export function hasCoreAccess(profile) {
+  return Boolean(profile?.isSuperUser || profile?.hasFullAccess);
+}
+
+function coreAccessReason(profile) {
+  return profile?.isSuperUser ? "SUPER_USER" : "FULL_ACCESS";
 }
 
 function hasAnyDarkCouncilAuthority(profile) {
-  return profile.isSuperUser || Object.values(profile.authorityRoles || {}).some(Boolean);
+  return hasCoreAccess(profile) || Object.values(profile.authorityRoles || {}).some(Boolean);
 }
 
 function hasPowerbaseAuthority(profile) {
   const roles = profile.authorityRoles || {};
 
   return Boolean(
-    profile.isSuperUser ||
+    hasCoreAccess(profile) ||
     roles.groupOwner ||
     roles.projectManager ||
     roles.emperor ||
@@ -122,7 +126,7 @@ function hasAdminAuthority(profile) {
   const roles = profile.authorityRoles || {};
 
   return Boolean(
-    profile.isSuperUser ||
+    hasCoreAccess(profile) ||
     roles.groupOwner ||
     roles.projectManager ||
     roles.emperor
@@ -134,7 +138,7 @@ function getOverrides(profile) {
 }
 
 function overrideDecision(profile, predicate) {
-  if (profile?.isSuperUser) {
+  if (hasCoreAccess(profile)) {
     return { hasOverride: false };
   }
 
@@ -199,6 +203,7 @@ function pageOverride(profile, pageKey, rule) {
 export function canAccessAdmin(profile) {
   const override = capabilityOverride(profile, "admin");
   if (override.hasOverride) return override;
+  if (hasCoreAccess(profile)) return { authorized: true, reason: coreAccessReason(profile) };
 
   return hasAdminAuthority(profile)
     ? { authorized: true, reason: "ADMIN_AUTHORITY" }
@@ -208,10 +213,11 @@ export function canAccessAdmin(profile) {
 export function canAccessPersonnelLookup(profile) {
   const override = capabilityOverride(profile, "personnel_lookup");
   if (override.hasOverride) return override;
+  if (hasCoreAccess(profile)) return { authorized: true, reason: coreAccessReason(profile) };
 
   const divisionTiers = Object.entries(profile.divisions || {});
   const authorized = Boolean(
-    profile.isSuperUser ||
+    hasCoreAccess(profile) ||
     hasAnyDarkCouncilAuthority(profile) ||
     profile.highRank !== "none" ||
     tierAtLeast(profile.divisions?.inquisitors || "none", "member") ||
@@ -226,10 +232,11 @@ export function canAccessPersonnelLookup(profile) {
 export function canAccessNexus(profile) {
   const override = capabilityOverride(profile, "nexus");
   if (override.hasOverride) return override;
+  if (hasCoreAccess(profile)) return { authorized: true, reason: coreAccessReason(profile) };
 
   const divisionKeys = ["reavers", "dhg", "inquisitors", "dreadmasters"];
   const authorized = Boolean(
-    profile.isSuperUser ||
+    hasCoreAccess(profile) ||
     divisionKeys.some(division => tierAtLeast(profile.divisions?.[division] || "none", "member"))
   );
 
@@ -239,9 +246,11 @@ export function canAccessNexus(profile) {
 }
 
 export function canAccessRegistry(profile) {
+  if (hasCoreAccess(profile)) return { authorized: true, reason: coreAccessReason(profile) };
+
   const divisionKeys = ["reavers", "dhg", "inquisitors", "dreadmasters"];
   const authorized = Boolean(
-    profile.isSuperUser ||
+    hasCoreAccess(profile) ||
     canAccessNexus(profile).authorized ||
     profile.highRank !== "none" ||
     hasAnyDarkCouncilAuthority(profile) ||
@@ -257,6 +266,7 @@ export function canAccessRegistry(profile) {
 export function canEditLibrary(profile, libraryKey) {
   const override = libraryOverride(profile, libraryKey);
   if (override.hasOverride) return override;
+  if (hasCoreAccess(profile)) return { authorized: true, reason: coreAccessReason(profile) };
 
   return hasAdminAuthority(profile)
     ? { authorized: true, reason: "CANON_AUTHORITY" }
@@ -264,8 +274,8 @@ export function canEditLibrary(profile, libraryKey) {
 }
 
 export function canUploadHandbookSlot(profile, division, slotKey = "") {
-  if (profile.isSuperUser) {
-    return { authorized: true, reason: "SUPER_USER" };
+  if (hasCoreAccess(profile)) {
+    return { authorized: true, reason: coreAccessReason(profile) };
   }
 
   const override = handbookUploadOverride(profile, division, slotKey);
@@ -280,8 +290,8 @@ export function canUploadHandbookSlot(profile, division, slotKey = "") {
 }
 
 export function checkResourceWriteAccess(profile, { division }) {
-  if (profile.isSuperUser) {
-    return { authorized: true, reason: "SUPER_USER" };
+  if (hasCoreAccess(profile)) {
+    return { authorized: true, reason: coreAccessReason(profile) };
   }
 
   if (division === "darkCouncil") {
@@ -317,9 +327,13 @@ export function checkPageAccess(profile, page) {
   const rule = PAGE_ACCESS[pageKey];
 
   if (!rule) {
-    return hasCoreOverride(profile)
-      ? { authorized: true, pageKey, reason: "SUPER_USER_UNKNOWN_RESOURCE" }
+    return hasCoreAccess(profile)
+      ? { authorized: true, pageKey, reason: `${coreAccessReason(profile)}_UNKNOWN_RESOURCE` }
       : { authorized: false, pageKey, reason: "UNKNOWN_RESOURCE" };
+  }
+
+  if (hasCoreAccess(profile)) {
+    return { authorized: true, pageKey, reason: coreAccessReason(profile) };
   }
 
   if (rule.capability) {
@@ -338,7 +352,7 @@ export function checkPageAccess(profile, page) {
     return { ...canAccessRegistry(profile), pageKey };
   }
 
-  if (rule.public || hasCoreOverride(profile)) {
+  if (rule.public) {
     return { authorized: true, pageKey };
   }
 

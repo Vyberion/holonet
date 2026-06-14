@@ -593,6 +593,7 @@ function emperorArchiveRecord(index) {
     body: source.body || "Biography pending archival upload.",
     category: `The ${title} Sith Emperor`,
     path: emperorPathTitle(index),
+    pathOwnRow: true,
     current: source.current || index === 40
   };
 }

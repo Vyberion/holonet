@@ -187,7 +187,7 @@ export const HIERARCHY_GROUPS = [
     items: [
       {
         slug: "torretoterminus",
-        name: "Torreto",
+        name: "Lord Emperor Torreto",
         body: "The 40th Sith Emperor.",
         category: "TorretoTerminus",
         path: "The 40th Sith Emperor"

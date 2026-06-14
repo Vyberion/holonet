@@ -843,22 +843,53 @@ footer {
 
 .hierarchy-path-grid {
   display: grid;
-  gap: 24px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 30px;
+  grid-template-columns: 1fr;
   margin-top: 24px;
 }
 
+.hierarchy-path-row {
+  align-items: flex-start;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(var(--path-row-cards, 1), minmax(0, 1fr));
+}
+
 .hierarchy-path-column {
+  grid-column: span var(--path-span, 1);
   min-width: 0;
 }
 
 .hierarchy-path-column h3 {
+  align-items: center;
   color: var(--red-bright);
+  display: flex;
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.78rem;
+  gap: 12px;
   letter-spacing: 0.24em;
   margin: 0 0 14px;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hierarchy-path-column h3::after {
+  background: linear-gradient(90deg, var(--theme-accent-dim), transparent);
+  content: '';
+  height: 1px;
+  min-width: 34px;
+  opacity: 0.75;
+}
+
+.hierarchy-path-card-rows {
+  display: grid;
+  gap: 16px;
+}
+
+.hierarchy-path-card-row {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(var(--path-card-row-columns, 1), minmax(0, 1fr));
 }
 
 .hierarchy-path-column .hierarchy-grid {
@@ -1001,6 +1032,18 @@ footer {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .hierarchy-path-row {
+    grid-template-columns: 1fr;
+  }
+
+  .hierarchy-path-column {
+    grid-column: auto;
+  }
+
+  .hierarchy-path-card-row {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
   .hierarchy-card {
     height: 320px;
   }
@@ -1009,7 +1052,8 @@ footer {
 @media (max-width: 680px) {
   .hierarchy-grid,
   .hierarchy-path-grid,
-  .hierarchy-path-column .hierarchy-grid {
+  .hierarchy-path-column .hierarchy-grid,
+  .hierarchy-path-card-row {
     grid-template-columns: 1fr;
   }
 

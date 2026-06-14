@@ -236,7 +236,7 @@ function labelForRegulation(regulationNumber) {
   return `Regulation ${toRoman(regulationNumber)}`;
 }
 
-function formEntryMarkup(entry, index) {li
+function formEntryMarkup(entry, index) {  
   const regulationNumber = regulationNumberValue(entry, index);
   return `
     <section class="library-entry-editor" data-library-entry-index="${index}">
@@ -510,7 +510,6 @@ async function initLibraryView() {
         workingDocument.entries.splice(Number(remove.dataset.libraryRemoveEntry), 1);
         renderForm();
         return;
-      }
       }
     };
 

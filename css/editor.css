@@ -612,11 +612,16 @@
 #library-editor-overlay .resource-editor-field input,
 #library-editor-overlay .resource-editor-field select,
 #library-editor-overlay .resource-editor-field textarea {
+  background:
+    linear-gradient(135deg, rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0.18)),
+    rgba(0, 0, 0, 0.34);
+  border: 1px solid color-mix(in srgb, var(--editor-accent-dim) 38%, rgba(255, 255, 255, 0.08));
   color: color-mix(in srgb, var(--text) 94%, #ffffff 6%);
+  padding: 10px 12px;
 }
 
 #library-editor-overlay .resource-editor-field textarea {
-  background: rgba(255, 255, 255, 0.018);
+  min-height: 170px;
 }
 
 @media (max-width: 680px) {

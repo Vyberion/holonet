@@ -32,6 +32,10 @@ function HierarchyGrid({ items }) {
   );
 }
 
+function pathHeadingId(path) {
+  return `path-${path.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
 function HierarchyPathGroups({ items }) {
   const directItems = items.filter(item => !item.path);
 
@@ -49,18 +53,25 @@ function HierarchyPathGroups({ items }) {
 
       {Object.entries(pathGroups).length ? (
         <div className="hierarchy-path-grid">
-          {Object.entries(pathGroups).map(([path, pathItems]) => (
-            <section
-              className="hierarchy-path-column"
-              aria-labelledby={`path-${path.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
-              key={path}
-            >
-              <h3 id={`path-${path.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
-                {path}
-              </h3>
-              <HierarchyGrid items={pathItems} />
-            </section>
-          ))}
+          {Object.entries(pathGroups).map(([path, pathItems]) => {
+            const headingId = pathHeadingId(path);
+            const pathCount = Math.max(1, Math.min(pathItems.length, 2));
+            const pathClass = pathItems.length > 2
+              ? "hierarchy-path-column is-wide-path"
+              : "hierarchy-path-column";
+
+            return (
+              <section
+                className={pathClass}
+                aria-labelledby={headingId}
+                key={path}
+                style={{ "--path-count": pathCount }}
+              >
+                <h3 id={headingId}>{path}</h3>
+                <HierarchyGrid items={pathItems} />
+              </section>
+            );
+          })}
         </div>
       ) : null}
     </>

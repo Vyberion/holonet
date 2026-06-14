@@ -8,6 +8,8 @@ export const metadata = holonetMetadata({
   description: "Rank paths, progression and divisional information."
 });
 
+const MAX_PATH_ROW_CARDS = 4;
+
 function HierarchyCard({ item }) {
   return (
     <a className="nav-card hierarchy-card" href={item.href} aria-label={`Open ${item.name}`}>
@@ -36,6 +38,68 @@ function pathHeadingId(path) {
   return `path-${path.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
+function pathWeight(pathItems) {
+  return Math.max(1, Math.min(pathItems.length, MAX_PATH_ROW_CARDS));
+}
+
+function buildPathRows(pathEntries) {
+  const rows = [];
+  let currentRow = [];
+  let currentWeight = 0;
+
+  pathEntries.forEach(([path, pathItems]) => {
+    const weight = pathWeight(pathItems);
+    const entry = { path, pathItems, weight };
+
+    if (currentRow.length && currentWeight + weight > MAX_PATH_ROW_CARDS) {
+      rows.push(currentRow);
+      currentRow = [];
+      currentWeight = 0;
+    }
+
+    currentRow.push(entry);
+    currentWeight += weight;
+
+    if (currentWeight >= MAX_PATH_ROW_CARDS) {
+      rows.push(currentRow);
+      currentRow = [];
+      currentWeight = 0;
+    }
+  });
+
+  if (currentRow.length) rows.push(currentRow);
+
+  return rows;
+}
+
+function chunkPathItems(items) {
+  const rows = [];
+
+  for (let index = 0; index < items.length; index += MAX_PATH_ROW_CARDS) {
+    rows.push(items.slice(index, index + MAX_PATH_ROW_CARDS));
+  }
+
+  return rows;
+}
+
+function HierarchyPathCardRows({ items }) {
+  return (
+    <div className="hierarchy-path-card-rows">
+      {chunkPathItems(items).map((rowItems, rowIndex) => (
+        <div
+          className="hierarchy-path-card-row"
+          key={rowItems.map(item => item.slug).join("-") || rowIndex}
+          style={{ "--path-card-row-count": rowItems.length }}
+        >
+          {rowItems.map(item => (
+            <HierarchyCard item={item} key={`${item.groupId}-${item.slug}`} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function HierarchyPathGroups({ items }) {
   const directItems = items.filter(item => !item.path);
 
@@ -47,29 +111,39 @@ function HierarchyPathGroups({ items }) {
       return groups;
     }, {});
 
+  const pathRows = buildPathRows(Object.entries(pathGroups));
+
   return (
     <>
       {directItems.length ? <HierarchyGrid items={directItems} /> : null}
 
-      {Object.entries(pathGroups).length ? (
+      {pathRows.length ? (
         <div className="hierarchy-path-grid">
-          {Object.entries(pathGroups).map(([path, pathItems]) => {
-            const headingId = pathHeadingId(path);
-            const pathCount = Math.max(1, Math.min(pathItems.length, 2));
-            const pathClass = pathItems.length > 2
-              ? "hierarchy-path-column is-wide-path"
-              : "hierarchy-path-column";
+          {pathRows.map((row, rowIndex) => {
+            const rowWeight = row.reduce((total, entry) => total + entry.weight, 0);
 
             return (
-              <section
-                className={pathClass}
-                aria-labelledby={headingId}
-                key={path}
-                style={{ "--path-count": pathCount }}
+              <div
+                className="hierarchy-path-row"
+                key={row.map(entry => entry.path).join("-") || rowIndex}
+                style={{ "--path-row-cards": rowWeight }}
               >
-                <h3 id={headingId}>{path}</h3>
-                <HierarchyGrid items={pathItems} />
-              </section>
+                {row.map(({ path, pathItems, weight }) => {
+                  const headingId = pathHeadingId(path);
+
+                  return (
+                    <section
+                      className="hierarchy-path-column"
+                      aria-labelledby={headingId}
+                      key={path}
+                      style={{ "--path-span": weight }}
+                    >
+                      <h3 id={headingId}>{path}</h3>
+                      <HierarchyPathCardRows items={pathItems} />
+                    </section>
+                  );
+                })}
+              </div>
             );
           })}
         </div>

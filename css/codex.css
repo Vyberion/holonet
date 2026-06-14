@@ -247,7 +247,7 @@
   line-height: 1.6;
   color: var(--text);
   margin: 0;
-  font-family: 'Arial';
+  font-family: 'Share Tech Mono', monospace;
 }
 
 .reg-text + .reg-text {

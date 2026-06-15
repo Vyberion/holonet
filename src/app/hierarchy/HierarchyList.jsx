@@ -10,12 +10,31 @@ function glyphLinesFor(glyph) {
   return [glyph.slice(0, splitAt), glyph.slice(splitAt)];
 }
 
+function splitTitledName(name = "") {
+  const match = String(name).match(/^(.+?)\s+the\s+(.+)$/i);
+  if (!match) return { title: name, subtitle: "" };
+
+  return {
+    title: match[1],
+    subtitle: `The ${match[2]}`
+  };
+}
+
+function cardSubtitleFor(item, splitSubtitle) {
+  if (splitSubtitle) return splitSubtitle;
+  if (item.cardSubtitle) return item.cardSubtitle;
+  if (item.category && item.category.toLowerCase() !== item.name.toLowerCase()) return item.category;
+  return item.groupTitle || "";
+}
+
 export function HierarchyCard({ item }) {
   const glyph = item.cardGlyph;
   const glyphLines = glyphLinesFor(glyph);
   const glyphLength = glyph
     ? Math.min(Math.max(...glyphLines.map(line => line.length)), 7)
     : 0;
+  const cardText = splitTitledName(item.name);
+  const cardSubtitle = cardSubtitleFor(item, cardText.subtitle);
   const cardClassName = `nav-card hierarchy-card${glyph ? " hierarchy-card--glyph" : ""}`;
   const enterLabel = glyph ? "Enter" : "Open";
 
@@ -34,7 +53,8 @@ export function HierarchyCard({ item }) {
       ) : (
         <img className="hierarchy-card-bg" src={item.image} alt="" loading="lazy" aria-hidden="true" />
       )}
-      <h2 className="card-title">{item.name}</h2>
+      {cardSubtitle ? <span className="card-category">{cardSubtitle}</span> : null}
+      <h2 className="card-title">{cardText.title}</h2>
       <span className="card-enter" aria-hidden="true">{enterLabel} &rsaquo;&rsaquo;</span>
     </a>
   );

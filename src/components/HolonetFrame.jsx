@@ -32,15 +32,24 @@ export function HolonetFrame({
 
       <div id="loader" role="status" aria-label="Establishing connection">
         <div className="loader-intro-prompt" data-loader-intro-prompt>
-          <section className="loader-terminal-panel loader-terminal-panel--prompt" aria-labelledby="loader-intro-command">
+          <section className="loader-terminal-panel loader-terminal-panel--prompt loader-holonet-gate" aria-labelledby="loader-intro-command">
             <div className="loader-terminal-topbar">
-              <span>KOR-7 Holonet Gate</span>
-              <span>Encrypted Access</span>
+              <span>Imperial Holonet</span>
+              <span>KOR-7 Gate</span>
             </div>
-            <div className="loader-terminal-body">
-              <button className="loader-terminal-button" type="button" data-loader-establish>
-                Open Transmission
+            <div className="loader-terminal-body loader-gate-body">
+              <div className="loader-gate-copy">
+                <p className="loader-gate-kicker">Sealed archive channel</p>
+                <h2 id="loader-intro-command" className="loader-gate-title">Old Guard Transmission</h2>
+                <p className="loader-gate-note">Secure relay prepared for encrypted playback.</p>
+              </div>
+              <button className="loader-terminal-button loader-terminal-button--gate" type="button" data-loader-establish>
+                <span>Establish Link</span>
               </button>
+              <div className="loader-gate-meta" aria-hidden="true">
+                <span>Node: KOR-7</span>
+                <span>Cipher: Accepted</span>
+              </div>
             </div>
           </section>
         </div>
@@ -74,15 +83,15 @@ export function HolonetFrame({
         </div>
 
         <div className="loader-intro-loading" data-loader-intro-loading>
-          <section className="loader-terminal-panel">
+          <section className="loader-terminal-panel loader-terminal-panel--transit">
             <div className="loader-terminal-topbar">
-              <span>KOR-7 Holonet Gate</span>
-              <span>Signal Alignment</span>
+              <span>Imperial Holonet</span>
+              <span>Relay Alignment</span>
             </div>
             <div className="loader-terminal-body">
-              <p className="loader-terminal-line">KOR-7 relay aligned</p>
-              <p className="loader-terminal-line">Transmission received</p>
-              <p className="loader-terminal-line">Playback initialized</p>
+              <p className="loader-terminal-line">Archive cipher binding</p>
+              <p className="loader-terminal-line">KOR-7 carrier locked</p>
+              <p className="loader-terminal-line">Playback chamber primed</p>
               <div className="loader-terminal-progress" aria-hidden="true">
                 <span />
               </div>
@@ -93,12 +102,12 @@ export function HolonetFrame({
         <div className="loader-intro-ready" data-loader-intro-ready>
           <section className="loader-terminal-panel loader-terminal-panel--ready">
             <div className="loader-terminal-topbar">
-              <span>KOR-7 Holonet Gate</span>
-              <span>Signal Accepted</span>
+              <span>Imperial Holonet</span>
+              <span>Signal Locked</span>
             </div>
             <div className="loader-terminal-body">
-              <p className="loader-terminal-line">Holonet channel stabilized</p>
-              <p className="loader-terminal-status">Transmission Linked</p>
+              <p className="loader-terminal-line">Transmission prepared</p>
+              <p className="loader-terminal-status">Opening Archive</p>
             </div>
           </section>
         </div>

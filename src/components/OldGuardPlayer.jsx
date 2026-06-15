@@ -7,10 +7,6 @@ export const OLD_GUARD_PLAYBACK_ID = "zB4z6QMgwgilabiIn00fmdcf62mmk00n4N01XnhNfa
 export const OLD_GUARD_TITLE = "THE OLD GUARD";
 const MUX_PLAYER_SCRIPT = "https://cdn.jsdelivr.net/npm/@mux/mux-player";
 
-// TEMP_SKIP_INTRO_VIDEO
-// Remove this once the intro video player should load again.
-const TEMP_SKIP_INTRO_VIDEO = true;
-
 function formatTime(seconds) {
   if (!Number.isFinite(seconds) || seconds <= 0) return "0:00";
 
@@ -138,10 +134,6 @@ export function OldGuardPlayer({ mode = "page" }) {
 
   const safeCurrentTime = duration > 0 ? Math.min(currentTime, duration) : 0;
   const progress = duration > 0 ? `${(safeCurrentTime / duration) * 100}%` : "0%";
-
-  if (isIntro && TEMP_SKIP_INTRO_VIDEO) {
-    return null;
-  }
 
   if (isIntro) {
     return (

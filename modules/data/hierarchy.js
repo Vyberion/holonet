@@ -526,7 +526,7 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Gawking the Enduring",
-    body: "Gawk_Aktuun, also known as Gawking, was the twenty-eighth Emperor of TSO and the longest-serving Emperor, though his reign is remembered as one carried heavily by his latter Wrath. He was appointed after serving as Dark Honor Guard Commander and survived challenges from remaining High Command merely through the support system holding the throne upright. His reign lasted more than thirteen months and is remembered for policy revisions, the shutdown of the Shadow Guard and the hosting of unique events, though many of these successes were shaped by those around him. He was the second Emperor to achieve Architect privileges, but the transition of ownership between Kactussman and CroczTerminus destabilized the era, leading to his Fall in November 2022. He remained as a bickering advisor."
+    body: "Gawk_Aktuun, also known as Gawking, was the twenty-eighth Emperor of TSO and the longest-serving Emperor, though his reign is remembered as one carried heavily by his latter Wrath.\n\nHe was appointed after serving as Dark Honor Guard Commander and survived challenges from remaining High Command merely through the support system holding the throne upright.\n\nHis reign lasted more than thirteen months and is remembered for policy revisions, the shutdown of the Shadow Guard and the hosting of unique events, though many of these successes were shaped by those around him. He was the second Emperor to achieve Architect privileges, but the transition of ownership between Kactussman and CroczTerminus destabilized the era, leading to his Fall in November 2022. He remained as a bickering advisor."
   },
   {
     name: "Legacy the Resistant",

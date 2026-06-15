@@ -278,6 +278,47 @@
     });
   }
 
+  function initDeveloperNotice() {
+    if (document.getElementById("developer-notice-overlay")) return;
+
+    const overlay = document.createElement("div");
+    overlay.id = "developer-notice-overlay";
+    overlay.className = "developer-notice-overlay";
+    overlay.innerHTML = `
+      <section class="developer-notice-panel" role="dialog" aria-modal="true" aria-labelledby="developer-notice-title">
+        <div class="developer-notice-scan" aria-hidden="true"></div>
+        <div class="developer-notice-topbar">
+          <span class="developer-notice-kicker">Developer Notice</span>
+          <button type="button" class="developer-notice-close" aria-label="Close developer notice" data-developer-notice-close>X</button>
+        </div>
+        <div class="developer-notice-body">
+          <p class="developer-notice-code">KOR-7 / WIP TRANSMISSION</p>
+          <h2 id="developer-notice-title">This site is a work in progress.</h2>
+        </div>
+      </section>
+    `;
+
+    function closeNotice() {
+      overlay.classList.remove("active");
+      document.removeEventListener("keydown", handleKeydown);
+      window.setTimeout(() => overlay.remove(), 180);
+    }
+
+    function handleKeydown(event) {
+      if (event.key === "Escape") closeNotice();
+    }
+
+    overlay.addEventListener("click", event => {
+      if (event.target === overlay || event.target.closest("[data-developer-notice-close]")) {
+        closeNotice();
+      }
+    });
+
+    document.addEventListener("keydown", handleKeydown);
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add("active"));
+  }
+
   window.HolonetSite = {
     loadNav,
     initLoader,
@@ -290,6 +331,7 @@
       initLoader();
       loadNav();
       initDirectoryCards();
+      initDeveloperNotice();
     }
   };
 

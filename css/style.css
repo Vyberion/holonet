@@ -921,7 +921,7 @@ footer {
 }
 
 html.holonet-release-intro #loader {
-  background: var(--theme-bg);
+  background: #000;
 }
 
 #loader.hidden {
@@ -947,7 +947,7 @@ html.holonet-release-intro #loader {
 }
 
 html.holonet-release-intro #loader::before {
-  opacity: 0.85;
+  opacity: 0.36;
 }
 
 #loader::after {
@@ -964,7 +964,7 @@ html.holonet-release-intro #loader::before {
 }
 
 html.holonet-release-intro #loader::after {
-  opacity: 1;
+  opacity: 0;
 }
 
 #loader[data-loader-phase="intro-video"],
@@ -983,6 +983,39 @@ html.holonet-release-intro #loader::after {
 #loader[data-loader-phase="intro-reveal"]::before,
 #loader[data-loader-phase="intro-reveal"]::after {
   opacity: 0;
+}
+
+html.holonet-crt-opening #nav-container,
+html.holonet-crt-opening #app > header > *,
+html.holonet-crt-opening #app > .status-bar > *,
+html.holonet-crt-opening #app > main > *,
+html.holonet-crt-opening #app .nav-card,
+html.holonet-crt-opening #app > footer > * {
+  animation: pageElementCrtOpen 1.35s cubic-bezier(0.17, 0.84, 0.29, 1) both;
+  transform-origin: center;
+  will-change: clip-path, filter, opacity, transform;
+}
+
+html.holonet-crt-opening #app > header > *:nth-child(2),
+html.holonet-crt-opening #app > .status-bar > *:nth-child(2),
+html.holonet-crt-opening #app > main > *:nth-child(2),
+html.holonet-crt-opening #app .nav-card:nth-child(2),
+html.holonet-crt-opening #app > footer > *:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+html.holonet-crt-opening #app > header > *:nth-child(3),
+html.holonet-crt-opening #app > .status-bar > *:nth-child(3),
+html.holonet-crt-opening #app > main > *:nth-child(3),
+html.holonet-crt-opening #app .nav-card:nth-child(3),
+html.holonet-crt-opening #app > footer > *:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+html.holonet-crt-opening #app > header > *:nth-child(4),
+html.holonet-crt-opening #app > main > *:nth-child(4),
+html.holonet-crt-opening #app > footer > *:nth-child(4) {
+  animation-delay: 0.24s;
 }
 
 .loader-standard,
@@ -1413,6 +1446,40 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
   22% { opacity: 0.4; transform: translateY(-50%) scaleX(1); }
   36% { opacity: 1; transform: translateY(-50%) scaleX(0.88); }
   68%,100% { opacity: 0; transform: translateY(-50%) scaleX(1); }
+}
+
+@keyframes pageElementCrtOpen {
+  0% {
+    clip-path: inset(50% 0 50% 0);
+    filter: brightness(3.2) contrast(1.35);
+    opacity: 0;
+    transform: scaleY(0.025);
+  }
+  12% {
+    opacity: 1;
+    transform: scaleY(0.06);
+  }
+  34% {
+    clip-path: inset(39% 0 39% 0);
+    filter: brightness(2.1) contrast(1.22);
+    transform: scaleY(0.26);
+  }
+  62% {
+    clip-path: inset(14% 0 14% 0);
+    filter: brightness(1.35) contrast(1.08);
+    transform: scaleY(0.74);
+  }
+  84% {
+    clip-path: inset(0);
+    filter: brightness(1.08) contrast(1.02);
+    transform: scaleY(1.02);
+  }
+  100% {
+    clip-path: inset(0);
+    filter: brightness(1) contrast(1);
+    opacity: 1;
+    transform: scaleY(1);
+  }
 }
 
 @keyframes loaderOut {

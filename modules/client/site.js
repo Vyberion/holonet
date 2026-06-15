@@ -1,5 +1,6 @@
 (function () {
   const INTRO_COMPLETE_KEY = "holonet:intro:v1:complete";
+  const DEVELOPER_NOTICE_KEY = "holonet:developer-notice:v1:complete";
   const LOADER_SHOWN_KEY = "loaderShown";
   const MUX_PLAYER_SCRIPT = "https://cdn.jsdelivr.net/npm/@mux/mux-player";
   const OLD_GUARD_PLAYBACK_ID = "zB4z6QMgwgilabiIn00fmdcf62mmk00n4N01XnhNfaqTL00";
@@ -273,6 +274,16 @@
     loader.removeAttribute("aria-hidden");
   }
 
+  function beginPageCrtOpen() {
+    document.documentElement.classList.remove("holonet-crt-opening");
+    void document.documentElement.offsetWidth;
+    document.documentElement.classList.add("holonet-crt-opening");
+  }
+
+  function clearPageCrtOpen() {
+    document.documentElement.classList.remove("holonet-crt-opening");
+  }
+
   function hideLoader(loader) {
     loader.classList.add("hidden");
     loader.setAttribute("aria-hidden", "true");
@@ -280,6 +291,7 @@
       if (loader.classList.contains("hidden")) {
         loader.style.display = "none";
       }
+      clearPageCrtOpen();
     }, 520);
   }
 
@@ -480,8 +492,9 @@
       setLoaderPhase(loader, "intro-blackout");
       await wait(900);
       await waitForAccessClear();
+      beginPageCrtOpen();
       setLoaderPhase(loader, "intro-reveal");
-      await wait(1650);
+      await wait(1850);
 
       writeLocalStorage(INTRO_COMPLETE_KEY, "true");
       try {
@@ -554,7 +567,10 @@
   }
 
   function initDeveloperNotice() {
+    if (readLocalStorage(DEVELOPER_NOTICE_KEY) === "true") return;
     if (document.getElementById("developer-notice-overlay")) return;
+
+    writeLocalStorage(DEVELOPER_NOTICE_KEY, "true");
 
     const overlay = document.createElement("div");
     overlay.id = "developer-notice-overlay";
@@ -567,7 +583,6 @@
           <button type="button" class="developer-notice-close" aria-label="Close developer notice" data-developer-notice-close>X</button>
         </div>
         <div class="developer-notice-body">
-          <p class="developer-notice-code">KOR-7 / WIP TRANSMISSION</p>
           <h2 id="developer-notice-title">This site is a work in progress.</h2>
         </div>
       </section>

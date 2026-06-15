@@ -2,6 +2,7 @@
   const INTRO_COMPLETE_KEY = "holonet:intro:v1:complete";
   const DEVELOPER_NOTICE_KEY = "holonet:developer-notice:v1:complete";
   const LOADER_SHOWN_KEY = "loaderShown";
+  const LOADER_AUDIO_SRC = "/assets/loader.mp3";
   const MUX_PLAYER_SCRIPT = "https://cdn.jsdelivr.net/npm/@mux/mux-player";
   const OLD_GUARD_PLAYBACK_ID = "zB4z6QMgwgilabiIn00fmdcf62mmk00n4N01XnhNfaqTL00";
   const OLD_GUARD_TITLE = "THE OLD GUARD";
@@ -267,6 +268,18 @@
     });
   }
 
+  function playLoaderSound() {
+    try {
+      const audio = new Audio(LOADER_AUDIO_SRC);
+      audio.volume = 0.72;
+      audio.preload = "auto";
+      audio.play().catch(() => null);
+      return audio;
+    } catch {
+      return null;
+    }
+  }
+
   function setLoaderPhase(loader, phase) {
     loader.dataset.loaderPhase = phase;
     loader.classList.remove("hidden");
@@ -463,6 +476,7 @@
       loader.dataset.releaseIntroRunning = "true";
 
       if (establishButton) establishButton.disabled = true;
+      playLoaderSound();
 
       setLoaderPhase(loader, "intro-loading");
 
@@ -475,7 +489,7 @@
       const videoSlot = loader.querySelector("[data-loader-intro-video]");
       if (videoSlot) videoSlot.setAttribute("aria-hidden", "false");
       setLoaderPhase(loader, "intro-video");
-      await wait(650);
+      await wait(850);
 
       if (player) {
         resetIntroPlayer(player);

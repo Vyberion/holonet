@@ -34,21 +34,20 @@ export function HolonetFrame({
         <div className="loader-intro-prompt" data-loader-intro-prompt>
           <section className="loader-terminal-panel loader-terminal-panel--prompt loader-holonet-gate" aria-labelledby="loader-intro-command">
             <div className="loader-terminal-topbar">
-              <span>Imperial Holonet</span>
-              <span>KOR-7 Gate</span>
+              <span>KOR-7</span>
+              <span>TRANSMITTING</span>
             </div>
             <div className="loader-terminal-body loader-gate-body">
               <div className="loader-gate-copy">
-                <p className="loader-gate-kicker">Sealed archive channel</p>
-                <h2 id="loader-intro-command" className="loader-gate-title">Old Guard Transmission</h2>
-                <p className="loader-gate-note">Secure relay prepared for encrypted playback.</p>
+                <p className="loader-gate-kicker">MANAR'S THE SITH ORDER</p>
+                <h2 id="loader-intro-command" className="loader-gate-title">THE NEW HOLONET</h2>
               </div>
               <button className="loader-terminal-button loader-terminal-button--gate" type="button" data-loader-establish>
                 <span>Establish Link</span>
               </button>
               <div className="loader-gate-meta" aria-hidden="true">
-                <span>Node: KOR-7</span>
-                <span>Cipher: Accepted</span>
+                <span>MADE BY: VYBERON</span>
+                <span>WITH HELP FROM: GAWK_AKTUUN, THE OLD GUARD</span>
               </div>
             </div>
           </section>

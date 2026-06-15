@@ -275,12 +275,14 @@
   }
 
   function beginPageCrtOpen() {
+    document.documentElement.classList.add("holonet-crt-armed");
     document.documentElement.classList.remove("holonet-crt-opening");
     void document.documentElement.offsetWidth;
     document.documentElement.classList.add("holonet-crt-opening");
   }
 
   function clearPageCrtOpen() {
+    document.documentElement.classList.remove("holonet-crt-armed");
     document.documentElement.classList.remove("holonet-crt-opening");
   }
 
@@ -489,6 +491,7 @@
       }
 
       if (videoSlot) videoSlot.setAttribute("aria-hidden", "true");
+      document.documentElement.classList.add("holonet-crt-armed");
       setLoaderPhase(loader, "intro-blackout");
       await wait(900);
       await waitForAccessClear();

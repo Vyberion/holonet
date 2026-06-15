@@ -35,11 +35,9 @@ export function HolonetFrame({
           <section className="loader-terminal-panel loader-terminal-panel--prompt" aria-labelledby="loader-intro-command">
             <div className="loader-terminal-topbar">
               <span>KOR-7 Secure Terminal</span>
-              <span>Release Channel</span>
+              <span>Preview Channel</span>
             </div>
             <div className="loader-terminal-body">
-              <p className="loader-terminal-line loader-terminal-muted">&gt; authentication handoff required</p>
-              <p className="loader-terminal-command" id="loader-intro-command">establish_link --channel old_guard</p>
               <button className="loader-terminal-button" type="button" data-loader-establish>
                 ESTABLISH LINK
               </button>

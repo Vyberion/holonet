@@ -16,10 +16,6 @@ export function HolonetFrame({
 }) {
   return (
     <>
-      <div id="nav-container">
-        <HolonetNav />
-      </div>
-
       <div id="vignette" aria-hidden="true" />
       <div id="rune-field" aria-hidden="true" />
       <div id="holo-grid" aria-hidden="true" />
@@ -34,21 +30,20 @@ export function HolonetFrame({
         <div className="loader-intro-prompt" data-loader-intro-prompt>
           <section className="loader-terminal-panel loader-terminal-panel--prompt loader-holonet-gate" aria-labelledby="loader-intro-command">
             <div className="loader-terminal-topbar">
-              <span>Imperial Holonet</span>
-              <span>KOR-7 Gate</span>
+              <span>KOR-7</span>
+              <span>THE HOLONET</span>
             </div>
             <div className="loader-terminal-body loader-gate-body">
               <div className="loader-gate-copy">
-                <p className="loader-gate-kicker">Sealed archive channel</p>
-                <h2 id="loader-intro-command" className="loader-gate-title">Old Guard Transmission</h2>
-                <p className="loader-gate-note">Secure relay prepared for encrypted playback.</p>
+                <p className="loader-gate-kicker">MANAR'S THE SITH ORDER</p>
+                <h2 id="loader-intro-command" className="loader-gate-title">THE NEW HOLONET</h2>
               </div>
               <button className="loader-terminal-button loader-terminal-button--gate" type="button" data-loader-establish>
                 <span>Establish Link</span>
               </button>
               <div className="loader-gate-meta" aria-hidden="true">
-                <span>Node: KOR-7</span>
-                <span>Cipher: Accepted</span>
+                <span>MADE BY: VYBERON</span>
+                <span>WITH HELP FROM: GAWK, THE OLD GUARD</span>
               </div>
             </div>
           </section>
@@ -85,13 +80,13 @@ export function HolonetFrame({
         <div className="loader-intro-loading" data-loader-intro-loading>
           <section className="loader-terminal-panel loader-terminal-panel--transit">
             <div className="loader-terminal-topbar">
-              <span>Imperial Holonet</span>
-              <span>Relay Alignment</span>
+              <span>KOR-7</span>
+              <span>THE HOLONET</span>
             </div>
             <div className="loader-terminal-body">
-              <p className="loader-terminal-line">Archive cipher binding</p>
-              <p className="loader-terminal-line">KOR-7 carrier locked</p>
-              <p className="loader-terminal-line">Playback chamber primed</p>
+              <p className="loader-terminal-line">Relay aligning</p>
+              <p className="loader-terminal-line">Request received</p>
+              <p className="loader-terminal-line">Transmission initializing</p>
               <div className="loader-terminal-progress" aria-hidden="true">
                 <span />
               </div>
@@ -102,12 +97,12 @@ export function HolonetFrame({
         <div className="loader-intro-ready" data-loader-intro-ready>
           <section className="loader-terminal-panel loader-terminal-panel--ready">
             <div className="loader-terminal-topbar">
-              <span>Imperial Holonet</span>
-              <span>Signal Locked</span>
+              <span>KOR-7</span>
+              <span>THE HOLONET</span>
             </div>
             <div className="loader-terminal-body">
-              <p className="loader-terminal-line">Transmission prepared</p>
-              <p className="loader-terminal-status">Opening Archive</p>
+              <p className="loader-terminal-line">Relay aligned</p>
+              <p className="loader-terminal-status">Transmitting</p>
             </div>
           </section>
         </div>
@@ -125,6 +120,10 @@ export function HolonetFrame({
       </div>
 
       <div id="app" className={includeSearchOverlay ? 'document-viewer-page' : ''}>
+        <div id="nav-container">
+          <HolonetNav />
+        </div>
+
         <header>
           <p className="site-eyebrow">MANAR&apos;S THE SITH ORDER</p>
           <div className="header-rule" />

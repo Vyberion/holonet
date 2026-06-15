@@ -34,12 +34,12 @@ export function HolonetFrame({
         <div className="loader-intro-prompt" data-loader-intro-prompt>
           <section className="loader-terminal-panel loader-terminal-panel--prompt" aria-labelledby="loader-intro-command">
             <div className="loader-terminal-topbar">
-              <span>KOR-7 Secure Terminal</span>
-              <span>Preview Channel</span>
+              <span>KOR-7 Holonet Gate</span>
+              <span>Encrypted Access</span>
             </div>
             <div className="loader-terminal-body">
               <button className="loader-terminal-button" type="button" data-loader-establish>
-                ESTABLISH LINK
+                Open Transmission
               </button>
             </div>
           </section>
@@ -76,13 +76,13 @@ export function HolonetFrame({
         <div className="loader-intro-loading" data-loader-intro-loading>
           <section className="loader-terminal-panel">
             <div className="loader-terminal-topbar">
-              <span>KOR-7 Secure Terminal</span>
-              <span>Handshake</span>
+              <span>KOR-7 Holonet Gate</span>
+              <span>Signal Alignment</span>
             </div>
             <div className="loader-terminal-body">
-              <p className="loader-terminal-line">&gt; routing through KOR-7 relay</p>
-              <p className="loader-terminal-line">&gt; decrypting release transmission</p>
-              <p className="loader-terminal-line">&gt; synchronizing holonet signal</p>
+              <p className="loader-terminal-line">Relay KOR-7 aligned with imperial channel</p>
+              <p className="loader-terminal-line">Cipher lattice accepted by the archive</p>
+              <p className="loader-terminal-line">Old Guard transmission entering focus</p>
               <div className="loader-terminal-progress" aria-hidden="true">
                 <span />
               </div>
@@ -93,12 +93,12 @@ export function HolonetFrame({
         <div className="loader-intro-ready" data-loader-intro-ready>
           <section className="loader-terminal-panel loader-terminal-panel--ready">
             <div className="loader-terminal-topbar">
-              <span>KOR-7 Secure Terminal</span>
+              <span>KOR-7 Holonet Gate</span>
               <span>Signal Accepted</span>
             </div>
             <div className="loader-terminal-body">
-              <p className="loader-terminal-line">&gt; channel open</p>
-              <p className="loader-terminal-status">Transmission Ready</p>
+              <p className="loader-terminal-line">Holonet channel stabilized</p>
+              <p className="loader-terminal-status">Transmission Linked</p>
             </div>
           </section>
         </div>

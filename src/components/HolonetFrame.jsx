@@ -16,10 +16,6 @@ export function HolonetFrame({
 }) {
   return (
     <>
-      <div id="nav-container">
-        <HolonetNav />
-      </div>
-
       <div id="vignette" aria-hidden="true" />
       <div id="rune-field" aria-hidden="true" />
       <div id="holo-grid" aria-hidden="true" />
@@ -124,6 +120,10 @@ export function HolonetFrame({
       </div>
 
       <div id="app" className={includeSearchOverlay ? 'document-viewer-page' : ''}>
+        <div id="nav-container">
+          <HolonetNav />
+        </div>
+
         <header>
           <p className="site-eyebrow">MANAR&apos;S THE SITH ORDER</p>
           <div className="header-rule" />

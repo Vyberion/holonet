@@ -1,4 +1,5 @@
 import { HolonetFrame } from "../components/HolonetFrame.jsx";
+import { HomeMuxPlayer } from "../components/HomeMuxPlayer.jsx";
 import { PageScripts } from "../components/PageScripts.jsx";
 import { holonetMetadata } from "../lib/metadata.js";
 
@@ -75,16 +76,7 @@ export default function HomePage() {
           <span className="home-media-signal">ARCHIVE PLAYBACK</span>
         </div>
         <div className="home-media-frame">
-          <video
-            className="home-media-player"
-            controls
-            controlsList="nodownload"
-            playsInline
-            preload="auto"
-          >
-            <source src="https://github.com/Vyberion/holonet-media/releases/download/MEDIA/THE.OLD.GUARD.mp4" type="video/mp4" />
-            Your browser does not support this transmission.
-          </video>
+          <HomeMuxPlayer />
         </div>
         <div className="home-media-caption">
           <h2 id="home-media-title">The Old Guard</h2>

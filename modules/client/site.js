@@ -355,6 +355,7 @@
   }
 
   function buildIntroPlayer(videoSlot) {
+    const skipButton = videoSlot.querySelector("[data-loader-skip-intro]");
     const player = document.createElement("mux-player");
     player.className = "old-guard-mux old-guard-mux--intro";
     player.setAttribute("playback-id", OLD_GUARD_PLAYBACK_ID);
@@ -375,6 +376,7 @@
 
     videoSlot.innerHTML = "";
     videoSlot.appendChild(shell);
+    if (skipButton) videoSlot.appendChild(skipButton);
     return player;
   }
 
@@ -416,18 +418,31 @@
     }
   }
 
-  function waitForIntroEnded(player) {
-    if (!player) return Promise.resolve();
+  function waitForIntroEnded(player, skipPromise) {
+    if (!player) return Promise.resolve(false);
 
     return new Promise(resolve => {
       let finished = false;
+      let timeoutId = null;
+
+      function cleanup() {
+        player.removeEventListener("ended", finish);
+        player.removeEventListener("error", finish);
+        if (timeoutId) window.clearTimeout(timeoutId);
+      }
 
       function finish() {
         if (finished) return;
         finished = true;
-        player.removeEventListener("ended", finish);
-        player.removeEventListener("error", finish);
-        resolve();
+        cleanup();
+        resolve(false);
+      }
+
+      function finishSkipped() {
+        if (finished) return;
+        finished = true;
+        cleanup();
+        resolve(true);
       }
 
       if (player.ended) {
@@ -437,7 +452,8 @@
 
       player.addEventListener("ended", finish);
       player.addEventListener("error", finish);
-      setTimeout(finish, 10 * 60 * 1000);
+      if (skipPromise) skipPromise.then(finishSkipped);
+      timeoutId = window.setTimeout(finish, 10 * 60 * 1000);
     });
   }
 
@@ -473,21 +489,50 @@
 
       const player = await playerPromise;
       const videoSlot = loader.querySelector("[data-loader-intro-video]");
+      const skipButton = loader.querySelector("[data-loader-skip-intro]");
+      let activeIntroPlayer = null;
+      let skipRequested = false;
+      let resolveSkip = null;
+      const skipPromise = new Promise(resolve => {
+        resolveSkip = resolve;
+      });
+
+      function requestSkip() {
+        if (skipRequested) return;
+        skipRequested = true;
+        if (skipButton) skipButton.disabled = true;
+        try {
+          activeIntroPlayer?.pause?.();
+        } catch {}
+        resolveSkip?.(true);
+      }
+
+      if (skipButton) {
+        skipButton.disabled = false;
+        skipButton.addEventListener("click", requestSkip);
+      }
+
       if (videoSlot) videoSlot.setAttribute("aria-hidden", "false");
       setLoaderPhase(loader, "intro-video");
-      await wait(650);
+      await Promise.race([wait(650), skipPromise]);
 
-      if (player) {
+      if (player && !skipRequested) {
+        activeIntroPlayer = player;
         resetIntroPlayer(player);
         const playing = await playIntroPlayer(player);
         if (playing) {
-          await waitForIntroEnded(player);
-          await wait(650);
+          const skipped = await waitForIntroEnded(player, skipPromise);
+          if (!skipped) await wait(650);
         } else {
-          await wait(1800);
+          await Promise.race([wait(1800), skipPromise]);
         }
-      } else {
-        await wait(1800);
+      } else if (!skipRequested) {
+        await Promise.race([wait(1800), skipPromise]);
+      }
+
+      if (skipButton) {
+        skipButton.removeEventListener("click", requestSkip);
+        skipButton.disabled = false;
       }
 
       if (videoSlot) videoSlot.setAttribute("aria-hidden", "true");

@@ -105,6 +105,9 @@ export function HolonetFrame({
 
         <div className="loader-intro-video" data-loader-intro-video aria-hidden="true">
           <OldGuardPlayer mode="intro" />
+          <button className="loader-intro-skip" type="button" data-loader-skip-intro>
+            Skip Transmission
+          </button>
         </div>
 
         <div className="loader-crt-reveal" aria-hidden="true">

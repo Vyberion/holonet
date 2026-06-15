@@ -649,9 +649,7 @@ main {
 .old-guard-start-button {
   align-items: center;
   aspect-ratio: 1;
-  background:
-    radial-gradient(circle, rgba(255, 59, 79, 0.18), rgba(12, 0, 3, 0.92) 58%),
-    linear-gradient(145deg, rgba(77, 0, 0, 0.96), rgba(4, 1, 2, 0.96));
+  background: rgba(16, 0, 4, 0.96);
   border: 1px solid rgba(255, 59, 79, 0.82);
   box-shadow:
     0 0 24px rgba(255, 0, 34, 0.34),
@@ -694,7 +692,7 @@ main {
 
 .old-guard-start-ring {
   align-items: center;
-  background: rgba(0, 0, 0, 0.44);
+  background: rgba(58, 0, 10, 0.42);
   border: 1px solid rgba(255, 59, 79, 0.58);
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
   display: flex;

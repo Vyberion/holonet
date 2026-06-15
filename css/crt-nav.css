@@ -1,0 +1,47 @@
+/* Keeps the fixed navigation inside the same CRT reveal as the page. */
+
+html.holonet-release-intro:not(.holonet-crt-opening):not(.holonet-nav-crt-complete) .site-nav,
+html.holonet-release-intro:not(.holonet-crt-opening):not(.holonet-nav-crt-complete) .back-to-top-btn {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+html.holonet-crt-armed .site-nav,
+html.holonet-crt-armed .back-to-top-btn {
+  clip-path: inset(50% 0 50% 0);
+  filter: brightness(4.1) contrast(1.56) blur(2.2px) saturate(1.38);
+  opacity: 1 !important;
+  pointer-events: none !important;
+  transform: scaleX(0.055) scaleY(0.012);
+  transform-origin: center;
+  will-change: clip-path, filter, transform;
+}
+
+html.holonet-crt-opening .site-nav,
+html.holonet-crt-opening .back-to-top-btn {
+  animation: holonetViewportCrtOpen 1.72s cubic-bezier(0.18, 0.82, 0.22, 1) both !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+html.holonet-release-intro.holonet-crt-opening .site-nav,
+html.holonet-release-intro.holonet-crt-opening .back-to-top-btn {
+  transition: none !important;
+}
+
+html.holonet-release-intro:not(.holonet-crt-opening) .site-nav,
+html.holonet-release-intro:not(.holonet-crt-opening) .back-to-top-btn {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.holonet-release-intro .site-nav,
+  html.holonet-release-intro .back-to-top-btn {
+    animation: none !important;
+    clip-path: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none !important;
+  }
+}

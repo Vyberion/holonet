@@ -12,7 +12,7 @@ import "../../css/registry.css";
 import "../../css/hub.css";
 import "../../css/legal.css";
 import "../../css/editor.css";
-import "../../css/preview-crt-fix.css";
+import "../../css/crt.css";
 
 function siteUrl() {
   const url =

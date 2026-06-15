@@ -1,15 +1,41 @@
 const MAX_PATH_ROW_CARDS = 4;
 
+function glyphLinesFor(glyph) {
+  if (!glyph || glyph.length <= 4) return [glyph];
+
+  const tensMatch = glyph.match(/^(X+)(.*)$/);
+  if (tensMatch?.[2]) return [tensMatch[1], tensMatch[2]];
+
+  const splitAt = Math.ceil(glyph.length / 2);
+  return [glyph.slice(0, splitAt), glyph.slice(splitAt)];
+}
+
 export function HierarchyCard({ item }) {
+  const glyph = item.cardGlyph;
+  const glyphLines = glyphLinesFor(glyph);
+  const glyphLength = glyph
+    ? Math.min(Math.max(...glyphLines.map(line => line.length)), 7)
+    : 0;
+  const cardClassName = `nav-card hierarchy-card${glyph ? " hierarchy-card--glyph" : ""}`;
+  const enterLabel = glyph ? "Enter" : "Open";
+
   return (
-    <a className="nav-card hierarchy-card" href={item.href} aria-label={`Open ${item.name}`}>
+    <a className={cardClassName} href={item.href} aria-label={`Open ${item.name}`}>
       <div className="card-inner-border" aria-hidden="true" />
       <div className="card-corners" aria-hidden="true" />
       <div className="card-vline" aria-hidden="true" />
       <div className="card-scan" aria-hidden="true" />
-      <img className="hierarchy-card-bg" src={item.image} alt="" loading="lazy" aria-hidden="true" />
+      {glyph ? (
+        <div className={`card-bg-glyph hierarchy-card-glyph hierarchy-card-glyph--lines-${glyphLines.length} card-bg-glyph--len-${glyphLength}`} aria-hidden="true">
+          {glyphLines.map((line, index) => (
+            <span key={`${line}-${index}`}>{line}</span>
+          ))}
+        </div>
+      ) : (
+        <img className="hierarchy-card-bg" src={item.image} alt="" loading="lazy" aria-hidden="true" />
+      )}
       <h2 className="card-title">{item.name}</h2>
-      <span className="card-enter" aria-hidden="true">Open &rsaquo;&rsaquo;</span>
+      <span className="card-enter" aria-hidden="true">{enterLabel} &rsaquo;&rsaquo;</span>
     </a>
   );
 }

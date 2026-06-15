@@ -11,6 +11,34 @@ function ordinal(value) {
   return `${value}${{ 1: "st", 2: "nd", 3: "rd" }[value % 10] || "th"}`;
 }
 
+function toRoman(value) {
+  const numerals = [
+    [50, "L"],
+    [40, "XL"],
+    [10, "X"],
+    [9, "IX"],
+    [5, "V"],
+    [4, "IV"],
+    [1, "I"]
+  ];
+  let remaining = value;
+  let result = "";
+
+  numerals.forEach(([amount, numeral]) => {
+    while (remaining >= amount) {
+      result += numeral;
+      remaining -= amount;
+    }
+  });
+
+  return result;
+}
+
+function emperorNumberFromSlug(slug = "") {
+  const match = String(slug).match(/^the-(\d+)(?:st|nd|rd|th)-emperor$/);
+  return match ? Number(match[1]) : 0;
+}
+
 function emperorPathTitle(value) {
   return {
     1: "The First",
@@ -633,8 +661,13 @@ function imageForItem(item) {
 }
 
 function decorateHierarchyItem(group, item, index, fallbackHref) {
+  const emperorNumber = group.id === EMPEROR_ARCHIVE_GROUP.id
+    ? index + 1
+    : emperorNumberFromSlug(item.slug);
+
   return {
     ...item,
+    cardGlyph: item.cardGlyph || (emperorNumber ? toRoman(emperorNumber) : ""),
     image: imageForItem(item),
     groupId: group.id,
     groupTitle: group.title,

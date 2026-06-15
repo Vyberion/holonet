@@ -1,0 +1,281 @@
+/* Holonet CRT system
+   One viewport reveal for the site, notice overlay and intro transitions. */
+
+html.holonet-release-intro #loader[data-loader-phase="intro-reveal"] {
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+
+html.holonet-release-intro #loader[data-loader-phase="intro-reveal"].hidden {
+  opacity: 0;
+  transition: none;
+}
+
+html.holonet-release-intro #loader[data-loader-phase="intro-reveal"]::before,
+html.holonet-release-intro #loader[data-loader-phase="intro-reveal"]::after,
+html.holonet-release-intro #loader[data-loader-phase="intro-reveal"] .loader-crt-reveal,
+html.holonet-release-intro #loader[data-loader-phase="intro-reveal"] .loader-crt-reveal::before,
+html.holonet-release-intro #loader[data-loader-phase="intro-reveal"] .loader-crt-reveal::after,
+html.holonet-release-intro #loader[data-loader-phase="intro-reveal"] .loader-crt-reveal span {
+  animation: none !important;
+  opacity: 0 !important;
+}
+
+html.holonet-crt-armed #nav-container,
+html.holonet-crt-armed #app,
+html.holonet-crt-armed #vignette,
+html.holonet-crt-armed #rune-field,
+html.holonet-crt-armed #holo-grid,
+html.holonet-crt-armed .developer-notice-overlay.active {
+  clip-path: inset(50% 0 50% 0);
+  filter: brightness(3.2) contrast(1.42) blur(2px);
+  opacity: 0;
+  transform: scaleY(0.018) scaleX(0.94);
+  transform-origin: center;
+  will-change: clip-path, filter, opacity, transform;
+}
+
+html.holonet-crt-opening #nav-container,
+html.holonet-crt-opening #app,
+html.holonet-crt-opening #vignette,
+html.holonet-crt-opening #rune-field,
+html.holonet-crt-opening #holo-grid,
+html.holonet-crt-opening .developer-notice-overlay.active {
+  animation: holonetViewportCrtOpen 1.58s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+
+html.holonet-crt-opening #app > header > *,
+html.holonet-crt-opening #app > .status-bar,
+html.holonet-crt-opening #app > main,
+html.holonet-crt-opening #app > footer,
+html.holonet-crt-opening .developer-notice-panel > * {
+  animation: holonetSignalLock 0.95s steps(1) both;
+}
+
+html.holonet-crt-opening #app > header > *:nth-child(2),
+html.holonet-crt-opening #app > main,
+html.holonet-crt-opening #app > footer,
+html.holonet-crt-opening .developer-notice-body {
+  animation-delay: 0.1s;
+}
+
+html.holonet-crt-opening #app > header > *:nth-child(3),
+html.holonet-crt-opening #app > .status-bar,
+html.holonet-crt-opening .developer-notice-topbar {
+  animation-delay: 0.18s;
+}
+
+.loader-terminal-panel {
+  background:
+    radial-gradient(ellipse 72% 90% at 50% 112%, rgba(255, 59, 79, 0.12), transparent 66%),
+    linear-gradient(90deg, rgba(255, 59, 79, 0.045), transparent 18%, transparent 82%, rgba(255, 59, 79, 0.035)),
+    linear-gradient(145deg, rgba(38, 7, 12, 0.95), rgba(9, 2, 5, 0.98));
+  border-color: rgba(122, 26, 40, 0.74);
+  box-shadow:
+    0 0 26px rgba(192, 0, 26, 0.1),
+    0 22px 80px rgba(0, 0, 0, 0.82),
+    inset 0 0 42px rgba(192, 0, 26, 0.055);
+}
+
+.loader-terminal-panel::before {
+  opacity: 0.48;
+}
+
+.loader-terminal-panel::after {
+  left: 24px;
+  right: 24px;
+  opacity: 0.55;
+}
+
+.loader-terminal-topbar {
+  background: linear-gradient(90deg, rgba(122, 26, 40, 0.18), transparent 68%);
+}
+
+.loader-terminal-topbar span {
+  color: rgba(255, 255, 255, 0.66);
+  letter-spacing: 0.28em;
+}
+
+.loader-terminal-topbar span:last-child {
+  color: rgba(255, 59, 79, 0.82);
+}
+
+.loader-terminal-body {
+  gap: 15px;
+}
+
+.loader-terminal-line {
+  align-items: center;
+  border-left: 1px solid rgba(255, 59, 79, 0.24);
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(0.66rem, 1.55vw, 0.82rem);
+  gap: 12px;
+  letter-spacing: 0.14em;
+  padding: 8px 0 8px 14px;
+  text-transform: uppercase;
+}
+
+.loader-terminal-line::before {
+  background: var(--theme-accent-dim);
+  box-shadow: 0 0 10px var(--theme-accent-glow);
+  content: '';
+  flex: 0 0 auto;
+  height: 4px;
+  width: 4px;
+}
+
+.loader-terminal-status {
+  background:
+    radial-gradient(ellipse 90% 110% at 50% 120%, rgba(255, 59, 79, 0.1), transparent 64%),
+    rgba(22, 7, 12, 0.44);
+  border: 1px solid rgba(255, 59, 79, 0.22);
+  padding: 16px;
+}
+
+.loader-terminal-button {
+  background:
+    radial-gradient(ellipse 100% 180% at 50% 120%, rgba(255, 59, 79, 0.14), transparent 70%),
+    linear-gradient(90deg, rgba(255, 59, 79, 0.18), rgba(122, 26, 40, 0.1)),
+    rgba(18, 6, 10, 0.78);
+  border-color: rgba(255, 59, 79, 0.46);
+}
+
+#loader[data-loader-phase="intro-video"] .loader-intro-video::before {
+  animation: holonetVideoCrtLine 1.28s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+#loader[data-loader-phase="intro-video"] .old-guard-player--intro {
+  animation: holonetVideoCrtOpen 1.42s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards !important;
+  clip-path: inset(50% 0 50% 0);
+  filter: brightness(2.7) contrast(1.34) blur(1.6px);
+  opacity: 0;
+  transform: scaleY(0.012) scaleX(0.96);
+  transform-origin: center;
+}
+
+@keyframes holonetVideoCrtLine {
+  0% { opacity: 0; transform: translateY(-50%) scaleX(0.04); }
+  10% { opacity: 1; transform: translateY(-50%) scaleX(0.72); }
+  24% { opacity: 0.75; transform: translateY(-50%) scaleX(1); }
+  44% { opacity: 0.95; transform: translateY(-50%) scaleX(0.86); }
+  70%, 100% { opacity: 0; transform: translateY(-50%) scaleX(1); }
+}
+
+@keyframes holonetVideoCrtOpen {
+  0% {
+    clip-path: inset(50% 0 50% 0);
+    filter: brightness(3.8) contrast(1.52) blur(2.4px);
+    opacity: 1;
+    transform: scaleY(0.012) scaleX(0.94);
+  }
+
+  14% {
+    clip-path: inset(46% 0 46% 0);
+    transform: scaleY(0.1) scaleX(1.025);
+  }
+
+  34% {
+    clip-path: inset(30% 0 30% 0);
+    filter: brightness(2.35) contrast(1.28) blur(1.2px);
+    transform: scaleY(0.42) scaleX(1.012);
+  }
+
+  58% {
+    clip-path: inset(12% 0 12% 0);
+    filter: brightness(1.45) contrast(1.12) blur(0.45px);
+    transform: scaleY(0.82) scaleX(1.004);
+  }
+
+  78% {
+    clip-path: inset(0);
+    filter: brightness(1.16) contrast(1.04) blur(0.12px);
+    transform: scaleY(1.026) scaleX(1);
+  }
+
+  100% {
+    clip-path: inset(0);
+    filter: none;
+    opacity: 1;
+    transform: scaleY(1) scaleX(1);
+  }
+}
+
+@keyframes holonetViewportCrtOpen {
+  0% {
+    clip-path: inset(50% 0 50% 0);
+    filter: brightness(4) contrast(1.58) blur(3px);
+    opacity: 0;
+    transform: scaleY(0.014) scaleX(0.92);
+  }
+
+  7% {
+    opacity: 1;
+    transform: scaleY(0.032) scaleX(1.035);
+  }
+
+  18% {
+    clip-path: inset(47% 0 47% 0);
+    filter: brightness(3.2) contrast(1.42) blur(2px);
+    transform: scaleY(0.08) scaleX(1.026);
+  }
+
+  38% {
+    clip-path: inset(33% 0 33% 0);
+    filter: brightness(2.35) contrast(1.28) blur(1.1px);
+    transform: scaleY(0.36) scaleX(1.012);
+  }
+
+  64% {
+    clip-path: inset(12% 0 12% 0);
+    filter: brightness(1.46) contrast(1.12) blur(0.4px);
+    transform: scaleY(0.78) scaleX(1.004);
+  }
+
+  82% {
+    clip-path: inset(0);
+    filter: brightness(1.18) contrast(1.04) blur(0.14px);
+    transform: scaleY(1.03) scaleX(1);
+  }
+
+  100% {
+    clip-path: inset(0);
+    filter: none;
+    opacity: 1;
+    transform: scaleY(1) scaleX(1);
+  }
+}
+
+@keyframes holonetSignalLock {
+  0%, 8% { opacity: 0; }
+  9%, 18% { opacity: 1; }
+  19%, 22% { opacity: 0.34; }
+  23%, 30% { opacity: 1; }
+  31%, 35% { opacity: 0.62; }
+  36%, 100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.holonet-crt-armed #nav-container,
+  html.holonet-crt-armed #app,
+  html.holonet-crt-armed #vignette,
+  html.holonet-crt-armed #rune-field,
+  html.holonet-crt-armed #holo-grid,
+  html.holonet-crt-armed .developer-notice-overlay.active,
+  html.holonet-crt-opening #nav-container,
+  html.holonet-crt-opening #app,
+  html.holonet-crt-opening #vignette,
+  html.holonet-crt-opening #rune-field,
+  html.holonet-crt-opening #holo-grid,
+  html.holonet-crt-opening .developer-notice-overlay.active,
+  #loader[data-loader-phase="intro-video"] .old-guard-player--intro {
+    animation: none !important;
+    clip-path: none;
+    filter: none;
+    opacity: 1;
+    transform: none;
+  }
+}

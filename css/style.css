@@ -958,7 +958,10 @@ footer {
   opacity: 1;
 }
 
-#loader > * { position: relative; z-index: 1; }
+#loader > :not(.loader-intro-gate):not(.loader-standard):not(.loader-link-display):not(.loader-intro-video) {
+  position: relative;
+  z-index: 1;
+}
 
 .loader-intro-gate,
 .loader-standard,
@@ -977,6 +980,11 @@ footer {
   text-align: center;
   transition: opacity 0.45s ease;
   z-index: 1;
+}
+
+.loader-link-display {
+  isolation: isolate;
+  overflow: visible;
 }
 
 .loader-intro-gate {
@@ -1099,7 +1107,7 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-gate,
   top: 50%;
   transform: translate(-50%, -50%);
   width: min(820px, 92vw);
-  z-index: -1;
+  z-index: 0;
 }
 
 .loader-link-display::after {
@@ -1113,11 +1121,12 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-gate,
   top: calc(50% + clamp(72px, 12vh, 118px));
   transform: translateX(-50%);
   width: min(640px, 72vw);
+  z-index: 1;
 }
 
 .loader-link-display > * {
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 #loader[data-loader-phase="link-stable"] .loader-link-display strong {

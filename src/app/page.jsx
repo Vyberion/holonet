@@ -14,6 +14,28 @@ export default function HomePage() {
       subtitle="IMPERIAL TRANSMISSION NETWORK"
       footerNode="KOR-7"
     >
+      <section className="home-media-shell" aria-labelledby="home-media-title">
+        <div className="home-media-topbar">
+          <span className="home-media-kicker">Imperial Transmission</span>
+          <span className="home-media-signal">ARCHIVE PLAYBACK</span>
+        </div>
+        <div className="home-media-frame">
+          <video
+            className="home-media-player"
+            controls
+            controlsList="nodownload"
+            playsInline
+            preload="metadata"
+          >
+            <source src="https://github.com/Vyberion/holonet-media/releases/download/MEDIA/THE.OLD.GUARD.mp4" type="video/mp4" />
+            Your browser does not support this transmission.
+          </video>
+        </div>
+        <div className="home-media-caption">
+          <h2 id="home-media-title">The Old Guard</h2>
+        </div>
+      </section>
+
       <nav className="nav-grid" aria-label="Holonet Sections">
         <a href="/codex" className="nav-card" aria-label="Enter The Codex">
           <div className="card-inner-border" aria-hidden="true" />

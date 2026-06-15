@@ -31,12 +31,20 @@ export function HolonetFrame({
       />
 
       <div id="loader" role="status" aria-label="Establishing connection">
-        <div className="loader-intro-gate" data-loader-intro-gate>
-          <p className="loader-intro-kicker">Imperial Transmission Network</p>
-          <button className="loader-establish-button" type="button" data-loader-establish>
-            Establish Link
-          </button>
-          <p className="loader-intro-note">KOR-7 / Release Transmission</p>
+        <div className="loader-intro-prompt" data-loader-intro-prompt>
+          <section className="loader-terminal-panel loader-terminal-panel--prompt" aria-labelledby="loader-intro-command">
+            <div className="loader-terminal-topbar">
+              <span>KOR-7 Secure Terminal</span>
+              <span>Release Channel</span>
+            </div>
+            <div className="loader-terminal-body">
+              <p className="loader-terminal-line loader-terminal-muted">&gt; authentication handoff required</p>
+              <p className="loader-terminal-command" id="loader-intro-command">establish_link --channel old_guard</p>
+              <button className="loader-terminal-button" type="button" data-loader-establish>
+                ESTABLISH LINK
+              </button>
+            </div>
+          </section>
         </div>
 
         <div className="loader-standard" data-loader-standard>
@@ -67,18 +75,52 @@ export function HolonetFrame({
           </div>
         </div>
 
-        <div className="loader-link-display" data-loader-link-established>
-          <p className="loader-intro-kicker">KOR-7 / Signal Accepted</p>
-          <strong>LINK ESTABLISHED</strong>
+        <div className="loader-intro-loading" data-loader-intro-loading>
+          <section className="loader-terminal-panel">
+            <div className="loader-terminal-topbar">
+              <span>KOR-7 Secure Terminal</span>
+              <span>Handshake</span>
+            </div>
+            <div className="loader-terminal-body">
+              <p className="loader-terminal-line">&gt; routing through KOR-7 relay</p>
+              <p className="loader-terminal-line">&gt; decrypting release transmission</p>
+              <p className="loader-terminal-line">&gt; synchronizing holonet signal</p>
+              <div className="loader-terminal-progress" aria-hidden="true">
+                <span />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div className="loader-intro-ready" data-loader-intro-ready>
+          <section className="loader-terminal-panel loader-terminal-panel--ready">
+            <div className="loader-terminal-topbar">
+              <span>KOR-7 Secure Terminal</span>
+              <span>Signal Accepted</span>
+            </div>
+            <div className="loader-terminal-body">
+              <p className="loader-terminal-line">&gt; channel open</p>
+              <p className="loader-terminal-status">Transmission Ready</p>
+            </div>
+          </section>
         </div>
 
         <div className="loader-intro-video" data-loader-intro-video aria-hidden="true">
           <OldGuardPlayer mode="intro" />
         </div>
 
-        <div className="loader-link-display" data-loader-link-stable>
-          <p className="loader-intro-kicker">Transmission Complete</p>
-          <strong>LINK STABLE</strong>
+        <div className="loader-intro-boot" data-loader-intro-boot>
+          <section className="loader-terminal-panel loader-terminal-panel--boot">
+            <div className="loader-terminal-topbar">
+              <span>KOR-7 Secure Terminal</span>
+              <span>Interface Restore</span>
+            </div>
+            <div className="loader-terminal-body">
+              <p className="loader-terminal-line">&gt; restoring holonet interface</p>
+              <p className="loader-terminal-line">&gt; synchronizing archive index</p>
+              <p className="loader-terminal-line">&gt; terminal online</p>
+            </div>
+          </section>
         </div>
       </div>
 

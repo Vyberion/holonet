@@ -270,10 +270,17 @@
     loader.dataset.loaderPhase = phase;
     loader.classList.remove("hidden");
     loader.style.display = "";
+    loader.removeAttribute("aria-hidden");
   }
 
   function hideLoader(loader) {
     loader.classList.add("hidden");
+    loader.setAttribute("aria-hidden", "true");
+    window.setTimeout(() => {
+      if (loader.classList.contains("hidden")) {
+        loader.style.display = "none";
+      }
+    }, 520);
   }
 
   function readLocalStorage(key) {
@@ -424,7 +431,7 @@
     if (loader.dataset.releaseIntroReady === "true") return;
 
     loader.dataset.releaseIntroReady = "true";
-    setLoaderPhase(loader, "intro-gate");
+    setLoaderPhase(loader, "intro-prompt");
 
     const establishButton = loader.querySelector("[data-loader-establish]");
     const playerPromise = getIntroPlayer(loader)
@@ -443,13 +450,12 @@
 
       if (establishButton) establishButton.disabled = true;
 
-      restartLoaderBar(loader);
-      setLoaderPhase(loader, "standard");
+      setLoaderPhase(loader, "intro-loading");
 
-      await Promise.all([waitForWindowLoad(), wait(2400)]);
+      await Promise.all([waitForWindowLoad(), wait(2300)]);
 
-      setLoaderPhase(loader, "link-established");
-      await wait(1300);
+      setLoaderPhase(loader, "intro-ready");
+      await wait(1150);
 
       const player = await playerPromise;
       const videoSlot = loader.querySelector("[data-loader-intro-video]");
@@ -470,8 +476,9 @@
         await wait(1800);
       }
 
-      setLoaderPhase(loader, "link-stable");
-      await wait(1400);
+      if (videoSlot) videoSlot.setAttribute("aria-hidden", "true");
+      setLoaderPhase(loader, "intro-boot");
+      await wait(4300);
       await waitForAccessClear();
 
       writeLocalStorage(INTRO_COMPLETE_KEY, "true");

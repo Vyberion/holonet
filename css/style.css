@@ -921,7 +921,10 @@ footer {
 }
 
 html.holonet-release-intro #loader {
-  background: #000;
+  background:
+    radial-gradient(ellipse 68% 58% at 50% 48%, rgba(122, 26, 40, 0.16), transparent 68%),
+    radial-gradient(ellipse 100% 90% at 50% 0%, rgba(192, 0, 26, 0.06), transparent 62%),
+    #050102;
 }
 
 #loader.hidden {

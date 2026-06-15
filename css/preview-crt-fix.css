@@ -1,9 +1,9 @@
 /* Preview intro CRT repair
-   Keeps the final reveal as one viewport animation instead of stacked curtains plus fade. */
+   The page reveal is the CRT animation. The loader must not add a second curtain/fade on top. */
 
 html.holonet-release-intro #loader[data-loader-phase="intro-reveal"] {
-  opacity: 1;
-  background: #000;
+  background: transparent;
+  opacity: 0;
   pointer-events: none;
   transition: none;
 }
@@ -14,27 +14,13 @@ html.holonet-release-intro #loader[data-loader-phase="intro-reveal"].hidden {
 }
 
 html.holonet-release-intro #loader[data-loader-phase="intro-reveal"]::before,
-html.holonet-release-intro #loader[data-loader-phase="intro-reveal"]::after {
-  opacity: 0;
-}
-
+html.holonet-release-intro #loader[data-loader-phase="intro-reveal"]::after,
+html.holonet-release-intro #loader[data-loader-phase="intro-reveal"] .loader-crt-reveal,
 html.holonet-release-intro #loader[data-loader-phase="intro-reveal"] .loader-crt-reveal::before,
-html.holonet-release-intro #loader[data-loader-phase="intro-reveal"] .loader-crt-reveal::after {
-  animation: none;
-  height: auto;
-  inset: 0;
-  opacity: 0;
-}
-
-html.holonet-release-intro #loader[data-loader-phase="intro-reveal"] .loader-crt-reveal {
-  background: #000;
-  opacity: 1;
-  transform-origin: center;
-  animation: previewLoaderCrtMaskOpen 1.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
+html.holonet-release-intro #loader[data-loader-phase="intro-reveal"] .loader-crt-reveal::after,
 html.holonet-release-intro #loader[data-loader-phase="intro-reveal"] .loader-crt-reveal span {
-  animation: previewLoaderCrtLineOpen 1.2s steps(1) forwards;
+  animation: none !important;
+  opacity: 0 !important;
 }
 
 html.holonet-crt-armed #nav-container,
@@ -43,10 +29,11 @@ html.holonet-crt-armed #vignette,
 html.holonet-crt-armed #rune-field,
 html.holonet-crt-armed #holo-grid {
   clip-path: inset(50% 0 50% 0);
-  filter: brightness(3.1) contrast(1.42) blur(2px);
+  filter: brightness(3.25) contrast(1.46) blur(2px);
   opacity: 0;
-  transform: scaleY(0.018) scaleX(0.96);
+  transform: scaleY(0.018) scaleX(0.94);
   transform-origin: center;
+  will-change: clip-path, filter, opacity, transform;
 }
 
 html.holonet-crt-opening #nav-container,
@@ -54,7 +41,7 @@ html.holonet-crt-opening #app,
 html.holonet-crt-opening #vignette,
 html.holonet-crt-opening #rune-field,
 html.holonet-crt-opening #holo-grid {
-  animation: previewPageCrtOpen 1.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: previewUnifiedPageCrtOpen 1.55s cubic-bezier(0.16, 1, 0.3, 1) both !important;
 }
 
 html.holonet-crt-opening #app > header > *,
@@ -66,72 +53,52 @@ html.holonet-crt-opening #app > footer {
 
 .loader-terminal-panel {
   background:
-    radial-gradient(ellipse 95% 95% at 50% 118%, rgba(255, 59, 79, 0.11), transparent 66%),
-    linear-gradient(135deg, rgba(126, 0, 18, 0.11), rgba(18, 4, 8, 0.72) 52%, rgba(3, 0, 1, 0.92)),
-    rgba(10, 2, 4, 0.9);
+    radial-gradient(ellipse 95% 95% at 50% 118%, rgba(255, 59, 79, 0.095), transparent 66%),
+    linear-gradient(135deg, rgba(96, 0, 14, 0.105), rgba(14, 3, 7, 0.76) 52%, rgba(2, 0, 1, 0.94)),
+    rgba(7, 1, 3, 0.92);
   box-shadow:
-    0 0 28px rgba(192, 0, 26, 0.1),
-    0 22px 80px rgba(0, 0, 0, 0.78),
-    inset 0 0 42px rgba(192, 0, 26, 0.055);
+    0 0 24px rgba(192, 0, 26, 0.085),
+    0 22px 80px rgba(0, 0, 0, 0.82),
+    inset 0 0 38px rgba(192, 0, 26, 0.045);
 }
 
-@keyframes previewLoaderCrtMaskOpen {
-  0% {
-    opacity: 1;
-    clip-path: inset(0 0 0 0);
-  }
-  10% {
-    clip-path: inset(49% 0 49% 0);
-  }
-  26% {
-    clip-path: inset(47% 0 47% 0);
-  }
-  54% {
-    clip-path: inset(28% 0 28% 0);
-  }
-  78% {
-    clip-path: inset(4% 0 4% 0);
-    opacity: 1;
-  }
-  100% {
-    clip-path: inset(0 0 0 0);
-    opacity: 0;
-  }
-}
-
-@keyframes previewLoaderCrtLineOpen {
-  0% { opacity: 0; transform: translateY(-50%) scaleX(0.04); }
-  8% { opacity: 1; transform: translateY(-50%) scaleX(0.82); }
-  20% { opacity: 0.42; transform: translateY(-50%) scaleX(1); }
-  34% { opacity: 1; transform: translateY(-50%) scaleX(0.9); }
-  62%,100% { opacity: 0; transform: translateY(-50%) scaleX(1); }
-}
-
-@keyframes previewPageCrtOpen {
+@keyframes previewUnifiedPageCrtOpen {
   0% {
     clip-path: inset(50% 0 50% 0);
-    filter: brightness(3.8) contrast(1.52) blur(3px);
+    filter: brightness(4.1) contrast(1.6) blur(3px);
     opacity: 0;
-    transform: scaleY(0.018) scaleX(0.94);
+    transform: scaleY(0.014) scaleX(0.92);
   }
-  9% {
+
+  7% {
     opacity: 1;
-    transform: scaleY(0.04) scaleX(1.03);
+    transform: scaleY(0.032) scaleX(1.035);
   }
-  24% {
-    clip-path: inset(45% 0 45% 0);
-    transform: scaleY(0.13) scaleX(1.02);
+
+  18% {
+    clip-path: inset(47% 0 47% 0);
+    filter: brightness(3.25) contrast(1.45) blur(2.1px);
+    transform: scaleY(0.08) scaleX(1.026);
   }
-  48% {
-    clip-path: inset(25% 0 25% 0);
-    filter: brightness(2.1) contrast(1.25) blur(1.2px);
-    transform: scaleY(0.52) scaleX(1.01);
+
+  38% {
+    clip-path: inset(33% 0 33% 0);
+    filter: brightness(2.35) contrast(1.28) blur(1.2px);
+    transform: scaleY(0.36) scaleX(1.012);
   }
-  76% {
-    clip-path: inset(3% 0 3% 0);
-    filter: brightness(1.28) contrast(1.08) blur(0.35px);
-    transform: scaleY(1.025) scaleX(1);
+
+  64% {
+    clip-path: inset(12% 0 12% 0);
+    filter: brightness(1.46) contrast(1.12) blur(0.45px);
+    transform: scaleY(0.78) scaleX(1.004);
   }
+
+  82% {
+    clip-path: inset(0);
+    filter: brightness(1.18) contrast(1.04) blur(0.18px);
+    transform: scaleY(1.03) scaleX(1);
+  }
+
   100% {
     clip-path: inset(0);
     filter: none;
@@ -147,4 +114,23 @@ html.holonet-crt-opening #app > footer {
   23%, 30% { opacity: 1; }
   31%, 35% { opacity: 0.62; }
   36%, 100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.holonet-crt-armed #nav-container,
+  html.holonet-crt-armed #app,
+  html.holonet-crt-armed #vignette,
+  html.holonet-crt-armed #rune-field,
+  html.holonet-crt-armed #holo-grid,
+  html.holonet-crt-opening #nav-container,
+  html.holonet-crt-opening #app,
+  html.holonet-crt-opening #vignette,
+  html.holonet-crt-opening #rune-field,
+  html.holonet-crt-opening #holo-grid {
+    animation: none !important;
+    clip-path: none;
+    filter: none;
+    opacity: 1;
+    transform: none;
+  }
 }

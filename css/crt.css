@@ -123,7 +123,7 @@ html.holonet-crt-opening #loader[data-loader-phase="intro-reveal"] .loader-crt-r
     inset 0 0 30px rgba(192, 0, 26, 0.035);
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
   max-width: calc(100vw - 36px);
-  width: min(720px, 100%);
+  width: min(620px, 100%);
 }
 
 .loader-terminal-panel::before {

@@ -24,7 +24,6 @@ html.holonet-release-intro #loader[data-loader-phase="intro-reveal"]::after {
   opacity: 0 !important;
 }
 
-html.holonet-crt-armed #nav-container,
 html.holonet-crt-armed #app,
 html.holonet-crt-armed #rune-field,
 html.holonet-crt-armed #holo-grid {
@@ -36,11 +35,20 @@ html.holonet-crt-armed #holo-grid {
   will-change: clip-path, filter, transform;
 }
 
-html.holonet-crt-opening #nav-container,
 html.holonet-crt-opening #app,
 html.holonet-crt-opening #rune-field,
 html.holonet-crt-opening #holo-grid {
   animation: holonetViewportCrtOpen 1.72s cubic-bezier(0.18, 0.82, 0.22, 1) both !important;
+}
+
+html.holonet-crt-armed #nav-container,
+html.holonet-crt-opening #nav-container {
+  animation: none !important;
+  clip-path: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  will-change: auto !important;
 }
 
 html.holonet-crt-armed #vignette,

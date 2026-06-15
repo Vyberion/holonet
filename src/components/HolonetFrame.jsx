@@ -106,7 +106,7 @@ export function HolonetFrame({
             </div>
             <div className="loader-terminal-body">
               <p className="loader-terminal-line">Relay aligned</p>
-              <p className="loader-terminal-status">Transmitting/p>
+              <p className="loader-terminal-status">Transmitting</p>
             </div>
           </section>
         </div>

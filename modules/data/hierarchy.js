@@ -449,11 +449,11 @@ const EMPEROR_ARCHIVE_DATA = [
     body: "VarnakKallig was chosen by iWakers and began the imperial lineage as the First Emperor of TSO in July 2017. The rank had previously been unobtainable to regular members, making his ascension the first of its kind.\n\nHis reign was remembered for competent leadership, combat ability, and the standard it set for later Emperors. After a period of stagnation, he Fell and later served as the first Fallen advisor to future successors."
   },
   {
-    name: "Vynlinnery the Ruthless",
+    name: "Vynlin the Ruthless",
     body: "Vynlinnery, also known as Reaper, was the second Emperor of TSO and was chosen by iWakers. His rule was remembered as strict, with harsher punishments that made his administration controversial.\n\nPoor judgment during his tenure contributed to his Fall, and he did not remain as an advisor."
   },
   {
-    name: "Nazgulaz the Fair",
+    name: "Naz the Fair",
     body: "Nazgulaz was the third Emperor of TSO and the third Emperor appointed by iWakers. His policy focused heavily on divisions, and his rule was regarded as firm but comparatively fair.\n\nHis tenure lasted only a few weeks. After his Fall, he remained as a Fallen advisor."
   },
   {
@@ -469,7 +469,7 @@ const EMPEROR_ARCHIVE_DATA = [
     body: "Thatguyzacho was the sixth Emperor of TSO and the sixth Emperor appointed by iWakers. His reign was viewed as comparatively lax, and his administration experienced internal friction.\n\nHis tenure is remembered for improvement to training events and for influence drawn from earlier administrations. After his Fall, he did not remain as an advisor."
   },
   {
-    name: "Terrabiome the Warden",
+    name: "Terra the Warden",
     body: "Terrabiome was the seventh Emperor of TSO and the seventh Emperor chosen by iWakers. Much of his first reign is no longer well documented.\n\nHe ascended from Darth Mortis after success within the Dark Honor Guard and placed attention on the divisions of his time. It is unclear whether he remained as an advisor after his initial Fall."
   },
   {
@@ -493,7 +493,7 @@ const EMPEROR_ARCHIVE_DATA = [
     body: "SpectreDrahavos was the twelfth Emperor of TSO and the first Emperor appointed by Lord Zach. His reign took place during a period of severe group stagnation near the end of summer 2018.\n\nSpectre produced numerous reform ideas and regularly consulted his Council. He was regarded as capable during a difficult era and resigned in September 2018, remaining as an advisor afterward."
   },
   {
-    name: "Terrabiome the Balancer",
+    name: "Terra the Balancer",
     body: "Terrabiome_Drahavos became the thirteenth Emperor of TSO and the second sovereign to hold a second term. He was the second Emperor appointed by Lord Zach.\n\nHis second reign focused on group legislation and the improvement and balancing of divisions. After another period of stagnation, he Fell and remained as an advisor in November 2018."
   },
   {
@@ -501,7 +501,7 @@ const EMPEROR_ARCHIVE_DATA = [
     body: "Gurt_Kalazar was the fourteenth Emperor of TSO and the first official Emperor to ascend from a developer position. He was the third Emperor appointed by Lord Zach.\n\nHis administration organized High Command and the Dark Council, questionable selections were made, but ultimately were rectified in better judgment. His administration proved effective, and he reigned during a more active period. His reign lasted nearly four months, the longest for its time, before he ascended through The Force as owner of TSO in March 2019."
   },
   {
-    name: "Avextriux the Shadowed",
+    name: "Avex the Shadowed",
     body: "Avextriux_Kalazar was the fifteenth Emperor of TSO and the first Emperor appointed by Lord Gurt. He ascended from Dread Master Raptus and focused heavily on divisions, especially the Shadow Guard.\n\nHis reign was strict and initially unstable due to conspiracy within the Dark Council, leading to a Council wipe and new leadership. His later efforts declined, and he Fell in April 2019 without remaining as an advisor."
   },
   {
@@ -541,11 +541,11 @@ const EMPEROR_ARCHIVE_DATA = [
     body: "Tiimo_Aktuun, also known as Euqatix, was the twenty-fourth Emperor of TSO and the third Emperor to win the title by Kaggath. He was an experienced member and an exceptional combatant, winning Champion of the Sith multiple times.\n\nHis reign occurred as bloodline tensions began to calm, though opposition remained. His position was challenged in December 2020."
   },
   {
-    name: "Zeus the Independent",
+    name: "Zeus the Censor",
     body: "Zeus_Kalazar, also known as Stormkrieg or Ekori, was the First Black Emperor of TSO, the twenty-fifth Emperor overall and the fourth Emperor to win the title by Kaggath. He was remembered for strong combat skill and for remaining outside bloodline politics.\n\nHis reign included controversial communications policy changes and disciplinary action against High Command. He was regarded as fair by some, but resistance grew after sanctions against his Lord Wrath, leading to a challenge in February 2021."
   },
   {
-    name: "Terrabiome the Steady",
+    name: "Terra the Steady",
     body: "Terrabiome_Kalazar was the twenty-sixth Emperor of TSO and the first Emperor to hold three terms. He was the fifth Emperor to win the title by Kaggath.\n\nHis third reign was regarded as fair and stable, with strong relations across the group and High Command. Bloodline tensions were reduced during this period, and the Order experienced moderate prosperity through the summer. He Fell and remained as an advisor in August 2021."
   },
   {
@@ -553,7 +553,7 @@ const EMPEROR_ARCHIVE_DATA = [
     body: "Segnus_Kalazar was the twenty-seventh Emperor of TSO and an Emperor under Kactussman. He was appointed after an application process in August 2021.\n\nHis reign began near the start of the school year, when activity was declining. His administration was viewed as acceptable early on, but later became inactive. Segnus eventually Fell and did not remain as an advisor."
   },
   {
-    name: "Gawking the Enduring",
+    name: "Gawk the Enduring",
     body: "Gawk_Aktuun, also known as Gawking, was the twenty-eighth Emperor of TSO and the longest-serving Emperor, though his reign is remembered as one carried heavily by his latter Wrath.\n\nHe was appointed after serving as Dark Honor Guard Commander and survived challenges from remaining High Command merely through the support system holding the throne upright.\n\nHis reign lasted more than thirteen months and is remembered for policy revisions, the shutdown of the Shadow Guard and the hosting of unique events, though many of these successes were shaped by those around him. He was the second Emperor to achieve Architect privileges, but the transition of ownership between Kactussman and CroczTerminus destabilized the era, leading to his Fall in November 2022. He remained as a bickering advisor."
   },
   {

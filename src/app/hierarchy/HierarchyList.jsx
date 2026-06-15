@@ -1,4 +1,4 @@
-const MAX_PATH_ROW_CARDS = 4;
+const MAX_PATH_ROW_CARDS = 3;
 
 function glyphLinesFor(glyph) {
   if (!glyph || glyph.length <= 4) return [glyph];
@@ -53,8 +53,10 @@ export function HierarchyCard({ item }) {
       ) : (
         <img className="hierarchy-card-bg" src={item.image} alt="" loading="lazy" aria-hidden="true" />
       )}
-      {cardSubtitle ? <span className="card-category">{cardSubtitle}</span> : null}
-      <h2 className="card-title">{cardText.title}</h2>
+      <div className="hierarchy-card-label">
+        {cardSubtitle ? <span className="card-category">{cardSubtitle}</span> : null}
+        <h2 className="card-title">{cardText.title}</h2>
+      </div>
       <span className="card-enter" aria-hidden="true">{enterLabel} &rsaquo;&rsaquo;</span>
     </a>
   );

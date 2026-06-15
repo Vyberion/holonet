@@ -1786,7 +1786,7 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
 
 .hierarchy-card {
   container-type: inline-size;
-  height: 220px;
+  height: 340px;
   justify-content: flex-end;
   padding: 24px;
 }
@@ -1867,8 +1867,9 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
   z-index: 4;
 }
 
-.hierarchy-card .card-title,
+.hierarchy-card .hierarchy-card-label,
 .hierarchy-card .card-category,
+.hierarchy-card .card-title,
 .hierarchy-card .card-enter,
 .hierarchy-card .card-corners,
 .hierarchy-card .card-vline,
@@ -1877,11 +1878,21 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
   z-index: 3;
 }
 
+.hierarchy-card .hierarchy-card-label {
+  background: linear-gradient(0deg, rgba(14, 0, 0, 0.78), rgba(14, 0, 0, 0.08));
+  display: grid;
+  gap: 2px;
+  margin: -24px;
+  padding: 64px 24px 34px;
+  position: relative;
+  width: calc(100% + 48px);
+}
+
 .hierarchy-card .card-category {
   align-self: flex-start;
   letter-spacing: 0.32em;
-  line-height: 1.35;
-  margin-bottom: 8px;
+  line-height: 1.22;
+  margin-bottom: 0;
   max-width: calc(100% - 44px);
   overflow-wrap: anywhere;
   text-shadow: 0 0 10px var(--theme-accent-glow);
@@ -1889,11 +1900,10 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
 }
 
 .hierarchy-card .card-title {
-  background: linear-gradient(0deg, rgba(14, 0, 0, 0.78), rgba(14, 0, 0, 0.08));
   font-size: clamp(1.2rem, 2vw, 1.6rem);
-  margin: -24px;
-  padding: 72px 24px 34px;
-  width: calc(100% + 48px);
+  margin: 0;
+  padding: 0;
+  width: auto;
 }
 
 .hierarchy-path-grid {

@@ -80,9 +80,9 @@ export function HolonetFrame({
               <span>Signal Alignment</span>
             </div>
             <div className="loader-terminal-body">
-              <p className="loader-terminal-line">Relay KOR-7 aligned with imperial channel</p>
-              <p className="loader-terminal-line">Cipher lattice accepted by the archive</p>
-              <p className="loader-terminal-line">Old Guard transmission entering focus</p>
+              <p className="loader-terminal-line">KOR-7 relay aligned</p>
+              <p className="loader-terminal-line">Transmission received</p>
+              <p className="loader-terminal-line">Playback initialized</p>
               <div className="loader-terminal-progress" aria-hidden="true">
                 <span />
               </div>

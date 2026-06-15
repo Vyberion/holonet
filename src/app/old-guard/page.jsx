@@ -5,7 +5,7 @@ import { holonetMetadata } from "../../lib/metadata.js";
 
 export const metadata = holonetMetadata({
   title: "The Old Guard",
-  description: "Archive playback for The Old Guard transmission."
+  description: "Not Yet. Not Now."
 });
 
 export default function OldGuardPage() {

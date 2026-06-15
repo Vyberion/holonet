@@ -1,5 +1,10 @@
 /* Holonet CRT system
-   One viewport reveal for the site, notice overlay and intro transitions. */
+   One viewport reveal for the site and intro transitions. */
+
+html:not(.holonet-developer-notice-ready) .developer-notice-overlay.active {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 
 html.holonet-release-intro #loader[data-loader-phase="intro-reveal"] {
   background: transparent;
@@ -27,8 +32,7 @@ html.holonet-crt-armed #nav-container,
 html.holonet-crt-armed #app,
 html.holonet-crt-armed #vignette,
 html.holonet-crt-armed #rune-field,
-html.holonet-crt-armed #holo-grid,
-html.holonet-crt-armed .developer-notice-overlay.active {
+html.holonet-crt-armed #holo-grid {
   clip-path: inset(50% 0 50% 0);
   filter: brightness(3.2) contrast(1.42) blur(2px);
   opacity: 0;
@@ -41,29 +45,25 @@ html.holonet-crt-opening #nav-container,
 html.holonet-crt-opening #app,
 html.holonet-crt-opening #vignette,
 html.holonet-crt-opening #rune-field,
-html.holonet-crt-opening #holo-grid,
-html.holonet-crt-opening .developer-notice-overlay.active {
+html.holonet-crt-opening #holo-grid {
   animation: holonetViewportCrtOpen 1.58s cubic-bezier(0.16, 1, 0.3, 1) both !important;
 }
 
 html.holonet-crt-opening #app > header > *,
 html.holonet-crt-opening #app > .status-bar,
 html.holonet-crt-opening #app > main,
-html.holonet-crt-opening #app > footer,
-html.holonet-crt-opening .developer-notice-panel > * {
+html.holonet-crt-opening #app > footer {
   animation: holonetSignalLock 0.95s steps(1) both;
 }
 
 html.holonet-crt-opening #app > header > *:nth-child(2),
 html.holonet-crt-opening #app > main,
-html.holonet-crt-opening #app > footer,
-html.holonet-crt-opening .developer-notice-body {
+html.holonet-crt-opening #app > footer {
   animation-delay: 0.1s;
 }
 
 html.holonet-crt-opening #app > header > *:nth-child(3),
-html.holonet-crt-opening #app > .status-bar,
-html.holonet-crt-opening .developer-notice-topbar {
+html.holonet-crt-opening #app > .status-bar {
   animation-delay: 0.18s;
 }
 
@@ -264,13 +264,11 @@ html.holonet-crt-opening .developer-notice-topbar {
   html.holonet-crt-armed #vignette,
   html.holonet-crt-armed #rune-field,
   html.holonet-crt-armed #holo-grid,
-  html.holonet-crt-armed .developer-notice-overlay.active,
   html.holonet-crt-opening #nav-container,
   html.holonet-crt-opening #app,
   html.holonet-crt-opening #vignette,
   html.holonet-crt-opening #rune-field,
   html.holonet-crt-opening #holo-grid,
-  html.holonet-crt-opening .developer-notice-overlay.active,
   #loader[data-loader-phase="intro-video"] .old-guard-player--intro {
     animation: none !important;
     clip-path: none;

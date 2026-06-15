@@ -109,18 +109,8 @@ export function HolonetFrame({
           <OldGuardPlayer mode="intro" />
         </div>
 
-        <div className="loader-intro-boot" data-loader-intro-boot>
-          <section className="loader-terminal-panel loader-terminal-panel--boot">
-            <div className="loader-terminal-topbar">
-              <span>KOR-7 Secure Terminal</span>
-              <span>Interface Restore</span>
-            </div>
-            <div className="loader-terminal-body">
-              <p className="loader-terminal-line">&gt; restoring holonet interface</p>
-              <p className="loader-terminal-line">&gt; synchronizing archive index</p>
-              <p className="loader-terminal-line">&gt; terminal online</p>
-            </div>
-          </section>
+        <div className="loader-crt-reveal" aria-hidden="true">
+          <span />
         </div>
       </div>
 

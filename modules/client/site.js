@@ -461,10 +461,10 @@
       const videoSlot = loader.querySelector("[data-loader-intro-video]");
       if (videoSlot) videoSlot.setAttribute("aria-hidden", "false");
       setLoaderPhase(loader, "intro-video");
+      await wait(650);
 
       if (player) {
         resetIntroPlayer(player);
-        await wait(250);
         const playing = await playIntroPlayer(player);
         if (playing) {
           await waitForIntroEnded(player);
@@ -477,9 +477,11 @@
       }
 
       if (videoSlot) videoSlot.setAttribute("aria-hidden", "true");
-      setLoaderPhase(loader, "intro-boot");
-      await wait(4300);
+      setLoaderPhase(loader, "intro-blackout");
+      await wait(900);
       await waitForAccessClear();
+      setLoaderPhase(loader, "intro-reveal");
+      await wait(1650);
 
       writeLocalStorage(INTRO_COMPLETE_KEY, "true");
       try {

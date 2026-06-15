@@ -1,5 +1,4 @@
 import { HolonetFrame } from "../components/HolonetFrame.jsx";
-import { HomeMuxPlayer } from "../components/HomeMuxPlayer.jsx";
 import { PageScripts } from "../components/PageScripts.jsx";
 import { holonetMetadata } from "../lib/metadata.js";
 
@@ -15,8 +14,6 @@ export default function HomePage() {
       subtitle="IMPERIAL TRANSMISSION NETWORK"
       footerNode="KOR-7"
     >
-
-
       <nav className="nav-grid" aria-label="Holonet Sections">
         <a href="/codex" className="nav-card" aria-label="Enter The Codex">
           <div className="card-inner-border" aria-hidden="true" />
@@ -69,19 +66,6 @@ export default function HomePage() {
           <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
         </a>
       </nav>
-
-      <section className="home-media-shell" aria-labelledby="home-media-title">
-        <div className="home-media-topbar">
-          <span className="home-media-kicker">Imperial Transmission</span>
-          <span className="home-media-signal">ARCHIVE PLAYBACK</span>
-        </div>
-        <div className="home-media-frame">
-          <HomeMuxPlayer />
-        </div>
-        <div className="home-media-caption">
-          <h2 id="home-media-title">The Old Guard</h2>
-        </div>
-      </section>
 
       <div className="marquee-wrap" aria-hidden="true">
         <div className="marquee-track" style={{ color: "var(--text-dim)" }} />

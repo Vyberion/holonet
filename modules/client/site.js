@@ -1,4 +1,9 @@
 (function () {
+  const INTRO_COMPLETE_KEY = "holonet:intro:v1:complete";
+  const LOADER_SHOWN_KEY = "loaderShown";
+  const MUX_PLAYER_SCRIPT = "https://cdn.jsdelivr.net/npm/@mux/mux-player";
+  const OLD_GUARD_PLAYBACK_ID = "zB4z6QMgwgilabiIn00fmdcf62mmk00n4N01XnhNfaqTL00";
+  const OLD_GUARD_TITLE = "THE OLD GUARD";
   const canonCache = new Map();
   const canonFetches = new Map();
 
@@ -237,11 +242,254 @@
     return null;
   }
 
-  function initLoader() {
-    const loader = document.getElementById("loader");
-    if (!loader) return;
+  function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
-    const loaderAlreadyShown = sessionStorage.getItem("loaderShown");
+  function waitForWindowLoad() {
+    if (document.readyState === "complete") return Promise.resolve();
+    return new Promise(resolve => window.addEventListener("load", resolve, { once: true }));
+  }
+
+  function waitForAccessClear() {
+    return new Promise(resolve => {
+      function checkAccess() {
+        if (document.documentElement.classList.contains("access-pending")) {
+          setTimeout(checkAccess, 50);
+          return;
+        }
+
+        resolve();
+      }
+
+      checkAccess();
+    });
+  }
+
+  function setLoaderPhase(loader, phase) {
+    loader.dataset.loaderPhase = phase;
+    loader.classList.remove("hidden");
+    loader.style.display = "";
+  }
+
+  function hideLoader(loader) {
+    loader.classList.add("hidden");
+  }
+
+  function readLocalStorage(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  function writeLocalStorage(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      return null;
+    }
+  }
+
+  function shouldForceIntro() {
+    try {
+      return new URLSearchParams(window.location.search).get("intro") === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  function shouldRunReleaseIntro() {
+    return shouldForceIntro() || readLocalStorage(INTRO_COMPLETE_KEY) !== "true";
+  }
+
+  function restartLoaderBar(loader) {
+    const bar = loader.querySelector(".loader-bar");
+    if (!bar) return;
+
+    bar.style.animation = "none";
+    void bar.offsetWidth;
+    bar.style.animation = "";
+  }
+
+  function ensureMuxPlayerReady() {
+    if (window.customElements?.get("mux-player")) {
+      return Promise.resolve();
+    }
+
+    const existingScript = document.querySelector(`script[src="${MUX_PLAYER_SCRIPT}"]`);
+    const scriptPromise = existingScript
+      ? Promise.resolve()
+      : new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = MUX_PLAYER_SCRIPT;
+          script.async = true;
+          script.addEventListener("load", resolve, { once: true });
+          script.addEventListener("error", reject, { once: true });
+          document.head.appendChild(script);
+        });
+
+    return scriptPromise.then(() => window.customElements?.whenDefined?.("mux-player"));
+  }
+
+  function buildIntroPlayer(videoSlot) {
+    const player = document.createElement("mux-player");
+    player.className = "old-guard-mux old-guard-mux--intro";
+    player.setAttribute("playback-id", OLD_GUARD_PLAYBACK_ID);
+    player.setAttribute("metadata-video-title", OLD_GUARD_TITLE);
+    player.setAttribute("video-title", OLD_GUARD_TITLE);
+    player.setAttribute("accent-color", "#4d0000");
+    player.setAttribute("primary-color", "#ff0000");
+    player.setAttribute("secondary-color", "#050102");
+    player.setAttribute("stream-type", "on-demand");
+    player.setAttribute("preload", "auto");
+    player.setAttribute("playsinline", "");
+    player.setAttribute("data-loader-created-player", "true");
+
+    const shell = document.createElement("div");
+    shell.className = "old-guard-player old-guard-player--intro";
+    shell.setAttribute("data-old-guard-intro-player", "");
+    shell.appendChild(player);
+
+    videoSlot.innerHTML = "";
+    videoSlot.appendChild(shell);
+    return player;
+  }
+
+  async function getIntroPlayer(loader) {
+    await ensureMuxPlayerReady();
+
+    const videoSlot = loader.querySelector("[data-loader-intro-video]");
+    if (!videoSlot) return null;
+
+    const existing = videoSlot.querySelector("mux-player");
+    return existing || buildIntroPlayer(videoSlot);
+  }
+
+  function resetIntroPlayer(player) {
+    if (!player) return;
+
+    try {
+      player.pause?.();
+      player.currentTime = 0;
+      player.muted = false;
+      player.volume = 1;
+    } catch {
+      return null;
+    }
+  }
+
+  async function playIntroPlayer(player) {
+    if (!player?.play) return false;
+
+    try {
+      player.muted = false;
+      player.volume = 1;
+      player.currentTime = 0;
+      await player.play();
+      return true;
+    } catch (error) {
+      console.warn("Old Guard intro playback was blocked:", error);
+      return false;
+    }
+  }
+
+  function waitForIntroEnded(player) {
+    if (!player) return Promise.resolve();
+
+    return new Promise(resolve => {
+      let finished = false;
+
+      function finish() {
+        if (finished) return;
+        finished = true;
+        player.removeEventListener("ended", finish);
+        player.removeEventListener("error", finish);
+        resolve();
+      }
+
+      if (player.ended) {
+        finish();
+        return;
+      }
+
+      player.addEventListener("ended", finish);
+      player.addEventListener("error", finish);
+      setTimeout(finish, 10 * 60 * 1000);
+    });
+  }
+
+  async function runReleaseIntro(loader) {
+    if (loader.dataset.releaseIntroReady === "true") return;
+
+    loader.dataset.releaseIntroReady = "true";
+    setLoaderPhase(loader, "intro-gate");
+
+    const establishButton = loader.querySelector("[data-loader-establish]");
+    const playerPromise = getIntroPlayer(loader)
+      .then(player => {
+        resetIntroPlayer(player);
+        return player;
+      })
+      .catch(error => {
+        console.warn("Old Guard intro unavailable:", error);
+        return null;
+      });
+
+    async function startIntro() {
+      if (loader.dataset.releaseIntroRunning === "true") return;
+      loader.dataset.releaseIntroRunning = "true";
+
+      if (establishButton) establishButton.disabled = true;
+
+      restartLoaderBar(loader);
+      setLoaderPhase(loader, "standard");
+
+      await Promise.all([waitForWindowLoad(), wait(2400)]);
+
+      setLoaderPhase(loader, "link-established");
+      await wait(1300);
+
+      const player = await playerPromise;
+      const videoSlot = loader.querySelector("[data-loader-intro-video]");
+      if (videoSlot) videoSlot.setAttribute("aria-hidden", "false");
+      setLoaderPhase(loader, "intro-video");
+
+      if (player) {
+        resetIntroPlayer(player);
+        await wait(250);
+        const playing = await playIntroPlayer(player);
+        if (playing) {
+          await waitForIntroEnded(player);
+          await wait(650);
+        } else {
+          await wait(1800);
+        }
+      } else {
+        await wait(1800);
+      }
+
+      setLoaderPhase(loader, "link-stable");
+      await wait(1400);
+      await waitForAccessClear();
+
+      writeLocalStorage(INTRO_COMPLETE_KEY, "true");
+      try {
+        sessionStorage.setItem(LOADER_SHOWN_KEY, "true");
+      } catch {}
+
+      hideLoader(loader);
+    }
+
+    if (establishButton) {
+      establishButton.addEventListener("click", startIntro, { once: true });
+      window.setTimeout(() => establishButton.focus({ preventScroll: true }), 0);
+    }
+  }
+
+  function runStandardLoader(loader) {
+    const loaderAlreadyShown = sessionStorage.getItem(LOADER_SHOWN_KEY);
     const accessPending = document.documentElement.classList.contains("access-pending");
 
     if (loaderAlreadyShown && !accessPending) {
@@ -250,8 +498,10 @@
     }
 
     if (!loaderAlreadyShown) {
-      sessionStorage.setItem("loaderShown", "true");
+      sessionStorage.setItem(LOADER_SHOWN_KEY, "true");
     }
+
+    setLoaderPhase(loader, "standard");
 
     function waitForAccessAndHide() {
       if (document.documentElement.classList.contains("access-pending")) {
@@ -259,7 +509,7 @@
         return;
       }
 
-      loader.classList.add("hidden");
+      hideLoader(loader);
     }
 
     if (document.readyState === "complete") {
@@ -267,6 +517,18 @@
     } else {
       window.addEventListener("load", waitForAccessAndHide);
     }
+  }
+
+  function initLoader() {
+    const loader = document.getElementById("loader");
+    if (!loader) return;
+
+    if (shouldRunReleaseIntro()) {
+      runReleaseIntro(loader);
+      return;
+    }
+
+    runStandardLoader(loader);
   }
 
   function initDirectoryCards() {

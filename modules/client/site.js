@@ -524,10 +524,14 @@
     if (!loader) return;
 
     if (shouldRunReleaseIntro()) {
+      document.documentElement.classList.add("holonet-release-intro");
+      document.documentElement.classList.remove("holonet-standard-loader");
       runReleaseIntro(loader);
       return;
     }
 
+    document.documentElement.classList.add("holonet-standard-loader");
+    document.documentElement.classList.remove("holonet-release-intro");
     runStandardLoader(loader);
   }
 

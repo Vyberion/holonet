@@ -979,9 +979,25 @@ footer {
   z-index: 1;
 }
 
+.loader-intro-gate {
+  display: grid;
+  grid-template-rows: 1fr auto 1fr;
+  justify-items: center;
+}
+
+.loader-intro-gate .loader-intro-kicker {
+  align-self: end;
+  margin-bottom: 10px;
+}
+
+.loader-intro-gate .loader-intro-note {
+  align-self: start;
+  margin-top: 10px;
+}
+
 .loader-standard {
-  opacity: 1;
-  pointer-events: auto;
+  opacity: 0;
+  pointer-events: none;
 }
 
 #loader[data-loader-phase] .loader-standard {
@@ -989,6 +1005,8 @@ footer {
   pointer-events: none;
 }
 
+html.holonet-standard-loader #loader:not([data-loader-phase]) .loader-standard,
+html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-gate,
 #loader[data-loader-phase="standard"] .loader-standard,
 #loader[data-loader-phase="intro-gate"] .loader-intro-gate,
 #loader[data-loader-phase="link-established"] [data-loader-link-established],
@@ -1064,6 +1082,44 @@ footer {
   text-transform: uppercase;
 }
 
+.loader-link-display::before {
+  background:
+    radial-gradient(ellipse 90% 120% at 50% 115%, rgba(255, 59, 79, 0.16), transparent 64%),
+    linear-gradient(145deg, rgba(55, 9, 17, 0.82), rgba(4, 1, 3, 0.96));
+  border: 1px solid rgba(255, 59, 79, 0.48);
+  box-shadow:
+    0 0 42px rgba(255, 0, 34, 0.24),
+    inset 0 0 34px rgba(255, 59, 79, 0.08);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  content: '';
+  height: clamp(180px, 30vh, 300px);
+  left: 50%;
+  max-width: 92vw;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(820px, 92vw);
+  z-index: -1;
+}
+
+.loader-link-display::after {
+  background: linear-gradient(90deg, transparent, var(--theme-accent), transparent);
+  box-shadow: 0 0 18px var(--theme-accent-glow);
+  content: '';
+  height: 1px;
+  left: 50%;
+  opacity: 0.72;
+  position: absolute;
+  top: calc(50% + clamp(72px, 12vh, 118px));
+  transform: translateX(-50%);
+  width: min(640px, 72vw);
+}
+
+.loader-link-display > * {
+  position: relative;
+  z-index: 1;
+}
+
 #loader[data-loader-phase="link-stable"] .loader-link-display strong {
   animation: loaderStablePulse 0.9s steps(1) infinite;
 }
@@ -1088,13 +1144,18 @@ footer {
 
 .old-guard-player--intro {
   background: #000;
-  height: 100%;
-  width: 100%;
+  inset: 0;
+  position: absolute;
 }
 
 .old-guard-player--intro .old-guard-mux {
-  height: 100%;
-  width: 100%;
+  display: block;
+  height: 100dvh;
+  inset: 0;
+  min-height: 100%;
+  min-width: 100%;
+  position: absolute;
+  width: 100vw;
 }
 
 @keyframes loaderStablePulse {

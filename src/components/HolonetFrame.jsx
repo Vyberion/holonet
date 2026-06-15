@@ -24,6 +24,12 @@ export function HolonetFrame({
       <div id="rune-field" aria-hidden="true" />
       <div id="holo-grid" aria-hidden="true" />
 
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `(function(){try{var q=new URLSearchParams(window.location.search);var intro=q.get("intro")==="1"||localStorage.getItem("holonet:intro:v1:complete")!=="true";document.documentElement.classList.add(intro?"holonet-release-intro":"holonet-standard-loader");}catch(e){document.documentElement.classList.add("holonet-release-intro");}})();`
+        }}
+      />
+
       <div id="loader" role="status" aria-label="Establishing connection">
         <div className="loader-intro-gate" data-loader-intro-gate>
           <p className="loader-intro-kicker">Imperial Transmission Network</p>

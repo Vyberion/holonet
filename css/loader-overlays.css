@@ -1,0 +1,80 @@
+/* Always-on loader treatment: scanlines and vignette must sit above the intro UI and video. */
+
+#loader::before,
+#loader::after {
+  pointer-events: none !important;
+  position: absolute !important;
+}
+
+#loader::before {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 210, 210, 0.026) 2px,
+      rgba(255, 210, 210, 0.026) 4px
+    ),
+    linear-gradient(90deg, rgba(255, 59, 79, 0.028), transparent 18%, transparent 82%, rgba(255, 59, 79, 0.024));
+  inset: 0;
+  opacity: 0.48 !important;
+  z-index: 8800 !important;
+}
+
+#loader::after {
+  background:
+    radial-gradient(ellipse 100% 100% at 50% 50%, transparent 34%, rgba(0, 0, 0, 0.72) 100%),
+    radial-gradient(ellipse 62% 52% at 50% 50%, rgba(160, 0, 22, 0.07) 0%, transparent 66%),
+    radial-gradient(ellipse 100% 90% at 50% 0%, rgba(100, 0, 15, 0.055) 0%, transparent 62%);
+  inset: 0;
+  opacity: 1 !important;
+  z-index: 8750 !important;
+}
+
+html.holonet-release-intro #loader::before,
+html.holonet-release-intro #loader::after,
+#loader[data-loader-phase="intro-prompt"]::before,
+#loader[data-loader-phase="intro-prompt"]::after,
+#loader[data-loader-phase="intro-loading"]::before,
+#loader[data-loader-phase="intro-loading"]::after,
+#loader[data-loader-phase="intro-ready"]::before,
+#loader[data-loader-phase="intro-ready"]::after,
+#loader[data-loader-phase="intro-video"]::before,
+#loader[data-loader-phase="intro-video"]::after,
+#loader[data-loader-phase="intro-blackout"]::before,
+#loader[data-loader-phase="intro-blackout"]::after,
+#loader[data-loader-phase="intro-reveal"]::before,
+#loader[data-loader-phase="intro-reveal"]::after {
+  opacity: inherit;
+}
+
+html.holonet-release-intro #loader::before,
+#loader[data-loader-phase="intro-prompt"]::before,
+#loader[data-loader-phase="intro-loading"]::before,
+#loader[data-loader-phase="intro-ready"]::before,
+#loader[data-loader-phase="intro-video"]::before,
+#loader[data-loader-phase="intro-blackout"]::before,
+#loader[data-loader-phase="intro-reveal"]::before {
+  animation: scanlines 6s linear infinite !important;
+  opacity: 0.48 !important;
+}
+
+html.holonet-release-intro #loader::after,
+#loader[data-loader-phase="intro-prompt"]::after,
+#loader[data-loader-phase="intro-loading"]::after,
+#loader[data-loader-phase="intro-ready"]::after,
+#loader[data-loader-phase="intro-video"]::after,
+#loader[data-loader-phase="intro-blackout"]::after,
+#loader[data-loader-phase="intro-reveal"]::after {
+  animation: pulseGlow 5s ease-in-out infinite !important;
+  opacity: 1 !important;
+}
+
+#loader.hidden::before,
+#loader.hidden::after {
+  opacity: 0 !important;
+}
+
+#loader .loader-crt-reveal {
+  z-index: 9200 !important;
+}

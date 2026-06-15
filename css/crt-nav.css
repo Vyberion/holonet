@@ -1,37 +1,78 @@
-/* Keeps the fixed navigation inside the same CRT reveal as the page. */
+/* Keeps the fixed navigation moving with the CRT page reveal. */
 
-html.holonet-release-intro:not(.holonet-crt-opening):not(.holonet-nav-crt-complete) .site-nav,
-html.holonet-release-intro:not(.holonet-crt-opening):not(.holonet-nav-crt-complete) .back-to-top-btn {
+html.holonet-release-intro:has(#loader:not(.hidden)):not(.holonet-crt-armed):not(.holonet-crt-opening) .site-nav,
+html.holonet-release-intro:has(#loader:not(.hidden)):not(.holonet-crt-armed):not(.holonet-crt-opening) .back-to-top-btn {
   opacity: 0 !important;
   pointer-events: none !important;
+  transition: none !important;
 }
 
-html.holonet-crt-armed .site-nav,
-html.holonet-crt-armed .back-to-top-btn {
+html.holonet-crt-armed .site-nav {
   clip-path: inset(50% 0 50% 0);
   filter: brightness(4.1) contrast(1.56) blur(2.2px) saturate(1.38);
   opacity: 1 !important;
   pointer-events: none !important;
-  transform: scaleX(0.055) scaleY(0.012);
+  top: 50vh !important;
+  transform: translateY(-50%) scaleX(0.055) scaleY(0.012);
   transform-origin: center;
-  will-change: clip-path, filter, transform;
+  transition: none !important;
+  will-change: clip-path, filter, top, transform;
 }
 
-html.holonet-crt-opening .site-nav,
-html.holonet-crt-opening .back-to-top-btn {
-  animation: holonetViewportCrtOpen 1.72s cubic-bezier(0.18, 0.82, 0.22, 1) both !important;
+html.holonet-crt-opening .site-nav {
+  animation: holonetNavCrtOpen 1.72s cubic-bezier(0.18, 0.82, 0.22, 1) both !important;
   opacity: 1 !important;
   pointer-events: auto !important;
-}
-
-html.holonet-release-intro.holonet-crt-opening .site-nav,
-html.holonet-release-intro.holonet-crt-opening .back-to-top-btn {
   transition: none !important;
 }
 
-html.holonet-release-intro:not(.holonet-crt-opening) .site-nav,
-html.holonet-release-intro:not(.holonet-crt-opening) .back-to-top-btn {
+html.holonet-crt-armed .back-to-top-btn {
+  opacity: 0 !important;
+  pointer-events: none !important;
   transition: none !important;
+}
+
+html.holonet-crt-opening .back-to-top-btn {
+  animation: holonetBackToTopCrtIn 1.72s cubic-bezier(0.18, 0.82, 0.22, 1) both !important;
+  pointer-events: auto !important;
+  transition: none !important;
+}
+
+@keyframes holonetNavCrtOpen {
+  0% {
+    clip-path: inset(50% 0 50% 0);
+    filter: brightness(4.25) contrast(1.58) blur(2.5px) saturate(1.4);
+    opacity: 1;
+    top: 50vh;
+    transform: translateY(-50%) scaleX(0.055) scaleY(0.012);
+  }
+
+  23% {
+    clip-path: inset(49.75% 0 49.75% 0);
+    filter: brightness(3.95) contrast(1.5) blur(2px) saturate(1.36);
+    top: 50vh;
+    transform: translateY(-50%) scaleX(1.06) scaleY(0.014);
+  }
+
+  100% {
+    clip-path: inset(0 0 0 0);
+    filter: brightness(1) contrast(1) blur(0) saturate(1);
+    opacity: 1;
+    top: 0;
+    transform: translateY(0) scaleX(1) scaleY(1);
+  }
+}
+
+@keyframes holonetBackToTopCrtIn {
+  0%, 72% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.92);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -42,6 +83,7 @@ html.holonet-release-intro:not(.holonet-crt-opening) .back-to-top-btn {
     filter: none !important;
     opacity: 1 !important;
     pointer-events: auto !important;
+    top: 0 !important;
     transform: none !important;
   }
 }

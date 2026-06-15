@@ -124,10 +124,7 @@ export function HolonetNav() {
       href: "/archives",
       page: "archives",
       prefix: "02",
-      label: "Archives",
-      dropdown: [
-        { href: "/archives/emperors", page: "archives-emperors", label: "Emperors" }
-      ]
+      label: "Archives"
     },
     { href: "/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
     ...(access?.permissions?.canAccessRegistry

@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 const MORPH_FALLBACK_IMAGE = "/assets/morphs/clown.jpg";
 const CURRENT_EMPEROR_SLUG = "the-40th-emperor";
+const CURRENT_EMPEROR_MORPH_IMAGE = "/assets/morphs/current_emperor.png";
 
 function ordinal(value) {
   const tens = value % 100;
@@ -321,6 +322,7 @@ export const HIERARCHY_GROUPS = [
       {
         slug: CURRENT_EMPEROR_SLUG,
         href: `/archives/emperors/${CURRENT_EMPEROR_SLUG}`,
+        image: CURRENT_EMPEROR_MORPH_IMAGE,
         name: "Torreto the Tyrant",
         body: "PENDING.",
         category: "The Quadragennial",
@@ -393,15 +395,6 @@ export const HIERARCHY_GROUPS = [
         path: "Sith Architect"
       },
       {
-        slug: "fallen-gawk",
-        href: "/administration/gawk_aktuun",
-        image: "/assets/morphs/gawk_aktuun.png",
-        name: "Gawk",
-        body: "Fallen Advisor.",
-        category: "Gawk Aktuun",
-        path: "Fallen Advisors"
-      },
-      {
         slug: "naktisterminus",
         name: "Naktis",
         body: "Fallen Advisor.",
@@ -409,17 +402,8 @@ export const HIERARCHY_GROUPS = [
         path: "Fallen Advisors"
       },
       {
-        slug: "fallen-rdn",
-        href: "/administration/project-manager",
-        image: "/assets/morphs/project_manager.png",
-        name: "Rdn",
-        body: "Fallen Advisor.",
-        category: "Project Manager",
-        path: "Fallen Advisors"
-      },
-      {
         slug: "terrabiome",
-        name: "Terrabiome",
+        name: "Terra",
         body: "Fallen Advisor.",
         category: "Terrabiome",
         path: "Fallen Advisors"
@@ -610,14 +594,18 @@ const EMPEROR_ARCHIVE_DATA = [
 function emperorArchiveRecord(index) {
   const title = ordinal(index);
   const source = EMPEROR_ARCHIVE_DATA[index - 1] || {};
+  const slug = `the-${title}-emperor`.toLowerCase();
+  const current = slug === CURRENT_EMPEROR_SLUG;
 
   return {
-    slug: `the-${title}-emperor`.toLowerCase(),
+    slug,
     name: source.name || `The ${title} Emperor`,
     body: source.body || "Biography pending archival upload.",
     category: `The ${title} Sith Emperor`,
     path: emperorPathTitle(index),
-    current: source.current || index === 40
+    image: current ? CURRENT_EMPEROR_MORPH_IMAGE : source.image,
+    pathOwnRow: current,
+    current
   };
 }
 
@@ -664,11 +652,16 @@ function decorateHierarchyItem(group, item, index, fallbackHref) {
   const emperorNumber = group.id === EMPEROR_ARCHIVE_GROUP.id
     ? index + 1
     : emperorNumberFromSlug(item.slug);
+  const isCurrentEmperor = item.slug === CURRENT_EMPEROR_SLUG;
+  const imageItem = isCurrentEmperor && !item.image
+    ? { ...item, image: CURRENT_EMPEROR_MORPH_IMAGE }
+    : item;
 
   return {
     ...item,
-    cardGlyph: item.cardGlyph || (emperorNumber ? toRoman(emperorNumber) : ""),
-    image: imageForItem(item),
+    cardGlyph: item.cardGlyph ?? (emperorNumber && !isCurrentEmperor ? toRoman(emperorNumber) : ""),
+    current: Boolean(item.current || isCurrentEmperor),
+    image: imageForItem(imageItem),
     groupId: group.id,
     groupTitle: group.title,
     section: group.section,

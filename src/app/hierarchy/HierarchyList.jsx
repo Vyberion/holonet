@@ -33,8 +33,9 @@ export function HierarchyCard({ item }) {
   const glyphLength = glyph
     ? Math.min(Math.max(...glyphLines.map(line => line.length)), 7)
     : 0;
-  const cardText = splitTitledName(item.name);
-  const cardSubtitle = cardSubtitleFor(item, cardText.subtitle);
+  const showCardSubtitle = item.groupId === "emperor-archive";
+  const cardText = showCardSubtitle ? splitTitledName(item.name) : { title: item.name, subtitle: "" };
+  const cardSubtitle = showCardSubtitle ? cardSubtitleFor(item, cardText.subtitle) : "";
   const cardClassName = `nav-card hierarchy-card${glyph ? " hierarchy-card--glyph" : ""}`;
   const enterLabel = glyph ? "Enter" : "Open";
 

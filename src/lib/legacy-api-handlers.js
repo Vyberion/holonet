@@ -32,7 +32,7 @@ import { ARCHIVE_SEED } from "../../modules/data/archive-seed.js";
 import { LIBRARY_SEED } from "../../modules/data/library-seed.js";
 import { getHandbookSlot, getHandbookSlots } from "../../modules/data/handbook-slots.js";
 import { listDivisions } from "../../modules/data/divisions/index.js";
-import { extractGoogleFileId } from "./google-drive.js";
+import { extractGoogleFileId, extractGoogleTabId } from "./google-drive.js";
 
 function getQueryParam(req, name) {
   return String(req?.query?.[name] || "").trim();
@@ -728,6 +728,7 @@ async function normalizeRows(resources, detailRows, resourceType) {
     if (resourceType === "handbook") {
       const slot = getHandbookSlot(resource.division_key, detail.slot_key || "");
       const googleFileId = detail.google_file_id || extractGoogleFileId(detail.google_doc_url);
+      const googleTabId = detail.google_tab_id || extractGoogleTabId(detail.google_doc_url);
       const googleDocUrl = detail.google_doc_url || "";
       const sourceType = googleFileId || detail.source_type === "google_doc" ? "google_doc" : "supabase_pdf";
       const signedUrl = googleFileId
@@ -743,6 +744,7 @@ async function normalizeRows(resources, detailRows, resourceType) {
         fileName: detail.file_name || detail.storage_path?.split("/").pop() || "",
         sourceType,
         googleFileId,
+        googleTabId,
         googleDocUrl,
         storageBucket: detail.storage_bucket || "handbooks",
         storagePath: detail.storage_path || "",

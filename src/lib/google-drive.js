@@ -1,6 +1,7 @@
 import { GoogleAuth } from "google-auth-library";
 
 const DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+const DOCUMENTS_READONLY_SCOPE = "https://www.googleapis.com/auth/documents.readonly";
 const GOOGLE_DOC_PDF_MIME = "application/pdf";
 
 let authClientPromise = null;
@@ -42,7 +43,7 @@ async function getDriveAuthClient() {
   if (!authClientPromise) {
     authClientPromise = new GoogleAuth({
       credentials: serviceAccountCredentials(),
-      scopes: [DRIVE_READONLY_SCOPE]
+      scopes: [DRIVE_READONLY_SCOPE, DOCUMENTS_READONLY_SCOPE]
     }).getClient();
   }
 
@@ -57,6 +58,8 @@ export function extractGoogleFileId(value) {
 
   const patterns = [
     /\/document\/d\/([a-zA-Z0-9_-]+)/,
+    /\/presentation\/d\/([a-zA-Z0-9_-]+)/,
+    /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/,
     /\/file\/d\/([a-zA-Z0-9_-]+)/,
     /[?&]id=([a-zA-Z0-9_-]+)/
   ];
@@ -69,7 +72,19 @@ export function extractGoogleFileId(value) {
   return "";
 }
 
-export async function exportGoogleDocPdf(fileId) {
+export function extractGoogleTabId(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+
+  try {
+    const url = new URL(text);
+    return url.searchParams.get("tab") || "";
+  } catch {
+    return text.match(/[?&]tab=([^&#]+)/)?.[1] || "";
+  }
+}
+
+export async function exportGoogleDocPdf(fileId, { tabId = "" } = {}) {
   const id = extractGoogleFileId(fileId);
   if (!id) {
     throw new Error("GOOGLE_FILE_ID_REQUIRED");
@@ -83,8 +98,16 @@ export async function exportGoogleDocPdf(fileId) {
     throw new Error("GOOGLE_ACCESS_TOKEN_MISSING");
   }
 
-  const exportUrl = new URL(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}/export`);
-  exportUrl.searchParams.set("mimeType", GOOGLE_DOC_PDF_MIME);
+  const exportUrl = tabId
+    ? new URL(`https://docs.google.com/document/d/${encodeURIComponent(id)}/export`)
+    : new URL(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}/export`);
+
+  if (tabId) {
+    exportUrl.searchParams.set("format", "pdf");
+    exportUrl.searchParams.set("tab", tabId);
+  } else {
+    exportUrl.searchParams.set("mimeType", GOOGLE_DOC_PDF_MIME);
+  }
 
   const response = await fetch(exportUrl, {
     headers: {

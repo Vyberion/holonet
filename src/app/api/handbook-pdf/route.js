@@ -1,7 +1,7 @@
 import { getAuthContext } from "../../../../modules/auth/auth-context.js";
 import { checkPageAccess } from "../../../../modules/auth/permissions.js";
 import { createSignedStorageUrl, supabaseRest } from "../../../../modules/auth/session-store.js";
-import { exportGoogleDocPdf, extractGoogleFileId } from "../../../lib/google-drive.js";
+import { exportGoogleDocPdf, extractGoogleFileId, extractGoogleTabId } from "../../../lib/google-drive.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -98,10 +98,11 @@ export async function GET(request) {
   }
 
   const googleFileId = detail.google_file_id || extractGoogleFileId(detail.google_doc_url);
+  const googleTabId = detail.google_tab_id || extractGoogleTabId(detail.google_doc_url);
 
   try {
     if (googleFileId) {
-      const pdf = await exportGoogleDocPdf(googleFileId);
+      const pdf = await exportGoogleDocPdf(googleFileId, { tabId: googleTabId });
 
       return new Response(pdf, {
         status: 200,

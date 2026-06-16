@@ -23,5 +23,5 @@ export default async function EmperorArchiveDetailPage({ params }) {
   const item = getEmperorArchiveItem(slug);
   if (!item) notFound();
 
-  return <HierarchyDetail item={{ ...item, groupTitle: EMPEROR_ARCHIVE_GROUP.title }} />;
+  return <HierarchyDetail item={{ ...item, groupTitle: EMPEROR_ARCHIVE_GROUP.title }} guarded />;
 }

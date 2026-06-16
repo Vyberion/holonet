@@ -141,8 +141,8 @@ function emptyDocument() {
     title: "",
     status: "published",
     displayOrder: 0,
-      entries: [{ anchor: "", label: "", body: "", subClauses: [] }]
-    };
+    entries: [{ anchor: "", label: "", body: "", subClauses: [] }]
+  };
 }
 
 function emptyArchiveArticle() {
@@ -232,29 +232,25 @@ function generatedAnchor(articleNumber, regulationNumber) {
   return `reg-${String(articleNumber).padStart(2, "0")}-${String(regulationNumber).padStart(2, "0")}`;
 }
 
-function formEntryMarkup(entry, index) {
+function labelForRegulation(regulationNumber) {
+  return `Regulation ${toRoman(regulationNumber)}`;
+}
+
+function formEntryMarkup(entry, index) {  
   const regulationNumber = regulationNumberValue(entry, index);
   return `
     <section class="library-entry-editor" data-library-entry-index="${index}">
       <div class="library-entry-toolbar">
         <span class="library-entry-title">Regulation ${regulationNumber}</span>
-        <button type="button" class="library-inline-btn" data-library-remove-entry="${index}">REMOVE</button>
+        <button type="button" class="library-inline-btn" data-library-remove-entry="${index}">REMOVE REGULATION</button>
       </div>
       <div class="resource-editor-field">
         <label>Regulation Number</label>
         <input type="number" min="1" name="entry-number-${index}" value="${escapeHtml(regulationNumber)}" required>
       </div>
       <div class="resource-editor-field">
-        <label>Clause Title</label>
-        <input name="entry-label-${index}" value="${escapeHtml(entry.label || "")}" required>
-      </div>
-      <div class="resource-editor-field">
-        <label>Body</label>
+        <label>Regulation Body</label>
         <textarea name="entry-body-${index}" required>${escapeHtml(entry.body || "")}</textarea>
-      </div>
-      <div class="resource-editor-field">
-        <label>Sub-Clauses</label>
-        <textarea name="entry-sub-${index}" placeholder="One sub-clause per line">${escapeHtml((entry.subClauses || []).map(clause => clause.body).join("\n"))}</textarea>
       </div>
     </section>
   `;
@@ -285,8 +281,16 @@ function ensureEditorOverlay() {
 
   document.body.appendChild(overlay);
   overlay.querySelector("[data-library-close]").addEventListener("click", () => overlay.classList.remove("active"));
-  overlay.addEventListener("click", event => {
-    if (event.target === overlay) overlay.classList.remove("active");
+  let pointerStartedOnOverlay = false;
+  overlay.addEventListener("pointerdown", event => {
+    pointerStartedOnOverlay = event.target === overlay;
+  });
+  overlay.addEventListener("pointerup", event => {
+    if (pointerStartedOnOverlay && event.target === overlay) overlay.classList.remove("active");
+    pointerStartedOnOverlay = false;
+  });
+  overlay.addEventListener("pointercancel", () => {
+    pointerStartedOnOverlay = false;
   });
   document.addEventListener("keydown", event => {
     if (event.key === "Escape") overlay.classList.remove("active");
@@ -359,7 +363,7 @@ async function initLibraryView() {
     const items = archiveMode ? (payload.articles || payload.documents || []) : (payload.documents || []);
 
     mount.innerHTML = `
-      ${payload.canEdit ? `
+      ${archiveMode && payload.canEdit ? `
         <div class="codex-toolbar">
           <button type="button" class="hub-write-btn" data-library-new>WRITE ARTICLE</button>
         </div>
@@ -394,12 +398,16 @@ async function initLibraryView() {
       const liveForm = overlay.querySelector("#library-editor-form");
       if (!liveForm) return;
 
-      const data = Object.fromEntries(new FormData(liveForm).entries());
+       const data = Object.fromEntries(new FormData(liveForm).entries());
       workingDocument.id = data.id || workingDocument.id;
-      const articleNumber = cleanArticleInput(data.articleNumber, articleNumberValue(workingDocument));
-      workingDocument.articleNumber = `ARTICLE ${toRoman(articleNumber)}`;
-      workingDocument.title = data.title || "";
-      workingDocument.status = data.status || "published";
+      const articleNumber = archiveMode
+        ? cleanArticleInput(data.articleNumber, articleNumberValue(workingDocument))
+        : articleNumberValue(workingDocument);
+      workingDocument.articleNumber = archiveMode
+        ? `ARTICLE ${articleNumber}`
+        : workingDocument.articleNumber || `ARTICLE ${toRoman(articleNumber)}`;
+      workingDocument.title = archiveMode ? data.title || "" : workingDocument.title || "";
+      workingDocument.status = "published";
       workingDocument.displayOrder = articleNumber;
       if (archiveMode) {
         workingDocument.label = data.label || "Archive Entry";
@@ -409,7 +417,7 @@ async function initLibraryView() {
       } else {
         workingDocument.entries = workingDocument.entries.map((entry, index) => ({
           anchor: generatedAnchor(articleNumber, Number(data[`entry-number-${index}`]) || index + 1),
-          label: data[`entry-label-${index}`] || entry.label || "",
+         label: labelForRegulation(Number(data[`entry-number-${index}`]) || index + 1),
           body: data[`entry-body-${index}`] || entry.body || "",
           subClauses: normalizeLineClauses(data[`entry-sub-${index}`] || ""),
           displayOrder: Number(data[`entry-number-${index}`]) || index + 1
@@ -417,39 +425,40 @@ async function initLibraryView() {
       }
     }
 
-    function renderForm() {
-      title.textContent = `${workingDocument.id ? "EDIT" : "WRITE"} ${libraryKey.toUpperCase()} ARTICLE`;
+     function renderForm() {
+      title.textContent = archiveMode
+        ? `${workingDocument.id ? "EDIT" : "WRITE"} ARCHIVE ARTICLE`
+        : "EDIT CODEX REGULATIONS";
 
       if (archiveMode) {
         form.innerHTML = `
           <input type="hidden" name="id" value="${escapeHtml(workingDocument.id || "")}">
-          <div class="resource-editor-field">
-            <label>Article Title</label>
-            <input name="title" value="${escapeHtml(workingDocument.title || "")}" required>
-          </div>
-          <div class="resource-editor-field">
-            <label>Article Body</label>
-            <textarea name="body" required>${escapeHtml(workingDocument.body || "")}</textarea>
-          </div>
-          <div class="resource-editor-field">
-            <label>Image Asset Path</label>
-            <input name="imagePath" value="${escapeHtml(workingDocument.imagePath || "")}" placeholder="archives/example.png">
-          </div>
-          <div class="resource-editor-field">
-            <label>Image Alt</label>
-            <input name="imageAlt" value="${escapeHtml(workingDocument.imageAlt || "")}">
-          </div>
-          <div class="resource-editor-field">
-            <label>Status</label>
-            <select name="status">
-              <option value="published" ${workingDocument.status === "published" ? "selected" : ""}>Published</option>
-              <option value="draft" ${workingDocument.status === "draft" ? "selected" : ""}>Draft</option>
-              <option value="archived" ${workingDocument.status === "archived" ? "selected" : ""}>Archived</option>
-            </select>
-          </div>
-          <div class="resource-editor-field">
-            <label>Article Number</label>
-            <input type="number" min="1" max="13" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}" required>
+          <div class="library-entry-stack">
+            <section class="library-entry-editor">
+              <div class="library-entry-toolbar">
+                <span class="library-entry-title">Archive Article</span>
+              </div>
+              <div class="resource-editor-field">
+                <label>Article Title</label>
+                <input name="title" value="${escapeHtml(workingDocument.title || "")}" required>
+              </div>
+              <div class="resource-editor-field">
+                <label>Article Body</label>
+                <textarea name="body" required>${escapeHtml(workingDocument.body || "")}</textarea>
+              </div>
+              <div class="resource-editor-field">
+                <label>Image Asset Path</label>
+                <input name="imagePath" value="${escapeHtml(workingDocument.imagePath || "")}" placeholder="archives/example.png">
+              </div>
+              <div class="resource-editor-field">
+                <label>Image Alt</label>
+                <input name="imageAlt" value="${escapeHtml(workingDocument.imageAlt || "")}">
+              </div>
+              <div class="resource-editor-field">
+                <label>Article Number</label>
+                <input type="number" min="1" max="13" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}" required>
+              </div>
+            </section>
           </div>
           <div class="library-editor-buttons">
             ${workingDocument.id ? `<button type="button" class="library-inline-btn danger" data-library-delete>DELETE ARTICLE</button>` : ""}
@@ -458,34 +467,18 @@ async function initLibraryView() {
         return;
       }
 
-      if (!Array.isArray(workingDocument.entries) || !workingDocument.entries.length) {
-        workingDocument.entries = [{ anchor: "", label: "", body: "", subClauses: [] }];
+       if (!Array.isArray(workingDocument.entries)) {
+        workingDocument.entries = [];
       }
 
       form.innerHTML = `
         <input type="hidden" name="id" value="${escapeHtml(workingDocument.id || "")}">
-        <div class="resource-editor-field">
-          <label>Article Number</label>
-          <input type="number" min="1" max="13" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}" required>
-        </div>
-        <div class="resource-editor-field">
-          <label>Article Title</label>
-          <input name="title" value="${escapeHtml(workingDocument.title || "")}" required>
-        </div>
-        <div class="resource-editor-field">
-          <label>Status</label>
-          <select name="status">
-            <option value="published" ${workingDocument.status === "published" ? "selected" : ""}>Published</option>
-            <option value="draft" ${workingDocument.status === "draft" ? "selected" : ""}>Draft</option>
-            <option value="archived" ${workingDocument.status === "archived" ? "selected" : ""}>Archived</option>
-          </select>
-        </div>
+        <input type="hidden" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}">
         <div class="library-entry-stack">
           ${workingDocument.entries.map((entry, index) => formEntryMarkup(entry, index)).join("")}
         </div>
         <div class="library-editor-buttons">
-          <button type="button" class="library-inline-btn" data-library-add-entry>ADD CLAUSE</button>
-          ${workingDocument.id ? `<button type="button" class="library-inline-btn danger" data-library-delete>DELETE ARTICLE</button>` : ""}
+          <button type="button" class="library-inline-btn" data-library-add-entry>ADD REGULATION</button>
         </div>
       `;
     }
@@ -496,8 +489,10 @@ async function initLibraryView() {
 
     form.onclick = async event => {
       if (archiveMode) {
-        const destroy = event.target.closest("[data-library-delete]");
+       const destroy = event.target.closest("[data-library-delete]");
         if (destroy && workingDocument.id) {
+          if (!window.confirm("Delete this archive article?")) return;
+
           try {
             status.textContent = "Deleting...";
             await deleteLibraryDocument(libraryKey, workingDocument.id);
@@ -518,7 +513,7 @@ async function initLibraryView() {
         workingDocument.entries.push({ anchor: "", label: "", body: "", subClauses: [], displayOrder: workingDocument.entries.length + 1 });
         renderForm();
         return;
-      }
+       }
 
       const remove = event.target.closest("[data-library-remove-entry]");
       if (remove) {
@@ -526,20 +521,6 @@ async function initLibraryView() {
         workingDocument.entries.splice(Number(remove.dataset.libraryRemoveEntry), 1);
         renderForm();
         return;
-      }
-
-      const destroy = event.target.closest("[data-library-delete]");
-      if (destroy && workingDocument.id) {
-        try {
-          status.textContent = "Deleting...";
-          await deleteLibraryDocument(libraryKey, workingDocument.id);
-          payload = await refreshLibraryPayload(libraryKey);
-          render();
-          status.textContent = "Deleted";
-          setTimeout(() => overlay.classList.remove("active"), 150);
-        } catch (error) {
-          status.textContent = error.message.replace(/_/g, " ");
-        }
       }
     };
 
@@ -557,21 +538,19 @@ async function initLibraryView() {
           body: data.body,
           imagePath: data.imagePath,
           imageAlt: data.imageAlt,
-          status: data.status,
+          status: "published",
           displayOrder: articleNumber
         } : {
           id: data.id,
           articleNumber: `ARTICLE ${toRoman(articleNumber)}`,
-          title: data.title,
-          status: data.status,
           displayOrder: articleNumber,
           entries: workingDocument.entries.map((entry, index) => ({
             anchor: generatedAnchor(articleNumber, Number(data[`entry-number-${index}`]) || index + 1),
-            label: data[`entry-label-${index}`] || entry.label,
+            label: labelForRegulation(Number(data[`entry-number-${index}`]) || index + 1),
             body: data[`entry-body-${index}`] || entry.body,
             subClauses: normalizeLineClauses(data[`entry-sub-${index}`] || ""),
             displayOrder: Number(data[`entry-number-${index}`]) || index + 1
-          })).filter(entry => entry.label && entry.body)
+          })).filter(entry => entry.body)
         };
 
         await saveLibraryDocument(libraryKey, payloadData);
@@ -589,7 +568,7 @@ async function initLibraryView() {
   render();
 
   mount.addEventListener("click", event => {
-    if (event.target.closest("[data-library-new]")) {
+    if (archiveMode && event.target.closest("[data-library-new]")) {
       event.preventDefault();
       event.stopImmediatePropagation();
       event.stopPropagation();

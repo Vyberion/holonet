@@ -53,11 +53,25 @@ function buildGroupRankMap(groupRoles = []) {
   }, {});
 }
 
+function envTrue(value) {
+  return String(value || "").toLowerCase() === "true";
+}
+
+function isPreviewSuperuserMode() {
+  return (
+    envTrue(process.env.HOLONET_PREVIEW_SUPERUSER) &&
+    process.env.VERCEL_ENV === "preview" &&
+    process.env.VERCEL_GIT_COMMIT_REF === "preview"
+  );
+}
+
 export function buildProfile({ robloxId, groupRoles }) {
   const userGroups = buildGroupRankMap(groupRoles);
   const darkCouncilRank = userGroups[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0;
   const highRank = userGroups[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0;
-  const isSuperUser = SUPER_USER_IDS.includes(String(robloxId));
+  const isSuperUser =
+  isPreviewSuperuserMode() ||
+  SUPER_USER_IDS.includes(String(robloxId));
   const authorityRoles = Object.fromEntries(
     Object.entries(ROBLOX_GROUPS.DARK_COUNCIL.ranks).map(([role, ranks]) => [
       role,

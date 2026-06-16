@@ -1,3 +1,4 @@
+import { ROBLOX_GROUPS } from "./roblox-groups.js";
 import { tierAtLeast } from "./profile.js";
 
 export const PAGE_ACCESS = {
@@ -270,6 +271,19 @@ export function canEditLibrary(profile, libraryKey) {
 
   return hasAdminAuthority(profile)
     ? { authorized: true, reason: "CANON_AUTHORITY" }
+    : { authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" };
+}
+
+export function canManageArchiveArticles(profile) {
+  if (hasCoreAccess(profile)) {
+    return { authorized: true, reason: coreAccessReason(profile) };
+  }
+
+  const dreadMasterGroupId = ROBLOX_GROUPS.DIVISIONS.dreadmasters.groupId;
+  const dreadMasterRank = Number(profile?.groupRanks?.[dreadMasterGroupId] || 0);
+
+  return dreadMasterRank >= 10
+    ? { authorized: true, reason: "DREAD_MASTER_ARCHIVE_AUTHORITY" }
     : { authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" };
 }
 

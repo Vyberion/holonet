@@ -1,3 +1,90 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
+const MORPH_FALLBACK_IMAGE = "/assets/morphs/clown.jpg";
+const CURRENT_EMPEROR_SLUG = "the-40th-emperor";
+const CURRENT_EMPEROR_MORPH_IMAGE = "/assets/morphs/current_emperor.png";
+
+function ordinal(value) {
+  const tens = value % 100;
+  if (tens >= 11 && tens <= 13) return `${value}th`;
+
+  return `${value}${{ 1: "st", 2: "nd", 3: "rd" }[value % 10] || "th"}`;
+}
+
+function toRoman(value) {
+  const numerals = [
+    [50, "L"],
+    [40, "XL"],
+    [10, "X"],
+    [9, "IX"],
+    [5, "V"],
+    [4, "IV"],
+    [1, "I"]
+  ];
+  let remaining = value;
+  let result = "";
+
+  numerals.forEach(([amount, numeral]) => {
+    while (remaining >= amount) {
+      result += numeral;
+      remaining -= amount;
+    }
+  });
+
+  return result;
+}
+
+function emperorNumberFromSlug(slug = "") {
+  const match = String(slug).match(/^the-(\d+)(?:st|nd|rd|th)-emperor$/);
+  return match ? Number(match[1]) : 0;
+}
+
+function emperorPathTitle(value) {
+  return {
+    1: "The First",
+    2: "The Second",
+    3: "The Third",
+    4: "The Fourth",
+    5: "The Fifth",
+    6: "The Sixth",
+    7: "The Seventh",
+    8: "The Eighth",
+    9: "The Ninth",
+    10: "The Decennial",
+    11: "The Eleventh",
+    12: "The Twelfth",
+    13: "The Thirteenth",
+    14: "The Fourteenth",
+    15: "The Fifteenth",
+    16: "The Sixteenth",
+    17: "The Seventeenth",
+    18: "The Eighteenth",
+    19: "The Nineteenth",
+    20: "The Vicennial",
+    21: "The Twenty-First",
+    22: "The Twenty-Second",
+    23: "The Twenty-Third",
+    24: "The Twenty-Fourth",
+    25: "The Twenty-Fifth",
+    26: "The Twenty-Sixth",
+    27: "The Twenty-Seventh",
+    28: "The Twenty-Eighth",
+    29: "The Twenty-Ninth",
+    30: "The Tricennial",
+    31: "The Thirty-First",
+    32: "The Thirty-Second",
+    33: "The Thirty-Third",
+    34: "The Thirty-Fourth",
+    35: "The Thirty-Fifth",
+    36: "The Thirty-Sixth",
+    37: "The Thirty-Seventh",
+    38: "The Thirty-Eighth",
+    39: "The Thirty-Ninth",
+    40: "The Quadragennial"
+  }[value] || `The ${ordinal(value)}`;
+}
+
 export const HIERARCHY_GROUPS = [
   {
     id: "low-ranks",
@@ -166,6 +253,169 @@ export const HIERARCHY_GROUPS = [
         category: "Division"
       }
     ]
+  },
+  {
+    id: "dark-council",
+    title: "Dark Council",
+    section: "DARK COUNCIL",
+    items: [
+      {
+        slug: "hro",
+        name: "The Emperor's Wrath",
+        body: "The High Rank Overseer represents the Dark Council's authority over the high ranks.",
+        category: "High Rank Overseer",
+        path: "High Rank Overseer",
+        pathOwnRow: true
+      },
+      {
+        slug: "dhgo",
+        name: "Darth Mortis",
+        body: "The Guard Overseer directs the Dark Honor Guard on behalf of the Dark Council.",
+        category: "Guard Overseer",
+        path: "Guard Overseer",
+        pathOwnRow: true,
+        active: false
+      },
+      {
+        slug: "rvro",
+        name: "Darth Baras",
+        body: "The Reaver Overseer directs the Reavers on behalf of the Dark Council.",
+        category: "Reaver Overseer",
+        path: "Reaver Overseer",
+        pathOwnRow: true,
+        active: false
+      },
+      {
+        slug: "iqo",
+        name: "Darth Jadus",
+        body: "The Inquisitor Overseer directs the Inquisitorius on behalf of the Dark Council.",
+        category: "Inquisitor Overseer",
+        path: "Inquisitor Overseer",
+        pathOwnRow: true,
+        active: false
+      },
+      {
+        slug: "dmo",
+        name: "Darth Nox",
+        body: "The Dread Master Overseer directs the Dread Masters on behalf of the Dark Council.",
+        category: "Dread Master Overseer",
+        path: "Dread Master Overseer",
+        pathOwnRow: true,
+        active: false
+      },
+      {
+        slug: "wm",
+        name: "Warmaster",
+        body: "The Warmaster commands military direction for the Dark Council.",
+        category: "Warmaster",
+        path: "Warmaster",
+        pathOwnRow: true,
+        active: false
+      }
+    ]
+  },
+  {
+    id: "high-command",
+    title: "High Command",
+    section: "HIGH COMMAND",
+    items: [
+      {
+        slug: CURRENT_EMPEROR_SLUG,
+        href: `/archives/emperors/${CURRENT_EMPEROR_SLUG}`,
+        image: CURRENT_EMPEROR_MORPH_IMAGE,
+        name: "Torreto the Tyrant",
+        body: "PENDING.",
+        category: "The Quadragennial",
+        path: "The Quadragennial",
+        pathOwnRow: true,
+        routable: false
+      },
+      {
+        slug: "the_voice",
+        name: "The Emperor's Voice",
+        body: "The Emperor's Voice carries the will of the Emperor and speaks with the authority of the throne.",
+        category: "The Emperor's Voice",
+        path: "The Emperor's Powerbase"
+      },
+      {
+        slug: "the_wrath",
+        name: "The Emperor's Wrath",
+        body: "The Emperor's Wrath serves as the blade of the throne and enforces the Emperor's command.",
+        category: "The Emperor's Wrath",
+        path: "The Emperor's Powerbase"
+      },
+      {
+        slug: "servant_one",
+        name: "Servant One",
+        body: "",
+        category: "Servant One",
+        path: "The Emperor's Powerbase",
+        classified: true
+      }
+    ]
+  },
+  {
+    id: "administration",
+    title: "Group Administration",
+    section: "GROUP ADMINISTRATION",
+    items: [
+      {
+        slug: "group-owner",
+        name: "Manar",
+        body: "Group Owner.",
+        category: "Group Owner",
+        path: "Group Owner"
+      },
+      {
+        slug: "project-manager",
+        name: "Rdn",
+        body: "Project Manager.",
+        category: "Project Manager",
+        path: "Project Manager"
+      },
+      {
+        slug: "athli0s_aktuun",
+        name: "Athlios",
+        body: "Sith Architect.",
+        category: "Athli0s Aktuun",
+        path: "Sith Architect"
+      },
+      {
+        slug: "gawk_aktuun",
+        name: "Gawk",
+        body: "Sith Architect.",
+        category: "Gawk Aktuun",
+        path: "Sith Architect"
+      },
+      {
+        slug: "blueakuji",
+        name: "Blue",
+        body: "Sith Architect.",
+        category: "BlueAkuji",
+        path: "Sith Architect"
+      },
+      {
+        slug: "naktisterminus",
+        name: "Naktis",
+        body: "Fallen Advisor.",
+        category: "Naktisterminus",
+        path: "Fallen Advisors"
+      },
+      {
+        slug: "terrabiome",
+        name: "Terra",
+        body: "Fallen Advisor.",
+        category: "Terrabiome",
+        path: "Fallen Advisors"
+      },
+      {
+        slug: "tranom_x",
+        name: "Tranom",
+        body: "Fallen Advisor.",
+        category: "Tranom X",
+        path: "Fallen Advisors"
+      }
+    ]
   }
 ];
 
@@ -177,21 +427,254 @@ const IMAGE_BY_SLUG = {
   reavers: "reaver"
 };
 
-function imageForItem(item) {
-  return `/assets/morphs/${IMAGE_BY_SLUG[item.slug] || item.slug.replace(/-/g, "_")}.png`;
+const EMPEROR_ARCHIVE_DATA = [
+  {
+    name: "Varnak the First",
+    body: "VarnakKallig was chosen by iWakers and began the imperial lineage as the First Emperor of TSO in July 2017. The rank had previously been unobtainable to regular members, making his ascension the first of its kind.\n\nHis reign was remembered for competent leadership, combat ability, and the standard it set for later Emperors. After a period of stagnation, he Fell and later served as the first Fallen advisor to future successors."
+  },
+  {
+    name: "Vynlin the Ruthless",
+    body: "Vynlinnery, also known as Reaper, was the second Emperor of TSO and was chosen by iWakers. His rule was remembered as strict, with harsher punishments that made his administration controversial.\n\nPoor judgment during his tenure contributed to his Fall, and he did not remain as an advisor."
+  },
+  {
+    name: "Naz the Fair",
+    body: "Nazgulaz was the third Emperor of TSO and the third Emperor appointed by iWakers. His policy focused heavily on divisions, and his rule was regarded as firm but comparatively fair.\n\nHis tenure lasted only a few weeks. After his Fall, he remained as a Fallen advisor."
+  },
+  {
+    name: "Rok the Uncrowned",
+    body: "iRoklas was declared and ranked as the fourth Emperor of TSO by iWakers. His tenure lasted less than a day and remained unofficial in practice because he did not accept the title before being demoted.\n\nHe is retained in the imperial archive because he was formally selected, ranked and considered a serious choice for the throne."
+  },
+  {
+    name: "Domitius the Relentless",
+    body: "Domitius_Drahavos was the fifth Emperor of TSO and was appointed by iWakers. His first reign was strict and enforcement focused, with mass reforms, high standards, and harsh punishment used against perceived incompetence.\n\nHe was known as a skilled combatant for his era and for his extreme judgment in divisional inspections. After his Fall, his results allowed him to carry on as an advisor."
+  },
+  {
+    name: "Zacho the Lax",
+    body: "Thatguyzacho was the sixth Emperor of TSO and the sixth Emperor appointed by iWakers. His reign was viewed as comparatively lax, and his administration experienced internal friction.\n\nHis tenure is remembered for improvement to training events and for influence drawn from earlier administrations. After his Fall, he did not remain as an advisor."
+  },
+  {
+    name: "Terra the Warden",
+    body: "Terrabiome was the seventh Emperor of TSO and the seventh Emperor chosen by iWakers. Much of his first reign is no longer well documented.\n\nHe ascended from Darth Mortis after success within the Dark Honor Guard and placed attention on the divisions of his time. It is unclear whether he remained as an advisor after his initial Fall."
+  },
+  {
+    name: "Domitius the Reclaimed",
+    body: "Domitius became the eighth Emperor of TSO and the first person to hold a second imperial reign. He returned from Fallen status under iWakers.\n\nHis second reign was stricter than his first, with heavy involvement in divisional administration. Near the end of this period, iWakers withdrew from ownership and Domitius ascended to The Force as owner of TSO."
+  },
+  {
+    name: "Bella the First Empress",
+    body: "Bella_Drahavos was the ninth sovereign of TSO and the first Lady Empress of the Sith. She was the first sovereign appointed by Lord Dom.\n\nDetailed information about her reign is limited, though the archive records her as interactive and associated with quality inspections on all group members."
+  },
+  {
+    name: "Dalton the Forgotten",
+    body: "Dalton_Lycan was the tenth Emperor of TSO and the second Emperor appointed by Lord Dom.\n\nFew details about his reign are preserved in the current archive."
+  },
+  {
+    name: "Tenebrae the Brief",
+    body: "Tenebrae_Lycan was the eleventh Emperor of TSO and the third Emperor appointed by Lord Dom. His reign was brief, lasting nine days.\n\nHe Fell after a change in preference from the Ancient One."
+  },
+  {
+    name: "Spectre the Reformer",
+    body: "SpectreDrahavos was the twelfth Emperor of TSO and the first Emperor appointed by Lord Zach. His reign took place during a period of severe group stagnation near the end of summer 2018.\n\nSpectre produced numerous reform ideas and regularly consulted his Council. He was regarded as capable during a difficult era and resigned in September 2018, remaining as an advisor afterward."
+  },
+  {
+    name: "Terra the Balancer",
+    body: "Terrabiome_Drahavos became the thirteenth Emperor of TSO and the second sovereign to hold a second term. He was the second Emperor appointed by Lord Zach.\n\nHis second reign focused on group legislation and the improvement and balancing of divisions. After another period of stagnation, he Fell and remained as an advisor in November 2018."
+  },
+  {
+    name: "Gurt the Ascendant",
+    body: "Gurt_Kalazar was the fourteenth Emperor of TSO and the first official Emperor to ascend from a developer position. He was the third Emperor appointed by Lord Zach.\n\nHis administration organized High Command and the Dark Council, questionable selections were made, but ultimately were rectified in better judgment. His administration proved effective, and he reigned during a more active period. His reign lasted nearly four months, the longest for its time, before he ascended through The Force as owner of TSO in March 2019."
+  },
+  {
+    name: "Avex the Shadowed",
+    body: "Avextriux_Kalazar was the fifteenth Emperor of TSO and the first Emperor appointed by Lord Gurt. He ascended from Dread Master Raptus and focused heavily on divisions, especially the Shadow Guard.\n\nHis reign was strict and initially unstable due to conspiracy within the Dark Council, leading to a Council wipe and new leadership. His later efforts declined, and he Fell in April 2019 without remaining as an advisor."
+  },
+  {
+    name: "Hannah the Dormant",
+    body: "Hannah_Kalazar was the sixteenth sovereign of TSO, the second Lady Empress, and the second sovereign appointed by Lord Gurt.\n\nHer reign produced declining results and allegations of bias within the administration. She was regarded as dormant, with inexperienced leadership selections, and did not remain as an advisor after her Fall in June 2019."
+  },
+  {
+    name: "Rannek the Absent",
+    body: "Rannek_Drahavos, also known as Odin, was the seventeenth Emperor of TSO and the third Emperor appointed by Lord Gurt. He intended to establish new ideas for the group at the start of his reign.\n\nExtended inactivity prevented major action during his tenure. After his Fall in August 2019, he did not remain as an advisor."
+  },
+  {
+    name: "Kronos the Restorer",
+    body: "Kronos_Drahavos, also known as iiMrMoon or Evan, was the eighteenth Emperor of TSO and the fourth Emperor appointed by Lord Gurt. He inherited a dormant administration and restructured leadership around available members.\n\nHis legislation updated existing policy, reinforced high-rank numbers, and applied firm oversight to divisions. Activity declined near the school year, and he Fell in September 2019. He did not initially remain as an advisor, but later achieved Fallen status."
+  },
+  {
+    name: "Asura the Architect",
+    body: "Asuramarumaru was the nineteenth official Emperor of TSO and the only Emperor chosen by Lord Nazgulaz and Narvog. The archive also notes an unofficial transitional emperor-elect period under Brody before Asura's reign.\n\nAsura emphasized the Shadow Guard and early Kaggath policy. He was the first Emperor to receive Architect permissions due to proficiency in building, development, and morph-making. Misuse of those permissions contributed to his Fall in November 2019."
+  },
+  {
+    name: "Chaos the Harsh",
+    body: "ChaosVirtus was the twentieth sovereign of TSO and the ninth Emperor chosen by iWakers overall. His reign began during a new owner era with increased activity and opportunity for rebuilding.\n\nChaos helped rebuild the Dark Council while the Order was under-governed. His strict style and harsh punishments created tension within the Council, contributing to his removal. He did not initially remain as an advisor."
+  },
+  {
+    name: "Kronos the Besieged",
+    body: "Kronos_Kalazar was the twenty-first Emperor of TSO and the tenth Emperor chosen by iWakers. His second reign occurred during map transitions and restructuring of the ranking system.\n\nHis policy focused on maintaining and improving activity during the summer. Rising conflict between the bloodlines of Aktuun and Kalazar and threats to his position culminated in a challenge for the throne in July 2020."
+  },
+  {
+    name: "Manar the Challenger",
+    body: "Manar_Aktuun was the twenty-second Emperor of TSO, the first Emperor to win the title by Kaggath, and the eleventh Emperor under iWakers.\n\nHis reign took place during bloodline conflict and included resistance tied to the previous Kaggath. After inactivity and administrative issues, his throne was challenged in August 2020."
+  },
+  {
+    name: "Sprinkle the Idle",
+    body: "Sprinkle_Kalazar was the twenty-third Emperor of TSO, the second Emperor to win the title by Kaggath, and an Emperor under Kactussman (previously, Gurt_Kalazar).\n\nHis reign was hands-off, with significant responsibility placed on High Command. He was eventually challenged for the throne due to inactivity around September 2020."
+  },
+  {
+    name: "Timo the Champion",
+    body: "Tiimo_Aktuun, also known as Euqatix, was the twenty-fourth Emperor of TSO and the third Emperor to win the title by Kaggath. He was an experienced member and an exceptional combatant, winning Champion of the Sith multiple times.\n\nHis reign occurred as bloodline tensions began to calm, though opposition remained. His position was challenged in December 2020."
+  },
+  {
+    name: "Zeus the Censor",
+    body: "Zeus_Kalazar, also known as Stormkrieg or Ekori, was the First Black Emperor of TSO, the twenty-fifth Emperor overall and the fourth Emperor to win the title by Kaggath. He was remembered for strong combat skill and for remaining outside bloodline politics.\n\nHis reign included controversial communications policy changes and disciplinary action against High Command. He was regarded as fair by some, but resistance grew after sanctions against his Lord Wrath, leading to a challenge in February 2021."
+  },
+  {
+    name: "Terra the Steady",
+    body: "Terrabiome_Kalazar was the twenty-sixth Emperor of TSO and the first Emperor to hold three terms. He was the fifth Emperor to win the title by Kaggath.\n\nHis third reign was regarded as fair and stable, with strong relations across the group and High Command. Bloodline tensions were reduced during this period, and the Order experienced moderate prosperity through the summer. He Fell and remained as an advisor in August 2021."
+  },
+  {
+    name: "Segnus the Waning",
+    body: "Segnus_Kalazar was the twenty-seventh Emperor of TSO and an Emperor under Kactussman. He was appointed after an application process in August 2021.\n\nHis reign began near the start of the school year, when activity was declining. His administration was viewed as acceptable early on, but later became inactive. Segnus eventually Fell and did not remain as an advisor."
+  },
+  {
+    name: "Gawk the Enduring",
+    body: "Gawk_Aktuun, also known as Gawking, was the twenty-eighth Emperor of TSO and the longest-serving Emperor, though his reign is remembered as one carried heavily by his latter Wrath.\n\nHe was appointed after serving as Dark Honor Guard Commander and survived challenges from remaining High Command merely through the support system holding the throne upright.\n\nHis reign lasted more than thirteen months and is remembered for policy revisions, the shutdown of the Shadow Guard and the hosting of unique events, though many of these successes were shaped by those around him. He was the second Emperor to achieve Architect privileges, but the transition of ownership between Kactussman and CroczTerminus destabilized the era, leading to his Fall in November 2022. He remained as a bickering advisor."
+  },
+  {
+    name: "Legacy the Resistant",
+    body: "Legacy_Lycan was the twenty-ninth Emperor of TSO and the first Emperor chosen by Manar_Aktuun. He ascended from Dread Master Raptus while the group was recovering from major instability left by previous ownership.\n\nLegacy proposed many ideas that he was insistent on implementing, though many were viewed as impractical. Heavy resistance developed during his tenure, and he was challenged for his position in December 2022."
+  },
+  {
+    name: "Aramis the Dormant",
+    body: "Boiledmonkeyfoot, also known as Aramis, was the thirtieth Emperor of TSO and the first to obtain the title by forfeit of Kaggath. He was the second Emperor under Manar_Aktuun.\n\nHe ascended after serving alongside his predecessor on High Command. His reign was viewed as dormant and disconnected from the Order, with limited practical direction. He later resigned after a successful challenge."
+  },
+  {
+    name: "Poncake the Banished",
+    body: "PoncakeTerminus was the thirty-first Emperor of TSO and the third Emperor under Manar_Aktuun. He was remembered for efforts to improve the Dark Honor Guard and for bringing elitism to the Shadow Guard.\n\nPoncake was an exceptional combatant and held Champion of the Sith multiple times, but his judgment was often questioned. His reign ended after rank and money-related misconduct came to light; he faced banishment, and did not remain as an advisor."
+  },
+  {
+    name: "Naktis the Unyielding",
+    body: "NaktisTerminus, also known as Chaos, was the thirty-second Emperor of TSO and the fourth Emperor under Manar_Aktuun. His second imperial rule followed a philosophy of an iron rule.\n\nNaktis prioritized standards and results within his administration. Some resistance formed beneath him, but it did not seriously threaten his rule. After some time, he Fell and remained as an advisor."
+  },
+  {
+    name: "Tranom the Tactician",
+    body: "Tranom_X was the thirty-third Emperor of TSO and the fifth Emperor under Manar_Aktuun. He led the Order during a period of dwindling activity.\n\nHis tenure was supported by a tactically selected High Command. After his Fall, he remained as an advisor."
+  },
+  {
+    name: "Vyberon the Innovator",
+    body: "Vyberon was the thirty-fourth Emperor of TSO and the sixth Emperor under Manar_Aktuun. His reign introduced ideas affecting the ranking structure and regulation guides.\n\nHe also established precedent for supreme decrees and declarations. Prolonged stagnation, pressure from advisors and subordinates, and limited owner support led Vyberon, his High Command and Dark Council to resign in July 2024. Though many reforms did not last, his reign is remembered for innovation."
+  },
+  {
+    name: "Torreto the Tyrant",
+    body: "TorretoTerminus was the thirty-fifth Emperor of TSO and the seventh Emperor under Manar_Aktuun. His reign was swift and marked by active use of executive decision-making.\n\nSome decisions were considered poorly advised due to limited counsel, but his rule still affected the community through High Command appointments, a Dark Council appointment, and continued divisional strength. He resigned in December 2024 after the likelihood of a challenge."
+  },
+  {
+    name: "Ghost the Codifier",
+    body: "GhostTerminus was the thirty-sixth Emperor of TSO and the eighth Emperor under Manar_Aktuun. His reign introduced influential ideas, including the creation of the Codex and administrative improvements.\n\nGhost maintained an interactive tenure, overseeing High Command and executing reforms throughout his rule. He resigned in April 2025."
+  },
+  {
+    name: "Bag the Builder",
+    body: "BagArvex was the thirty-seventh Emperor of TSO, the ninth Emperor under Manar_Aktuun, and the first Emperor to climb the ranks as an Architect.\n\nHis reign oversaw a full Dark Council, complete High Command, and several Codex changes, most notably Kaggath law. He also continued working as the primary developer. After roughly one and a half months, his reign slowed and he resigned in June 2025."
+  },
+  {
+    name: "Lord Emperor Slushy",
+    body: "PENDING."
+  },
+  {
+    name: "Lord Emperor Saph",
+    body: "PENDING."
+  },
+  {
+    name: "Torreto the Tyrant",
+    body: "PENDING.",
+    current: true
+  }
+];
+
+function emperorArchiveRecord(index) {
+  const title = ordinal(index);
+  const source = EMPEROR_ARCHIVE_DATA[index - 1] || {};
+  const slug = `the-${title}-emperor`.toLowerCase();
+  const current = slug === CURRENT_EMPEROR_SLUG;
+
+  return {
+    slug,
+    name: source.name || `The ${title} Emperor`,
+    body: source.body || "Biography pending archival upload.",
+    category: `The ${title} Sith Emperor`,
+    path: emperorPathTitle(index),
+    image: current ? CURRENT_EMPEROR_MORPH_IMAGE : source.image,
+    pathOwnRow: current,
+    current
+  };
 }
 
-export function hierarchyItems() {
+export const EMPEROR_ARCHIVE_GROUP = {
+  id: "emperor-archive",
+  title: "Emperor Archive",
+  section: "EMPERORS",
+  items: Array.from({ length: 40 }, (_, index) => emperorArchiveRecord(index + 1))
+};
+
+function isActiveItem(item) {
+  return item.active !== false;
+}
+
+function normalizeAssetPath(src) {
+  if (!src) return "";
+  if (/^(?:https?:)?\/\//.test(src) || src.startsWith("data:")) return src;
+
+  return src.startsWith("/") ? src : `/${src}`;
+}
+
+function morphExists(src) {
+  const normalized = normalizeAssetPath(src);
+  if (!normalized.startsWith("/assets/morphs/")) return true;
+
+  return existsSync(join(process.cwd(), "public", normalized.replace(/^\/+/, "")));
+}
+
+function imageForItem(item) {
+  if (item.image) {
+    const explicitImage = normalizeAssetPath(item.image);
+    return morphExists(explicitImage) ? explicitImage : MORPH_FALLBACK_IMAGE;
+  }
+  else if (item.slug === "servant_one") {
+    return "assets/morphs/serious.avif"
+  }
+
+  const imageName = IMAGE_BY_SLUG[item.slug] || item.slug.replace(/-/g, "_");
+  const image = `/assets/morphs/${imageName}.png`;
+  return morphExists(image) ? image : MORPH_FALLBACK_IMAGE;
+}
+
+function decorateHierarchyItem(group, item, index, fallbackHref) {
+  const emperorNumber = group.id === EMPEROR_ARCHIVE_GROUP.id
+    ? index + 1
+    : emperorNumberFromSlug(item.slug);
+  const isCurrentEmperor = item.slug === CURRENT_EMPEROR_SLUG;
+  const imageItem = isCurrentEmperor && !item.image
+    ? { ...item, image: CURRENT_EMPEROR_MORPH_IMAGE }
+    : item;
+
+  return {
+    ...item,
+    cardGlyph: item.cardGlyph ?? (emperorNumber && !isCurrentEmperor ? toRoman(emperorNumber) : ""),
+    current: Boolean(item.current || isCurrentEmperor),
+    image: imageForItem(imageItem),
+    groupId: group.id,
+    groupTitle: group.title,
+    section: group.section,
+    order: index + 1,
+    href: item.href || fallbackHref
+  };
+}
+
+export function hierarchyItems({ includeInactive = false } = {}) {
   return HIERARCHY_GROUPS.flatMap(group =>
-    group.items.map((item, index) => ({
-      ...item,
-      image: item.image || imageForItem(item),
-      groupId: group.id,
-      groupTitle: group.title,
-      section: group.section,
-      order: index + 1,
-      href: item.href || `/${group.id}/${item.slug}`
-    }))
+    group.items
+      .filter(item => includeInactive || isActiveItem(item))
+      .map((item, index) => decorateHierarchyItem(group, item, index, `/${group.id}/${item.slug}`))
   );
 }
 
@@ -199,10 +682,44 @@ export function getHierarchyGroup(id) {
   return HIERARCHY_GROUPS.find(group => group.id === id) || null;
 }
 
-export function getHierarchyItem(groupId, slug) {
+export function getVisibleHierarchyGroup(id) {
+  const group = getHierarchyGroup(id);
+  if (!group) return null;
+
+  return {
+    ...group,
+    items: group.items.filter(isActiveItem)
+  };
+}
+
+export function visibleHierarchyGroups() {
+  return HIERARCHY_GROUPS.map(group => ({
+    ...group,
+    items: group.items.filter(isActiveItem)
+  })).filter(group => group.items.length);
+}
+
+export function getHierarchyItem(groupId, slug, { includeInactive = false } = {}) {
   const group = getHierarchyGroup(groupId);
   if (!group) return null;
 
   const item = group.items.find(entry => entry.slug === slug);
-  return item ? { ...item, image: item.image || imageForItem(item), groupId: group.id, groupTitle: group.title, section: group.section, href: item.href || `/${group.id}/${item.slug}` } : null;
+  if (!item || (!includeInactive && !isActiveItem(item))) return null;
+
+  const index = group.items.indexOf(item);
+  return decorateHierarchyItem(group, item, index, `/${group.id}/${item.slug}`);
+}
+
+export function emperorArchiveItems() {
+  return EMPEROR_ARCHIVE_GROUP.items.map((item, index) =>
+    decorateHierarchyItem(EMPEROR_ARCHIVE_GROUP, item, index, `/archives/emperors/${item.slug}`)
+  );
+}
+
+export function getEmperorArchiveItem(slug) {
+  const item = EMPEROR_ARCHIVE_GROUP.items.find(entry => entry.slug === slug);
+  if (!item) return null;
+
+  const index = EMPEROR_ARCHIVE_GROUP.items.indexOf(item);
+  return decorateHierarchyItem(EMPEROR_ARCHIVE_GROUP, item, index, `/archives/emperors/${item.slug}`);
 }

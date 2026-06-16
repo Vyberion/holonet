@@ -9,6 +9,13 @@ function toHeadersObject(headers) {
   return object;
 }
 
+function canonicalRedirectLocation(location) {
+  const value = String(location || "/");
+  return value
+    .replace(/^\/index\.html(?=([?#]|$))/, "/")
+    .replace(/^\/(.+?)\.html(?=([?#]|$))/, "/$1");
+}
+
 async function readLegacyBody(request) {
   if (request.method === "GET" || request.method === "HEAD") return undefined;
 
@@ -57,7 +64,7 @@ function createLegacyResponse() {
       const status = typeof statusOrUrl === "number" ? statusOrUrl : 302;
       const location = typeof statusOrUrl === "number" ? maybeUrl : statusOrUrl;
       statusCode = status;
-      headers.set("Location", String(location || "/"));
+      headers.set("Location", canonicalRedirectLocation(location));
       return legacy;
     },
     json(payload) {

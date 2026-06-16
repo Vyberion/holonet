@@ -1,19 +1,13 @@
-export const preloadImages = [
+export const criticalPreloadImages = [
   "/assets/favicon.ico",
   "/assets/logo.png",
-  "/assets/sith_order.svg",
-  "/assets/darth_nihilus.jpg",
-  "/assets/darth_revan.jpg",
-  "/assets/exar_kun.png",
-  "/assets/force_wars.png",
-  "/assets/marka_ragnos.png",
-  "/assets/naga_sadow.jpg",
-  "/assets/placeholder.png",
-  "/assets/problematic_medias.gif",
-  "/assets/sorzus_syn.png",
-  "/assets/tulak_hord.jpg",
+  "/assets/sith_order.svg"
+];
+
+export const hierarchyPreloadImages = [
   "/assets/morphs/academy_student.png",
   "/assets/morphs/acolyte.png",
+  "/assets/morphs/clown.jpg",
   "/assets/morphs/dark_honor_guard.png",
   "/assets/morphs/darth.png",
   "/assets/morphs/dread_master.png",
@@ -35,3 +29,18 @@ export const preloadImages = [
   "/assets/morphs/sith_warrior.png",
   "/assets/morphs/tyro.png"
 ];
+
+const preloadedImages = new Set();
+
+export function preloadImage(src) {
+  if (typeof window === "undefined" || !src || preloadedImages.has(src)) return;
+
+  preloadedImages.add(src);
+  const image = new Image();
+  image.decoding = "async";
+  image.src = src;
+}
+
+export function preloadHierarchyImages() {
+  hierarchyPreloadImages.forEach(preloadImage);
+}

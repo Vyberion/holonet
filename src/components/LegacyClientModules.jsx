@@ -7,6 +7,7 @@ const moduleLoaders = {
   "/modules/client/access-guard.js": () => import("../../modules/client/access-guard.js"),
   "/modules/client/account.js": () => import("../../modules/client/account.js"),
   "/modules/client/admin.js": () => import("../../modules/client/admin.js"),
+  "/modules/client/archive-map.js": () => import("../../modules/client/archive-map.js"),
   "/modules/client/board.js": () => import("../../modules/client/board.js"),
   "/modules/client/council-floor.js": () => import("../../modules/client/council-floor.js"),
   "/modules/client/division-hub.js": () => import("../../modules/client/division-hub.js"),
@@ -23,7 +24,11 @@ const moduleLoaders = {
   "/modules/client/personnel.js": () => import("../../modules/client/personnel.js"),
   "/modules/client/registry-directory.js": () => import("../../modules/client/registry-directory.js"),
   "/modules/client/group-timeline.js": () => import("../../modules/client/group-timeline.js"),
-  "/modules/client/site.js": () => import("../../modules/client/site.js")
+  "/modules/client/site.js": async () => {
+    await import("../../modules/client/intro-toggle.js");
+    await import("../../modules/client/site.js");
+    return import("../../modules/client/developer-notice-delay.js");
+  }
 };
 
 function runModuleInit(modulePath) {
@@ -32,6 +37,7 @@ function runModuleInit(modulePath) {
     "/modules/client/nexus.js": () => window.initHolonetNexus?.(),
     "/modules/client/account.js": () => window.initHolonetAccount?.(),
     "/modules/client/admin.js": () => window.initHolonetAdmin?.(),
+    "/modules/client/archive-map.js": () => window.initHolonetArchiveMap?.(),
     "/modules/client/board.js": () => window.initHolonetBoard?.(),
     "/modules/client/council-floor.js": () => window.initHolonetCouncilFloor?.(),
     "/modules/client/personnel.js": () => window.initHolonetPersonnel?.(),

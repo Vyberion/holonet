@@ -11,8 +11,20 @@ export const metadata = holonetMetadata({
 const INITIAL_ROOM_ID = "main-hall";
 
 function roomCenter(room) {
-  if (room.shape === "circle") return { x: room.cx, y: room.cy };
+  if (["circle", "dodecagon"].includes(room.shape)) return { x: room.cx, y: room.cy };
   return { x: room.x + room.width / 2, y: room.y + room.height / 2 };
+}
+
+function polygonPoints(room, offset = 0) {
+  const sides = room.sides || 12;
+  const radius = room.r + offset;
+
+  return Array.from({ length: sides }, (_, index) => {
+    const angle = (Math.PI * 2 * index) / sides - Math.PI / 2;
+    const x = room.cx + Math.cos(angle) * radius;
+    const y = room.cy + Math.sin(angle) * radius;
+    return `${x},${y}`;
+  }).join(" ");
 }
 
 function labelLines(label) {
@@ -41,6 +53,11 @@ function RoomShape({ room }) {
         <>
           <circle className="archive-map-room-shape archive-map-room-lava" cx={room.cx} cy={room.cy} r={room.r + 32} />
           <circle className="archive-map-room-shape" cx={room.cx} cy={room.cy} r={room.r} />
+        </>
+      ) : room.shape === "dodecagon" ? (
+        <>
+          <polygon className="archive-map-room-shape archive-map-room-lava" points={polygonPoints(room, 32)} />
+          <polygon className="archive-map-room-shape" points={polygonPoints(room)} />
         </>
       ) : (
         <rect className="archive-map-room-shape" x={room.x} y={room.y} width={room.width} height={room.height} rx="3" />
@@ -140,36 +157,39 @@ export default function ArchiveMapPage() {
                 <image className="archive-map-base-image" href={ARCHIVE_MAP.baseImage} x="0" y="0" width={width} height={height} preserveAspectRatio="xMidYMid meet" />
               ) : null}
               <g className="archive-map-connectors" aria-hidden="true">
-                <rect x="240" y="540" width="60" height="80" />
-                <rect x="420" y="395" width="120" height="60" />
-                <rect x="420" y="705" width="120" height="85" />
-                <rect x="840" y="565" width="90" height="195" />
-                <rect x="1180" y="785" width="40" height="70" />
-                <rect x="420" y="1060" width="120" height="80" />
-                <rect x="430" y="1390" width="100" height="50" />
+                <rect x="1120" y="590" width="160" height="120" />
+                <rect x="870" y="430" width="140" height="50" />
+                <rect x="610" y="590" width="80" height="20" />
+                <rect x="390" y="590" width="70" height="20" />
+                <rect x="600" y="760" width="80" height="60" />
+                <rect x="870" y="820" width="140" height="60" />
+                <rect x="880" y="1240" width="120" height="60" />
+                <rect x="910" y="1490" width="60" height="28" />
               </g>
 
               <g className="archive-map-decor" aria-hidden="true">
-                <rect className="archive-map-mat" x="385" y="280" width="190" height="60" />
-                <rect className="archive-map-podium" x="420" y="220" width="120" height="24" />
-                <line className="archive-map-guard-line" x1="408" y1="720" x2="408" y2="780" />
-                <line className="archive-map-guard-line" x1="552" y1="720" x2="552" y2="780" />
-                <rect className="archive-map-mat" x="330" y="865" width="90" height="92" />
-                <rect className="archive-map-mat" x="540" y="865" width="90" height="92" />
-                <rect className="archive-map-mat" x="390" y="980" width="180" height="40" />
-                {[0, 1, 2, 3].map(index => (
+                <rect className="archive-map-podium" x="1230" y="565" width="18" height="54" />
+                <rect className="archive-map-podium" x="1230" y="681" width="18" height="54" />
+                <rect className="archive-map-mat" x="815" y="265" width="250" height="88" />
+                <rect className="archive-map-podium" x="875" y="200" width="130" height="30" />
+                <line className="archive-map-guard-line" x1="812" y1="670" x2="812" y2="765" />
+                <line className="archive-map-guard-line" x1="1068" y1="670" x2="1068" y2="765" />
+                <rect className="archive-map-mat" x="790" y="970" width="90" height="112" />
+                <rect className="archive-map-mat" x="1000" y="970" width="90" height="112" />
+                <rect className="archive-map-mat" x="850" y="1140" width="180" height="44" />
+                {[0, 1, 2].map(index => (
                   <g key={`shelf-${index}`}>
-                    <rect className="archive-map-shelf" x="330" y={1174 + index * 44} width="92" height="18" />
-                    <rect className="archive-map-shelf" x="538" y={1174 + index * 44} width="92" height="18" />
+                    <rect className="archive-map-shelf" x="815" y={1338 + index * 42} width="74" height="18" />
+                    <rect className="archive-map-shelf" x="990" y={1338 + index * 42} width="74" height="18" />
                   </g>
                 ))}
                 {[0, 1, 2, 3].map(index => (
                   <g key={`throne-${index}`}>
-                    <rect className="archive-map-throne" x="1242" y={694 + index * 45} width="26" height="30" />
-                    <rect className="archive-map-throne" x="1412" y={694 + index * 45} width="26" height="30" />
+                    <rect className="archive-map-throne" x="72" y={785 + index * 45} width="26" height="30" />
+                    <rect className="archive-map-throne" x="182" y={785 + index * 45} width="26" height="30" />
                   </g>
                 ))}
-                <rect className="archive-map-emperor-throne" x="1320" y="668" width="40" height="42" />
+                <rect className="archive-map-emperor-throne" x="120" y="755" width="40" height="42" />
               </g>
 
               <g className="archive-map-rooms">

@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
-import { PageScripts } from "../../../components/PageScripts.jsx";
-import { ThemeClass } from "../../../components/ThemeClass.jsx";
-import { getHierarchyItem } from "../../../../modules/data/hierarchy.js";
-import { getDivisionByRouteSlug } from "../../../lib/divisions.js";
-import { holonetMetadata } from "../../../lib/metadata.js";
-import { HierarchyDetail } from "../../hierarchy/HierarchyDetail.jsx";
+import { HolonetFrame } from "../../../../../components/HolonetFrame.jsx";
+import { PageScripts } from "../../../../../components/PageScripts.jsx";
+import { ThemeClass } from "../../../../../components/ThemeClass.jsx";
+import { getHierarchyItem } from "../../../../../../modules/data/hierarchy.js";
+import { getDivisionByRouteSlug } from "../../../../../lib/divisions.js";
+import { holonetMetadata } from "../../../../../lib/metadata.js";
+import { HierarchyDetail } from "../../../hierarchy/HierarchyDetail.jsx";
 
 function sectionTitle(section) {
   return {

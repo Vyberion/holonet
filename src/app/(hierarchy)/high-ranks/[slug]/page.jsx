@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getHierarchyGroup, getHierarchyItem } from "../../../../../modules/data/hierarchy.js";
-import { HierarchyDetail } from "../../../hierarchy/HierarchyDetail.jsx";
+import { HierarchyDetail } from "../../hierarchy/HierarchyDetail.jsx";
 import { holonetMetadata } from "../../../../lib/metadata.js";
 
 export function generateStaticParams() {

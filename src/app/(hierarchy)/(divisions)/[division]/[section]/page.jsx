@@ -174,7 +174,6 @@ export default async function DivisionSectionPage({ params }) {
               <div className="regulation">
                 <h3 className="reg-title">Access Notice</h3>
                 <p className="reg-text">
-                  {division.shortName} divisional documents are restricted to authorized {division.shortName} personnel.
                   Unauthorized access or distribution of these materials is strictly prohibited.
                 </p>
               </div>

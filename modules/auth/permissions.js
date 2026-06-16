@@ -36,37 +36,37 @@ export const PAGE_ACCESS = {
   reavers_info: { public: true },
   reavers_handbooks: { division: "reavers", minimumTier: "member" },
   reavers_transmissions: { division: "reavers", minimumTier: "member" },
-  reavers_reports: { division: "reavers", minimumTier: "nco" },
+  reavers_reports: { reportDivision: "reavers" },
   reavers_trackers: { division: "reavers", minimumTier: "member" },
   dhg_home: { division: "dhg", minimumTier: "member" },
   dhg_info: { public: true },
   dhg_handbooks: { division: "dhg", minimumTier: "member" },
   dhg_transmissions: { division: "dhg", minimumTier: "member" },
-  dhg_reports: { division: "dhg", minimumTier: "nco" },
+  dhg_reports: { reportDivision: "dhg" },
   dhg_trackers: { division: "dhg", minimumTier: "member" },
   dark_honor_guards_home: { division: "dhg", minimumTier: "member" },
   dark_honor_guards_info: { public: true },
   dark_honor_guards_handbooks: { division: "dhg", minimumTier: "member" },
   dark_honor_guards_transmissions: { division: "dhg", minimumTier: "member" },
-  dark_honor_guards_reports: { division: "dhg", minimumTier: "nco" },
+  dark_honor_guards_reports: { reportDivision: "dhg" },
   dark_honor_guards_trackers: { division: "dhg", minimumTier: "member" },
   inquisitors_home: { division: "inquisitors", minimumTier: "member" },
   inquisitors_info: { public: true },
   inquisitors_handbooks: { division: "inquisitors", minimumTier: "member" },
   inquisitors_transmissions: { division: "inquisitors", minimumTier: "member" },
-  inquisitors_reports: { division: "inquisitors", minimumTier: "nco" },
+  inquisitors_reports: { reportDivision: "inquisitors" },
   inquisitors_trackers: { division: "inquisitors", minimumTier: "member" },
   dreadmasters_home: { division: "dreadmasters", minimumTier: "member" },
   dreadmasters_info: { public: true },
   dreadmasters_handbooks: { division: "dreadmasters", minimumTier: "member" },
   dreadmasters_transmissions: { division: "dreadmasters", minimumTier: "member" },
-  dreadmasters_reports: { division: "dreadmasters", minimumTier: "member" },
+  dreadmasters_reports: { reportDivision: "dreadmasters" },
   dreadmasters_trackers: { division: "dreadmasters", minimumTier: "member" },
   dread_masters_home: { division: "dreadmasters", minimumTier: "member" },
   dread_masters_info: { public: true },
   dread_masters_handbooks: { division: "dreadmasters", minimumTier: "member" },
   dread_masters_transmissions: { division: "dreadmasters", minimumTier: "member" },
-  dread_masters_reports: { division: "dreadmasters", minimumTier: "member" },
+  dread_masters_reports: { reportDivision: "dreadmasters" },
   dread_masters_trackers: { division: "dreadmasters", minimumTier: "member" },
   highranks_home: { highRankMinimumTier: "lower" },
   highranks_handbooks: { highRankMinimumTier: "lower" },
@@ -177,14 +177,6 @@ function libraryOverride(profile, libraryKey) {
   );
 }
 
-function handbookUploadOverride(profile, division, slotKey = "") {
-  return overrideDecision(profile, override =>
-    (override.scope_type === "division" && override.scope_key === division) ||
-    (override.scope_type === "capability" && override.scope_key === `upload_handbook:${division}`) ||
-    (slotKey && override.scope_type === "capability" && override.scope_key === `upload_handbook:${division}:${slotKey}`)
-  );
-}
-
 function pageOverride(profile, pageKey, rule) {
   const normalizedPageKey = normalizePageKey(pageKey);
   const ruleDivision = rule?.division ? normalizeOverrideScopeKey(rule.division) : "";
@@ -287,20 +279,31 @@ export function canManageArchiveArticles(profile) {
     : { authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" };
 }
 
-export function canUploadHandbookSlot(profile, division, slotKey = "") {
+export function canViewDivisionReports(profile, division) {
   if (hasCoreAccess(profile)) {
     return { authorized: true, reason: coreAccessReason(profile) };
   }
 
-  const override = handbookUploadOverride(profile, division, slotKey);
-  if (override.hasOverride) return override;
+  const roles = profile?.authorityRoles || {};
+  const actualTier = profile?.divisions?.[division] || "none";
 
-  const actualTier = profile.divisions?.[division] || "none";
-  const hasDivisionAuthority = tierAtLeast(actualTier, "co");
+  if (tierAtLeast(actualTier, "member")) {
+    return { authorized: true, reason: "DIVISION_MEMBER_CLEARANCE" };
+  }
 
-  return hasDivisionAuthority || hasPowerbaseAuthority(profile)
-    ? { authorized: true, reason: hasDivisionAuthority ? "DIVISION_CO_AUTHORITY" : "POWERBASE_AUTHORITY" }
-    : { authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" };
+  if (division === "inquisitors") {
+    if (roles.inquisitoriusOverseer) {
+      return { authorized: true, reason: "INQUISITORIUS_OVERSEER" };
+    }
+
+    return hasPowerbaseAuthority(profile)
+      ? { authorized: true, reason: "HC_AUTHORITY" }
+      : { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
+  }
+
+  return hasAnyDarkCouncilAuthority(profile)
+    ? { authorized: true, reason: "DARK_COUNCIL_AUTHORITY" }
+    : { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
 }
 
 export function checkResourceWriteAccess(profile, { division }) {
@@ -368,6 +371,15 @@ export function checkPageAccess(profile, page) {
 
   if (rule.public) {
     return { authorized: true, pageKey };
+  }
+
+  if (rule.reportDivision) {
+    const override = pageOverride(profile, pageKey, { division: rule.reportDivision });
+    if (override.hasOverride) {
+      return { ...override, pageKey };
+    }
+
+    return { ...canViewDivisionReports(profile, rule.reportDivision), pageKey };
   }
 
   if (rule.division) {

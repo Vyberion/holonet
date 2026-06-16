@@ -24,7 +24,7 @@ export const DIVISIONS = {
     actions: [
       { label: "Open Handbooks", href: "/reavers/handbooks", minimumTier: "member" },
       { label: "Open Transmissions", href: "/reavers/transmissions", minimumTier: "member" },
-      { label: "Open Reports", href: "/reavers/reports", minimumTier: "nco" },
+      { label: "Open Reports", href: "/reavers/reports", minimumTier: "member" },
       { label: "Open Tracking", href: "/reavers/trackers", minimumTier: "member" }
     ]
   },
@@ -54,7 +54,7 @@ export const DIVISIONS = {
     actions: [
       { label: "Open Handbooks", href: "/dark-honor-guards/handbooks", minimumTier: "member" },
       { label: "Open Transmissions", href: "/dark-honor-guards/transmissions", minimumTier: "member" },
-      { label: "Open Reports", href: "/dark-honor-guards/reports", minimumTier: "nco" },
+      { label: "Open Reports", href: "/dark-honor-guards/reports", minimumTier: "member" },
       { label: "Open Tracking", href: "/dark-honor-guards/trackers", minimumTier: "member" }
     ]
   },
@@ -84,7 +84,7 @@ export const DIVISIONS = {
     actions: [
       { label: "Open Handbooks", href: "/inquisitors/handbooks", minimumTier: "member" },
       { label: "Open Transmissions", href: "/inquisitors/transmissions", minimumTier: "member" },
-      { label: "Open Reports", href: "/inquisitors/reports", minimumTier: "nco" },
+      { label: "Open Reports", href: "/inquisitors/reports", minimumTier: "member" },
       { label: "Open Tracking", href: "/inquisitors/trackers", minimumTier: "member" }
     ]
   },

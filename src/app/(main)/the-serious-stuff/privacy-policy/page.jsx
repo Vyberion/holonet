@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         <h2>Content You Submit</h2>
         <p>
           If you have write access, the site may store Codex edits, Archive articles, transmissions,
-          reports, handbook uploads, tracker links and related timestamps. Some submissions may show
+          reports, handbook records, tracker links and related timestamps. Some submissions may show
           your Roblox username as the author.
         </p>
         <h2>Personnel Lookup</h2>

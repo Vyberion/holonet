@@ -32,7 +32,7 @@ export default function TermsPage() {
         <h2>Writing And Uploads</h2>
         <p>
           Users with write access may create or edit Codex entries, Archive articles, transmissions,
-          reports and approved handbook uploads. You are responsible for anything submitted through
+          reports and approved handbook records. You are responsible for anything submitted through
           your logged-in session. Do not upload malicious files, spam, false records or content that
           breaks Roblox rules or community rules.
         </p>

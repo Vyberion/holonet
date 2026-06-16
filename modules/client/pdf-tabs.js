@@ -1,4 +1,4 @@
-import { fetchDivisionResourcePayload, uploadDivisionHandbook } from "./resources.js";
+import { fetchDivisionResourcePayload } from "./resources.js";
 
 let pdfjsLibPromise = null;
 
@@ -73,14 +73,73 @@ function cleanFileName(value) {
 }
 
 function displayTitle(resource) {
-  return cleanFileName(resource.fileName || resource.storagePath) || resource.title || "Handbook";
+  return resource.slotLabel || cleanFileName(resource.fileName || resource.storagePath) || resource.title || "Handbook";
 }
 
 function tabLabel(resource) {
+  if (resource.slotLabel) return resource.slotLabel;
+
   return displayTitle(resource)
     .replace(/\bhandbook\b/gi, "")
     .replace(/\s+/g, " ")
     .trim() || displayTitle(resource);
+}
+
+function slotOrder(slot) {
+  return Number(slot?.order || 0) || 999;
+}
+
+function isResourceAvailable(resource) {
+  return Boolean(resource?.signedUrl || resource?.href);
+}
+
+function placeholderForSlot(slot) {
+  return {
+    id: `slot-${slot.key}`,
+    slug: slot.slug || slot.key,
+    slotKey: slot.key,
+    slotLabel: slot.label,
+    title: slot.label,
+    fileName: slot.label,
+    meta: `${slot.label} - Unlinked`,
+    href: "",
+    signedUrl: "",
+    available: false
+  };
+}
+
+function normalizeHandbookPayload(payload) {
+  const slotCatalog = Array.isArray(payload?.slotCatalog)
+    ? payload.slotCatalog.slice().sort((a, b) => slotOrder(a) - slotOrder(b))
+    : [];
+  const resources = Array.isArray(payload?.resources) ? payload.resources : [];
+
+  if (!slotCatalog.length) {
+    return {
+      ...payload,
+      resources
+    };
+  }
+
+  const resourcesBySlot = new Map(resources.map(resource => [resource.slotKey, resource]));
+
+  return {
+    ...payload,
+    slotCatalog,
+    resources: slotCatalog.map(slot => {
+      const resource = resourcesBySlot.get(slot.key);
+      if (!resource) return placeholderForSlot(slot);
+
+      return {
+        ...resource,
+        slotLabel: slot.label,
+        meta: slot.label,
+        title: slot.label,
+        fileName: slot.label,
+        available: isResourceAvailable(resource)
+      };
+    })
+  };
 }
 
 function requestedDocumentKey() {
@@ -96,6 +155,8 @@ function resourceKeys(resource) {
   return [
     resource.slug,
     resource.id,
+    resource.slotKey,
+    resource.slotLabel,
     resource.storagePath,
     resource.fileName,
     resource.title
@@ -109,10 +170,8 @@ async function hydratePdfTabsFromResources() {
 
   tabStrip.innerHTML = '<span class="pdf-loading">Loading handbook registry...</span>';
 
-  state.handbookPayload = await fetchDivisionResourcePayload(division, "documents");
-  const handbooks = (state.handbookPayload.resources || []).slice().reverse();
-  console.log("Handbook payload:", state.handbookPayload);
-  renderUploadStrip(division, state.handbookPayload);
+  state.handbookPayload = normalizeHandbookPayload(await fetchDivisionResourcePayload(division, "documents"));
+  const handbooks = state.handbookPayload.resources || [];
 
   if (!handbooks.length) {
     tabStrip.innerHTML = '<span class="pdf-loading">No handbooks published.</span>';
@@ -120,58 +179,27 @@ async function hydratePdfTabsFromResources() {
   }
 
   const requestedKey = normalizeKey(requestedDocumentKey());
-  const activeIndex = Math.max(0, handbooks.findIndex(resource => resourceKeys(resource).includes(requestedKey)));
+  const requestedIndex = handbooks.findIndex(resource => resourceKeys(resource).includes(requestedKey));
+  const firstAvailableIndex = handbooks.findIndex(isResourceAvailable);
+  const activeIndex = requestedIndex >= 0 ? requestedIndex : Math.max(0, firstAvailableIndex);
 
   tabStrip.innerHTML = handbooks.map((resource, index) => `
     <button
       type="button"
-      class="pdf-tab${index === activeIndex ? " is-active" : ""}"
+      class="pdf-tab${index === activeIndex ? " is-active" : ""}${isResourceAvailable(resource) ? "" : " is-disabled"}"
       role="tab"
       aria-selected="${index === activeIndex ? "true" : "false"}"
+      aria-disabled="${isResourceAvailable(resource) ? "false" : "true"}"
       data-pdf-tab
       data-pdf-key="${escapeHtml(resource.slug || resource.id || resource.storagePath || resource.fileName || resource.title)}"
       data-pdf-label="${escapeHtml(displayTitle(resource))}"
       data-pdf-document-meta="${escapeHtml(resource.meta || resource.title || "HANDBOOK")}"
       data-pdf-src="${escapeHtml(resource.signedUrl || resource.href || "")}"
+      data-pdf-available="${isResourceAvailable(resource) ? "true" : "false"}"
     >
       ${escapeHtml(tabLabel(resource))}
     </button>
   `).join("");
-}
-
-function renderUploadStrip(division, payload) {
-  const tabStrip = document.querySelector("[data-pdf-tab-strip]");
-  if (!tabStrip) return;
-
-  let strip = document.querySelector("[data-pdf-upload-strip]");
-  if (!strip) {
-    strip = document.createElement("div");
-    strip.className = "pdf-upload-strip";
-    strip.dataset.pdfUploadStrip = "true";
-    tabStrip.parentElement?.insertBefore(strip, tabStrip);
-  }
-
-  if (!payload?.canUpload) {
-    strip.innerHTML = "";
-    return;
-  }
-
-  const bySlot = new Map((payload.resources || []).map(resource => [resource.slotKey, resource]));
-
-  strip.innerHTML = `
-    <div class="pdf-upload-head">HANDBOOK SLOTS</div>
-    <div class="pdf-upload-grid">
-      ${(payload.slotCatalog || []).map(slot => {
-        const resource = bySlot.get(slot.key);
-        return `
-          <button type="button" class="pdf-upload-card" data-pdf-upload-slot="${escapeHtml(slot.key)}" data-pdf-upload-division="${escapeHtml(division)}">
-            <span class="pdf-upload-label">${escapeHtml(slot.label)}</span>
-            <span class="pdf-upload-state">${escapeHtml(resource ? (resource.fileName || resource.title || "Published") : "Vacant")}</span>
-          </button>
-        `;
-      }).join("")}
-    </div>
-  `;
 }
 
 function getPixelRatio() {
@@ -472,8 +500,6 @@ async function waitForRender() {
 
 async function loadPdf(tab) {
   const source = tab.dataset.pdfSrc;
-  console.log("PDF source:", source);
-  if (!source) return;
 
   const taskId = state.taskId + 1;
   state.taskId = taskId;
@@ -483,11 +509,23 @@ async function loadPdf(tab) {
   state.isFitHeight = true;
   clearSearchState();
 
-  dom.container.innerHTML = '<div class="pdf-loading">Loading transmission...</div>';
   if (dom.scrollBox) dom.scrollBox.scrollTop = 0;
   if (dom.title) dom.title.textContent = tab.dataset.pdfLabel || tab.textContent.trim();
   if (dom.meta) dom.meta.textContent = tab.dataset.pdfDocumentMeta || "PDF archive";
   updateZoomLabel();
+
+  if (!source) {
+    if (state.pdf) {
+      await state.pdf.destroy();
+      state.pdf = null;
+    }
+
+    dom.container.innerHTML = '<div class="pdf-loading">Document unavailable.</div>';
+    state.pageText = [];
+    return;
+  }
+
+  dom.container.innerHTML = '<div class="pdf-loading">Loading transmission...</div>';
 
   try {
     if (state.pdf) {
@@ -807,61 +845,6 @@ function setupEvents() {
 
 }
 
-let handbookPickerOpen = false;
-
-function openHandbookFilePicker(button) {
-  if (!button || button.classList.contains("is-uploading") || handbookPickerOpen) return;
-
-  handbookPickerOpen = true;
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "application/pdf,.pdf";
-  input.style.cssText = "position:fixed;left:-10000px;top:0;opacity:0;pointer-events:none;";
-  document.body.appendChild(input);
-
-  const releasePicker = () => {
-    handbookPickerOpen = false;
-    input.remove();
-  };
-
-  input.addEventListener("change", async () => {
-    const file = input.files?.[0];
-    releasePicker();
-    if (!file) return;
-
-    const stateNode = button.querySelector(".pdf-upload-state");
-    const previousState = stateNode?.textContent || "";
-    button.classList.add("is-uploading");
-    if (stateNode) stateNode.textContent = "Uploading...";
-
-    try {
-      await uploadDivisionHandbook(button.dataset.pdfUploadDivision, button.dataset.pdfUploadSlot, file);
-      window.location.reload();
-    } catch (error) {
-      button.classList.remove("is-uploading");
-      if (stateNode) stateNode.textContent = previousState;
-      alert(error.message.replace(/_/g, " "));
-    }
-  }, { once: true });
-
-  input.addEventListener("cancel", releasePicker, { once: true });
-  input.click();
-}
-
-function setupUploadEvents() {
-  if (window.__holonetHandbookUploadEvents) return;
-  window.__holonetHandbookUploadEvents = true;
-
-  document.addEventListener("click", event => {
-    const button = event.target.closest("[data-pdf-upload-slot]");
-    if (!button) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    openHandbookFilePicker(button);
-  });
-}
-
 function cacheDom() {
   dom.tabs = Array.from(document.querySelectorAll("[data-pdf-tab]"));
   dom.container = document.querySelector("[data-pdf-pages]");
@@ -883,7 +866,6 @@ let pdfTabsInitPromise = null;
 async function initPdfTabs() {
   if (!pdfTabsInitPromise) {
     pdfTabsInitPromise = (async () => {
-      setupUploadEvents();
       await hydratePdfTabsFromResources();
       cacheDom();
       if (!dom.tabs.length || !dom.container) return;

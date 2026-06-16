@@ -62,7 +62,6 @@ async function fetchPdfBytes(source) {
   }
 
   const request = fetch(source, {
-    cache: "no-cache",
     credentials: "same-origin"
   }).then(async response => {
     if (!response.ok) {
@@ -589,6 +588,7 @@ async function loadPdf(tab) {
   }
 
   dom.container.innerHTML = '<div class="pdf-loading">Loading transmission...</div>';
+  warmSiblingPdfs(source);
 
   try {
     if (state.pdf) {
@@ -609,7 +609,6 @@ async function loadPdf(tab) {
 
     if (taskId !== state.taskId) return;
     await renderDocument();
-    warmSiblingPdfs(source);
   } catch (error) {
     console.error("PDF render failed:", error);
     if (taskId === state.taskId) {

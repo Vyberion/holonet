@@ -6,10 +6,10 @@ import { exportGoogleDocPdf, extractGoogleFileId, extractGoogleTabId, getGoogleF
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const PDF_HEADERS = {
-  "Content-Type": "application/pdf",
-  "Cache-Control": "private, max-age=0, must-revalidate"
-};
+const DEFAULT_EXPORT_CACHE_SECONDS = 120;
+const MAX_EXPORT_CACHE_ENTRIES = 8;
+const pdfExportCache = globalThis.__holonetHandbookPdfExportCache || new Map();
+globalThis.__holonetHandbookPdfExportCache = pdfExportCache;
 
 function jsonError(status, reason) {
   return Response.json({ ok: false, reason }, {
@@ -51,6 +51,99 @@ function requestHasEtag(request, etag) {
   return value.split(",").map(item => item.trim()).includes(etag);
 }
 
+function shouldUseGoogleMetadata() {
+  return /^(1|true|yes)$/i.test(String(process.env.HANDBOOK_PDF_USE_METADATA || ""));
+}
+
+function exportCacheSeconds() {
+  const value = Number(process.env.HANDBOOK_PDF_CACHE_SECONDS ?? DEFAULT_EXPORT_CACHE_SECONDS);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+}
+
+function pdfCacheControl() {
+  const seconds = exportCacheSeconds();
+  return seconds
+    ? `private, max-age=${seconds}, stale-while-revalidate=${seconds * 3}`
+    : "private, max-age=0, must-revalidate";
+}
+
+function pdfHeaders() {
+  return {
+    "Content-Type": "application/pdf",
+    "Cache-Control": pdfCacheControl()
+  };
+}
+
+function exportCacheTtlMs() {
+  return exportCacheSeconds() * 1000;
+}
+
+function exportCacheKey(resourceId, googleFileId, googleTabId, sourceUrl, metadata) {
+  const version = metadata?.modifiedTime || metadata?.version || "unversioned";
+  return [
+    resourceId,
+    googleFileId,
+    googleTabId || "file",
+    sourceUrl || "",
+    version
+  ].join(":");
+}
+
+function trimExportCache() {
+  while (pdfExportCache.size > MAX_EXPORT_CACHE_ENTRIES) {
+    pdfExportCache.delete(pdfExportCache.keys().next().value);
+  }
+}
+
+async function cachedGooglePdfExport(cacheKey, exporter) {
+  const ttlMs = exportCacheTtlMs();
+  if (!ttlMs) {
+    return {
+      pdf: await exporter(),
+      cacheStatus: "off"
+    };
+  }
+
+  const now = Date.now();
+  const existing = pdfExportCache.get(cacheKey);
+  if (existing && existing.expiresAt > now) {
+    return {
+      pdf: await (existing.promise || existing.pdf),
+      cacheStatus: existing.promise ? "pending" : "hit"
+    };
+  }
+
+  if (existing) {
+    pdfExportCache.delete(cacheKey);
+  }
+
+  const promise = Promise.resolve().then(exporter);
+  pdfExportCache.set(cacheKey, {
+    expiresAt: now + ttlMs,
+    promise
+  });
+  trimExportCache();
+
+  try {
+    const pdf = await promise;
+    pdfExportCache.set(cacheKey, {
+      expiresAt: Date.now() + ttlMs,
+      pdf
+    });
+    trimExportCache();
+    return {
+      pdf,
+      cacheStatus: "miss"
+    };
+  } catch (error) {
+    const latest = pdfExportCache.get(cacheKey);
+    if (latest?.promise === promise) {
+      pdfExportCache.delete(cacheKey);
+    }
+    throw error;
+  }
+}
+
 async function loadHandbookResource(resourceId) {
   const [resource] = await supabaseRest(
     `registry_resources?id=eq.${encodeURIComponent(resourceId)}&resource_type=eq.handbook&status=eq.published&select=id,division_key,slug,title,status`
@@ -80,7 +173,7 @@ async function legacySupabasePdfResponse(resource, detail) {
   return new Response(await response.arrayBuffer(), {
     status: 200,
     headers: {
-      ...PDF_HEADERS,
+      ...pdfHeaders(),
       "Content-Disposition": `inline; filename="${safePdfFileName(resource, detail)}"`
     }
   });
@@ -113,27 +206,44 @@ export async function GET(request) {
 
   try {
     if (googleFileId) {
-      const metadata = await getGoogleFileMetadata(googleFileId);
-      const etag = cacheTagFor(resource.id, googleFileId, googleTabId, metadata);
-      const cacheHeaders = {
-        ...PDF_HEADERS,
-        ETag: etag,
-        ...(metadata.modifiedTime ? { "Last-Modified": new Date(metadata.modifiedTime).toUTCString() } : {})
-      };
+      let metadata = null;
+      let cacheHeaders = pdfHeaders();
 
-      if (requestHasEtag(request, etag)) {
-        return new Response(null, {
-          status: 304,
-          headers: cacheHeaders
-        });
+      if (shouldUseGoogleMetadata()) {
+        try {
+          metadata = await getGoogleFileMetadata(googleFileId);
+          const etag = cacheTagFor(resource.id, googleFileId, googleTabId, metadata);
+          cacheHeaders = {
+            ...pdfHeaders(),
+            ETag: etag,
+            ...(metadata.modifiedTime ? { "Last-Modified": new Date(metadata.modifiedTime).toUTCString() } : {})
+          };
+
+          if (requestHasEtag(request, etag)) {
+            return new Response(null, {
+              status: 304,
+              headers: cacheHeaders
+            });
+          }
+        } catch (metadataError) {
+          console.warn("Google file metadata unavailable; exporting handbook PDF without revalidation:", metadataError);
+        }
       }
 
-      const pdf = await exportGoogleDocPdf(googleFileId, { tabId: googleTabId });
+      const { pdf, cacheStatus } = await cachedGooglePdfExport(
+        exportCacheKey(resource.id, googleFileId, googleTabId, detail.google_doc_url, metadata),
+        () => exportGoogleDocPdf(googleFileId, {
+          tabId: googleTabId,
+          sourceUrl: detail.google_doc_url
+        })
+      );
 
       return new Response(pdf, {
         status: 200,
         headers: {
           ...cacheHeaders,
+          "Content-Length": String(pdf.byteLength),
+          "X-Handbook-Pdf-Cache": cacheStatus,
           "Content-Disposition": `inline; filename="${safePdfFileName(resource, detail)}"`
         }
       });

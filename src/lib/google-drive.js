@@ -96,21 +96,34 @@ export function extractGoogleTabId(value) {
   }
 }
 
-export async function exportGoogleDocPdf(fileId, { tabId = "" } = {}) {
+export function googleWorkspaceKindFromUrl(value) {
+  const text = String(value || "");
+  if (/\/presentation\/d\//i.test(text)) return "presentation";
+  if (/\/document\/d\//i.test(text)) return "document";
+  if (/\/spreadsheets\/d\//i.test(text)) return "spreadsheet";
+  return "";
+}
+
+export async function exportGoogleDocPdf(fileId, { tabId = "", sourceUrl = "", fileKind = "" } = {}) {
   const id = extractGoogleFileId(fileId);
   if (!id) {
     throw new Error("GOOGLE_FILE_ID_REQUIRED");
   }
 
   const token = await getGoogleAccessToken();
+  const kind = fileKind || googleWorkspaceKindFromUrl(sourceUrl);
 
-  const exportUrl = tabId
+  const exportUrl = kind === "presentation"
+    ? new URL(`https://docs.google.com/presentation/d/${encodeURIComponent(id)}/export/pdf`)
+    : (tabId || kind === "document")
     ? new URL(`https://docs.google.com/document/d/${encodeURIComponent(id)}/export`)
     : new URL(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}/export`);
 
-  if (tabId) {
+  if (kind === "presentation") {
+    exportUrl.searchParams.set("id", id);
+  } else if (tabId || kind === "document") {
     exportUrl.searchParams.set("format", "pdf");
-    exportUrl.searchParams.set("tab", tabId);
+    if (tabId) exportUrl.searchParams.set("tab", tabId);
   } else {
     exportUrl.searchParams.set("mimeType", GOOGLE_DOC_PDF_MIME);
   }

@@ -274,6 +274,25 @@
     loader.removeAttribute("aria-hidden");
   }
 
+  function setLoaderProgress(loader, value) {
+    const progress = Math.max(0, Math.min(100, Number(value) || 0));
+    loader.style.setProperty("--loader-progress", `${progress}%`);
+  }
+
+  function startLoaderProgress(loader, { start = 8, cap = 92 } = {}) {
+    setLoaderProgress(loader, start);
+
+    const interval = window.setInterval(() => {
+      const current = Number.parseFloat(loader.style.getPropertyValue("--loader-progress")) || 0;
+      if (current >= cap) return;
+
+      const next = current + Math.max(0.8, (cap - current) * 0.08);
+      setLoaderProgress(loader, Math.min(cap, next));
+    }, 180);
+
+    return () => window.clearInterval(interval);
+  }
+
   function beginPageCrtOpen() {
     document.documentElement.classList.add("holonet-crt-armed");
     document.documentElement.classList.remove("holonet-crt-opening");
@@ -287,14 +306,17 @@
   }
 
   function hideLoader(loader) {
-    loader.classList.add("hidden");
-    loader.setAttribute("aria-hidden", "true");
+    setLoaderProgress(loader, 100);
     window.setTimeout(() => {
-      if (loader.classList.contains("hidden")) {
-        loader.style.display = "none";
-      }
-      clearPageCrtOpen();
-    }, 520);
+      loader.classList.add("hidden");
+      loader.setAttribute("aria-hidden", "true");
+      window.setTimeout(() => {
+        if (loader.classList.contains("hidden")) {
+          loader.style.display = "none";
+        }
+        clearPageCrtOpen();
+      }, 520);
+    }, 140);
   }
 
   function readLocalStorage(key) {
@@ -323,15 +345,6 @@
 
   function shouldRunReleaseIntro() {
     return shouldForceIntro() || readLocalStorage(INTRO_COMPLETE_KEY) !== "true";
-  }
-
-  function restartLoaderBar(loader) {
-    const bar = loader.querySelector(".loader-bar");
-    if (!bar) return;
-
-    bar.style.animation = "none";
-    void bar.offsetWidth;
-    bar.style.animation = "";
   }
 
   function ensureMuxPlayerReady() {
@@ -481,9 +494,12 @@
       if (establishButton) establishButton.disabled = true;
 
       setLoaderPhase(loader, "intro-loading");
+      const stopIntroProgress = startLoaderProgress(loader, { start: 12, cap: 88 });
 
       await Promise.all([waitForWindowLoad(), wait(2300)]);
 
+      stopIntroProgress();
+      setLoaderProgress(loader, 92);
       setLoaderPhase(loader, "intro-ready");
       await wait(1150);
 
@@ -562,16 +578,15 @@
     const loaderAlreadyShown = sessionStorage.getItem(LOADER_SHOWN_KEY);
     const accessPending = document.documentElement.classList.contains("access-pending");
 
-    if (loaderAlreadyShown && !accessPending) {
-      loader.style.display = "none";
-      return;
-    }
-
     if (!loaderAlreadyShown) {
       sessionStorage.setItem(LOADER_SHOWN_KEY, "true");
     }
 
     setLoaderPhase(loader, "standard");
+    const stopProgress = startLoaderProgress(loader, {
+      start: document.readyState === "complete" ? 48 : 10,
+      cap: accessPending ? 93 : 88
+    });
 
     function waitForAccessAndHide() {
       if (document.documentElement.classList.contains("access-pending")) {
@@ -579,6 +594,7 @@
         return;
       }
 
+      stopProgress();
       hideLoader(loader);
     }
 

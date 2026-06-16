@@ -4,6 +4,11 @@ import { OldGuardPlayer } from "./OldGuardPlayer.jsx";
 
 const alternativeIntroEnabled = HOLONET_ALTERNATIVE_INTRO_ENABLED;
 const alternativeIntroEnabledScriptValue = alternativeIntroEnabled ? "true" : "false";
+const themeClasses = ["theme-reavers", "theme-dhg", "theme-dreadmasters", "theme-inquisitors", "theme-highranks", "theme-dark-council"];
+
+function initialThemeScriptValue(theme) {
+  return JSON.stringify(themeClasses.includes(theme) ? theme : "");
+}
 
 export function HolonetFrame({
   title,
@@ -16,7 +21,8 @@ export function HolonetFrame({
   footerNode = "KOR-7",
   children,
   mainClassName = "",
-  includeSearchOverlay = false
+  includeSearchOverlay = false,
+  theme = ""
 }) {
   return (
     <>
@@ -26,7 +32,7 @@ export function HolonetFrame({
 
       <script
         dangerouslySetInnerHTML={{
-          __html: `(function(){var alternativeIntroEnabled=${alternativeIntroEnabledScriptValue};try{window.HOLONET_ALTERNATIVE_INTRO_ENABLED=alternativeIntroEnabled;if(!alternativeIntroEnabled){localStorage.setItem("holonet:intro:v1:complete","true");sessionStorage.setItem("loaderShown","true");}var q=new URLSearchParams(window.location.search);var intro=alternativeIntroEnabled&&(q.get("intro")==="1"||localStorage.getItem("holonet:intro:v1:complete")!=="true");document.documentElement.classList.add(intro?"holonet-release-intro":"holonet-standard-loader");}catch(e){document.documentElement.classList.add(alternativeIntroEnabled?"holonet-release-intro":"holonet-standard-loader");}})();`
+          __html: `(function(){var alternativeIntroEnabled=${alternativeIntroEnabledScriptValue};var initialTheme=${initialThemeScriptValue(theme)};var themeClasses=${JSON.stringify(themeClasses)};try{if(initialTheme&&document.body){themeClasses.forEach(function(className){document.body.classList.remove(className);});document.body.classList.add(initialTheme);}window.HOLONET_ALTERNATIVE_INTRO_ENABLED=alternativeIntroEnabled;if(!alternativeIntroEnabled){localStorage.setItem("holonet:intro:v1:complete","true");}var q=new URLSearchParams(window.location.search);var intro=alternativeIntroEnabled&&(q.get("intro")==="1"||localStorage.getItem("holonet:intro:v1:complete")!=="true");document.documentElement.style.setProperty("--loader-progress","0%");document.documentElement.classList.add(intro?"holonet-release-intro":"holonet-standard-loader");}catch(e){document.documentElement.classList.add(alternativeIntroEnabled?"holonet-release-intro":"holonet-standard-loader");}})();`
         }}
       />
 
@@ -39,7 +45,7 @@ export function HolonetFrame({
             </div>
             <div className="loader-terminal-body loader-gate-body">
               <div className="loader-gate-copy">
-                <p className="loader-gate-kicker">MANAR'S THE SITH ORDER</p>
+                <p className="loader-gate-kicker">MANAR&apos;S THE SITH ORDER</p>
                 <h2 id="loader-intro-command" className="loader-gate-title">THE NEW HOLONET</h2>
               </div>
               <button className="loader-terminal-button loader-terminal-button--gate" type="button" data-loader-establish>

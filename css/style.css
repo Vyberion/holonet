@@ -915,6 +915,7 @@ footer {
 
 /* Loader */
 #loader {
+  --loader-progress: 0%;
   position: fixed;
   inset: 0;
   background: var(--theme-bg);
@@ -1058,6 +1059,7 @@ html.holonet-crt-opening #app > .status-bar {
 }
 
 html.holonet-standard-loader #loader:not([data-loader-phase]) .loader-standard,
+html.access-pending #loader:not([data-loader-phase]) .loader-standard,
 html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt,
 #loader[data-loader-phase="standard"] .loader-standard,
 #loader[data-loader-phase="intro-prompt"] .loader-intro-prompt,
@@ -1236,11 +1238,8 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
   box-shadow: 0 0 16px var(--theme-accent-glow);
   display: block;
   height: 100%;
-  width: 0;
-}
-
-#loader[data-loader-phase="intro-loading"] .loader-terminal-progress span {
-  animation: terminalProgress 2.05s ease forwards;
+  transition: width 0.28s ease;
+  width: var(--loader-progress, 0%);
 }
 
 .loader-terminal-status {
@@ -1269,10 +1268,6 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
 
 #loader[data-loader-phase="intro-ready"] .loader-terminal-panel {
   animation: terminalReadyPulse 0.28s steps(1) 2;
-}
-
-@keyframes terminalProgress {
-  to { width: 100%; }
 }
 
 @keyframes terminalLineIn {
@@ -1624,11 +1619,9 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
   height: 100%;
   background: linear-gradient(90deg, var(--theme-accent-dim), var(--theme-accent));
   box-shadow: 0 0 10px var(--theme-accent), 0 0 2px rgba(0,200,255,0.25);
-  animation: loaderFill 2.3s ease forwards;
-  width: 0;
+  transition: width 0.28s ease;
+  width: var(--loader-progress, 0%);
 }
-
-@keyframes loaderFill { to { width: 100%; } }
 
 /* Developer notice */
 .developer-notice-overlay {

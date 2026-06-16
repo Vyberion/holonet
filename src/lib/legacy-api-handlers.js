@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import { getAuthContext } from "../../modules/auth/auth-context.js";
 import {
   canAccessAdmin,
@@ -6,7 +5,7 @@ import {
   canAccessPersonnelLookup,
   canAccessRegistry,
   canEditLibrary,
-  canUploadHandbookSlot,
+  canViewDivisionReports,
   checkPageAccess,
   checkResourceWriteAccess,
   hasCoreAccess
@@ -25,8 +24,7 @@ import {
   SESSION_COOKIE,
   SESSION_MAX_AGE_SECONDS,
   STATE_COOKIE,
-  supabaseRest,
-  uploadStorageObject
+  supabaseRest
 } from "../../modules/auth/session-store.js";
 import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
 import { tierAtLeast } from "../../modules/auth/profile.js";
@@ -34,6 +32,7 @@ import { ARCHIVE_SEED } from "../../modules/data/archive-seed.js";
 import { LIBRARY_SEED } from "../../modules/data/library-seed.js";
 import { getHandbookSlot, getHandbookSlots } from "../../modules/data/handbook-slots.js";
 import { listDivisions } from "../../modules/data/divisions/index.js";
+import { extractGoogleFileId, extractGoogleTabId } from "./google-drive.js";
 
 function getQueryParam(req, name) {
   return String(req?.query?.[name] || "").trim();
@@ -124,30 +123,6 @@ const COUNCIL_RANKS = {
 const COUNCIL_COUNTING_RANKS = [COUNCIL_RANKS.council, COUNCIL_RANKS.emperorPowerbase, COUNCIL_RANKS.emperor];
 const COUNCIL_VOTING_RANKS = [...COUNCIL_COUNTING_RANKS, COUNCIL_RANKS.projectManager, COUNCIL_RANKS.groupOwner];
 const COUNCIL_VETO_RANKS = [COUNCIL_RANKS.emperor, COUNCIL_RANKS.projectManager, COUNCIL_RANKS.groupOwner];
-
-function createMissingSupabaseClient() {
-  const error = new Error("Supabase is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
-  const handler = {
-    get() {
-      return new Proxy(() => { throw error; }, handler);
-    },
-    apply() {
-      throw error;
-    }
-  };
-  return new Proxy(() => { throw error; }, handler);
-}
-
-const supabaseAdmin = (() => {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
-
-  if (!url || !key) {
-    return createMissingSupabaseClient();
-  }
-
-  return createClient(url, key, { auth: { persistSession: false } });
-})();
 
 function councilRank(profile) {
   return Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0);
@@ -385,255 +360,12 @@ async function confirmDiscordLink(req) {
   };
 }
 
-function safeFileName(name) {
-  const cleaned = requireString(name)
-    .replace(/[^a-z0-9._-]+/gi, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  return cleaned.toLowerCase().endsWith(".pdf") ? cleaned : `${cleaned || "handbook"}.pdf`;
-}
 function readJsonBody(req) {
   if (typeof req.body === "string") {
     return req.body ? JSON.parse(req.body) : {};
   }
 
   return req.body || {};
-}
-
-async function assertHandbookUploadAccess(req, division, slotKey) {
-  const slot = getHandbookSlot(division, slotKey);
-
-  if (!division || !slot) {
-    return { ok: false, status: 400, payload: { ok: false, reason: "UNKNOWN_HANDBOOK_SLOT" } };
-  }
-
-  const auth = await getAuthContext(req);
-
-  if (!auth.authenticated) {
-    return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" } };
-  }
-
-  const pageAccess = checkPageAccess(auth.profile, `${division}_handbooks`);
-
-  if (!pageAccess.authorized) {
-    return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: pageAccess.reason || "ACCESS_DENIED" } };
-  }
-
-  const permission = canUploadHandbookSlot(auth.profile, division, slotKey);
-
-  if (!permission.authorized) {
-    return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: permission.reason } };
-  }
-
-  return { ok: true, auth, slot };
-}
-
-async function createHandbookUploadSession(req) {
-  const body = readJsonBody(req);
-  const division = requireString(body.division).toLowerCase();
-  const slotKey = requireString(body.slotKey || body.slot).toLowerCase();
-  const fileName = safeFileName(body.fileName);
-  const mimeType = requireString(body.mimeType, "application/pdf");
-  const fileSizeBytes = Number(body.fileSizeBytes) || 0;
-
-  if (!/application\/pdf/i.test(mimeType) && !/\.pdf$/i.test(fileName)) {
-    return { ok: false, status: 400, payload: { ok: false, reason: "PDF_ONLY" } };
-  }
-
-  const access = await assertHandbookUploadAccess(req, division, slotKey);
-  if (!access.ok) return access;
-
-  if (!process.env.SUPABASE_ANON_KEY && !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return { ok: false, status: 500, payload: { ok: false, reason: "SUPABASE_ANON_KEY_MISSING" } };
-  }
-
-  await cleanupRetiredHandbooks();
-
-  const now = new Date();
-  const timestamp = now.toISOString().replace(/[:.]/g, "-");
-  const storagePath = `${division}/${slotKey}/${timestamp}-${fileName}`;
-  const resourceId = await ensureParentResource(division, access.slot);
-
-  const { data, error } = await supabaseAdmin.storage
-    .from("handbooks")
-    .createSignedUploadUrl(storagePath, { upsert: false });
-
-  if (error) {
-    throw new Error(error.message || "SIGNED_UPLOAD_URL_FAILED");
-  }
-
-  return {
-    ok: true,
-    status: 200,
-    payload: {
-      ok: true,
-      bucket: "handbooks",
-      path: storagePath,
-      token: data.token,
-      signedUrl: data.signedUrl,
-      resourceId,
-      slotKey,
-      fileName,
-      fileSizeBytes,
-      supabaseUrl: process.env.SUPABASE_URL,
-      supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
-    }
-  };
-}
-
-async function finishHandbookUpload(req) {
-  const body = readJsonBody(req);
-  const division = requireString(body.division).toLowerCase();
-  const slotKey = requireString(body.slotKey || body.slot).toLowerCase();
-  const storagePath = requireString(body.storagePath);
-  const fileName = safeFileName(body.fileName);
-  const fileSizeBytes = Number(body.fileSizeBytes) || 0;
-  const mimeType = requireString(body.mimeType, "application/pdf");
-
-  const access = await assertHandbookUploadAccess(req, division, slotKey);
-  if (!access.ok) return access;
-
-  if (!storagePath.startsWith(`${division}/${slotKey}/`) || !/\.pdf$/i.test(storagePath)) {
-    return { ok: false, status: 400, payload: { ok: false, reason: "INVALID_STORAGE_PATH" } };
-  }
-
-  await createSignedStorageUrl("handbooks", storagePath);
-
-  const now = new Date();
-  const resourceId = requireString(body.resourceId) || await ensureParentResource(division, access.slot);
-  const [current] = await supabaseRest(`resource_handbooks?resource_id=eq.${encodeURIComponent(resourceId)}&select=*`);
-
-  if (current?.storage_path && current.storage_path !== storagePath) {
-    await supabaseRest("resource_handbook_retirements", {
-      method: "POST",
-      body: JSON.stringify({
-        resource_id: resourceId,
-        division_key: division,
-        slot_key: slotKey,
-        storage_bucket: current.storage_bucket || "handbooks",
-        storage_path: current.storage_path,
-        file_name: current.file_name,
-        file_size_bytes: current.file_size_bytes,
-        mime_type: current.mime_type,
-        retired_at: now.toISOString(),
-        purge_after: new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString()
-      })
-    });
-  }
-
-  await supabaseRest(`registry_resources?id=eq.${encodeURIComponent(resourceId)}`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      title: access.slot.label,
-      description: `${access.slot.label} document`,
-      status: "published",
-      display_order: access.slot.order,
-      updated_at: now.toISOString()
-    })
-  });
-
-  await supabaseRest("resource_handbooks?on_conflict=resource_id", {
-    method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates" },
-    body: JSON.stringify({
-      resource_id: resourceId,
-      slot_key: slotKey,
-      storage_bucket: "handbooks",
-      storage_path: storagePath,
-      file_name: fileName,
-      file_size_bytes: fileSizeBytes,
-      mime_type: mimeType,
-      version_label: access.slot.label,
-      published_at: now.toISOString()
-    })
-  });
-
-  return {
-    ok: true,
-    status: 200,
-    payload: { ok: true, id: resourceId, slotKey, storagePath }
-  };
-}
-
-async function readRequestBuffer(req) {
-  if (Buffer.isBuffer(req?.body)) {
-    return req.body;
-  }
-
-  if (req?.body instanceof Uint8Array) {
-    return Buffer.from(req.body);
-  }
-
-  if (typeof req?.body === "string" && req.body.length) {
-    return Buffer.from(req.body, "latin1");
-  }
-
-  const chunks = [];
-  for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks);
-}
-
-function trimTrailingCrlf(buffer) {
-  let end = buffer.length;
-  while (end >= 2 && buffer[end - 2] === 0x0d && buffer[end - 1] === 0x0a) {
-    end -= 2;
-  }
-
-  return end === buffer.length ? buffer : buffer.subarray(0, end);
-}
-
-function parseMultipartBody(buffer, boundary) {
-  const boundaryBuffer = Buffer.from(`--${boundary}`);
-  const headerSeparator = Buffer.from("\r\n\r\n");
-  const parts = [];
-  let cursor = 0;
-
-  while (true) {
-    const boundaryIndex = buffer.indexOf(boundaryBuffer, cursor);
-    if (boundaryIndex === -1) break;
-    const nextBoundaryIndex = buffer.indexOf(boundaryBuffer, boundaryIndex + boundaryBuffer.length);
-    if (nextBoundaryIndex === -1) break;
-
-    let part = buffer.slice(boundaryIndex + boundaryBuffer.length + 2, nextBoundaryIndex - 2);
-    cursor = nextBoundaryIndex;
-    if (!part.length) continue;
-
-    const headerIndex = part.indexOf(headerSeparator);
-    if (headerIndex === -1) continue;
-
-    const headers = part.slice(0, headerIndex).toString("utf8");
-    const body = trimTrailingCrlf(part.slice(headerIndex + headerSeparator.length));
-    parts.push({ headers, body });
-  }
-
-  const fields = {};
-  let file = null;
-
-  parts.forEach(part => {
-    const disposition = part.headers.split("\r\n").find(line => /content-disposition/i.test(line)) || "";
-    const name = disposition.match(/name="([^"]+)"/i)?.[1];
-    const filename = disposition.match(/filename="([^"]*)"/i)?.[1];
-    const contentType = part.headers.split("\r\n").find(line => /content-type/i.test(line))?.split(":")[1]?.trim() || "application/octet-stream";
-
-    if (!name) return;
-
-    if (filename) {
-      file = {
-        fieldName: name,
-        fileName: filename,
-        contentType,
-        buffer: part.body
-      };
-      return;
-    }
-
-    fields[name] = part.body.toString("utf8").trim();
-  });
-
-  return { fields, file };
 }
 
 async function cleanupRetiredHandbooks() {
@@ -995,7 +727,13 @@ async function normalizeRows(resources, detailRows, resourceType) {
 
     if (resourceType === "handbook") {
       const slot = getHandbookSlot(resource.division_key, detail.slot_key || "");
-      const signedUrl = detail.storage_path
+      const googleFileId = detail.google_file_id || extractGoogleFileId(detail.google_doc_url);
+      const googleTabId = detail.google_tab_id || extractGoogleTabId(detail.google_doc_url);
+      const googleDocUrl = detail.google_doc_url || "";
+      const sourceType = googleFileId || detail.source_type === "google_doc" ? "google_doc" : "supabase_pdf";
+      const signedUrl = googleFileId
+        ? `/api/handbook-pdf?resourceId=${encodeURIComponent(resource.id)}`
+        : detail.storage_path
         ? await createSignedStorageUrl(detail.storage_bucket || "handbooks", detail.storage_path)
         : "";
 
@@ -1004,10 +742,15 @@ async function normalizeRows(resources, detailRows, resourceType) {
         slotKey: detail.slot_key || "",
         meta: slot?.label || detail.version_label || "Handbook",
         fileName: detail.file_name || detail.storage_path?.split("/").pop() || "",
+        sourceType,
+        googleFileId,
+        googleTabId,
+        googleDocUrl,
         storageBucket: detail.storage_bucket || "handbooks",
         storagePath: detail.storage_path || "",
         href: signedUrl,
         signedUrl,
+        available: Boolean(signedUrl),
         mimeType: detail.mime_type || "application/pdf",
         publishedAt: detail.published_at || null
       };
@@ -1703,134 +1446,6 @@ async function writeResource({ division, resourceType, detailTable, body, author
   });
 
   return { ok: true, status: 200, payload: { ok: true, id: resource.id } };
-}
-
-async function ensureParentResource(division, slot) {
-  const existing = await supabaseRest(
-    `registry_resources?division_key=eq.${encodeURIComponent(division)}&resource_type=eq.handbook&slug=eq.${encodeURIComponent(slot.slug)}&select=id`
-  );
-
-  if (existing?.length) return existing[0].id;
-
-  const [created] = await supabaseRest("registry_resources?select=id", {
-    method: "POST",
-    headers: { Prefer: "return=representation" },
-    body: JSON.stringify({
-      division_key: division,
-      resource_type: "handbook",
-      slug: slot.slug,
-      title: slot.label,
-      description: `${slot.label} document`,
-      access_key: `${division}_handbooks`,
-      visibility: "restricted",
-      status: "published",
-      display_order: slot.order,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })
-  });
-
-  return created.id;
-}
-
-async function writeHandbookUpload(req) {
-  const division = requireString(getQueryParam(req, "division")).toLowerCase();
-  const slotKey = requireString(getQueryParam(req, "slot")).toLowerCase();
-  const slot = getHandbookSlot(division, slotKey);
-
-  if (!division || !slot) {
-    return { ok: false, status: 400, payload: { ok: false, reason: "UNKNOWN_HANDBOOK_SLOT" } };
-  }
-
-  const auth = await getAuthContext(req);
-  if (!auth.authenticated) {
-    return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" } };
-  }
-
-  const pageAccess = checkPageAccess(auth.profile, `${division}_handbooks`);
-  if (!pageAccess.authorized) {
-    return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: pageAccess.reason || "ACCESS_DENIED" } };
-  }
-
-  const permission = canUploadHandbookSlot(auth.profile, division, slotKey);
-  if (!permission.authorized) {
-    return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: permission.reason } };
-  }
-
-  const contentTypeHeader = req.headers["content-type"] || "";
-  const boundary = contentTypeHeader.match(/boundary=([^;]+)/i)?.[1]?.replace(/^"|"$/g, "").trim();
-  if (!boundary) {
-    return { ok: false, status: 400, payload: { ok: false, reason: "MULTIPART_BOUNDARY_MISSING" } };
-  }
-
-  const multipart = parseMultipartBody(await readRequestBuffer(req), boundary);
-  const file = multipart.file;
-
-  if (!file?.buffer?.length) {
-    return { ok: false, status: 400, payload: { ok: false, reason: "FILE_REQUIRED" } };
-  }
-
-  if (!/application\/pdf/i.test(file.contentType) && !/\.pdf$/i.test(file.fileName || "")) {
-    return { ok: false, status: 400, payload: { ok: false, reason: "PDF_ONLY" } };
-  }
-
-  await cleanupRetiredHandbooks();
-
-  const now = new Date();
-  const resourceId = await ensureParentResource(division, slot);
-  const [current] = await supabaseRest(`resource_handbooks?resource_id=eq.${encodeURIComponent(resourceId)}&select=*`);
-
-  if (current?.storage_path) {
-    await supabaseRest("resource_handbook_retirements", {
-      method: "POST",
-      body: JSON.stringify({
-        resource_id: resourceId,
-        division_key: division,
-        slot_key: slotKey,
-        storage_bucket: current.storage_bucket || "handbooks",
-        storage_path: current.storage_path,
-        file_name: current.file_name,
-        file_size_bytes: current.file_size_bytes,
-        mime_type: current.mime_type,
-        retired_at: now.toISOString(),
-        purge_after: new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString()
-      })
-    });
-  }
-
-  const timestamp = now.toISOString().replace(/[:.]/g, "-");
-  const storagePath = `${division}/${slotKey}/${timestamp}-${safeFileName(file.fileName)}`;
-
-  await uploadStorageObject("handbooks", storagePath, file.buffer, "application/pdf");
-
-  await supabaseRest(`registry_resources?id=eq.${encodeURIComponent(resourceId)}`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      title: slot.label,
-      description: `${slot.label} document`,
-      status: "published",
-      display_order: slot.order,
-      updated_at: now.toISOString()
-    })
-  });
-
-  await supabaseRest("resource_handbooks?on_conflict=resource_id", {
-    method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates" },
-    body: JSON.stringify({
-      resource_id: resourceId,
-      slot_key: slotKey,
-      storage_bucket: "handbooks",
-      storage_path: storagePath,
-      file_name: safeFileName(file.fileName),
-      file_size_bytes: file.buffer.length,
-      mime_type: "application/pdf",
-      version_label: slot.label,
-      published_at: now.toISOString()
-    })
-  });
-
-  return { ok: true, status: 200, payload: { ok: true, id: resourceId, slotKey, storagePath } };
 }
 
 async function resolveUserByUsername(username) {
@@ -2909,10 +2524,6 @@ export const LEGACY_API_HANDLERS = {
   },
   resources: async (req, res) => {
     try {
-      if (req.method === "POST" && getQueryParam(req, "division") && ["handbook", "handbooks", "document", "documents"].includes(getQueryParam(req, "type"))) {
-        return res.status(200).json(await writeHandbookUpload(req));
-      }
-
       const division = getQueryParam(req, "division");
       const requestedType = getQueryParam(req, "type");
       const resourceType = {
@@ -2947,6 +2558,10 @@ export const LEGACY_API_HANDLERS = {
       }
 
       if (req.method === "POST" || req.method === "PATCH") {
+        if (resourceType === "handbook") {
+          return res.status(405).json({ ok: false, reason: "HANDBOOK_UPLOADS_DISABLED" });
+        }
+
         const writeAccess = checkResourceWriteAccess(auth.profile, { division, resourceType });
         if (!writeAccess.authorized) {
           return res.status(200).json({ ok: false, authorized: false, reason: writeAccess.reason });
@@ -2984,7 +2599,7 @@ export const LEGACY_API_HANDLERS = {
           ok: true,
           authorized: true,
           canWrite: false,
-          canUpload: slotCatalog.some(slot => canUploadHandbookSlot(auth.profile, division, slot.key).authorized),
+          canUpload: false,
           slotCatalog,
           resources: sortedRows
         });
@@ -3093,6 +2708,13 @@ export const LEGACY_API_HANDLERS = {
 
       const division = requireString(getQueryParam(req, "division")).toLowerCase();
       if (req.method === "GET") {
+        const viewAccess = division
+          ? canViewDivisionReports(auth.profile, division)
+          : { authorized: false, reason: "UNKNOWN_DIVISION" };
+        if (!viewAccess.authorized) {
+          return res.status(200).json({ ok: false, authorized: false, reason: viewAccess.reason || "ACCESS_DENIED" });
+        }
+
         const canWrite = division ? canWriteDivisionWeeklyReport(auth.profile, division) : false;
         const draft = getQueryParam(req, "draft") === "1";
         return res.status(200).json({
@@ -3149,46 +2771,6 @@ export const LEGACY_API_HANDLERS = {
       return res.status(500).json({ ok: false, error: error.message });
     }
   },
-  "handbook-upload": async (req, res) => {
-    try {
-      if (req.method !== "POST") {
-        return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-      }
-
-      const result = await writeHandbookUpload(req);
-      return res.status(result.status).json(result.payload);
-    } catch (error) {
-      if (isMissingSchemaError(error)) {
-        return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED" });
-      }
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  "handbook-upload/start": async (req, res) => {
-  try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-    }
-
-    const result = await createHandbookUploadSession(req);
-    return res.status(result.status).json(result.payload);
-  } catch (error) {
-    return res.status(500).json({ ok: false, error: error.message });
-  }
-},
-
-"handbook-upload/finish": async (req, res) => {
-  try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-    }
-
-    const result = await finishHandbookUpload(req);
-    return res.status(result.status).json(result.payload);
-  } catch (error) {
-    return res.status(500).json({ ok: false, error: error.message });
-  }
-},
   "personnel-lookup": async (req, res) => {
     try {
       const username = requireString(req.method === "POST" ? req.body?.username : getQueryParam(req, "username"));

@@ -137,6 +137,7 @@ export default async function DivisionSectionPage({ params }) {
         title={division.shortName.toUpperCase()}
         subtitle={division.subtitle.toUpperCase()}
         footerNode={division.node}
+        theme={division.theme}
       >
         <ThemeClass theme={division.theme} />
         <div
@@ -161,6 +162,7 @@ export default async function DivisionSectionPage({ params }) {
         subtitle="SECURE DOCUMENT VIEWER"
         footerNode={division.node}
         includeSearchOverlay
+        theme={division.theme}
       >
         <ThemeClass theme={division.theme} />
         <div className="codex-document document-shell">
@@ -217,6 +219,7 @@ export default async function DivisionSectionPage({ params }) {
         title="COUNCIL FLOOR"
         subtitle="LEGISLATIVE CHANNEL"
         footerNode={division.node}
+        theme={division.theme}
       >
         <ThemeClass theme={division.theme} />
         <div data-council-floor>
@@ -233,6 +236,7 @@ export default async function DivisionSectionPage({ params }) {
       title={`${divisionTitleName(division).toUpperCase()} ${sectionTitle(section).toUpperCase()}`}
       subtitle={sectionSubtitle(section)}
       footerNode={division.node}
+      theme={division.theme}
     >
       <ThemeClass theme={division.theme} />
       <div

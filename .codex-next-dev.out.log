@@ -1,0 +1,15 @@
+
+> tso@1.0.0 dev
+> next dev --port 3000
+
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.125:3000
+- Environments: .env.local
+✓ Ready in 1011ms
+Creating turbopack project {
+  dir: 'C:\\Users\\owenr\\OneDrive\\Documents\\Visual Studio Code\\holonet',
+  testMode: true
+}
+
+[?25h

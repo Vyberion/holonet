@@ -13,8 +13,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.31.0",
     "@vercel/analytics": "^2.0.1",
+    "google-auth-library": "^10.7.0",
     "live-server": "^1.2.2",
     "next": "^16.2.7",
     "postprocessing": "^6.39.1",

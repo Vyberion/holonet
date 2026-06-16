@@ -87,7 +87,6 @@ async function openPdfDocument(pdfjsLib, source) {
   try {
     return await pdfjsLib.getDocument({
       url: source,
-      withCredentials: true,
       disableAutoFetch: false,
       disableStream: false,
       disableRange: false

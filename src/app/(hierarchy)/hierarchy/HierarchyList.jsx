@@ -1,4 +1,4 @@
-const MAX_PATH_ROW_CARDS = 4;
+const DEFAULT_MAX_PATH_ROW_CARDS = 4;
 
 function glyphLinesFor(glyph) {
   if (!glyph || glyph.length <= 4) return [glyph];
@@ -25,6 +25,11 @@ function cardSubtitleFor(item, splitSubtitle) {
   if (item.cardSubtitle) return item.cardSubtitle;
   if (item.category && item.category.toLowerCase() !== item.name.toLowerCase()) return item.category;
   return item.groupTitle || "";
+}
+
+function rowCardLimit(value) {
+  const limit = Number(value) || DEFAULT_MAX_PATH_ROW_CARDS;
+  return Math.max(1, Math.floor(limit));
 }
 
 export function HierarchyCard({ item }) {
@@ -77,21 +82,23 @@ function pathHeadingId(path) {
   return `path-${path.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
-function pathWeight(pathItems) {
-  return Math.max(1, Math.min(pathItems.length, MAX_PATH_ROW_CARDS));
+function pathWeight(pathItems, maxPathRowCards = DEFAULT_MAX_PATH_ROW_CARDS) {
+  const maxCards = rowCardLimit(maxPathRowCards);
+  return Math.max(1, Math.min(pathItems.length, maxCards));
 }
 
 function pathTakesOwnRow(pathItems) {
   return pathItems.some(item => item.pathOwnRow || item.ownPathRow || item.forceOwnPathRow);
 }
 
-function buildPathRows(pathEntries) {
+function buildPathRows(pathEntries, maxPathRowCards = DEFAULT_MAX_PATH_ROW_CARDS) {
+  const maxCards = rowCardLimit(maxPathRowCards);
   const rows = [];
   let currentRow = [];
   let currentWeight = 0;
 
   pathEntries.forEach(([path, pathItems]) => {
-    const weight = pathWeight(pathItems);
+    const weight = pathWeight(pathItems, maxCards);
     const ownRow = pathTakesOwnRow(pathItems);
     const entry = { path, pathItems, weight, ownRow };
 
@@ -106,7 +113,7 @@ function buildPathRows(pathEntries) {
       return;
     }
 
-    if (currentRow.length && currentWeight + weight > MAX_PATH_ROW_CARDS) {
+    if (currentRow.length && currentWeight + weight > maxCards) {
       rows.push(currentRow);
       currentRow = [];
       currentWeight = 0;
@@ -115,7 +122,7 @@ function buildPathRows(pathEntries) {
     currentRow.push(entry);
     currentWeight += weight;
 
-    if (currentWeight >= MAX_PATH_ROW_CARDS) {
+    if (currentWeight >= maxCards) {
       rows.push(currentRow);
       currentRow = [];
       currentWeight = 0;
@@ -127,28 +134,30 @@ function buildPathRows(pathEntries) {
   return rows;
 }
 
-function chunkPathItems(items) {
+function chunkPathItems(items, maxPathRowCards = DEFAULT_MAX_PATH_ROW_CARDS) {
   const rows = [];
+  const maxCards = rowCardLimit(maxPathRowCards);
 
-  for (let index = 0; index < items.length; index += MAX_PATH_ROW_CARDS) {
-    rows.push(items.slice(index, index + MAX_PATH_ROW_CARDS));
+  for (let index = 0; index < items.length; index += maxCards) {
+    rows.push(items.slice(index, index + maxCards));
   }
 
   return rows;
 }
 
-function pathCardRowColumns(items, rowItems) {
-  return items.length > MAX_PATH_ROW_CARDS ? MAX_PATH_ROW_CARDS : rowItems.length;
+function pathCardRowColumns(items, rowItems, maxPathRowCards = DEFAULT_MAX_PATH_ROW_CARDS) {
+  const maxCards = rowCardLimit(maxPathRowCards);
+  return items.length > maxCards ? maxCards : rowItems.length;
 }
 
-function HierarchyPathCardRows({ items }) {
+function HierarchyPathCardRows({ items, maxPathRowCards = DEFAULT_MAX_PATH_ROW_CARDS }) {
   return (
     <div className="hierarchy-path-card-rows">
-      {chunkPathItems(items).map((rowItems, rowIndex) => (
+      {chunkPathItems(items, maxPathRowCards).map((rowItems, rowIndex) => (
         <div
           className="hierarchy-path-card-row"
           key={rowItems.map(item => item.slug).join("-") || rowIndex}
-          style={{ "--path-card-row-columns": pathCardRowColumns(items, rowItems) }}
+          style={{ "--path-card-row-columns": pathCardRowColumns(items, rowItems, maxPathRowCards) }}
         >
           {rowItems.map(item => (
             <HierarchyCard item={item} key={`${item.groupId}-${item.slug}`} />
@@ -159,7 +168,7 @@ function HierarchyPathCardRows({ items }) {
   );
 }
 
-export function HierarchyPathGroups({ items }) {
+export function HierarchyPathGroups({ items, maxPathRowCards = DEFAULT_MAX_PATH_ROW_CARDS }) {
   const directItems = items.filter(item => !item.path);
 
   const pathGroups = items
@@ -170,7 +179,7 @@ export function HierarchyPathGroups({ items }) {
       return groups;
     }, {});
 
-  const pathRows = buildPathRows(Object.entries(pathGroups));
+  const pathRows = buildPathRows(Object.entries(pathGroups), maxPathRowCards);
 
   return (
     <>
@@ -198,7 +207,7 @@ export function HierarchyPathGroups({ items }) {
                       style={{ "--path-span": weight }}
                     >
                       <h3 id={headingId}>{path}</h3>
-                      <HierarchyPathCardRows items={pathItems} />
+                      <HierarchyPathCardRows items={pathItems} maxPathRowCards={maxPathRowCards} />
                     </section>
                   );
                 })}
@@ -212,6 +221,8 @@ export function HierarchyPathGroups({ items }) {
 }
 
 export function HierarchySection({ group, items }) {
+  const maxPathRowCards = rowCardLimit(group.maxPathRowCards);
+
   return (
     <section className="registry-section hierarchy-section" aria-labelledby={`hierarchy-${group.id}`}>
       <div className="section-header">
@@ -219,7 +230,7 @@ export function HierarchySection({ group, items }) {
         <div className="section-rule" />
       </div>
       {group.description ? <p className="hierarchy-section-copy">{group.description}</p> : null}
-      <HierarchyPathGroups items={items} />
+      <HierarchyPathGroups items={items} maxPathRowCards={maxPathRowCards} />
     </section>
   );
 }

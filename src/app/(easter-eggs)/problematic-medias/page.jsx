@@ -1,5 +1,5 @@
-import { HolonetNav } from "../../components/HolonetNav.jsx";
-import { holonetMetadata } from "../../lib/metadata.js";
+import { HolonetNav } from "../../../components/HolonetNav.jsx";
+import { holonetMetadata } from "../../../lib/metadata.js";
 
 export const metadata = holonetMetadata({
   title: "Problematic Medias",

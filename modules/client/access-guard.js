@@ -84,14 +84,14 @@ import { isEmperorArchiveRobloxId } from "../auth/emperor-archive-access.js";
         <p style="font-size: 0.9rem; letter-spacing: 0.1em; text-transform: uppercase;">${message}</p>
         <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 30px;">
           <button type="button" id="restricted-go-back" style="${buttonStyle}" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">GO BACK</button>
-          ${options.showAccount ? `<a href="/account.html" style="${buttonStyle}" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">MANAGE ACCOUNT</a>` : ""}
+          ${options.showAccount ? `<a href="/account" style="${buttonStyle}" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">MANAGE ACCOUNT</a>` : ""}
         </div>
       </div>
     `;
 
     document.getElementById("restricted-go-back")?.addEventListener("click", () => {
       if (history.length > 1) history.back();
-      else window.location.href = "/registry.html";
+      else window.location.href = "/registry";
     });
   }
 

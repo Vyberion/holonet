@@ -73,6 +73,11 @@ function canAccessEmperorArchives(access) {
   );
 }
 
+function readInitialAccess() {
+  const cached = readCachedAccess();
+  return cached?.authorized ? cached : null;
+}
+
 function NavLink({ href, page, prefix, label, account = false, children, activePage, onClick, onPointerEnter, onFocus }) {
   const isActive = activePage === page || (page === "index" && activePage === "home");
 
@@ -128,7 +133,7 @@ function PrivilegedLinks({ permissions, activePage, onClick }) {
 export function HolonetNav() {
   const [open, setOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
-  const [access, setAccess] = useState(null);
+  const [access, setAccess] = useState(readInitialAccess);
   const pathname = usePathname();
   const activePage = currentPageKey(pathname);
   const divisionContext = currentDivisionContext(pathname);
@@ -184,9 +189,6 @@ export function HolonetNav() {
 
       refreshAccess();
     }
-
-    const cached = readCachedAccess();
-    if (cached?.authorized) applyPayload(cached);
 
     refreshAccess();
     window.addEventListener("holonet:access-updated", handleAccessUpdate);

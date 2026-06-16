@@ -85,11 +85,17 @@ async function fetchPdfBytes(source) {
 
 async function openPdfDocument(pdfjsLib, source) {
   try {
+    return await pdfjsLib.getDocument({
+      url: source,
+      withCredentials: true,
+      disableAutoFetch: false,
+      disableStream: false,
+      disableRange: false
+    }).promise;
+  } catch (directError) {
+    console.warn("Direct PDF.js load failed, falling back to byte cache:", directError);
     const buffer = await fetchPdfBytes(source);
     return pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
-  } catch (error) {
-    console.warn("PDF byte cache unavailable, falling back to direct PDF.js load:", error);
-    return pdfjsLib.getDocument(source).promise;
   }
 }
 
@@ -106,7 +112,7 @@ function warmSiblingPdfs(activeSource) {
       fetchPdfBytes(source).catch(error => {
         console.warn("PDF warmup failed:", error);
       });
-    }, 900 + (index * 1200));
+    }, 2500 + (index * 1800));
   });
 }
 
@@ -587,8 +593,7 @@ async function loadPdf(tab) {
     return;
   }
 
-  dom.container.innerHTML = '<div class="pdf-loading">Loading transmission...</div>';
-  warmSiblingPdfs(source);
+  dom.container.innerHTML = '<div class="pdf-loading">Opening transmission...</div>';
 
   try {
     if (state.pdf) {
@@ -609,6 +614,7 @@ async function loadPdf(tab) {
 
     if (taskId !== state.taskId) return;
     await renderDocument();
+    warmSiblingPdfs(source);
   } catch (error) {
     console.error("PDF render failed:", error);
     if (taskId === state.taskId) {
@@ -929,12 +935,17 @@ let pdfTabsInitPromise = null;
 async function initPdfTabs() {
   if (!pdfTabsInitPromise) {
     pdfTabsInitPromise = (async () => {
+      const pdfRuntimeWarmup = getPdfjsLib().catch(error => {
+        console.warn("PDF runtime warmup failed:", error);
+      });
+
       await hydratePdfTabsFromResources();
       cacheDom();
       if (!dom.tabs.length || !dom.container) return;
 
       buildSearchOverlay();
       setupEvents();
+      await pdfRuntimeWarmup;
       activateTab(dom.tabs.find(tab => tab.classList.contains("is-active")) || dom.tabs[0]);
     })().catch(error => {
       pdfTabsInitPromise = null;

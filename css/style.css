@@ -932,10 +932,6 @@ html.holonet-release-intro #loader {
     #050102;
 }
 
-html.holonet-loader-suppressed:not(.access-pending) #loader {
-  display: none;
-}
-
 #loader.hidden {
   opacity: 0;
   pointer-events: none;

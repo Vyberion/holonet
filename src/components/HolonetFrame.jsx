@@ -26,7 +26,7 @@ export function HolonetFrame({
 
       <script
         dangerouslySetInnerHTML={{
-          __html: `(function(){var alternativeIntroEnabled=${alternativeIntroEnabledScriptValue};try{window.HOLONET_ALTERNATIVE_INTRO_ENABLED=alternativeIntroEnabled;if(!alternativeIntroEnabled){localStorage.setItem("holonet:intro:v1:complete","true");}var q=new URLSearchParams(window.location.search);var intro=alternativeIntroEnabled&&(q.get("intro")==="1"||localStorage.getItem("holonet:intro:v1:complete")!=="true");var shown=sessionStorage.getItem("loaderShown")==="true";document.documentElement.style.setProperty("--loader-progress","0%");document.documentElement.classList.add(intro?"holonet-release-intro":shown?"holonet-loader-suppressed":"holonet-standard-loader");}catch(e){document.documentElement.classList.add(alternativeIntroEnabled?"holonet-release-intro":"holonet-standard-loader");}})();`
+          __html: `(function(){var alternativeIntroEnabled=${alternativeIntroEnabledScriptValue};try{window.HOLONET_ALTERNATIVE_INTRO_ENABLED=alternativeIntroEnabled;if(!alternativeIntroEnabled){localStorage.setItem("holonet:intro:v1:complete","true");}var q=new URLSearchParams(window.location.search);var intro=alternativeIntroEnabled&&(q.get("intro")==="1"||localStorage.getItem("holonet:intro:v1:complete")!=="true");document.documentElement.style.setProperty("--loader-progress","0%");document.documentElement.classList.add(intro?"holonet-release-intro":"holonet-standard-loader");}catch(e){document.documentElement.classList.add(alternativeIntroEnabled?"holonet-release-intro":"holonet-standard-loader");}})();`
         }}
       />
 

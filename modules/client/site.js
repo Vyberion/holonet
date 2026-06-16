@@ -272,7 +272,6 @@
     loader.classList.remove("hidden");
     loader.style.display = "";
     loader.removeAttribute("aria-hidden");
-    document.documentElement.classList.remove("holonet-loader-suppressed");
   }
 
   function setLoaderProgress(loader, value) {
@@ -578,11 +577,6 @@
   function runStandardLoader(loader) {
     const loaderAlreadyShown = sessionStorage.getItem(LOADER_SHOWN_KEY);
     const accessPending = document.documentElement.classList.contains("access-pending");
-
-    if (loaderAlreadyShown && !accessPending) {
-      loader.style.display = "none";
-      return;
-    }
 
     if (!loaderAlreadyShown) {
       sessionStorage.setItem(LOADER_SHOWN_KEY, "true");

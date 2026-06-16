@@ -1,5 +1,5 @@
-import { HolonetFrame } from "../../components/HolonetFrame.jsx";
-import { PageScripts } from "../../components/PageScripts.jsx";
+import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
+import { PageScripts } from "../../../components/PageScripts.jsx";
 
 function renderParagraphs(value) {
   return String(value || "")

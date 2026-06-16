@@ -1,7 +1,7 @@
-import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
-import { PageScripts } from "../../../components/PageScripts.jsx";
-import { ARCHIVE_MAP, archiveMapRoom } from "../../../../modules/data/archive-map.js";
-import { holonetMetadata } from "../../../lib/metadata.js";
+import { HolonetFrame } from "../../../../components/HolonetFrame.jsx";
+import { PageScripts } from "../../../../components/PageScripts.jsx";
+import { ARCHIVE_MAP, archiveMapRoom } from "../../../../../modules/data/archive-map.js";
+import { holonetMetadata } from "../../../../lib/metadata.js";
 
 export const metadata = holonetMetadata({
   title: "Temple Map",

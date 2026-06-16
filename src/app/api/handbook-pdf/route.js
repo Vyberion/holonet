@@ -1,14 +1,14 @@
 import { getAuthContext } from "../../../../modules/auth/auth-context.js";
 import { checkPageAccess } from "../../../../modules/auth/permissions.js";
 import { createSignedStorageUrl, supabaseRest } from "../../../../modules/auth/session-store.js";
-import { exportGoogleDocPdf, extractGoogleFileId, extractGoogleTabId } from "../../../lib/google-drive.js";
+import { exportGoogleDocPdf, extractGoogleFileId, extractGoogleTabId, getGoogleFileMetadata } from "../../../lib/google-drive.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const PDF_HEADERS = {
   "Content-Type": "application/pdf",
-  "Cache-Control": "no-store, max-age=0"
+  "Cache-Control": "private, max-age=0, must-revalidate"
 };
 
 function jsonError(status, reason) {
@@ -38,6 +38,17 @@ function safePdfFileName(resource, detail) {
     .toLowerCase();
 
   return `${cleaned || "handbook"}.pdf`;
+}
+
+function cacheTagFor(resourceId, googleFileId, googleTabId, metadata) {
+  const version = metadata?.modifiedTime || metadata?.version || "unknown";
+  const raw = `${resourceId}:${googleFileId}:${googleTabId || "file"}:${version}`;
+  return `"${Buffer.from(raw).toString("base64url")}"`;
+}
+
+function requestHasEtag(request, etag) {
+  const value = request.headers.get("if-none-match") || "";
+  return value.split(",").map(item => item.trim()).includes(etag);
 }
 
 async function loadHandbookResource(resourceId) {
@@ -102,12 +113,27 @@ export async function GET(request) {
 
   try {
     if (googleFileId) {
+      const metadata = await getGoogleFileMetadata(googleFileId);
+      const etag = cacheTagFor(resource.id, googleFileId, googleTabId, metadata);
+      const cacheHeaders = {
+        ...PDF_HEADERS,
+        ETag: etag,
+        ...(metadata.modifiedTime ? { "Last-Modified": new Date(metadata.modifiedTime).toUTCString() } : {})
+      };
+
+      if (requestHasEtag(request, etag)) {
+        return new Response(null, {
+          status: 304,
+          headers: cacheHeaders
+        });
+      }
+
       const pdf = await exportGoogleDocPdf(googleFileId, { tabId: googleTabId });
 
       return new Response(pdf, {
         status: 200,
         headers: {
-          ...PDF_HEADERS,
+          ...cacheHeaders,
           "Content-Disposition": `inline; filename="${safePdfFileName(resource, detail)}"`
         }
       });

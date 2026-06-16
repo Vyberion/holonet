@@ -1,6 +1,8 @@
 import { fetchDivisionResourcePayload } from "./resources.js";
 
 let pdfjsLibPromise = null;
+const pdfByteCache = new Map();
+const MAX_CACHED_PDFS = 6;
 
 async function getPdfjsLib() {
   if (!pdfjsLibPromise) {
@@ -39,6 +41,75 @@ const state = {
 };
 
 const dom = {};
+let tabWarmupStarted = false;
+
+function rememberPdfBytes(source, buffer) {
+  if (pdfByteCache.has(source)) {
+    pdfByteCache.delete(source);
+  }
+
+  pdfByteCache.set(source, buffer);
+
+  while (pdfByteCache.size > MAX_CACHED_PDFS) {
+    pdfByteCache.delete(pdfByteCache.keys().next().value);
+  }
+}
+
+async function fetchPdfBytes(source) {
+  const cached = pdfByteCache.get(source);
+  if (cached) {
+    return cached instanceof Promise ? await cached : cached;
+  }
+
+  const request = fetch(source, {
+    cache: "no-cache",
+    credentials: "same-origin"
+  }).then(async response => {
+    if (!response.ok) {
+      throw new Error(`PDF_FETCH_FAILED:${response.status}`);
+    }
+
+    return response.arrayBuffer();
+  });
+
+  pdfByteCache.set(source, request);
+
+  try {
+    const buffer = await request;
+    rememberPdfBytes(source, buffer);
+    return buffer;
+  } catch (error) {
+    pdfByteCache.delete(source);
+    throw error;
+  }
+}
+
+async function openPdfDocument(pdfjsLib, source) {
+  try {
+    const buffer = await fetchPdfBytes(source);
+    return pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
+  } catch (error) {
+    console.warn("PDF byte cache unavailable, falling back to direct PDF.js load:", error);
+    return pdfjsLib.getDocument(source).promise;
+  }
+}
+
+function warmSiblingPdfs(activeSource) {
+  if (tabWarmupStarted || !dom.tabs?.length) return;
+  tabWarmupStarted = true;
+
+  const sources = [...new Set(dom.tabs
+    .map(tab => tab.dataset.pdfSrc)
+    .filter(source => source && source !== activeSource))];
+
+  sources.forEach((source, index) => {
+    window.setTimeout(() => {
+      fetchPdfBytes(source).catch(error => {
+        console.warn("PDF warmup failed:", error);
+      });
+    }, 900 + (index * 1200));
+  });
+}
 
 function nextFrame() {
   return new Promise(resolve => requestAnimationFrame(resolve));
@@ -386,6 +457,16 @@ async function renderPage(pdf, pageNumber, taskId) {
         if (rect) highlightLayer.appendChild(rect);
       });
   });
+
+  const items = uniqueItems
+    .map(item => item.str || "")
+    .filter(Boolean);
+
+  return {
+    pageNumber,
+    items,
+    text: items.join(" ").replace(/\s+/g, " ").trim()
+  };
 }
 
 function assignRenderedHighlightIndexes() {
@@ -436,48 +517,30 @@ function collapseResultsForOverlay(matches) {
     .map(match => match.globalIndex);
 }
 
-async function extractWholePdfText(pdf) {
-  const pageText = [];
-
-  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-    const page = await pdf.getPage(pageNumber);
-    const content = await page.getTextContent();
-    const uniqueItems = getUniqueTextItems(content.items);
-    
-    const items = uniqueItems
-      .map(item => item.str || "")
-      .filter(Boolean);
-
-    pageText.push({
-      pageNumber,
-      items,
-      text: items.join(" ").replace(/\s+/g, " ").trim()
-    });
-    await nextFrame();
-  }
-
-  return pageText;
-}
-
 async function renderDocument({ preserveScroll = false } = {}) {
   if (!state.pdf || !dom.container) return;
 
   const taskId = state.taskId + 1;
   const scrollRatio = preserveScroll ? getScrollRatio() : 0;
+  const renderedPageText = [];
   state.taskId = taskId;
   dom.container.innerHTML = "";
   updateZoomLabel();
 
   for (let pageNumber = 1; pageNumber <= state.pdf.numPages; pageNumber += 1) {
-    await renderPage(state.pdf, pageNumber, taskId);
+    const pageText = await renderPage(state.pdf, pageNumber, taskId);
+    if (pageText) renderedPageText.push(pageText);
     await nextFrame();
   }
 
   if (taskId === state.taskId) {
+    state.pageText = renderedPageText;
     if (preserveScroll) restoreScrollRatio(scrollRatio);
     assignRenderedHighlightIndexes();
     refreshActiveMatchElement();
   }
+
+  return taskId;
 }
 
 function scheduleRender(options = {}) {
@@ -535,17 +598,18 @@ async function loadPdf(tab) {
 
     const pdfjsLib = await getPdfjsLib();
     state.pdfjsLib = pdfjsLib;
-    const pdf = await pdfjsLib.getDocument(source).promise;
+    const pdf = await openPdfDocument(pdfjsLib, source);
     if (taskId !== state.taskId) {
       await pdf.destroy();
       return;
     }
 
     state.pdf = pdf;
-    state.pageText = await extractWholePdfText(pdf);
+    state.pageText = [];
 
     if (taskId !== state.taskId) return;
     await renderDocument();
+    warmSiblingPdfs(source);
   } catch (error) {
     console.error("PDF render failed:", error);
     if (taskId === state.taskId) {

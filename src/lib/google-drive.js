@@ -50,6 +50,18 @@ async function getDriveAuthClient() {
   return authClientPromise;
 }
 
+async function getGoogleAccessToken() {
+  const client = await getDriveAuthClient();
+  const tokenResponse = await client.getAccessToken();
+  const token = typeof tokenResponse === "string" ? tokenResponse : tokenResponse?.token;
+
+  if (!token) {
+    throw new Error("GOOGLE_ACCESS_TOKEN_MISSING");
+  }
+
+  return token;
+}
+
 export function extractGoogleFileId(value) {
   const text = String(value || "").trim();
   if (!text) return "";
@@ -90,13 +102,7 @@ export async function exportGoogleDocPdf(fileId, { tabId = "" } = {}) {
     throw new Error("GOOGLE_FILE_ID_REQUIRED");
   }
 
-  const client = await getDriveAuthClient();
-  const tokenResponse = await client.getAccessToken();
-  const token = typeof tokenResponse === "string" ? tokenResponse : tokenResponse?.token;
-
-  if (!token) {
-    throw new Error("GOOGLE_ACCESS_TOKEN_MISSING");
-  }
+  const token = await getGoogleAccessToken();
 
   const exportUrl = tabId
     ? new URL(`https://docs.google.com/document/d/${encodeURIComponent(id)}/export`)
@@ -123,4 +129,29 @@ export async function exportGoogleDocPdf(fileId, { tabId = "" } = {}) {
   }
 
   return Buffer.from(await response.arrayBuffer());
+}
+
+export async function getGoogleFileMetadata(fileId) {
+  const id = extractGoogleFileId(fileId);
+  if (!id) {
+    throw new Error("GOOGLE_FILE_ID_REQUIRED");
+  }
+
+  const metadataUrl = new URL(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}`);
+  metadataUrl.searchParams.set("fields", "id,mimeType,modifiedTime,version");
+
+  const response = await fetch(metadataUrl, {
+    headers: {
+      Authorization: `Bearer ${await getGoogleAccessToken()}`,
+      Accept: "application/json"
+    },
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`GOOGLE_FILE_METADATA_FAILED:${response.status}:${detail.slice(0, 240)}`);
+  }
+
+  return response.json();
 }

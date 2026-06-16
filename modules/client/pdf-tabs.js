@@ -2,6 +2,7 @@ import { fetchDivisionResourcePayload } from "./resources.js";
 
 let pdfjsLibPromise = null;
 const pdfByteCache = new Map();
+const preloadedPdfSources = new Set();
 const MAX_CACHED_PDFS = 6;
 
 async function getPdfjsLib() {
@@ -83,8 +84,55 @@ async function fetchPdfBytes(source) {
   }
 }
 
+function idlePreload(callback, timeout = 1800) {
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(callback, { timeout });
+    return;
+  }
+
+  window.setTimeout(callback, Math.min(timeout, 800));
+}
+
+function preloadPdfSource(source, { priority = false } = {}) {
+  if (!source || preloadedPdfSources.has(source)) return;
+  preloadedPdfSources.add(source);
+
+  const run = () => {
+    fetchPdfBytes(source).catch(error => {
+      preloadedPdfSources.delete(source);
+      console.warn("PDF preload failed:", error);
+    });
+  };
+
+  if (priority) {
+    run();
+    return;
+  }
+
+  idlePreload(run);
+}
+
+function preloadHandbookTabs(activeTab) {
+  if (!dom.tabs?.length) return;
+
+  const activeSource = activeTab?.dataset.pdfSrc || "";
+  if (activeSource) preloadPdfSource(activeSource, { priority: true });
+
+  dom.tabs.forEach((tab, index) => {
+    const source = tab.dataset.pdfSrc || "";
+    if (!source || source === activeSource) return;
+
+    window.setTimeout(() => preloadPdfSource(source), 1200 + (index * 900));
+  });
+}
+
 async function openPdfDocument(pdfjsLib, source) {
   try {
+    const cached = pdfByteCache.get(source);
+    if (cached && !(cached instanceof Promise)) {
+      return await pdfjsLib.getDocument({ data: cached.slice(0) }).promise;
+    }
+
     return await pdfjsLib.getDocument({
       url: source,
       disableAutoFetch: false,
@@ -107,11 +155,7 @@ function warmSiblingPdfs(activeSource) {
     .filter(source => source && source !== activeSource))];
 
   sources.forEach((source, index) => {
-    window.setTimeout(() => {
-      fetchPdfBytes(source).catch(error => {
-        console.warn("PDF warmup failed:", error);
-      });
-    }, 2500 + (index * 1800));
+    window.setTimeout(() => preloadPdfSource(source), 2500 + (index * 1800));
   });
 }
 
@@ -592,6 +636,7 @@ async function loadPdf(tab) {
     return;
   }
 
+  preloadPdfSource(source, { priority: true });
   dom.container.innerHTML = '<div class="pdf-loading">Opening transmission...</div>';
 
   try {
@@ -942,10 +987,12 @@ async function initPdfTabs() {
       cacheDom();
       if (!dom.tabs.length || !dom.container) return;
 
+      const activeTab = dom.tabs.find(tab => tab.classList.contains("is-active")) || dom.tabs[0];
+      preloadHandbookTabs(activeTab);
       buildSearchOverlay();
       setupEvents();
       await pdfRuntimeWarmup;
-      activateTab(dom.tabs.find(tab => tab.classList.contains("is-active")) || dom.tabs[0]);
+      activateTab(activeTab);
     })().catch(error => {
       pdfTabsInitPromise = null;
       console.error("Handbook viewer failed to initialize:", error);

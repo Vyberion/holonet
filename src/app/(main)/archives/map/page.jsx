@@ -157,40 +157,39 @@ export default function ArchiveMapPage() {
                 <image className="archive-map-base-image" href={ARCHIVE_MAP.baseImage} x="0" y="0" width={width} height={height} preserveAspectRatio="xMidYMid meet" />
               ) : null}
               <g className="archive-map-connectors" aria-hidden="true">
-                <rect x="220" y="590" width="160" height="120" />
-                <rect x="490" y="430" width="140" height="50" />
-                <rect x="1040" y="590" width="70" height="20" />
-                <rect x="815" y="875" width="50" height="25" />
-                <rect x="995" y="875" width="50" height="25" />
-                <rect x="1160" y="875" width="50" height="25" />
-                <rect x="490" y="820" width="140" height="60" />
-                <rect x="500" y="1240" width="120" height="60" />
-                <rect x="530" y="1490" width="60" height="28" />
+                <rect x="1240" y="590" width="170" height="160" />
+                <rect x="940" y="380" width="140" height="40" />
+                <rect x="940" y="920" width="140" height="60" />
+                <rect x="960" y="1380" width="100" height="60" />
+                <rect x="980" y="1630" width="60" height="44" />
+                <rect x="320" y="615" width="80" height="25" />
+                <rect x="505" y="615" width="80" height="25" />
+                <rect x="675" y="615" width="80" height="25" />
               </g>
 
               <g className="archive-map-decor" aria-hidden="true">
-                <rect className="archive-map-podium" x="252" y="565" width="18" height="54" />
-                <rect className="archive-map-podium" x="252" y="681" width="18" height="54" />
-                <rect className="archive-map-mat" x="435" y="265" width="250" height="88" />
-                <rect className="archive-map-podium" x="495" y="200" width="130" height="30" />
-                <line className="archive-map-guard-line" x1="432" y1="670" x2="432" y2="765" />
-                <line className="archive-map-guard-line" x1="688" y1="670" x2="688" y2="765" />
-                <rect className="archive-map-mat" x="410" y="970" width="90" height="112" />
-                <rect className="archive-map-mat" x="620" y="970" width="90" height="112" />
-                <rect className="archive-map-mat" x="470" y="1140" width="180" height="44" />
+                <rect className="archive-map-podium" x="1310" y="635" width="18" height="70" />
+                <rect className="archive-map-podium" x="1355" y="635" width="18" height="70" />
+                <rect className="archive-map-mat" x="840" y="210" width="340" height="90" />
+                <rect className="archive-map-podium" x="945" y="140" width="130" height="30" />
+                <line className="archive-map-guard-line" x1="840" y1="705" x2="840" y2="845" />
+                <line className="archive-map-guard-line" x1="1180" y1="705" x2="1180" y2="845" />
+                <rect className="archive-map-mat" x="815" y="1090" width="105" height="125" />
+                <rect className="archive-map-mat" x="1100" y="1090" width="105" height="125" />
+                <rect className="archive-map-mat" x="905" y="1260" width="210" height="46" />
                 {[0, 1, 2].map(index => (
                   <g key={`shelf-${index}`}>
-                    <rect className="archive-map-shelf" x="435" y={1338 + index * 42} width="74" height="18" />
-                    <rect className="archive-map-shelf" x="610" y={1338 + index * 42} width="74" height="18" />
+                    <rect className="archive-map-shelf" x="860" y={1480 + index * 42} width="86" height="18" />
+                    <rect className="archive-map-shelf" x="1074" y={1480 + index * 42} width="86" height="18" />
                   </g>
                 ))}
                 {[0, 1, 2, 3].map(index => (
                   <g key={`throne-${index}`}>
-                    <rect className="archive-map-throne" x="1292" y={740 + index * 45} width="26" height="30" />
-                    <rect className="archive-map-throne" x="1402" y={740 + index * 45} width="26" height="30" />
+                    <rect className="archive-map-throne" x="92" y={445 + index * 45} width="26" height="30" />
+                    <rect className="archive-map-throne" x="202" y={445 + index * 45} width="26" height="30" />
                   </g>
                 ))}
-                <rect className="archive-map-emperor-throne" x="1340" y="710" width="40" height="42" />
+                <rect className="archive-map-emperor-throne" x="140" y="415" width="40" height="42" />
               </g>
 
               <g className="archive-map-rooms">

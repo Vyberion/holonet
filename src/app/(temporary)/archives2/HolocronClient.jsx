@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic"
 
 const HolocronViewer = dynamic(
-  () => import("../../components/HolocronViewer.jsx"),
+  () => import("../../../components/HolocronViewer.jsx"),
   {
     ssr: false,
     loading: () => (

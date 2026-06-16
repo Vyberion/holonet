@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getHierarchyGroup, getHierarchyItem } from "../../../../../modules/data/hierarchy.js";
+import { getHierarchyGroup, getHierarchyItem, getRankProgressionNav } from "../../../../../modules/data/hierarchy.js";
 import { HierarchyDetail } from "../../hierarchy/HierarchyDetail.jsx";
 import { holonetMetadata } from "../../../../lib/metadata.js";
 import DivisionSectionPage, { generateMetadata as generateDivisionSectionMetadata } from "../../(divisions)/[division]/[section]/page.jsx";
@@ -44,5 +44,5 @@ export default async function HighRankPage({ params }) {
   const item = getHierarchyItem("high-ranks", slug);
   if (!item) notFound();
 
-  return <HierarchyDetail item={item} />;
+  return <HierarchyDetail item={item} rankNav={getRankProgressionNav("high-ranks", slug)} />;
 }

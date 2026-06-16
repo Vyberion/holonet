@@ -1,5 +1,9 @@
+import { HOLONET_ALTERNATIVE_INTRO_ENABLED } from "../../modules/config/intro.js";
 import { HolonetNav } from "./HolonetNav.jsx";
 import { OldGuardPlayer } from "./OldGuardPlayer.jsx";
+
+const alternativeIntroEnabled = HOLONET_ALTERNATIVE_INTRO_ENABLED;
+const alternativeIntroEnabledScriptValue = alternativeIntroEnabled ? "true" : "false";
 
 export function HolonetFrame({
   title,
@@ -22,7 +26,7 @@ export function HolonetFrame({
 
       <script
         dangerouslySetInnerHTML={{
-          __html: `(function(){try{var q=new URLSearchParams(window.location.search);var intro=q.get("intro")==="1"||localStorage.getItem("holonet:intro:v1:complete")!=="true";document.documentElement.classList.add(intro?"holonet-release-intro":"holonet-standard-loader");}catch(e){document.documentElement.classList.add("holonet-release-intro");}})();`
+          __html: `(function(){var alternativeIntroEnabled=${alternativeIntroEnabledScriptValue};try{window.HOLONET_ALTERNATIVE_INTRO_ENABLED=alternativeIntroEnabled;if(!alternativeIntroEnabled){localStorage.setItem("holonet:intro:v1:complete","true");sessionStorage.setItem("loaderShown","true");}var q=new URLSearchParams(window.location.search);var intro=alternativeIntroEnabled&&(q.get("intro")==="1"||localStorage.getItem("holonet:intro:v1:complete")!=="true");document.documentElement.classList.add(intro?"holonet-release-intro":"holonet-standard-loader");}catch(e){document.documentElement.classList.add(alternativeIntroEnabled?"holonet-release-intro":"holonet-standard-loader");}})();`
         }}
       />
 
@@ -108,7 +112,7 @@ export function HolonetFrame({
         </div>
 
         <div className="loader-intro-video" data-loader-intro-video aria-hidden="true">
-          <OldGuardPlayer mode="intro" />
+          {alternativeIntroEnabled ? <OldGuardPlayer mode="intro" /> : null}
           <button className="loader-intro-skip" type="button" data-loader-skip-intro>
             Skip Transmission
           </button>

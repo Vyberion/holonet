@@ -25,6 +25,7 @@ const moduleLoaders = {
   "/modules/client/registry-directory.js": () => import("../../modules/client/registry-directory.js"),
   "/modules/client/group-timeline.js": () => import("../../modules/client/group-timeline.js"),
   "/modules/client/site.js": async () => {
+    await import("../../modules/client/intro-toggle.js");
     await import("../../modules/client/site.js");
     return import("../../modules/client/developer-notice-delay.js");
   }

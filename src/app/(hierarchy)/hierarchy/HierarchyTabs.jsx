@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { HierarchySection } from "./HierarchyList.jsx";
 
 const TABS = [
@@ -15,31 +14,43 @@ const TABS = [
   { id: "administration", label: "Administration" }
 ];
 
-function activeSection(searchParams, groupIds) {
-  const section = searchParams.get("section");
+function activeSectionFromSearch(search, groupIds) {
+  const params = new URLSearchParams(search);
+  const section = params.get("section");
   return section && groupIds.has(section) ? section : "all";
 }
 
 export function HierarchyTabs({ groups, items }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const groupIds = useMemo(() => new Set(groups.map(group => group.id)), [groups]);
-  const active = activeSection(searchParams, groupIds);
+  const [active, setActive] = useState("all");
   const visibleGroups = active === "all" ? groups : groups.filter(group => group.id === active);
   const tabs = TABS.filter(tab => tab.id === "all" || groupIds.has(tab.id));
 
-  function selectTab(tabId) {
-    const params = new URLSearchParams(searchParams.toString());
+  useEffect(() => {
+    setActive(activeSectionFromSearch(window.location.search, groupIds));
 
-    if (tabId === "all") {
+    function handlePopState() {
+      setActive(activeSectionFromSearch(window.location.search, groupIds));
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [groupIds]);
+
+  function selectTab(tabId) {
+    const nextActive = groupIds.has(tabId) ? tabId : "all";
+    const params = new URLSearchParams(window.location.search);
+
+    if (nextActive === "all") {
       params.delete("section");
     } else {
-      params.set("section", tabId);
+      params.set("section", nextActive);
     }
 
     const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    const nextUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+    window.history.pushState({}, "", nextUrl);
+    setActive(nextActive);
   }
 
   return (

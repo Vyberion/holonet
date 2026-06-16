@@ -4,6 +4,8 @@ import { join } from "node:path";
 const MORPH_FALLBACK_IMAGE = "/assets/morphs/clown.jpg";
 const CURRENT_EMPEROR_SLUG = "the-40th-emperor";
 const CURRENT_EMPEROR_MORPH_IMAGE = "/assets/morphs/current_emperor.png";
+const RANK_PROGRESSION_GROUP_IDS = ["low-ranks", "middle-ranks", "high-ranks"];
+const RANK_PROGRESSION_END = { groupId: "high-ranks", slug: "darth" };
 
 function ordinal(value) {
   const tens = value % 100;
@@ -708,6 +710,47 @@ export function getHierarchyItem(groupId, slug, { includeInactive = false } = {}
 
   const index = group.items.indexOf(item);
   return decorateHierarchyItem(group, item, index, `/${group.id}/${item.slug}`);
+}
+
+function rankProgressionItems() {
+  const items = RANK_PROGRESSION_GROUP_IDS.flatMap(groupId => {
+    const group = getHierarchyGroup(groupId);
+    if (!group) return [];
+
+    return group.items
+      .filter(isActiveItem)
+      .map((item, index) => decorateHierarchyItem(group, item, index, `/${group.id}/${item.slug}`));
+  });
+  const endIndex = items.findIndex(item =>
+    item.groupId === RANK_PROGRESSION_END.groupId && item.slug === RANK_PROGRESSION_END.slug
+  );
+
+  return endIndex === -1 ? items : items.slice(0, endIndex + 1);
+}
+
+function progressionLink(item) {
+  if (!item) return null;
+
+  return {
+    href: item.href,
+    name: item.name,
+    category: item.category,
+    groupTitle: item.groupTitle,
+    section: item.section
+  };
+}
+
+export function getRankProgressionNav(groupId, slug) {
+  if (!RANK_PROGRESSION_GROUP_IDS.includes(groupId)) return null;
+
+  const items = rankProgressionItems();
+  const index = items.findIndex(item => item.groupId === groupId && item.slug === slug);
+  if (index === -1) return null;
+
+  return {
+    previous: progressionLink(items[index - 1]),
+    next: progressionLink(items[index + 1])
+  };
 }
 
 export function emperorArchiveItems() {

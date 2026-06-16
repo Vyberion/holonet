@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getHierarchyGroup, getHierarchyItem } from "../../../../../modules/data/hierarchy.js";
+import { getHierarchyGroup, getHierarchyItem, getRankProgressionNav } from "../../../../../modules/data/hierarchy.js";
 import { HierarchyDetail } from "../../hierarchy/HierarchyDetail.jsx";
 import { holonetMetadata } from "../../../../lib/metadata.js";
 
@@ -23,5 +23,5 @@ export default async function MiddleRankPage({ params }) {
   const item = getHierarchyItem("middle-ranks", slug);
   if (!item) notFound();
 
-  return <HierarchyDetail item={item} />;
+  return <HierarchyDetail item={item} rankNav={getRankProgressionNav("middle-ranks", slug)} />;
 }

@@ -14,7 +14,31 @@ function normalizeImageSrc(src) {
   return `/${src}`;
 }
 
-export function HierarchyDetail({ item, guarded = false }) {
+function RankNavLink({ direction, item }) {
+  const label = direction === "previous" ? "Previous Rank" : "Next Rank";
+  const arrow = direction === "previous" ? "\u2039\u2039" : "\u203a\u203a";
+
+  return (
+    <a className={`hierarchy-rank-nav-link hierarchy-rank-nav-link--${direction}`} href={item.href}>
+      <span className="hierarchy-rank-nav-kicker">{label}</span>
+      <strong className="hierarchy-rank-nav-name">{item.name}</strong>
+      <span className="hierarchy-rank-nav-meta">{item.category || item.groupTitle} {arrow}</span>
+    </a>
+  );
+}
+
+function HierarchyRankNav({ nav }) {
+  if (!nav?.previous && !nav?.next) return null;
+
+  return (
+    <nav className="hierarchy-rank-nav" aria-label="Rank progression">
+      {nav.previous ? <RankNavLink direction="previous" item={nav.previous} /> : null}
+      {nav.next ? <RankNavLink direction="next" item={nav.next} /> : null}
+    </nav>
+  );
+}
+
+export function HierarchyDetail({ item, guarded = false, rankNav = null }) {
   const classified = item.classified;
   const imageSrc = normalizeImageSrc(item.image);
 
@@ -58,6 +82,7 @@ export function HierarchyDetail({ item, guarded = false }) {
               </div>
             )}
           </div>
+          <HierarchyRankNav nav={rankNav} />
         </article>
       </div>
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} guarded={guarded} />

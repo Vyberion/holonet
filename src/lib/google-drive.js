@@ -22,7 +22,7 @@ function serviceAccountCredentials() {
   if (jsonCredentials?.client_email && jsonCredentials?.private_key) {
     return {
       client_email: jsonCredentials.client_email,
-      private_key: String(jsonCredentials.private_key).replace(/\\n/g, "\n")
+      private_key: String(jsonCredentials.private_key).replace(/\n/g, "\n")
     };
   }
 
@@ -35,7 +35,7 @@ function serviceAccountCredentials() {
 
   return {
     client_email: clientEmail,
-    private_key: privateKey.replace(/\\n/g, "\n")
+    private_key: privateKey.replace(/\n/g, "\n")
   };
 }
 
@@ -132,8 +132,7 @@ export async function exportGoogleDocPdf(fileId, { tabId = "", sourceUrl = "", f
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: GOOGLE_DOC_PDF_MIME
-    },
-    cache: "no-store"
+    }
   });
 
   if (!response.ok) {

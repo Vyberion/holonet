@@ -8,8 +8,15 @@ function renderParagraphs(value) {
     .filter(Boolean);
 }
 
+function normalizeImageSrc(src) {
+  if (!src) return "";
+  if (/^(?:https?:)?\/\//.test(src) || src.startsWith("data:") || src.startsWith("/")) return src;
+  return `/${src}`;
+}
+
 export function HierarchyDetail({ item, guarded = false }) {
   const classified = item.classified;
+  const imageSrc = normalizeImageSrc(item.image);
 
   return (
     <HolonetFrame title={item.name.toUpperCase()} subtitle={item.groupTitle.toUpperCase()} footerNode="HRK-03">
@@ -30,7 +37,7 @@ export function HierarchyDetail({ item, guarded = false }) {
             </div>
           ) : (
             <div className="hierarchy-detail-hero" aria-hidden="true">
-              <img src={item.image} alt="" loading="eager" />
+              <img src={imageSrc} alt="" loading="eager" />
               <span>{item.name}</span>
             </div>
           )}

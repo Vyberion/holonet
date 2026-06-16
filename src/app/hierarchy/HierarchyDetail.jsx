@@ -8,7 +8,7 @@ function renderParagraphs(value) {
     .filter(Boolean);
 }
 
-export function HierarchyDetail({ item }) {
+export function HierarchyDetail({ item, guarded = false }) {
   const classified = item.classified;
 
   return (
@@ -53,7 +53,7 @@ export function HierarchyDetail({ item }) {
           </div>
         </article>
       </div>
-      <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} />
+      <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} guarded={guarded} />
     </HolonetFrame>
   );
 }

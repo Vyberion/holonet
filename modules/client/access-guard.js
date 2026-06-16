@@ -1,3 +1,5 @@
+import { isEmperorArchiveRobloxId } from "../auth/emperor-archive-access.js";
+
 (function () {
   document.documentElement.style.background = "#050606";
   document.documentElement.classList.add("access-pending");
@@ -23,6 +25,21 @@
     }
 
     return (segments.join("_") || "home").replace(/-/g, "_");
+  }
+
+  function isEmperorArchivePage() {
+    const segments = location.pathname.split("/").filter(Boolean);
+    return segments[0] === "archives" && segments[1] === "emperors";
+  }
+
+  function hasEmperorArchiveAccess(profile) {
+    const roles = profile?.authorityRoles || {};
+    return Boolean(
+      profile?.isSuperUser ||
+      roles.groupOwner ||
+      roles.projectManager ||
+      isEmperorArchiveRobloxId(profile?.robloxId)
+    );
   }
 
   function rejectAccess(message, options = {}) {
@@ -78,23 +95,46 @@
     });
   }
 
+  function allowAccess(access) {
+    try {
+      sessionStorage.setItem("holonet:access:global", JSON.stringify(access));
+    } catch {}
+    document.documentElement.classList.remove("access-pending");
+    pendingStyle.remove();
+  }
+
+  async function verifyEmperorArchiveAccess() {
+    const response = await fetch("/api/auth/check-access");
+    const access = await response.json();
+
+    if (response.ok && access.authorized && hasEmperorArchiveAccess(access.profile)) {
+      allowAccess(access);
+      return;
+    }
+
+    const reason = access.reason || "EMPEROR_ARCHIVE_RESTRICTED";
+    const showAccount = ["SESSION_MISSING", "SESSION_INVALID", "SESSION_EXPIRED", "SESSION_REQUIRED", "USER_NOT_FOUND"].includes(reason);
+    rejectAccess(`ACCESS DENIED: ${reason.replace(/_/g, " ")}`, { showAccount });
+  }
+
   async function verifyAccess() {
     try {
+      if (isEmperorArchivePage()) {
+        await verifyEmperorArchiveAccess();
+        return;
+      }
+
       const pageKey = getPageKey();
       const response = await fetch(`/api/auth/check-access?page=${encodeURIComponent(pageKey)}`);
       const access = await response.json();
 
       if (response.ok && access.authorized) {
-        try {
-          sessionStorage.setItem("holonet:access:global", JSON.stringify(access));
-        } catch {}
-        document.documentElement.classList.remove("access-pending");
-        pendingStyle.remove();
+        allowAccess(access);
         return;
       }
 
       const reason = access.reason || "INSUFFICIENT_CLEARANCE_LEVEL";
-      const showAccount = ["SESSION_MISSING", "SESSION_INVALID", "SESSION_EXPIRED", "USER_NOT_FOUND"].includes(reason);
+      const showAccount = ["SESSION_MISSING", "SESSION_INVALID", "SESSION_EXPIRED", "SESSION_REQUIRED", "USER_NOT_FOUND"].includes(reason);
       rejectAccess(`ACCESS DENIED: ${reason.replace(/_/g, " ")}`, { showAccount });
     } catch (error) {
       console.error("Security grid error:", error);

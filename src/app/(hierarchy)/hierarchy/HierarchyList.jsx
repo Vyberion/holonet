@@ -1,4 +1,4 @@
-const MAX_PATH_ROW_CARDS = 3;
+const MAX_PATH_ROW_CARDS = 4;
 
 function glyphLinesFor(glyph) {
   if (!glyph || glyph.length <= 4) return [glyph];

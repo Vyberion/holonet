@@ -22,6 +22,19 @@ const nextConfig = {
   images: {
     remotePatterns
   },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+          }
+        ]
+      }
+    ];
+  },
   async rewrites() {
     return [
       { source: "/index.html", destination: "/" },

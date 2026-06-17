@@ -2,53 +2,6 @@
 
 import { useEffect } from "react";
 
-function normalizedFetchPath(input) {
-  const value = typeof input === "string" ? input : input?.url || "";
-  if (!value) return "";
-
-  try {
-    const url = new URL(value, window.location.origin);
-    return `${url.pathname}${url.search}`;
-  } catch {
-    return value;
-  }
-}
-
-function installSiteImportBudgetGuard() {
-  if (typeof window === "undefined" || typeof window.fetch !== "function") return () => {};
-
-  const originalFetch = window.fetch.bind(window);
-  window.fetch = (input, init = {}) => {
-    const path = normalizedFetchPath(input);
-    const pathname = window.location.pathname.replace(/\/$/, "") || "/";
-    const isCanonPage = pathname === "/codex" || pathname === "/archives";
-    const isCanonWarmup = init?.cache === "no-store"
-      && (path === "/api/archives" || path.startsWith("/api/library?library=codex"));
-    const isGuardedAccessWarmup = path === "/api/auth/check-access"
-      && document.documentElement.classList.contains("access-pending");
-
-    if (isCanonWarmup && !isCanonPage) {
-      return Promise.resolve(new Response(JSON.stringify({ ok: false, reason: "WARMUP_SUPPRESSED" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" }
-      }));
-    }
-
-    if (isGuardedAccessWarmup) {
-      return Promise.resolve(new Response("null", {
-        status: 200,
-        headers: { "Content-Type": "application/json" }
-      }));
-    }
-
-    return originalFetch(input, init);
-  };
-
-  return () => {
-    window.fetch = originalFetch;
-  };
-}
-
 const moduleLoaders = {
   "/js/main.js": () => import("../../js/main.js"),
   "/modules/client/access-guard.js": () => import("../../modules/client/access-guard.js"),
@@ -74,12 +27,7 @@ const moduleLoaders = {
   "/modules/client/group-timeline.js": () => import("../../modules/client/group-timeline.js"),
   "/modules/client/site.js": async () => {
     await import("../../modules/client/intro-toggle.js");
-    const restoreBudgetGuard = installSiteImportBudgetGuard();
-    try {
-      await import("../../modules/client/site.js");
-    } finally {
-      window.setTimeout(restoreBudgetGuard, 0);
-    }
+    await import("../../modules/client/site.js");
     return import("../../modules/client/developer-notice-delay.js");
   }
 };

@@ -190,7 +190,11 @@ export default async function DivisionSectionPage({ params }) {
                 <span className="pdf-loading">Loading handbook registry...</span>
               </div>
 
-              <div className="pdf-toolbar" aria-label="PDF viewer controls">
+              <div
+                className="pdf-toolbar"
+                aria-label="PDF viewer controls"
+                style={{ alignSelf: "start", position: "sticky", top: 86, zIndex: 80 }}
+              >
                 <div className="pdf-zoom-controls" aria-label="Zoom controls">
                   <button type="button" className="pdf-tool-btn" data-pdf-zoom-out aria-label="Zoom out">-</button>
                   <span className="pdf-zoom-readout" data-pdf-zoom-label>FIT</span>

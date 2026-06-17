@@ -19,6 +19,7 @@ const moduleLoaders = {
   "/modules/client/nexus.js": () => import("../../modules/client/nexus.js"),
   "/modules/client/pdf-tabs.js": async () => {
     await import("../../modules/client/pdf-slot-tabs.js");
+    await import("../../modules/client/pdf-viewer-controls.js");
     return import("../../modules/client/pdf-tabs.js");
   },
   "/modules/client/personnel.js": () => import("../../modules/client/personnel.js"),
@@ -45,7 +46,11 @@ function runModuleInit(modulePath) {
     "/modules/client/group-timeline.js": () => window.initHolonetGroupTimeline?.(),
     "/modules/client/division-hub.js": () => window.initHolonetDivisionHub?.(),
     "/modules/client/division-section.js": () => window.initHolonetDivisionSection?.(),
-    "/modules/client/pdf-tabs.js": () => window.initHolonetPdfTabsWithSlotTabs?.(window.initHolonetPdfTabs) ?? window.initHolonetPdfTabs?.()
+    "/modules/client/pdf-tabs.js": () => {
+      const initResult = window.initHolonetPdfTabsWithSlotTabs?.(window.initHolonetPdfTabs) ?? window.initHolonetPdfTabs?.();
+      Promise.resolve(initResult).then(() => window.initHolonetPdfViewerControls?.());
+      return initResult;
+    }
   };
 
   initializers[modulePath]?.();

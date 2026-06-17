@@ -1,8 +1,4 @@
-export const criticalPreloadImages = [
-  "/assets/favicon.ico",
-  "/assets/logo.png",
-  "/assets/sith_order.svg"
-];
+export const criticalPreloadImages = [];
 
 export const hierarchyPreloadImages = [
   "/assets/morphs/academy_student.png",

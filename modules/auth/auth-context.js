@@ -53,9 +53,10 @@ export async function getAuthContext(req, { optional = false } = {}) {
   const session = await getSessionUser(req);
   if (!session.authenticated) {
     const profile = buildProfile({ robloxId: "0", groupRoles: [] });
+    const previewSuperuser = Boolean(profile.isSuperUser);
 
     return {
-      authenticated: !optional,
+      authenticated: previewSuperuser || !optional,
       user: null,
       profile,
       reason: session.reason

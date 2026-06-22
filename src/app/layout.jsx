@@ -71,6 +71,41 @@ const MOBILE_NAV_FULL_BLEED_CSS = `
 }
 `;
 
+const MOBILE_TRACKER_TABLE_CSS = `
+@media (max-width: 700px) {
+  .hub-shell,
+  .hub-grid,
+  .hub-column,
+  .hub-panel,
+  .hub-list,
+  .hub-section-row,
+  .tracking-table-wrap {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .tracking-table-wrap {
+    display: block !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    width: 100% !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-inline: contain;
+  }
+
+  .tracking-table {
+    max-width: none !important;
+    min-width: 560px;
+    width: max-content;
+  }
+
+  .tracking-table th,
+  .tracking-table td {
+    white-space: nowrap;
+  }
+}
+`;
+
 function siteUrl() {
   const url =
     process.env.NEXT_PUBLIC_SITE_URL ||
@@ -97,7 +132,7 @@ export default function RootLayout({ children }) {
         {criticalPreloadImages.map(src => (
           <link href={src} key={src} rel="preload" as="image" />
         ))}
-        <style dangerouslySetInnerHTML={{ __html: MOBILE_NAV_FULL_BLEED_CSS }} />
+        <style dangerouslySetInnerHTML={{ __html: `${MOBILE_NAV_FULL_BLEED_CSS}\n${MOBILE_TRACKER_TABLE_CSS}` }} />
       </head>
       <body>
         {children}

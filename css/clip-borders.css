@@ -1,0 +1,186 @@
+/*
+ * Native borders remain rectangular before clip-path is applied. The straight
+ * portions survive, but the angled top-right and bottom-left corners are cut
+ * away. These overlays draw the two missing diagonal segments explicitly.
+ */
+:where(
+  .status-bar,
+  .old-guard-page-shell,
+  .developer-notice-panel,
+  .hierarchy-detail-hero,
+  .hierarchy-rank-nav-link,
+  .hub-hero,
+  .hub-panel,
+  .board-hero,
+  .overview-report-card,
+  .overview-inspection-card,
+  .registry-status-bar,
+  .dir-card,
+  .codex-article,
+  .codex-contents,
+  #search-container,
+  .resource-editor-container,
+  .library-editor-container,
+  .library-row,
+  .personnel-panel,
+  .personnel-block
+) {
+  --clip-border-stroke: var(
+    --division-accent-dim,
+    var(--editor-border, var(--theme-accent-dim, var(--border-hot)))
+  );
+  filter: drop-shadow(0 0 0.7px var(--clip-border-stroke));
+  position: relative;
+}
+
+.dir-card--locked,
+.dir-card[data-status="locked"] {
+  filter:
+    saturate(0.55)
+    drop-shadow(0 0 0.7px var(--clip-border-stroke));
+}
+
+:where(
+  .nav-link,
+  .nav-dropdown-toggle,
+  .nav-dropdown-menu,
+  .nav-toggle,
+  .account-link,
+  .back-to-top-btn,
+  .btn-auth,
+  .dir-card-enter,
+  .search-close,
+  .search-nav-btn,
+  .pdf-tool-btn,
+  .resource-editor-close,
+  .resource-editor-submit,
+  .library-inline-btn,
+  .loader-terminal-button
+) {
+  --clip-border-stroke: var(
+    --editor-accent,
+    var(--division-accent-dim, var(--theme-accent-dim, var(--border-hot)))
+  );
+  filter: drop-shadow(0 0 0.55px var(--clip-border-stroke));
+}
+
+:where(
+  .status-bar,
+  .old-guard-page-shell,
+  .developer-notice-panel,
+  .hierarchy-detail-hero,
+  .hierarchy-rank-nav-link,
+  .hub-hero,
+  .hub-panel,
+  .board-hero,
+  .overview-report-card,
+  .overview-inspection-card,
+  .registry-status-bar,
+  #search-container,
+  .resource-editor-container,
+  .library-editor-container,
+  .personnel-panel,
+  .personnel-block,
+  .btn-auth
+)::after {
+  background:
+    linear-gradient(
+      45deg,
+      transparent calc(50% - 0.75px),
+      var(--clip-border-stroke) calc(50% - 0.75px),
+      var(--clip-border-stroke) calc(50% + 0.75px),
+      transparent calc(50% + 0.75px)
+    ) top right / var(--clip-cut, 8px) var(--clip-cut, 8px) no-repeat,
+    linear-gradient(
+      45deg,
+      transparent calc(50% - 0.75px),
+      var(--clip-border-stroke) calc(50% - 0.75px),
+      var(--clip-border-stroke) calc(50% + 0.75px),
+      transparent calc(50% + 0.75px)
+    ) bottom left / var(--clip-cut, 8px) var(--clip-cut, 8px) no-repeat;
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 20;
+}
+
+:where(.status-bar, .hub-hero, .board-hero, .developer-notice-panel) {
+  --clip-cut: 12px;
+}
+
+.old-guard-page-shell,
+.registry-status-bar,
+.btn-auth {
+  --clip-cut: 10px;
+}
+
+.hub-panel {
+  --clip-cut: 9px;
+}
+
+:where(
+  .hierarchy-detail-hero,
+  .hierarchy-rank-nav-link,
+  .overview-report-card,
+  .overview-inspection-card,
+  #search-container,
+  .resource-editor-container,
+  .library-editor-container,
+  .personnel-panel
+) {
+  --clip-cut: 8px;
+}
+
+.personnel-block {
+  --clip-cut: 6px;
+}
+
+/* Registry cards already reserve this child for non-content decoration. */
+.dir-card > .card-vline {
+  --clip-cut: 10px;
+  background:
+    linear-gradient(
+      45deg,
+      transparent calc(50% - 0.75px),
+      var(--clip-border-stroke) calc(50% - 0.75px),
+      var(--clip-border-stroke) calc(50% + 0.75px),
+      transparent calc(50% + 0.75px)
+    ) top right / var(--clip-cut) var(--clip-cut) no-repeat,
+    linear-gradient(
+      45deg,
+      transparent calc(50% - 0.75px),
+      var(--clip-border-stroke) calc(50% - 0.75px),
+      var(--clip-border-stroke) calc(50% + 0.75px),
+      transparent calc(50% + 0.75px)
+    ) bottom left / var(--clip-cut) var(--clip-cut) no-repeat;
+  bottom: 0;
+  display: block;
+  left: 0;
+  opacity: 1 !important;
+  pointer-events: none;
+  right: 0;
+  top: 0;
+  width: auto;
+  z-index: 20;
+}
+
+/* Codex panels already use ::before as their inset border layer. */
+.codex-article::before,
+.codex-contents::before {
+  background:
+    linear-gradient(
+      45deg,
+      transparent calc(50% - 0.75px),
+      var(--border) calc(50% - 0.75px),
+      var(--border) calc(50% + 0.75px),
+      transparent calc(50% + 0.75px)
+    ) top right / var(--clip-cut, 8px) var(--clip-cut, 8px) no-repeat,
+    linear-gradient(
+      45deg,
+      transparent calc(50% - 0.75px),
+      var(--border) calc(50% - 0.75px),
+      var(--border) calc(50% + 0.75px),
+      transparent calc(50% + 0.75px)
+    ) bottom left / var(--clip-cut, 8px) var(--clip-cut, 8px) no-repeat;
+}

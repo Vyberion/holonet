@@ -72,6 +72,12 @@
   overflow: hidden;
 }
 
+@media (min-width: 1600px) {
+  #search-container {
+    max-width: 920px;
+  }
+}
+
 /* Topbar */
 .search-topbar {
   display: flex;

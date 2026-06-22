@@ -2,6 +2,8 @@
 
 /* Root */
 :root {
+  --site-content-width: min(calc(100vw - 80px), 1100px);
+  --site-reading-width: min(calc(100vw - 80px), 980px);
   --red:         #d1243a;
   --red-bright: #ff3b4f;
   --red-dim:    #7a1a28;
@@ -120,13 +122,13 @@ body::after {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 60px 40px 80px;
+  padding: 60px clamp(24px, 3.2vw, 64px) 80px;
 }
 
 /* Header */
 header {
   width: 100%;
-  max-width: 1100px;
+  max-width: var(--site-content-width);
   text-align: center;
   padding: 40px 0 20px;
   position: relative;
@@ -192,7 +194,7 @@ header {
 /* Status bar */
 .status-bar {
   width: 100%;
-  max-width: 1100px;
+  max-width: var(--site-content-width);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -249,7 +251,7 @@ header {
 /* Nav grid */
 main {
   width: 100%;
-  max-width: 1100px;
+  max-width: var(--site-content-width);
 }
 
 .nav-grid {
@@ -267,7 +269,8 @@ main {
   flex-direction: column;
   justify-content: flex-end;
   isolation: isolate;
-  height: 380px;
+  height: clamp(380px, 38vh, 540px);
+  min-height: 380px;
   padding: 32px 24px;
   padding-right: 5px;
   text-decoration: none;
@@ -825,7 +828,7 @@ main {
 /* Marquee */
 .marquee-wrap {
   width: 100%;
-  max-width: 1100px;
+  max-width: var(--site-content-width);
   overflow: hidden;
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
@@ -879,7 +882,7 @@ main {
 /* Footer */
 footer {
   width: 100%;
-  max-width: 1100px;
+  max-width: var(--site-content-width);
   text-align: center;
   padding: 40px 0 20px;
 }
@@ -1770,6 +1773,66 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
 
   .old-guard-timecode {
     font-size: 0.5rem;
+  }
+}
+
+@media (min-width: 1600px) {
+  :root {
+    --site-content-width: min(88vw, 1480px);
+    --site-reading-width: min(82vw, 1240px);
+  }
+
+  #app {
+    padding-top: 76px;
+  }
+
+  header {
+    padding-top: clamp(46px, 5vh, 72px);
+  }
+
+  .site-eyebrow {
+    font-size: 0.7rem;
+  }
+
+  .site-subtitle {
+    font-size: 0.82rem;
+  }
+
+  .status-bar {
+    font-size: 0.68rem;
+    padding: 13px 20px;
+  }
+
+  .nav-card {
+    padding: 46px 36px;
+  }
+
+  .card-bg-glyph {
+    font-size: clamp(13rem, 13vw, 17rem);
+  }
+
+  .card-category {
+    font-size: 0.68rem;
+  }
+
+  .card-title {
+    font-size: clamp(2.1rem, 2.1vw, 2.65rem);
+  }
+
+  .card-desc {
+    font-size: 1rem;
+  }
+
+  .marquee-track span {
+    font-size: 0.66rem;
+  }
+
+  .old-guard-page-shell {
+    max-width: min(88vw, 1380px);
+  }
+
+  .hierarchy-detail {
+    max-width: 1100px;
   }
 }
 

@@ -105,6 +105,16 @@
   width: 100%;
 }
 
+@media (min-width: 1600px) {
+  .document-shell {
+    max-width: min(88vw, 1380px);
+  }
+
+  .pdf-box {
+    height: min(76vh, 920px);
+  }
+}
+
 .document-viewer-page .codex-article {
   background: linear-gradient(135deg, var(--theme-wash, rgba(192, 0, 26, 0.05)) 0%, transparent 60%);
   border-color: var(--division-accent-dim, var(--border-hot));

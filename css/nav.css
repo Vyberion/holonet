@@ -60,7 +60,7 @@
     justify-content: center;
     padding: 0 32px;
     height: 62px;
-    max-width: 1100px;
+    max-width: var(--site-content-width, 1480px);
     margin: 0 auto;
   }
 
@@ -513,6 +513,28 @@
   .nav-offset {
     padding-top: 62px;
   }
+
+@media (min-width: 1600px) {
+  .nav-inner {
+    height: 76px;
+  }
+
+  .nav-link {
+    padding: 14px 24px;
+  }
+
+  .nav-link-prefix {
+    font-size: 0.48rem;
+  }
+
+  .nav-link-label {
+    font-size: 0.98rem;
+  }
+
+  .nav-offset {
+    padding-top: 76px;
+  }
+}
 
 /* Nav alignment */
 .nav-inner {

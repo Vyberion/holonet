@@ -42,3 +42,15 @@
   margin-top: 28px;
   padding-top: 18px;
 }
+
+@media (min-width: 1600px) {
+  .legal-panel {
+    max-width: 1080px;
+    padding: 48px 54px;
+  }
+
+  .legal-panel p,
+  .legal-panel li {
+    font-size: 1rem;
+  }
+}

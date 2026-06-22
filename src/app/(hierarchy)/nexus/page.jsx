@@ -9,7 +9,7 @@ export const metadata = holonetMetadata({
 
 export default function NexusPage() {
   return (
-    <HolonetFrame title="OVERVIEW" subtitle="DIVISION INSPECTIONS" footerNode="KOR-7">
+    <HolonetFrame title="OVERVIEW" subtitle="DIVISION INSPECTIONS" footerNode="KOR-7" showHeader={false}>
       <section className="nexus-shell" data-nexus-console>
         <div className="hub-hero">
           <div className="hub-identity">

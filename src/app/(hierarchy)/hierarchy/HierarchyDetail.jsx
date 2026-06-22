@@ -16,7 +16,7 @@ function normalizeImageSrc(src) {
 
 function RankNavLink({ direction, item }) {
   const label = direction === "previous" ? "Previous Rank" : "Next Rank";
-  const arrow = direction === "previous" ? "\u2039\u2039" : "\u203a\u203a";
+  const arrow = direction === "previous" ? "‹‹" : "››";
 
   return (
     <a className={`hierarchy-rank-nav-link hierarchy-rank-nav-link--${direction}`} href={item.href}>
@@ -62,7 +62,6 @@ export function HierarchyDetail({ item, guarded = false, rankNav = null }) {
           ) : (
             <div className="hierarchy-detail-hero" aria-hidden="true">
               <img src={imageSrc} alt="" loading="eager" />
-              <span>{item.name}</span>
             </div>
           )}
           <div className="article-content">

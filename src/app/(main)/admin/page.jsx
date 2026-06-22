@@ -20,7 +20,6 @@ export default function AdminPage() {
         <div className="hub-layout">
           <section className="hub-panel" id="admin-overrides" />
           <section className="hub-panel" id="admin-activity" />
-          <section className="hub-panel" id="admin-retirements" />
           <section className="hub-panel" id="admin-counts" />
           <section className="hub-panel" id="admin-health" />
         </div>
@@ -40,10 +39,6 @@ export default function AdminPage() {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 12px;
-        }
-
-        [data-admin-root] #admin-retirements {
-          grid-column: 1 / -1;
         }
 
         [data-admin-root] #admin-overrides,
@@ -135,10 +130,6 @@ export default function AdminPage() {
         @media (max-width: 820px) {
           [data-admin-root] .hub-layout {
             grid-template-columns: 1fr;
-          }
-
-          [data-admin-root] #admin-retirements {
-            grid-column: auto;
           }
         }
       `}</style>

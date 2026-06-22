@@ -22,6 +22,7 @@ export function HolonetFrame({
   children,
   mainClassName = "",
   includeSearchOverlay = false,
+  showHeader = true,
   theme = ""
 }) {
   return (
@@ -53,7 +54,7 @@ export function HolonetFrame({
               </button>
               <div className="loader-gate-meta" aria-hidden="true">
                 <span>MADE BY: VYBERON</span>
-                <span>WITH HELP FROM: GAWK, THE OLD GUARD</span>
+                <span>WITH HELP FROM: THE OLD GUARD</span>
               </div>
             </div>
           </section>
@@ -134,13 +135,15 @@ export function HolonetFrame({
           <HolonetNav />
         </div>
 
-        <header>
-          <p className="site-eyebrow">MANAR&apos;S THE SITH ORDER</p>
-          <div className="header-rule" />
-          <h1 className="site-title">{title}</h1>
-          <p className="site-subtitle">{subtitle}</p>
-          <div className="header-rule" />
-        </header>
+        {showHeader ? (
+          <header>
+            <p className="site-eyebrow">MANAR&apos;S THE SITH ORDER</p>
+            <div className="header-rule" />
+            <h1 className="site-title">{title}</h1>
+            <p className="site-subtitle">{subtitle}</p>
+            <div className="header-rule" />
+          </header>
+        ) : null}
 
         <div className="status-bar" role="status" aria-live="polite">
           <span style={{ color: "var(--text-dim)" }}>

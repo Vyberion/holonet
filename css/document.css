@@ -1,13 +1,15 @@
 .pdf-box {
   width: 100%;
-  height: 700px;
+  /* Fallback only; the viewer computes enough height for 1 1/6 pages. */
+  height: 1240px;
   border: 1px solid var(--division-accent-dim, var(--border-hot));
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
   background: var(--theme-bg, #050204);
   box-shadow: inset 0 0 18px var(--division-accent-glow, rgba(192, 0, 26, 0.035));
   contain: layout paint;
   scrollbar-color: var(--division-accent-dim, var(--red-dim)) var(--theme-bg, #050204);
+  scrollbar-gutter: stable both-edges;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
@@ -24,13 +26,25 @@
   background: var(--theme-surface, #120d0d);
   border: 1px solid color-mix(in srgb, var(--division-accent-dim, var(--border-hot)) 70%, transparent);
   box-shadow: 0 0 18px rgba(0, 0, 0, 0.35);
-  max-width: 100%;
   position: relative;
+}
+
+.pdf-page--pending {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.pdf-page--pending::before {
+  color: var(--text-faint);
+  content: "PAGE " attr(data-page-number) " / QUEUED";
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
 }
 
 .pdf-page canvas {
   display: block;
-  max-width: 100%;
   position: relative;
   z-index: 1;
 }
@@ -102,7 +116,18 @@
 }
 
 .document-shell {
-  max-width: 980px;
+  max-width: 1100px;
+  width: 100%;
+}
+
+.handbook-viewer-panel {
+  margin-bottom: 0;
+}
+
+@media (min-width: 1600px) {
+  .document-shell {
+    max-width: min(88vw, 1380px);
+  }
 }
 
 .document-viewer-page .codex-article {
@@ -264,6 +289,7 @@
 .pdf-terminal {
   display: grid;
   gap: 18px;
+  width: 100%;
 }
 
 .pdf-tab-strip {
@@ -364,12 +390,19 @@
 
 .pdf-toolbar {
   align-items: center;
-  border: 1px solid var(--border);
-  background: var(--theme-panel, transparent);
+  border: 1px solid var(--division-accent-dim, var(--border-hot));
+  background: color-mix(in srgb, var(--theme-panel, var(--panel)) 88%, var(--theme-bg, #050204));
+  backdrop-filter: blur(12px);
   display: flex;
   gap: 12px;
   justify-content: space-between;
   padding: 10px 12px;
+  position: sticky;
+  top: 12px;
+  z-index: 80;
+  box-shadow:
+    0 8px 26px rgba(0, 0, 0, 0.36),
+    0 0 18px var(--division-accent-glow, rgba(192, 0, 26, 0.045));
 }
 
 .pdf-zoom-controls {
@@ -403,15 +436,20 @@
   text-shadow: 0 0 8px var(--division-accent-glow, var(--red-glow));
 }
 
-/* Search footer */
 .document-viewer-page .search-footer {
-  background: color-mix(in srgb, var(--division-accent, var(--red-bright)) 3%, var(--void));
+  background: color-mix(in srgb, var(--division-accent, var(--red-bright)) 4%, var(--theme-panel, var(--panel)));
   border-top-color: var(--division-accent-dim, var(--border));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--division-accent, var(--red-bright)) 16%, transparent);
 }
 
 .document-viewer-page .search-hint {
   color: var(--division-accent-dim, var(--border-hot));
   text-shadow: 0 0 8px var(--division-accent-glow, var(--red-glow));
+}
+
+.document-viewer-page .search-hint kbd {
+  border-color: var(--division-accent-dim, var(--border-hot));
+  color: var(--division-accent, var(--red-bright));
 }
 
 .pdf-tool-text {
@@ -433,10 +471,6 @@
 }
 
 @media (max-width: 768px) {
-  .pdf-box {
-    height: 70vh;
-  }
-
   .pdf-reader-header {
     align-items: flex-start;
     flex-direction: column;
@@ -445,6 +479,7 @@
   .pdf-toolbar {
     align-items: flex-start;
     flex-direction: column;
+    top: 8px;
   }
 
   .pdf-tab {

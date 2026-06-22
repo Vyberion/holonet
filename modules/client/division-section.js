@@ -67,12 +67,27 @@ async function saveWeeklyReport(data) {
   return payload;
 }
 
+async function fetchDivisionRosterPayload(division) {
+  const response = await fetch(`/api/division-roster?division=${encodeURIComponent(division)}`);
+  const payload = await response.json();
+  if (!response.ok || !payload.ok) throw new Error(payload.reason || payload.error || "ROSTER_UNAVAILABLE");
+  return payload;
+}
+
 function titleForSection(section) {
   return {
     transmissions: "Transmissions",
     reports: "Reports",
     trackers: "Tracking"
   }[section] || "Division";
+}
+
+function descriptionForSection(division, section) {
+  return {
+    transmissions: `Official announcements and operational transmissions published for ${division.name}.`,
+    reports: `Published weekly activity reports and performance records for ${division.name}.`,
+    trackers: `Current ${division.name} members in rank order with their live tracked hours and minutes.`
+  }[section] || "";
 }
 
 function emptyForSection(section) {
@@ -129,6 +144,42 @@ function renderWeeklyReports(entries) {
   }).join("")}</div>`;
 }
 
+function renderTrackingRoster(members) {
+  if (!members?.length) return '<p class="hub-empty">No current division members found</p>';
+
+  return `
+    <div class="tracking-table-wrap">
+      <table class="tracking-table">
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Rank</th>
+            <th>Tracked Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${members.map(member => {
+            const time = normalizeTime(member.hours, member.minutes);
+            const identity = member.displayName && member.displayName !== member.username
+              ? `${member.displayName} (@${member.username})`
+              : member.username || member.displayName || member.robloxId;
+            return `
+              <tr>
+                <td>
+                  <strong>${escapeHtml(identity)}</strong>
+                  <span>${escapeHtml(member.robloxId || "")}</span>
+                </td>
+                <td>${escapeHtml(member.role || "Unranked")}</td>
+                <td>${time.hours}h ${time.minutes}m</td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 function formFieldsFor(section, entry = {}) {
   const common = `
     <input type="hidden" name="id" value="${escapeHtml(entry.id || "")}">
@@ -137,19 +188,6 @@ function formFieldsFor(section, entry = {}) {
       <input id="resource-title" name="title" value="${escapeHtml(entry.title || "")}" required>
     </div>
   `;
-
-  if (section === "trackers") {
-    return `${common}
-      <div class="resource-editor-field">
-        <label for="resource-href">Tracker Link</label>
-        <input id="resource-href" name="href" value="${escapeHtml(entry.href || "")}" required>
-      </div>
-      <div class="resource-editor-field">
-        <label for="resource-notes">Notes</label>
-        <textarea id="resource-notes" name="notes">${escapeHtml(entry.notes || "")}</textarea>
-      </div>
-    `;
-  }
 
   return `${common}
     <div class="resource-editor-field">
@@ -163,10 +201,6 @@ function formFieldsFor(section, entry = {}) {
         <option value="public" ${entry.visibility === "public" ? "selected" : ""}>Public</option>
         <option value="private" ${entry.visibility === "private" ? "selected" : ""}>Private</option>
       </select>
-    </div>
-    <div class="resource-editor-field">
-      <label for="resource-image">Image Path</label>
-      <input id="resource-image" name="imagePath" value="${escapeHtml(entry.imagePath || "")}">
     </div>
   `;
 }
@@ -403,15 +437,21 @@ function renderSection(mount, division, section, entries, canWrite) {
             <span class="hub-value">${escapeHtml(division.shortName || division.name)}</span>
           </div>
         </div>
-        <p class="hub-summary">${escapeHtml(division.description)}</p>
+        <p class="hub-summary">${escapeHtml(descriptionForSection(division, section))}</p>
       </div>
 
       <section class="hub-panel">
-        <div class="hub-panel-head">
-          <h3 class="hub-panel-title">${escapeHtml(titleForSection(section))}</h3>
-          ${canWrite ? `<button type="button" class="hub-write-btn" data-resource-new>WRITE NEW</button>` : ""}
-        </div>
-        ${section === "reports" ? renderWeeklyReports(entries) : renderEntries(section, entries)}
+        ${section === "trackers" ? "" : `
+          <div class="hub-panel-head">
+            <h3 class="hub-panel-title">${escapeHtml(titleForSection(section))}</h3>
+            ${canWrite ? `<button type="button" class="hub-write-btn" data-resource-new>WRITE NEW</button>` : ""}
+          </div>
+        `}
+        ${section === "reports"
+          ? renderWeeklyReports(entries)
+          : section === "trackers"
+            ? renderTrackingRoster(entries)
+            : renderEntries(section, entries)}
       </section>
     </section>
   `;
@@ -420,6 +460,12 @@ function renderSection(mount, division, section, entries, canWrite) {
 }
 
 async function hydrateSection(mount, division, section) {
+  if (section === "trackers") {
+    const payload = await fetchDivisionRosterPayload(division.id);
+    renderSection(mount, division, section, payload.members, false);
+    return;
+  }
+
   if (section === "reports") {
     const payload = await fetchWeeklyReportPayload(division.id);
     renderSection(mount, division, section, payload.reports, payload.canWrite);

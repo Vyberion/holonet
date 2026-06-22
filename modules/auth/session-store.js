@@ -4,6 +4,13 @@ export const SESSION_COOKIE = "sith_session";
 export const STATE_COOKIE = "sith_oauth_state";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 183;
 
+const SESSION_TOUCH_INTERVAL_MS = 15 * 60 * 1000;
+const SESSION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+const sessionTouchCache = globalThis.__holonetSessionTouchCache || new Map();
+const sessionMaintenanceState = globalThis.__holonetSessionMaintenanceState || { lastCleanupAt: 0 };
+globalThis.__holonetSessionTouchCache = sessionTouchCache;
+globalThis.__holonetSessionMaintenanceState = sessionMaintenanceState;
+
 function getSupabaseConfig() {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -20,6 +27,10 @@ function getSupabaseConfig() {
 
 function hashToken(token) {
   return createHash("sha256").update(token).digest("hex");
+}
+
+function isHandbookRetirementPath(path) {
+  return String(path || "").startsWith("resource_handbook_retirements");
 }
 
 export function createRandomToken() {
@@ -66,6 +77,11 @@ export function getCookie(req, name) {
 }
 
 export async function supabaseRest(path, options = {}) {
+  if (isHandbookRetirementPath(path)) {
+    const method = String(options.method || "GET").toUpperCase();
+    return ["DELETE", "PATCH", "PUT"].includes(method) ? null : [];
+  }
+
   const { baseUrl, key } = getSupabaseConfig();
   const response = await fetch(`${baseUrl}/rest/v1/${path}`, {
     ...options,
@@ -181,8 +197,14 @@ export async function removeStorageObjects(bucket, paths) {
   ));
 }
 
-export async function cleanupExpiredSessions() {
-  const now = encodeURIComponent(new Date().toISOString());
+export async function cleanupExpiredSessions({ force = false } = {}) {
+  const nowMs = Date.now();
+  if (!force && nowMs - sessionMaintenanceState.lastCleanupAt < SESSION_CLEANUP_INTERVAL_MS) {
+    return;
+  }
+
+  sessionMaintenanceState.lastCleanupAt = nowMs;
+  const now = encodeURIComponent(new Date(nowMs).toISOString());
 
   try {
     await supabaseRest(`sessions?expires_at=lt.${now}`, { method: "DELETE" });
@@ -219,12 +241,16 @@ export async function createSessionForUser({ robloxId, robloxUsername, robloxDis
     })
   });
 
+  sessionTouchCache.set(sessionId, now.getTime());
+
   return { token, expiresAt };
 }
 
 export async function deleteSessionToken(token) {
   if (!token) return;
-  await supabaseRest(`sessions?session_id=eq.${encodeURIComponent(hashToken(token))}`, {
+  const sessionId = hashToken(token);
+  sessionTouchCache.delete(sessionId);
+  await supabaseRest(`sessions?session_id=eq.${encodeURIComponent(sessionId)}`, {
     method: "DELETE"
   });
 }
@@ -238,7 +264,7 @@ export async function getSessionUser(req) {
 
   const sessionId = hashToken(token);
   const sessions = await supabaseRest(
-    `sessions?session_id=eq.${encodeURIComponent(sessionId)}&select=session_id,roblox_id,expires_at`
+    `sessions?session_id=eq.${encodeURIComponent(sessionId)}&select=session_id,roblox_id,expires_at,last_seen_at`
   );
 
   if (!sessions || sessions.length === 0) {
@@ -262,10 +288,21 @@ export async function getSessionUser(req) {
     return { authenticated: false, reason: "USER_NOT_FOUND" };
   }
 
-  await supabaseRest(`sessions?session_id=eq.${encodeURIComponent(sessionId)}`, {
-    method: "PATCH",
-    body: JSON.stringify({ last_seen_at: new Date().toISOString() })
-  });
+  const nowMs = Date.now();
+  const cachedTouch = sessionTouchCache.get(sessionId) || 0;
+  const storedTouch = session.last_seen_at ? new Date(session.last_seen_at).getTime() : 0;
+  const lastTouch = Math.max(cachedTouch, Number.isFinite(storedTouch) ? storedTouch : 0);
+
+  if (nowMs - lastTouch >= SESSION_TOUCH_INTERVAL_MS) {
+    sessionTouchCache.set(sessionId, nowMs);
+    await supabaseRest(`sessions?session_id=eq.${encodeURIComponent(sessionId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ last_seen_at: new Date(nowMs).toISOString() })
+    }).catch(error => {
+      sessionTouchCache.delete(sessionId);
+      throw error;
+    });
+  }
 
   return {
     authenticated: true,

@@ -56,7 +56,6 @@
       ["Archive Articles", counts.archiveArticles],
       ["Published Resources", counts.publishedResources],
       ["Active Overrides", counts.activeOverrides],
-      ["Pending Purges", counts.pendingRetirements?.length || 0],
       ["Verified Discord Links", counts.activeBotLinks],
       ["Active Shifts", counts.activeShifts]
     ];
@@ -88,27 +87,8 @@
             ${check.reason ? `<p>${escapeHtml(check.reason)}</p>` : ""}
           </article>
         `).join("") || '<p class="hub-empty">No health checks available.</p>'}
-        <article class="hub-row"><strong>Pending Handbook Purges</strong><span>${escapeHtml(counts.pendingRetirements?.length || 0)}</span></article>
         <article class="hub-row"><strong>Active Clock Shifts</strong><span>${escapeHtml(counts.activeShifts || 0)}</span></article>
       </div>
-    `;
-  }
-
-  function renderRetirements(retirements = []) {
-    return `
-      <div class="hub-panel-head">
-        <h3 class="hub-panel-title">Handbook Retirement</h3>
-        <button type="button" class="hub-row-edit" data-admin-refresh>REFRESH</button>
-      </div>
-      ${retirements.length ? `<div class="hub-list">${retirements.map(item => `
-        <article class="hub-row">
-          <strong>${escapeHtml(item.file_name || item.slot_key)}</strong>
-          <span>${escapeHtml(item.division_key)} / ${escapeHtml(item.slot_key)}</span>
-          <p>Retired ${escapeHtml(formatDate(item.retired_at))} · Purge after ${escapeHtml(formatDate(item.purge_after))}</p>
-          <p>${escapeHtml(item.storage_path || "")}</p>
-          <button type="button" class="hub-row-edit" data-retirement-restore="${escapeHtml(item.id)}">RESTORE</button>
-        </article>
-      `).join("")}</div>` : '<p class="hub-empty">No pending handbook purges.</p>'}
     `;
   }
 
@@ -208,10 +188,9 @@
       counts: document.getElementById("admin-counts"),
       health: document.getElementById("admin-health"),
       overrides: document.getElementById("admin-overrides"),
-      retirements: document.getElementById("admin-retirements"),
       activity: document.getElementById("admin-activity")
     };
-    if (!nodes.counts || !nodes.overrides || !nodes.retirements || !nodes.activity) return;
+    if (!nodes.counts || !nodes.overrides || !nodes.activity) return;
 
     let overrides = [];
 
@@ -224,7 +203,6 @@
       overrides = overridesPayload.overrides || [];
       nodes.counts.innerHTML = renderCounts(overview.counts);
       if (nodes.health) nodes.health.innerHTML = renderHealth(overview.health, overview.counts);
-      nodes.retirements.innerHTML = renderRetirements(overview.pendingRetirements || overview.counts?.pendingRetirements || []);
       nodes.activity.innerHTML = renderActivity(overview.activity);
       nodes.overrides.innerHTML = renderOverrides(overrides);
       bindControls();
@@ -271,20 +249,6 @@
         form.scopeKey.value = scopeKey;
       });
 
-      document.querySelector("[data-override-lookup]")?.addEventListener("click", async () => {
-        if (!form?.username?.value?.trim()) return;
-        state.overrideUsername = form.username.value.trim();
-        status.textContent = "Looking up...";
-        try {
-          const lookup = await fetchJson(`/api/personnel-lookup?username=${encodeURIComponent(form.username.value.trim())}`);
-          state.lookupUser = lookup.user;
-          nodes.overrides.innerHTML = renderOverrides(overrides);
-          bindControls();
-        } catch (error) {
-          status.textContent = error.message.replace(/_/g, " ");
-        }
-      });
-
       form?.addEventListener("submit", async event => {
         event.preventDefault();
         status.textContent = "Applying...";
@@ -316,18 +280,6 @@
       nodes.overrides.querySelectorAll("[data-override-delete]").forEach(button => {
         button.addEventListener("click", async () => {
           await fetchJson(`/api/admin/overrides?id=${encodeURIComponent(button.dataset.overrideDelete)}`, { method: "DELETE" });
-          await hydrate();
-        });
-      });
-
-      nodes.retirements.querySelectorAll("[data-retirement-restore]").forEach(button => {
-        button.addEventListener("click", async () => {
-          button.textContent = "RESTORING";
-          await fetchJson("/api/admin/retirements", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "restore", id: button.dataset.retirementRestore })
-          });
           await hydrate();
         });
       });

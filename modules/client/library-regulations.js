@@ -1,4 +1,5 @@
 const LIBRARY_ENDPOINT = "/api/library";
+const CONTENTS_DOCK_STYLE_ID = "holonet-library-contents-dock-style";
 
 function toRoman(value) {
   const number = Math.max(1, Math.min(3999, Number(value) || 1));
@@ -214,12 +215,200 @@ function removeClauseTitleFields(root = document) {
   });
 }
 
+function installContentsDockStyles() {
+  if (document.getElementById(CONTENTS_DOCK_STYLE_ID)) return;
+
+  const style = document.createElement("style");
+  style.id = CONTENTS_DOCK_STYLE_ID;
+  style.textContent = `
+    .codex-contents-list {
+      padding-block: 8px;
+      padding-inline: 8px;
+      overflow-x: hidden;
+    }
+
+    .contents-article {
+      max-width: 100%;
+      position: relative;
+      transform: translateX(0);
+      transform-origin: left center;
+      transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .contents-link {
+      display: block;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      white-space: normal;
+      transition:
+        color 0.2s ease,
+        font-size 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+        letter-spacing 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+        text-shadow 0.2s ease;
+    }
+
+    .contents-article.is-dock-active {
+      z-index: 4;
+      transform: translateX(6px);
+    }
+
+    .contents-article.is-current-article .contents-link {
+      color: var(--red-bright);
+      text-shadow:
+        0 0 5px rgba(255, 0, 34, 0.35),
+        0 0 14px var(--red-glow);
+    }
+
+    .contents-article.is-dock-active .contents-link {
+      color: var(--red-bright);
+      font-size: calc(var(--contents-link-size, 0.8rem) + 0.1rem);
+      letter-spacing: 0.035em;
+      text-shadow:
+        0 0 5px rgba(255, 0, 34, 0.45),
+        0 0 18px var(--red-glow);
+    }
+
+    @media (max-width: 768px) {
+      .contents-article.is-dock-active {
+        transform: translateX(4px);
+      }
+
+      .contents-article.is-dock-active .contents-link {
+        font-size: calc(var(--contents-link-size, 0.8rem) + 0.06rem);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .contents-article {
+        transition: none;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function contentsItems(shell) {
+  return Array.from(shell.querySelectorAll(".codex-contents-list .contents-article"));
+}
+
+function contentArticles(shell) {
+  return Array.from(shell.querySelectorAll(".codex-document .codex-article[id]"));
+}
+
+function itemTargetId(item) {
+  const href = item.querySelector(".contents-link")?.getAttribute("href") || "";
+  return href.startsWith("#") ? href.slice(1) : "";
+}
+
+function resolveCurrentArticleIndex(shell) {
+  const items = contentsItems(shell);
+  const articles = contentArticles(shell);
+  if (!items.length || !articles.length) return -1;
+
+  const viewportAnchor = Math.min(Math.max(window.innerHeight * 0.28, 120), 260);
+  let bestId = articles[0]?.id || "";
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  articles.forEach(article => {
+    const rect = article.getBoundingClientRect();
+    const visibleAtAnchor = rect.top <= viewportAnchor && rect.bottom >= viewportAnchor;
+    const score = visibleAtAnchor
+      ? Math.abs(rect.top - viewportAnchor) * 0.2
+      : Math.min(Math.abs(rect.top - viewportAnchor), Math.abs(rect.bottom - viewportAnchor)) + 1000;
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestId = article.id;
+    }
+  });
+
+  const matchedIndex = items.findIndex(item => itemTargetId(item) === bestId);
+  return matchedIndex >= 0 ? matchedIndex : 0;
+}
+
+function applyContentsDock(shell) {
+  const items = contentsItems(shell);
+  if (!items.length) return;
+
+  const hoverIndex = Number(shell.dataset.contentsDockHoverIndex ?? -1);
+  const currentIndex = Number(shell.dataset.contentsDockCurrentIndex ?? resolveCurrentArticleIndex(shell));
+
+  items.forEach((item, index) => {
+    item.classList.remove("is-current-article", "is-dock-active");
+
+    if (index === currentIndex) item.classList.add("is-current-article");
+    if (index === hoverIndex) item.classList.add("is-dock-active");
+  });
+}
+
+function syncCurrentContentsItem(shell) {
+  const currentIndex = resolveCurrentArticleIndex(shell);
+  if (currentIndex < 0) return;
+
+  shell.dataset.contentsDockCurrentIndex = String(currentIndex);
+  applyContentsDock(shell);
+}
+
+function installContentsDock(root = document) {
+  installContentsDockStyles();
+
+  const shells = new Set();
+  root.querySelectorAll?.(".codex-shell").forEach(shell => shells.add(shell));
+  const closestShell = root.closest?.(".codex-shell");
+  if (closestShell) shells.add(closestShell);
+  if (!shells.size) document.querySelectorAll(".codex-shell").forEach(shell => shells.add(shell));
+
+  shells.forEach(shell => {
+    if (!shell.querySelector(".codex-contents-list") || !shell.querySelector(".codex-document")) return;
+
+    if (shell.dataset.contentsDockBound !== "true") {
+      shell.dataset.contentsDockBound = "true";
+      shell.dataset.contentsDockHoverIndex = "-1";
+
+      shell.addEventListener("pointerover", event => {
+        const item = event.target.closest(".contents-article");
+        if (!item || !shell.contains(item)) return;
+
+        shell.dataset.contentsDockHoverIndex = String(contentsItems(shell).indexOf(item));
+        applyContentsDock(shell);
+      });
+
+      shell.querySelector(".codex-contents")?.addEventListener("pointerleave", () => {
+        shell.dataset.contentsDockHoverIndex = "-1";
+        applyContentsDock(shell);
+      });
+
+      shell.addEventListener("focusin", event => {
+        const item = event.target.closest(".contents-article");
+        if (!item || !shell.contains(item)) return;
+
+        shell.dataset.contentsDockHoverIndex = String(contentsItems(shell).indexOf(item));
+        applyContentsDock(shell);
+      });
+
+      shell.addEventListener("focusout", event => {
+        if (shell.querySelector(".codex-contents")?.contains(event.relatedTarget)) return;
+
+        shell.dataset.contentsDockHoverIndex = "-1";
+        applyContentsDock(shell);
+      });
+
+      const syncOnScroll = () => window.requestAnimationFrame(() => syncCurrentContentsItem(shell));
+      window.addEventListener("scroll", syncOnScroll, { passive: true });
+      window.addEventListener("resize", syncOnScroll, { passive: true });
+    }
+
+    syncCurrentContentsItem(shell);
+  });
+}
+
 function installDomObserver() {
   if (window.__holonetLibraryRegulationObserverInstalled) return;
   window.__holonetLibraryRegulationObserverInstalled = true;
 
   renderRomanArticleNumbers();
   removeClauseTitleFields();
+  installContentsDock();
 
   const observer = new MutationObserver(mutations => {
     mutations.forEach(mutation => {
@@ -227,6 +416,7 @@ function installDomObserver() {
         if (node.nodeType !== Node.ELEMENT_NODE) return;
         renderRomanArticleNumbers(node);
         removeClauseTitleFields(node);
+        installContentsDock(node);
       });
     });
   });

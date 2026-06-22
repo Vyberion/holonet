@@ -3,7 +3,7 @@
 /* Page header */
 .registry-header {
   width: 100%;
-  max-width: 900px;
+  max-width: var(--site-reading-width, 1240px);
   text-align: center;
   padding: 40px 0 10px;
   margin: 0 auto;
@@ -47,7 +47,7 @@
 /* Status bar */
 .registry-status-bar {
   width: 100%;
-  max-width: 900px;
+  max-width: var(--site-reading-width, 1240px);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -72,7 +72,7 @@
 /* Directory sections */
 .registry-main {
   width: 100%;
-  max-width: 900px;
+  max-width: 980px;
   margin: 0 auto;
 }
 
@@ -104,7 +104,7 @@
 .dir-grid {
   display: grid;
   gap: 20px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
 /* Cards */
@@ -263,7 +263,7 @@
 /* Footer */
 .registry-footer {
   width: 100%;
-  max-width: 900px;
+  max-width: var(--site-reading-width, 1240px);
   text-align: center;
   padding: 40px 0;
   border-top: 1px solid var(--border);
@@ -620,6 +620,39 @@
 
 .dir-card--overview {
   min-height: 205px;
+}
+
+@media (min-width: 1600px) {
+  .registry-main {
+    max-width: min(88vw, 1380px);
+  }
+
+  .dir-card {
+    min-height: 300px;
+    padding: 36px;
+  }
+
+  .dir-card--overview {
+    min-height: 250px;
+  }
+
+  .dir-card-title {
+    font-size: 1.35rem;
+  }
+
+  .dir-card-desc {
+    font-size: 1rem;
+  }
+
+  .dir-grid--divisions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dir-card-badge,
+  .dir-card-node,
+  .dir-card-enter {
+    font-size: 0.64rem;
+  }
 }
 
 .dir-card:hover,

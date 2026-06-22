@@ -137,6 +137,7 @@ export default async function DivisionSectionPage({ params }) {
         title={division.shortName.toUpperCase()}
         subtitle={division.subtitle.toUpperCase()}
         footerNode={division.node}
+        showHeader={false}
         theme={division.theme}
       >
         <ThemeClass theme={division.theme} />
@@ -162,24 +163,13 @@ export default async function DivisionSectionPage({ params }) {
         subtitle="SECURE DOCUMENT VIEWER"
         footerNode={division.node}
         includeSearchOverlay
+        showHeader={false}
         theme={division.theme}
       >
         <ThemeClass theme={division.theme} />
         <div className="codex-document document-shell">
-          <article className="codex-article">
-            <div className="article-header">
-              <span className="article-number">{division.node} / Secure Document Viewer</span>
-              <h2 className="article-title">Handbook Archive</h2>
-            </div>
-
+          <article className="codex-article handbook-viewer-panel">
             <div className="article-content pdf-terminal">
-              <div className="regulation">
-                <h3 className="reg-title">Access Notice</h3>
-                <p className="reg-text">
-                  Unauthorized access or distribution of these materials is strictly prohibited.
-                </p>
-              </div>
-
               <div
                 className="pdf-tab-strip"
                 role="tablist"
@@ -193,7 +183,7 @@ export default async function DivisionSectionPage({ params }) {
               <div className="pdf-toolbar" aria-label="PDF viewer controls">
                 <div className="pdf-zoom-controls" aria-label="Zoom controls">
                   <button type="button" className="pdf-tool-btn" data-pdf-zoom-out aria-label="Zoom out">-</button>
-                  <span className="pdf-zoom-readout" data-pdf-zoom-label>FIT</span>
+                  <span className="pdf-zoom-readout" data-pdf-zoom-label>100%</span>
                   <button type="button" className="pdf-tool-btn" data-pdf-zoom-in aria-label="Zoom in">+</button>
                   <button type="button" className="pdf-tool-btn pdf-tool-text" data-pdf-fit-height>FIT</button>
                   <button type="button" className="pdf-tool-btn pdf-tool-text" data-pdf-fit-width>FILL</button>
@@ -219,6 +209,7 @@ export default async function DivisionSectionPage({ params }) {
         title="COUNCIL FLOOR"
         subtitle="LEGISLATIVE CHANNEL"
         footerNode={division.node}
+        showHeader={false}
         theme={division.theme}
       >
         <ThemeClass theme={division.theme} />
@@ -236,6 +227,7 @@ export default async function DivisionSectionPage({ params }) {
       title={`${divisionTitleName(division).toUpperCase()} ${sectionTitle(section).toUpperCase()}`}
       subtitle={sectionSubtitle(section)}
       footerNode={division.node}
+      showHeader={false}
       theme={division.theme}
     >
       <ThemeClass theme={division.theme} />

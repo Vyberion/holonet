@@ -68,11 +68,21 @@ export function HierarchyCard({ item }) {
   );
 }
 
-export function HierarchyGrid({ items }) {
+export function HierarchyGrid({ items, maxRowCards = DEFAULT_MAX_PATH_ROW_CARDS }) {
+  const rows = chunkPathItems(items, maxRowCards);
+
   return (
-    <div className="hierarchy-grid">
-      {items.map(item => (
-        <HierarchyCard item={item} key={`${item.groupId}-${item.slug}`} />
+    <div className="hierarchy-grid-rows">
+      {rows.map((rowItems, rowIndex) => (
+        <div
+          className="hierarchy-grid"
+          key={rowItems.map(item => item.slug).join("-") || rowIndex}
+          style={{ "--hierarchy-row-cards": rowItems.length }}
+        >
+          {rowItems.map(item => (
+            <HierarchyCard item={item} key={`${item.groupId}-${item.slug}`} />
+          ))}
+        </div>
       ))}
     </div>
   );
@@ -146,8 +156,7 @@ function chunkPathItems(items, maxPathRowCards = DEFAULT_MAX_PATH_ROW_CARDS) {
 }
 
 function pathCardRowColumns(items, rowItems, maxPathRowCards = DEFAULT_MAX_PATH_ROW_CARDS) {
-  const maxCards = rowCardLimit(maxPathRowCards);
-  return items.length > maxCards ? maxCards : rowItems.length;
+  return Math.max(1, Math.min(rowItems.length, rowCardLimit(maxPathRowCards)));
 }
 
 function HierarchyPathCardRows({ items, maxPathRowCards = DEFAULT_MAX_PATH_ROW_CARDS }) {
@@ -183,7 +192,7 @@ export function HierarchyPathGroups({ items, maxPathRowCards = DEFAULT_MAX_PATH_
 
   return (
     <>
-      {directItems.length ? <HierarchyGrid items={directItems} /> : null}
+      {directItems.length ? <HierarchyGrid items={directItems} maxRowCards={maxPathRowCards} /> : null}
 
       {pathRows.length ? (
         <div className="hierarchy-path-grid">
@@ -221,7 +230,8 @@ export function HierarchyPathGroups({ items, maxPathRowCards = DEFAULT_MAX_PATH_
 }
 
 export function HierarchySection({ group, items }) {
-  const maxPathRowCards = rowCardLimit(group.maxPathRowCards);
+  const defaultLimit = ["high-command", "administration"].includes(group.id) ? 3 : DEFAULT_MAX_PATH_ROW_CARDS;
+  const maxPathRowCards = rowCardLimit(group.maxPathRowCards || defaultLimit);
 
   return (
     <section className="registry-section hierarchy-section" aria-labelledby={`hierarchy-${group.id}`}>

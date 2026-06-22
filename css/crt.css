@@ -508,6 +508,53 @@ html.holonet-crt-opening #loader[data-loader-phase="intro-reveal"] .loader-crt-r
   }
 }
 
+@media (min-width: 1600px) {
+  .loader-terminal-panel {
+    width: min(72vw, 820px);
+  }
+
+  .loader-terminal-topbar {
+    padding: 17px 24px 16px;
+  }
+
+  .loader-terminal-topbar span {
+    font-size: 0.66rem;
+  }
+
+  .loader-holonet-gate .loader-terminal-body,
+  .loader-terminal-panel--ready .loader-terminal-body,
+  .loader-terminal-panel--transit .loader-terminal-body {
+    padding: clamp(48px, 4vw, 68px);
+  }
+
+  .loader-gate-title {
+    font-size: clamp(4.2rem, 4vw, 5.4rem);
+  }
+
+  .loader-gate-kicker {
+    font-size: 0.82rem;
+  }
+
+  .loader-gate-meta {
+    font-size: 0.68rem;
+    max-width: 660px;
+  }
+
+  .loader-terminal-line {
+    font-size: 0.92rem;
+  }
+
+  .loader-terminal-status {
+    font-size: 1.55rem;
+  }
+
+  .loader-terminal-button {
+    font-size: 0.9rem;
+    min-height: 58px;
+    width: min(470px, 100%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html.holonet-crt-armed #nav-container,
   html.holonet-crt-armed #app,

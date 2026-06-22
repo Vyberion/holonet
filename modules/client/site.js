@@ -3,7 +3,7 @@
   const DEVELOPER_NOTICE_KEY = "holonet:developer-notice:v1:complete";
   const LOADER_SHOWN_KEY = "loaderShown";
   const MUX_PLAYER_SCRIPT = "https://cdn.jsdelivr.net/npm/@mux/mux-player";
-  const OLD_GUARD_PLAYBACK_ID = "zB4z6QMgwgilabiIn00fmdcf62mmk00n4N01XnhNfaqTL00";
+  const OLD_GUARD_PLAYBACK_ID = "5B00WSZwcoH023XoGAE94RSxu5Pu3GFn9TCqIuNM1x73E";
   const OLD_GUARD_TITLE = "THE OLD GUARD";
   const canonCache = new Map();
   const canonFetches = new Map();

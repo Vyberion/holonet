@@ -134,6 +134,34 @@ export default function AccountPage() {
           font-size: 0.68rem;
           padding: 12px 20px;
         }
+
+        @media (min-width: 1600px) {
+          .account-panel {
+            max-width: min(82vw, 860px);
+            padding: 64px;
+          }
+
+          .terminal-box {
+            margin: 44px 0;
+            padding: 30px;
+          }
+
+          .data-row {
+            font-size: 1rem;
+          }
+
+          .btn-auth {
+            font-size: 0.98rem;
+            padding: 20px 48px;
+          }
+
+          .account-panel > p {
+            font-size: 0.86rem !important;
+            max-width: 62ch;
+            margin-left: auto;
+            margin-right: auto;
+          }
+        }
       `}</style>
 
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js", "/modules/client/account.js"]} />

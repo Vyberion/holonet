@@ -20,9 +20,9 @@ async function getPdfjsLib() {
   return pdfjsLibPromise;
 }
 
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 2;
-const ZOOM_STEP = 0.1;
+const ZOOM_MIN = 0.75;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.25;
 
 const state = {
   taskId: 0,

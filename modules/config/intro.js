@@ -1,1 +1,1 @@
-export const HOLONET_ALTERNATIVE_INTRO_ENABLED = true;
+export const HOLONET_ALTERNATIVE_INTRO_ENABLED = false;

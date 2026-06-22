@@ -53,7 +53,7 @@ export function HolonetFrame({
               </button>
               <div className="loader-gate-meta" aria-hidden="true">
                 <span>MADE BY: VYBERON</span>
-                <span>WITH HELP FROM: GAWK, THE OLD GUARD</span>
+                <span>WITH HELP FROM: THE OLD GUARD</span>
               </div>
             </div>
           </section>

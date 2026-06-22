@@ -82,6 +82,14 @@ function titleForSection(section) {
   }[section] || "Division";
 }
 
+function descriptionForSection(division, section) {
+  return {
+    transmissions: `Official announcements and operational transmissions published for ${division.name}.`,
+    reports: `Published weekly activity reports and performance records for ${division.name}.`,
+    trackers: `Current ${division.name} members in rank order with their live tracked hours and minutes.`
+  }[section] || "";
+}
+
 function emptyForSection(section) {
   return {
     transmissions: "No transmissions connected",
@@ -429,14 +437,16 @@ function renderSection(mount, division, section, entries, canWrite) {
             <span class="hub-value">${escapeHtml(division.shortName || division.name)}</span>
           </div>
         </div>
-        <p class="hub-summary">${escapeHtml(division.description)}</p>
+        <p class="hub-summary">${escapeHtml(descriptionForSection(division, section))}</p>
       </div>
 
       <section class="hub-panel">
-        <div class="hub-panel-head">
-          <h3 class="hub-panel-title">${escapeHtml(titleForSection(section))}</h3>
-          ${canWrite ? `<button type="button" class="hub-write-btn" data-resource-new>WRITE NEW</button>` : ""}
-        </div>
+        ${section === "trackers" ? "" : `
+          <div class="hub-panel-head">
+            <h3 class="hub-panel-title">${escapeHtml(titleForSection(section))}</h3>
+            ${canWrite ? `<button type="button" class="hub-write-btn" data-resource-new>WRITE NEW</button>` : ""}
+          </div>
+        `}
         ${section === "reports"
           ? renderWeeklyReports(entries)
           : section === "trackers"

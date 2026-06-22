@@ -1642,6 +1642,27 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
   width: var(--loader-progress, 0%);
 }
 
+@media (min-width: 1600px) {
+  .loader-standard {
+    gap: clamp(30px, 2vw, 42px);
+  }
+
+  .loader-ring {
+    height: clamp(116px, 6.5vw, 148px);
+    width: clamp(116px, 6.5vw, 148px);
+  }
+
+  .loader-text {
+    font-size: clamp(0.72rem, 0.055vw + 0.62rem, 0.86rem);
+    letter-spacing: 0.62em;
+  }
+
+  .loader-bar-wrap {
+    height: 2px;
+    width: clamp(310px, 20vw, 420px);
+  }
+}
+
 /* Developer notice */
 .developer-notice-overlay {
   align-items: center;
@@ -2114,7 +2135,7 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
   border: 1px solid var(--border-hot);
   clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
   display: grid;
-  height: 430px;
+  height: clamp(360px, 30vw, 520px);
   min-height: 300px;
   justify-items: center;
   justify-content: center;
@@ -2144,12 +2165,14 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
 
 .hierarchy-detail-hero img {
   display: block;
-  grid-area: 1 / 1;
   height: 100%;
+  inset: 0;
   max-width: none;
+  min-height: 100%;
+  min-width: 100%;
   object-fit: cover;
   object-position: top center;
-  position: relative;
+  position: absolute;
   width: 100%;
   z-index: 1;
 }

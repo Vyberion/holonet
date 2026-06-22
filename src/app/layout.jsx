@@ -14,7 +14,6 @@ import "../../css/legal.css";
 import "../../css/editor.css";
 import "../../css/crt.css";
 import "../../css/loader-overlays.css";
-import "../../css/clip-borders.css";
 
 const PDFJS_MODULE_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
 const PDFJS_WORKER_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";

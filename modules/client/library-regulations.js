@@ -223,28 +223,33 @@ function installContentsDockStyles() {
   style.textContent = `
     .codex-contents-list {
       padding-block: 8px;
+      padding-inline: 8px;
       overflow-x: hidden;
     }
 
     .contents-article {
+      max-width: 100%;
       position: relative;
-      transform: translateX(0) scale(1);
+      transform: translateX(0);
       transform-origin: left center;
       transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-      will-change: transform;
     }
 
     .contents-link {
       display: block;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      white-space: normal;
       transition:
         color 0.2s ease,
+        font-size 0.24s cubic-bezier(0.16, 1, 0.3, 1),
         letter-spacing 0.24s cubic-bezier(0.16, 1, 0.3, 1),
         text-shadow 0.2s ease;
     }
 
     .contents-article.is-dock-active {
       z-index: 4;
-      transform: translateX(8px) scale(1.14);
+      transform: translateX(6px);
     }
 
     .contents-article.is-current-article .contents-link {
@@ -256,6 +261,7 @@ function installContentsDockStyles() {
 
     .contents-article.is-dock-active .contents-link {
       color: var(--red-bright);
+      font-size: calc(var(--contents-link-size, 0.8rem) + 0.1rem);
       letter-spacing: 0.035em;
       text-shadow:
         0 0 5px rgba(255, 0, 34, 0.45),
@@ -264,7 +270,11 @@ function installContentsDockStyles() {
 
     @media (max-width: 768px) {
       .contents-article.is-dock-active {
-        transform: translateX(6px) scale(1.09);
+        transform: translateX(4px);
+      }
+
+      .contents-article.is-dock-active .contents-link {
+        font-size: calc(var(--contents-link-size, 0.8rem) + 0.06rem);
       }
     }
 

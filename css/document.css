@@ -1,7 +1,7 @@
 .pdf-box {
   width: 100%;
-  /* Edit this responsive height to change the handbook viewer's baseline size. */
-  height: clamp(640px, 78vh, 920px);
+  /* Fallback only; the viewer computes enough height for 1 1/6 pages. */
+  height: 1240px;
   border: 1px solid var(--division-accent-dim, var(--border-hot));
   overflow-x: auto;
   overflow-y: auto;
@@ -120,10 +120,8 @@
   width: 100%;
 }
 
-.handbook-viewer-shell {
-  display: grid;
-  gap: 18px;
-  margin-inline: auto;
+.handbook-viewer-panel {
+  margin-bottom: 0;
 }
 
 @media (min-width: 1600px) {

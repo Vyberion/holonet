@@ -23,6 +23,7 @@ async function getPdfjsLib() {
 const ZOOM_MIN = 0.75;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.25;
+const DEFAULT_PAGE_WIDTH = 816;
 
 const state = {
   taskId: 0,
@@ -387,24 +388,14 @@ function disconnectPageObserver() {
   state.pageObserver = null;
 }
 
-function readCssViewerHeight() {
-  if (!dom.scrollBox) return 700;
-  dom.scrollBox.style.removeProperty("height");
-  return Math.max(dom.scrollBox.clientHeight || 700, 360);
-}
-
 function setBaselineFromPage(baseViewport) {
-  const cssViewerHeight = readCssViewerHeight();
   const pageGap = 18;
-  const topPadding = 16;
-  const widthScale = getAvailablePageWidth() / baseViewport.width;
-  const targetPageHeight = Math.max((cssViewerHeight - topPadding - pageGap) * 6 / 7, 240);
-  const heightScale = targetPageHeight / baseViewport.height;
-
-  state.baselineScale = Math.min(widthScale, heightScale);
+  const verticalPadding = 32;
+  const targetPageWidth = Math.min(DEFAULT_PAGE_WIDTH, getAvailablePageWidth());
+  state.baselineScale = targetPageWidth / baseViewport.width;
 
   const pageHeight = baseViewport.height * state.baselineScale;
-  const viewerHeight = topPadding + pageHeight + pageGap + (pageHeight / 6);
+  const viewerHeight = verticalPadding + pageHeight + pageGap + (pageHeight / 6);
   dom.scrollBox.style.height = `${Math.round(viewerHeight)}px`;
 }
 

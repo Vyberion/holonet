@@ -111,15 +111,25 @@ function hasAnyDarkCouncilAuthority(profile) {
   return hasCoreAccess(profile) || Object.values(profile.authorityRoles || {}).some(Boolean);
 }
 
-function hasPowerbaseAuthority(profile) {
-  const roles = profile.authorityRoles || {};
+export function hasHighCommandAccess(profile) {
+  const roles = profile?.authorityRoles || {};
 
   return Boolean(
-    hasCoreAccess(profile) ||
+    profile?.isSuperUser ||
     roles.groupOwner ||
     roles.projectManager ||
     roles.emperor ||
     roles.emperorPowerbase
+  );
+}
+
+export function hasProjectManagerPlus(profile) {
+  const roles = profile?.authorityRoles || {};
+
+  return Boolean(
+    profile?.isSuperUser ||
+    roles.groupOwner ||
+    roles.projectManager
   );
 }
 
@@ -258,11 +268,10 @@ export function canAccessRegistry(profile) {
 
 export function canEditLibrary(profile, libraryKey) {
   const override = libraryOverride(profile, libraryKey);
-  if (override.hasOverride) return override;
-  if (hasCoreAccess(profile)) return { authorized: true, reason: coreAccessReason(profile) };
+  if (override.hasOverride && !override.authorized) return override;
 
-  return hasAdminAuthority(profile)
-    ? { authorized: true, reason: "CANON_AUTHORITY" }
+  return hasProjectManagerPlus(profile)
+    ? { authorized: true, reason: profile?.isSuperUser ? "SUPER_USER" : "PROJECT_MANAGER_AUTHORITY" }
     : { authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" };
 }
 
@@ -296,7 +305,7 @@ export function canViewDivisionReports(profile, division) {
       return { authorized: true, reason: "INQUISITORIUS_OVERSEER" };
     }
 
-    return hasPowerbaseAuthority(profile)
+    return hasHighCommandAccess(profile)
       ? { authorized: true, reason: "HC_AUTHORITY" }
       : { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
   }
@@ -306,13 +315,32 @@ export function canViewDivisionReports(profile, division) {
     : { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
 }
 
-export function checkResourceWriteAccess(profile, { division }) {
+export function canWriteDivisionReport(profile, division) {
+  if (profile?.isSuperUser) {
+    return { authorized: true, reason: "SUPER_USER" };
+  }
+
+  const actualTier = profile?.divisions?.[division] || "none";
+  if (tierAtLeast(actualTier, "co")) {
+    return { authorized: true, reason: "DIVISION_CO_AUTHORITY" };
+  }
+
+  return hasHighCommandAccess(profile)
+    ? { authorized: true, reason: "HIGH_COMMAND_AUTHORITY" }
+    : { authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" };
+}
+
+export function checkResourceWriteAccess(profile, { division, resourceType }) {
+  if (resourceType === "report") {
+    return canWriteDivisionReport(profile, division);
+  }
+
   if (hasCoreAccess(profile)) {
     return { authorized: true, reason: coreAccessReason(profile) };
   }
 
   if (division === "darkCouncil") {
-    return hasPowerbaseAuthority(profile)
+    return hasHighCommandAccess(profile)
       ? { authorized: true, reason: "POWERBASE_AUTHORITY" }
       : { authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" };
   }

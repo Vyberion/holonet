@@ -230,9 +230,7 @@ function installContentsDockStyles() {
       position: relative;
       transform: translateX(0) scale(1);
       transform-origin: left center;
-      transition:
-        transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
-        opacity 0.24s ease;
+      transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
       will-change: transform;
     }
 
@@ -246,21 +244,16 @@ function installContentsDockStyles() {
 
     .contents-article.is-dock-active {
       z-index: 4;
-      transform: translateX(8px) scale(1.16);
+      transform: translateX(8px) scale(1.14);
     }
 
-    .contents-article.is-dock-near-1 {
-      z-index: 3;
-      transform: translateX(5px) scale(1.09);
+    .contents-article.is-current-article .contents-link {
+      color: var(--red-bright);
+      text-shadow:
+        0 0 5px rgba(255, 0, 34, 0.35),
+        0 0 14px var(--red-glow);
     }
 
-    .contents-article.is-dock-near-2 {
-      z-index: 2;
-      opacity: 0.94;
-      transform: translateX(2px) scale(1.04);
-    }
-
-    .contents-article.is-current-article .contents-link,
     .contents-article.is-dock-active .contents-link {
       color: var(--red-bright);
       letter-spacing: 0.035em;
@@ -269,29 +262,9 @@ function installContentsDockStyles() {
         0 0 18px var(--red-glow);
     }
 
-    .contents-article.is-current-article::before {
-      background: linear-gradient(180deg, var(--red-bright), var(--red-dim));
-      box-shadow: 0 0 10px var(--red-glow);
-      content: '';
-      height: 70%;
-      left: -9px;
-      opacity: 0.85;
-      position: absolute;
-      top: 15%;
-      width: 2px;
-    }
-
     @media (max-width: 768px) {
       .contents-article.is-dock-active {
-        transform: translateX(6px) scale(1.1);
-      }
-
-      .contents-article.is-dock-near-1 {
-        transform: translateX(3px) scale(1.05);
-      }
-
-      .contents-article.is-dock-near-2 {
-        transform: translateX(1px) scale(1.025);
+        transform: translateX(6px) scale(1.09);
       }
     }
 
@@ -349,18 +322,12 @@ function applyContentsDock(shell) {
 
   const hoverIndex = Number(shell.dataset.contentsDockHoverIndex ?? -1);
   const currentIndex = Number(shell.dataset.contentsDockCurrentIndex ?? resolveCurrentArticleIndex(shell));
-  const focusIndex = hoverIndex >= 0 ? hoverIndex : currentIndex;
 
   items.forEach((item, index) => {
-    item.classList.remove("is-current-article", "is-dock-active", "is-dock-near-1", "is-dock-near-2");
+    item.classList.remove("is-current-article", "is-dock-active");
 
     if (index === currentIndex) item.classList.add("is-current-article");
-    if (focusIndex < 0) return;
-
-    const distance = Math.abs(index - focusIndex);
-    if (distance === 0) item.classList.add("is-dock-active");
-    if (distance === 1) item.classList.add("is-dock-near-1");
-    if (distance === 2) item.classList.add("is-dock-near-2");
+    if (index === hoverIndex) item.classList.add("is-dock-active");
   });
 }
 

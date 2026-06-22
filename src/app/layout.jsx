@@ -106,6 +106,14 @@ const MOBILE_TRACKER_TABLE_CSS = `
 }
 `;
 
+const MOBILE_STATUS_BAR_CSS = `
+@media (max-width: 700px) {
+  .status-bar {
+    display: none !important;
+  }
+}
+`;
+
 const LIBRARY_EDITOR_ADMIN_THEME_CSS = `
 #library-editor-overlay {
   --editor-accent: rgba(255, 108, 124, 0.68) !important;
@@ -225,7 +233,7 @@ export default function RootLayout({ children }) {
         {criticalPreloadImages.map(src => (
           <link href={src} key={src} rel="preload" as="image" />
         ))}
-        <style dangerouslySetInnerHTML={{ __html: `${MOBILE_NAV_FULL_BLEED_CSS}\n${MOBILE_TRACKER_TABLE_CSS}\n${LIBRARY_EDITOR_ADMIN_THEME_CSS}` }} />
+        <style dangerouslySetInnerHTML={{ __html: `${MOBILE_NAV_FULL_BLEED_CSS}\n${MOBILE_TRACKER_TABLE_CSS}\n${MOBILE_STATUS_BAR_CSS}\n${LIBRARY_EDITOR_ADMIN_THEME_CSS}` }} />
       </head>
       <body>
         {children}

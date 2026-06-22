@@ -44,6 +44,22 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 16px; scroll-behavior: smooth; }
 
+/* Temporarily hide scrollbars site-wide without disabling scrolling. */
+html,
+body,
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
 /* Base */
 body {
   background: var(--theme-bg);

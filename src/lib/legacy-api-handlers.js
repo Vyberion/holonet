@@ -6,9 +6,11 @@ import {
   canAccessRegistry,
   canEditLibrary,
   canViewDivisionReports,
+  canWriteDivisionReport,
   checkPageAccess,
   checkResourceWriteAccess,
-  hasCoreAccess
+  hasCoreAccess,
+  hasHighCommandAccess
 } from "../../modules/auth/permissions.js";
 import {
   clearCookie,
@@ -157,17 +159,6 @@ function councilPermissions(profile) {
   };
 }
 
-function hasPowerbasePlus(profile) {
-  const roles = profile?.authorityRoles || {};
-  return Boolean(
-    hasCoreAccess(profile) ||
-    roles.groupOwner ||
-    roles.projectManager ||
-    roles.emperor ||
-    roles.emperorPowerbase
-  );
-}
-
 function canViewInquisitorOverview(profile) {
   const roles = profile?.authorityRoles || {};
 
@@ -186,11 +177,7 @@ function hasDarkCouncilPlus(profile) {
 }
 
 function canWriteDivisionWeeklyReport(profile, division) {
-  return Boolean(
-    hasCoreAccess(profile) ||
-    tierAtLeast(profile?.divisions?.[division] || "none", "co") ||
-    hasPowerbasePlus(profile)
-  );
+  return canWriteDivisionReport(profile, division).authorized;
 }
 
 function canWriteBoardBroadcast(profile) {
@@ -1315,7 +1302,7 @@ async function replaceInspectionSections(inspectionId, sections = []) {
 }
 
 async function writeInspection(auth, body) {
-  if (!hasPowerbasePlus(auth.profile)) {
+  if (!hasHighCommandAccess(auth.profile)) {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
   }
 
@@ -2689,7 +2676,7 @@ export const LEGACY_API_HANDLERS = {
       return res.status(200).json({
         ok: true,
         authorized: true,
-        canInspect: hasPowerbasePlus(auth.profile),
+        canInspect: hasHighCommandAccess(auth.profile),
         divisions: await loadNexusOverview(auth.profile)
       });
     } catch (error) {
@@ -2752,7 +2739,7 @@ export const LEGACY_API_HANDLERS = {
         return res.status(200).json({
           ok: true,
           authorized: true,
-          canWrite: hasPowerbasePlus(auth.profile),
+          canWrite: hasHighCommandAccess(auth.profile),
           inspections: await loadInspections(division)
         });
       }

@@ -783,15 +783,6 @@
   line-height: 1.6;
 }
 
-.board-image {
-  border: 1px solid var(--theme-border, var(--border));
-  display: block;
-  margin-top: 16px;
-  max-height: 280px;
-  object-fit: cover;
-  width: 100%;
-}
-
 .overview-report-grid,
 .overview-inspection-grid,
 .nexus-table,
@@ -1039,6 +1030,65 @@
   padding-right: 4px;
 }
 
+.tracking-table-wrap {
+  border: 1px solid var(--theme-accent-dim, var(--border-hot));
+  overflow-x: auto;
+  width: 100%;
+}
+
+.tracking-table {
+  border-collapse: collapse;
+  min-width: 680px;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.tracking-table th,
+.tracking-table td {
+  border-bottom: 1px solid color-mix(in srgb, var(--theme-accent-dim, var(--border-hot)) 58%, transparent);
+  padding: 14px 18px;
+  text-align: left;
+}
+
+.tracking-table th {
+  background: color-mix(in srgb, var(--theme-accent, var(--red-bright)) 8%, var(--theme-panel, var(--panel)));
+  color: var(--theme-accent, var(--red-bright));
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.tracking-table td {
+  background: color-mix(in srgb, var(--theme-surface, var(--surface)) 92%, transparent);
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.tracking-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tracking-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--theme-accent, var(--red-bright)) 6%, var(--theme-surface, var(--surface)));
+}
+
+.tracking-table strong,
+.tracking-table span {
+  display: block;
+}
+
+.tracking-table strong {
+  color: var(--text);
+  letter-spacing: 0.05em;
+}
+
+.tracking-table span {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  margin-top: 3px;
+}
+
 .inspection-editor-row,
 .weekly-report-member {
   align-items: center;
@@ -1084,7 +1134,7 @@
 
 .inspection-editor-row input,
 .weekly-report-member input {
-  background: rgba(5, 2, 4, 0.9);
+  background: color-mix(in srgb, var(--theme-bg, var(--void)) 92%, var(--theme-surface, var(--surface)));
   border: 1px solid var(--theme-accent-dim, var(--border-hot));
   color: var(--text);
   font-family: 'Share Tech Mono', monospace;

@@ -323,7 +323,7 @@
 
 .codex-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 880px;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 8.8fr);
   gap: 20px;
   align-items: start;
 }
@@ -645,5 +645,32 @@
   100% {
     background: linear-gradient(180deg, var(--red-bright) 0%, var(--border-hot) 100%);
     box-shadow: 0 0 8px var(--red-glow);
+  }
+}
+
+@media (min-width: 1600px) {
+  .codex-shell {
+    gap: 28px;
+  }
+
+  .codex-contents {
+    padding: 26px;
+  }
+
+  .codex-contents-panel {
+    gap: 14px;
+  }
+
+  .codex-contents-title {
+    font-size: 0.78rem;
+  }
+
+  .codex-contents-list {
+    gap: 11px;
+  }
+
+  .contents-link {
+    font-size: 0.96rem;
+    line-height: 1.4;
   }
 }

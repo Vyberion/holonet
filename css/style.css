@@ -1917,7 +1917,12 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
 .hierarchy-grid {
   display: grid;
   gap: 22px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--hierarchy-row-cards, 4), minmax(0, 1fr));
+}
+
+.hierarchy-grid-rows {
+  display: grid;
+  gap: 22px;
 }
 
 .hierarchy-card {

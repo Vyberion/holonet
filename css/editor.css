@@ -2,7 +2,7 @@
   align-items: flex-start;
   background:
     radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 9%, transparent), transparent 68%),
-    rgba(8, 3, 5, 0.76);
+    color-mix(in srgb, var(--theme-bg, var(--void)) 76%, transparent);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   display: none;
@@ -17,11 +17,11 @@
   --editor-accent-glow: var(--division-accent-glow, var(--theme-accent-glow, var(--red-glow)));
   --editor-panel: color-mix(in srgb, var(--theme-surface, var(--surface)) 82%, var(--editor-accent) 6%);
   --editor-void: color-mix(in srgb, var(--theme-bg, var(--void)) 88%, var(--editor-accent) 4%);
-  --editor-wash: var(--theme-wash, rgba(192, 0, 26, 0.045));
+  --editor-wash: var(--theme-wash, color-mix(in srgb, var(--editor-accent) 5%, transparent));
   --editor-border: color-mix(in srgb, var(--editor-accent-dim) 70%, var(--border) 30%);
   --editor-label: color-mix(in srgb, var(--editor-accent) 58%, #ffffff 42%);
-  --editor-field: linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 7%, transparent), rgba(255, 255, 255, 0.018)), rgba(23, 8, 12, 0.72);
-  --editor-field-focus: linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 10%, transparent), rgba(255, 255, 255, 0.028)), rgba(28, 10, 15, 0.78);
+  --editor-field: linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 7%, transparent), rgba(255, 255, 255, 0.018)), color-mix(in srgb, var(--theme-surface, var(--surface)) 84%, transparent);
+  --editor-field-focus: linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 10%, transparent), rgba(255, 255, 255, 0.028)), color-mix(in srgb, var(--theme-surface, var(--surface)) 92%, transparent);
 }
 
 #resource-editor-overlay.active {
@@ -102,7 +102,7 @@
 .resource-editor-open {
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--editor-accent, var(--division-accent, var(--theme-accent, var(--red-bright)))) 8%, transparent), transparent),
-    rgba(16, 6, 10, 0.62);
+    color-mix(in srgb, var(--theme-bg, var(--void)) 78%, transparent);
   border: 1px solid var(--editor-accent, var(--division-accent, var(--theme-accent, var(--red-bright))));
   box-shadow: 0 0 10px color-mix(in srgb, var(--editor-accent-glow, var(--division-accent-glow, var(--theme-accent-glow, var(--red-glow)))) 65%, transparent);
   clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
@@ -218,7 +218,7 @@
 }
 
 .resource-editor-field select option {
-  background: #1b090e;
+  background: var(--theme-bg, var(--void));
   color: var(--text);
 }
 
@@ -227,14 +227,14 @@
 .resource-editor-field select:active {
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--editor-accent, var(--theme-accent, var(--red-bright))) 8%, transparent), transparent),
-    rgba(23, 8, 12, 0.9);
+    color-mix(in srgb, var(--theme-bg, var(--void)) 92%, var(--theme-surface, var(--surface)));
   border-color: var(--editor-border, var(--theme-accent-dim, var(--border-hot)));
   color: var(--text);
 }
 
 .resource-editor-field select option:checked,
 .resource-editor-field select option:hover {
-  background: var(--theme-bg, var(--red-deep));
+  background: var(--theme-bg, var(--void));
   color: var(--editor-accent, var(--theme-accent, var(--red-bright)));
 }
 
@@ -359,7 +359,7 @@
   align-items: flex-start;
   background:
     radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 9%, transparent), transparent 68%),
-    rgba(8, 3, 5, 0.74);
+    color-mix(in srgb, var(--theme-bg, var(--void)) 74%, transparent);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   display: none;
@@ -374,11 +374,11 @@
   --editor-accent-glow: var(--theme-accent-glow, var(--red-glow));
   --editor-panel: color-mix(in srgb, var(--theme-surface, var(--surface)) 82%, var(--editor-accent) 6%);
   --editor-void: color-mix(in srgb, var(--theme-bg, var(--void)) 88%, var(--editor-accent) 4%);
-  --editor-wash: var(--theme-wash, rgba(192, 0, 26, 0.045));
+  --editor-wash: var(--theme-wash, color-mix(in srgb, var(--editor-accent) 5%, transparent));
   --editor-border: color-mix(in srgb, var(--editor-accent-dim) 70%, var(--border) 30%);
   --editor-label: color-mix(in srgb, var(--editor-accent) 58%, #ffffff 42%);
-  --editor-field: linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 7%, transparent), rgba(255, 255, 255, 0.018)), rgba(23, 8, 12, 0.72);
-  --editor-field-focus: linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 10%, transparent), rgba(255, 255, 255, 0.028)), rgba(28, 10, 15, 0.78);
+  --editor-field: linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 7%, transparent), rgba(255, 255, 255, 0.018)), color-mix(in srgb, var(--theme-surface, var(--surface)) 84%, transparent);
+  --editor-field-focus: linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 10%, transparent), rgba(255, 255, 255, 0.028)), color-mix(in srgb, var(--theme-surface, var(--surface)) 92%, transparent);
 }
 
 #library-editor-overlay.active,
@@ -443,7 +443,7 @@
 .library-entry-editor {
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 5%, transparent), rgba(255, 255, 255, 0.014)),
-    rgba(24, 8, 13, 0.68);
+    color-mix(in srgb, var(--theme-surface, var(--surface)) 82%, transparent);
   border: 1px solid var(--editor-border);
   clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
   box-shadow: inset 0 0 18px color-mix(in srgb, var(--editor-accent) 4%, transparent);
@@ -480,7 +480,7 @@
 }
 
 .library-inline-btn {
-  background: rgba(16, 6, 10, 0.45);
+  background: color-mix(in srgb, var(--theme-bg, var(--void)) 70%, transparent);
   border: 1px solid var(--editor-border, var(--theme-accent-dim));
   clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
   color: var(--editor-accent, var(--theme-accent));

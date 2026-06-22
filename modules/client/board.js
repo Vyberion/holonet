@@ -82,10 +82,6 @@ function ensureBoardOverlay(channels = []) {
           <label>Body</label>
           <textarea name="body" required></textarea>
         </div>
-        <div class="resource-editor-field">
-          <label>Image Path</label>
-          <input name="imagePath">
-        </div>
       </form>
       <div class="resource-editor-actions">
         <span class="resource-editor-status" data-board-status></span>
@@ -110,7 +106,6 @@ function renderTransmissionCard(item, featured = false) {
       </div>
       <h3 class="${featured ? "board-feature-title" : "board-feed-title"}">${escapeHtml(item.title || "Untitled Transmission")}</h3>
       <p>${escapeHtml(excerpt(item.body || item.description || "", featured ? 420 : 170))}</p>
-      ${item.imageUrl ? `<img class="board-image" src="${escapeHtml(item.imageUrl)}" alt="" loading="lazy">` : ""}
       <div class="board-card-footer">
         <span>${escapeHtml(item.author || "Holonet Relay")}</span>
         <span>${escapeHtml(item.visibility || "public")}</span>

@@ -33,7 +33,7 @@ import { tierAtLeast } from "../../modules/auth/profile.js";
 import { ARCHIVE_SEED } from "../../modules/data/archive-seed.js";
 import { LIBRARY_SEED } from "../../modules/data/library-seed.js";
 import { getHandbookSlot, getHandbookSlots } from "../../modules/data/handbook-slots.js";
-import { listDivisions } from "../../modules/data/divisions/index.js";
+import { getDivision, listDivisions } from "../../modules/data/divisions/index.js";
 import { extractGoogleFileId, extractGoogleTabId } from "./google-drive.js";
 
 function getQueryParam(req, name) {
@@ -748,9 +748,6 @@ async function normalizeRows(resources, detailRows, resourceType) {
         ...base,
         author: detail.author_name || "",
         body: detail.body || resource.description || "",
-        imageBucket: detail.image_bucket || "",
-        imagePath: detail.image_path || "",
-        imageUrl: publicImageUrl(detail.image_path || ""),
         publishedAt: detail.published_at || null
       };
     }
@@ -769,9 +766,6 @@ async function normalizeRows(resources, detailRows, resourceType) {
       author: detail.author_name || "",
       summary: detail.summary || resource.description || "",
       body: detail.body || resource.description || "",
-      imageBucket: detail.image_bucket || "",
-      imagePath: detail.image_path || "",
-      imageUrl: publicImageUrl(detail.image_path || ""),
       reportPeriodStart: detail.report_period_start || null,
       reportPeriodEnd: detail.report_period_end || null,
       submittedAt: detail.submitted_at || null
@@ -893,8 +887,19 @@ async function loadNexusOverview(profile) {
   return rows;
 }
 
+function canonicalDivisionId(value) {
+  const normalized = requireString(value).toLowerCase();
+  return listDivisions().find(division => division.id.toLowerCase() === normalized)?.id || "";
+}
+
+function rosterDefinitionForDivision(division) {
+  if (division === "highranks") return ROBLOX_GROUPS.HIGH_RANKS;
+  if (division === "darkCouncil") return ROBLOX_GROUPS.DARK_COUNCIL;
+  return ROBLOX_GROUPS.DIVISIONS[division];
+}
+
 async function fetchDivisionRoster(division) {
-  const definition = ROBLOX_GROUPS.DIVISIONS[division];
+  const definition = rosterDefinitionForDivision(division);
   if (!definition?.groupId) return [];
 
   const maxRank = Math.max(...Object.values(definition.ranks || {}).flat().map(Number).filter(Boolean));
@@ -991,7 +996,9 @@ function clockScopeForDivision(division) {
     reavers: "reavers",
     dhg: "dhg",
     inquisitors: "inquisitors",
-    dreadmasters: "dreadmasters"
+    dreadmasters: "dreadmasters",
+    highranks: "highranks",
+    darkCouncil: "darkCouncil"
   }[division] || "";
 }
 
@@ -1399,8 +1406,6 @@ async function writeResource({ division, resourceType, detailTable, body, author
         resource_id: resource.id,
         author_name: authorName,
         body: requireString(body.body),
-        image_bucket: body.imagePath ? "transmission-images" : null,
-        image_path: requireString(body.imagePath),
         published_at: body.status === "published" ? new Date().toISOString() : null
       };
     }
@@ -1419,8 +1424,6 @@ async function writeResource({ division, resourceType, detailTable, body, author
       author_name: authorName,
       summary: requireString(body.summary || body.body),
       body: requireString(body.body),
-      image_bucket: body.imagePath ? "report-images" : null,
-      image_path: requireString(body.imagePath),
       report_period_start: body.reportPeriodStart || null,
       report_period_end: body.reportPeriodEnd || null
     };
@@ -2724,6 +2727,43 @@ export const LEGACY_API_HANDLERS = {
       if (isMissingSchemaError(error)) {
         return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED" });
       }
+      return res.status(500).json({ ok: false, error: error.message });
+    }
+  },
+  "division-roster": async (req, res) => {
+    try {
+      if (req.method !== "GET") {
+        return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
+      }
+
+      const auth = await getAuthContext(req);
+      if (!auth.authenticated) {
+        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
+      }
+
+      const division = canonicalDivisionId(getQueryParam(req, "division"));
+      const divisionConfig = getDivision(division);
+      if (!divisionConfig || !rosterDefinitionForDivision(division)) {
+        return res.status(400).json({ ok: false, reason: "UNKNOWN_DIVISION" });
+      }
+
+      const access = checkPageAccess(auth.profile, divisionConfig.access?.trackers || `${division}_trackers`);
+      if (!access.authorized) {
+        return res.status(200).json({ ok: false, authorized: false, reason: access.reason || "ACCESS_DENIED" });
+      }
+
+      const members = (await buildWeeklyReportRoster(division))
+        .sort((left, right) => (
+          Number(right.rank || 0) - Number(left.rank || 0)
+          || String(left.username || left.displayName || "").localeCompare(String(right.username || right.displayName || ""))
+        ));
+
+      return res.status(200).json({
+        ok: true,
+        authorized: true,
+        members
+      });
+    } catch (error) {
       return res.status(500).json({ ok: false, error: error.message });
     }
   },

@@ -2,7 +2,6 @@ import { fetchDivisionResourcePayload } from "./resources.js";
 
 let pdfjsLibPromise = null;
 const pdfByteCache = new Map();
-const preloadedPdfSources = new Set();
 const MAX_CACHED_PDFS = 6;
 
 async function getPdfjsLib() {
@@ -30,11 +29,16 @@ const state = {
   pdf: null,
   activeTab: null,
   zoom: 1,
-  isFitHeight: true,
+  isFitHeight: false,
   isFitWidth: false,
-  pageText: [],
+  baselineScale: 1,
+  pageText: new Map(),
   matches: [],
   activeMatchIndex: 0,
+  renderedPages: new Set(),
+  pageRenderPromises: new Map(),
+  pageObserver: null,
+  searchTaskId: 0,
   renderTimer: null,
   renderPromise: Promise.resolve(),
   handbookPayload: null,
@@ -42,7 +46,6 @@ const state = {
 };
 
 const dom = {};
-let tabWarmupStarted = false;
 
 function rememberPdfBytes(source, buffer) {
   if (pdfByteCache.has(source)) {
@@ -84,48 +87,6 @@ async function fetchPdfBytes(source) {
   }
 }
 
-function idlePreload(callback, timeout = 1800) {
-  if (typeof window.requestIdleCallback === "function") {
-    window.requestIdleCallback(callback, { timeout });
-    return;
-  }
-
-  window.setTimeout(callback, Math.min(timeout, 800));
-}
-
-function preloadPdfSource(source, { priority = false } = {}) {
-  if (!source || preloadedPdfSources.has(source)) return;
-  preloadedPdfSources.add(source);
-
-  const run = () => {
-    fetchPdfBytes(source).catch(error => {
-      preloadedPdfSources.delete(source);
-      console.warn("PDF preload failed:", error);
-    });
-  };
-
-  if (priority) {
-    run();
-    return;
-  }
-
-  idlePreload(run);
-}
-
-function preloadHandbookTabs(activeTab) {
-  if (!dom.tabs?.length) return;
-
-  const activeSource = activeTab?.dataset.pdfSrc || "";
-  if (activeSource) preloadPdfSource(activeSource, { priority: true });
-
-  dom.tabs.forEach((tab, index) => {
-    const source = tab.dataset.pdfSrc || "";
-    if (!source || source === activeSource) return;
-
-    window.setTimeout(() => preloadPdfSource(source), 1200 + (index * 900));
-  });
-}
-
 async function openPdfDocument(pdfjsLib, source) {
   try {
     const cached = pdfByteCache.get(source);
@@ -144,23 +105,6 @@ async function openPdfDocument(pdfjsLib, source) {
     const buffer = await fetchPdfBytes(source);
     return pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
   }
-}
-
-function warmSiblingPdfs(activeSource) {
-  if (tabWarmupStarted || !dom.tabs?.length) return;
-  tabWarmupStarted = true;
-
-  const sources = [...new Set(dom.tabs
-    .map(tab => tab.dataset.pdfSrc)
-    .filter(source => source && source !== activeSource))];
-
-  sources.forEach((source, index) => {
-    window.setTimeout(() => preloadPdfSource(source), 2500 + (index * 1800));
-  });
-}
-
-function nextFrame() {
-  return new Promise(resolve => requestAnimationFrame(resolve));
 }
 
 function clamp(value, min, max) {
@@ -355,10 +299,12 @@ function updateZoomLabel() {
 function clearSearchState() {
   state.matches = [];
   state.activeMatchIndex = 0;
+  state.searchTaskId += 1;
   if (dom.searchInput) dom.searchInput.value = "";
   if (dom.searchResults) dom.searchResults.innerHTML = "";
   updateSearchCounter();
 }
+
 function getUniqueTextItems(items) {
   const seen = new Set();
   return items.filter(item => {
@@ -436,14 +382,81 @@ function createHighlightRect(match, span, highlightLayer, globalIndex) {
   return rect;
 }
 
+function disconnectPageObserver() {
+  state.pageObserver?.disconnect();
+  state.pageObserver = null;
+}
+
+function readCssViewerHeight() {
+  if (!dom.scrollBox) return 700;
+  dom.scrollBox.style.removeProperty("height");
+  return Math.max(dom.scrollBox.clientHeight || 700, 360);
+}
+
+function setBaselineFromPage(baseViewport) {
+  const cssViewerHeight = readCssViewerHeight();
+  const pageGap = 18;
+  const topPadding = 16;
+  const widthScale = getAvailablePageWidth() / baseViewport.width;
+  const targetPageHeight = Math.max((cssViewerHeight - topPadding - pageGap) * 6 / 7, 240);
+  const heightScale = targetPageHeight / baseViewport.height;
+
+  state.baselineScale = Math.min(widthScale, heightScale);
+
+  const pageHeight = baseViewport.height * state.baselineScale;
+  const viewerHeight = topPadding + pageHeight + pageGap + (pageHeight / 6);
+  dom.scrollBox.style.height = `${Math.round(viewerHeight)}px`;
+}
+
+function scaleForPage(baseViewport) {
+  if (state.isFitHeight) return getAvailablePageHeight() / baseViewport.height;
+  if (state.isFitWidth) return getAvailablePageWidth() / baseViewport.width;
+  return state.baselineScale * state.zoom;
+}
+
+function placeholderDimensions(baseViewport) {
+  const scale = scaleForPage(baseViewport);
+  return {
+    width: Math.floor(baseViewport.width * scale),
+    height: Math.floor(baseViewport.height * scale)
+  };
+}
+
+function createPagePlaceholder(pageNumber, dimensions) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "pdf-page pdf-page--pending";
+  wrapper.dataset.pageNumber = String(pageNumber);
+  wrapper.style.width = `${dimensions.width}px`;
+  wrapper.style.height = `${dimensions.height}px`;
+  return wrapper;
+}
+
+async function extractPageText(pageNumber, page = null) {
+  if (state.pageText.has(pageNumber)) return state.pageText.get(pageNumber);
+  if (!state.pdf) return null;
+
+  const sourcePage = page || await state.pdf.getPage(pageNumber);
+  const textContent = await sourcePage.getTextContent();
+  const uniqueItems = getUniqueTextItems(textContent.items);
+  const items = uniqueItems.map(item => item.str || "").filter(Boolean);
+  const pageText = {
+    pageNumber,
+    items,
+    text: items.join(" ").replace(/\s+/g, " ").trim()
+  };
+  state.pageText.set(pageNumber, pageText);
+  return pageText;
+}
+
 async function renderPage(pdf, pageNumber, taskId) {
+  const wrapper = dom.container?.querySelector(`.pdf-page[data-page-number="${pageNumber}"]`);
+  if (!wrapper) return;
+
   const page = await pdf.getPage(pageNumber);
   if (taskId !== state.taskId) return;
 
-  const wrapper = document.createElement("div");
-  wrapper.className = "pdf-page";
-  wrapper.dataset.pageNumber = String(pageNumber);
-
+  wrapper.classList.remove("pdf-page--pending");
+  wrapper.replaceChildren();
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d", { alpha: false });
   const textLayer = document.createElement("div");
@@ -454,13 +467,9 @@ async function renderPage(pdf, pageNumber, taskId) {
   wrapper.appendChild(canvas);
   wrapper.appendChild(highlightLayer);
   wrapper.appendChild(textLayer);
-  dom.container.appendChild(wrapper);
 
   const baseViewport = page.getViewport({ scale: 1 });
-  const fitHeightScale = getAvailablePageHeight() / baseViewport.height;
-  const fitWidthScale = getAvailablePageWidth() / baseViewport.width;
-  const baseScale = state.isFitHeight ? fitHeightScale : fitWidthScale;
-  const cssScale = baseScale * state.zoom;
+  const cssScale = scaleForPage(baseViewport);
   const outputScale = getPixelRatio();
   const viewport = page.getViewport({ scale: cssScale });
 
@@ -485,6 +494,12 @@ async function renderPage(pdf, pageNumber, taskId) {
 
   const textContent = await page.getTextContent();
   const uniqueItems = getUniqueTextItems(textContent.items);
+  const items = uniqueItems.map(item => item.str || "").filter(Boolean);
+  state.pageText.set(pageNumber, {
+    pageNumber,
+    items,
+    text: items.join(" ").replace(/\s+/g, " ").trim()
+  });
   const pageMatches = state.matches
     .map((match, index) => ({ ...match, globalIndex: index }))
     .filter(match => match.pageNumber === pageNumber);
@@ -506,19 +521,50 @@ async function renderPage(pdf, pageNumber, taskId) {
       });
   });
 
-  const items = uniqueItems
-    .map(item => item.str || "")
-    .filter(Boolean);
-
-  return {
-    pageNumber,
-    items,
-    text: items.join(" ").replace(/\s+/g, " ").trim()
-  };
+  state.renderedPages.add(pageNumber);
+  refreshActiveMatchElement();
 }
 
-function assignRenderedHighlightIndexes() {
-  refreshActiveMatchElement();
+function ensurePageRendered(pageNumber) {
+  if (!state.pdf || state.renderedPages.has(pageNumber)) return Promise.resolve();
+  if (state.pageRenderPromises.has(pageNumber)) return state.pageRenderPromises.get(pageNumber);
+
+  const taskId = state.taskId;
+  const promise = renderPage(state.pdf, pageNumber, taskId)
+    .catch(error => {
+      console.error(`PDF page ${pageNumber} failed:`, error);
+      const wrapper = dom.container?.querySelector(`.pdf-page[data-page-number="${pageNumber}"]`);
+      if (wrapper && taskId === state.taskId) {
+        wrapper.classList.add("pdf-page--pending");
+        wrapper.textContent = "PAGE UNAVAILABLE";
+      }
+    })
+    .finally(() => state.pageRenderPromises.delete(pageNumber));
+
+  state.pageRenderPromises.set(pageNumber, promise);
+  return promise;
+}
+
+function observePendingPages() {
+  disconnectPageObserver();
+  if (!dom.scrollBox || typeof IntersectionObserver !== "function") return;
+
+  state.pageObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const pageNumber = Number(entry.target.dataset.pageNumber);
+      state.pageObserver?.unobserve(entry.target);
+      ensurePageRendered(pageNumber);
+    });
+  }, {
+    root: dom.scrollBox,
+    rootMargin: "120% 0px",
+    threshold: 0.01
+  });
+
+  dom.container.querySelectorAll(".pdf-page--pending").forEach(page => {
+    if (Number(page.dataset.pageNumber) !== 1) state.pageObserver.observe(page);
+  });
 }
 
 function getPageContextIndex(page, itemText, itemIndex) {
@@ -568,23 +614,34 @@ function collapseResultsForOverlay(matches) {
 async function renderDocument({ preserveScroll = false } = {}) {
   if (!state.pdf || !dom.container) return;
 
-  const taskId = state.taskId + 1;
+  const pagesToRestore = [...state.renderedPages];
   const scrollRatio = preserveScroll ? getScrollRatio() : 0;
-  const renderedPageText = [];
+  const taskId = state.taskId + 1;
   state.taskId = taskId;
+  state.renderedPages = new Set();
+  state.pageRenderPromises = new Map();
+  disconnectPageObserver();
   dom.container.innerHTML = "";
-  updateZoomLabel();
+
+  const firstPage = await state.pdf.getPage(1);
+  if (taskId !== state.taskId) return;
+  const baseViewport = firstPage.getViewport({ scale: 1 });
+  setBaselineFromPage(baseViewport);
+  const dimensions = placeholderDimensions(baseViewport);
 
   for (let pageNumber = 1; pageNumber <= state.pdf.numPages; pageNumber += 1) {
-    const pageText = await renderPage(state.pdf, pageNumber, taskId);
-    if (pageText) renderedPageText.push(pageText);
-    await nextFrame();
+    dom.container.appendChild(createPagePlaceholder(pageNumber, dimensions));
   }
 
+  observePendingPages();
+  updateZoomLabel();
+
+  const immediatePages = [...new Set([1, ...pagesToRestore])]
+    .filter(pageNumber => pageNumber <= state.pdf.numPages);
+  await Promise.all(immediatePages.map(ensurePageRendered));
+
   if (taskId === state.taskId) {
-    state.pageText = renderedPageText;
     if (preserveScroll) restoreScrollRatio(scrollRatio);
-    assignRenderedHighlightIndexes();
     refreshActiveMatchElement();
   }
 
@@ -617,7 +674,11 @@ async function loadPdf(tab) {
   state.activeTab = tab;
   state.zoom = 1;
   state.isFitWidth = false;
-  state.isFitHeight = true;
+  state.isFitHeight = false;
+  state.pageText = new Map();
+  state.renderedPages = new Set();
+  state.pageRenderPromises = new Map();
+  disconnectPageObserver();
   clearSearchState();
 
   if (dom.scrollBox) dom.scrollBox.scrollTop = 0;
@@ -632,11 +693,10 @@ async function loadPdf(tab) {
     }
 
     dom.container.innerHTML = '<div class="pdf-loading">Document unavailable.</div>';
-    state.pageText = [];
+    state.pageText = new Map();
     return;
   }
 
-  preloadPdfSource(source, { priority: true });
   dom.container.innerHTML = '<div class="pdf-loading">Opening transmission...</div>';
 
   try {
@@ -654,11 +714,10 @@ async function loadPdf(tab) {
     }
 
     state.pdf = pdf;
-    state.pageText = [];
+    state.pageText = new Map();
 
     if (taskId !== state.taskId) return;
     await renderDocument();
-    warmSiblingPdfs(source);
   } catch (error) {
     console.error("PDF render failed:", error);
     if (taskId === state.taskId) {
@@ -730,7 +789,18 @@ function buildSnippet(text, index, length) {
   return escapeHtml(snippet).replace(re, "<mark>$1</mark>");
 }
 
-function runSearch(query) {
+async function ensureAllPageText(searchTaskId) {
+  if (!state.pdf) return;
+
+  for (let pageNumber = 1; pageNumber <= state.pdf.numPages; pageNumber += 1) {
+    if (searchTaskId !== state.searchTaskId) return;
+    await extractPageText(pageNumber);
+  }
+}
+
+async function runSearch(query) {
+  const searchTaskId = state.searchTaskId + 1;
+  state.searchTaskId = searchTaskId;
   state.matches = [];
   state.activeMatchIndex = 0;
   if (dom.searchResults) dom.searchResults.innerHTML = "";
@@ -741,9 +811,17 @@ function runSearch(query) {
     return;
   }
 
+  if (dom.searchResults) {
+    dom.searchResults.innerHTML = '<div class="search-no-results">// INDEXING HANDBOOK...</div>';
+  }
+  await ensureAllPageText(searchTaskId);
+  if (searchTaskId !== state.searchTaskId) return;
+
   const q = query.toLowerCase();
 
-  state.pageText.forEach(page => {
+  [...state.pageText.values()]
+    .sort((a, b) => a.pageNumber - b.pageNumber)
+    .forEach(page => {
     page.items.forEach((itemText, itemIndex) => {
       const lower = itemText.toLowerCase();
       let index = lower.indexOf(q);
@@ -856,8 +934,14 @@ async function jumpToActiveMatch() {
   if (!state.matches.length || !dom.scrollBox) return;
   await waitForRender();
 
+  const pageNumber = state.matches[state.activeMatchIndex].pageNumber;
+  await ensurePageRendered(pageNumber);
+  if (state.renderedPages.has(pageNumber)) {
+    await renderPage(state.pdf, pageNumber, state.taskId);
+  }
+
   const mark = document.querySelector(`.pdf-search-mark[data-match-index="${state.activeMatchIndex}"]`);
-  const page = document.querySelector(`.pdf-page[data-page-number="${state.matches[state.activeMatchIndex].pageNumber}"]`);
+  const page = document.querySelector(`.pdf-page[data-page-number="${pageNumber}"]`);
   const target = mark || page;
 
   if (!target) return;
@@ -956,6 +1040,13 @@ function setupEvents() {
     dom.scrollBox.scrollTop += event.deltaY;
   }, { passive: false });
 
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => {
+      if (state.pdf) renderNow({ preserveScroll: true });
+    }, 160);
+  });
 }
 
 function cacheDom() {
@@ -988,7 +1079,6 @@ async function initPdfTabs() {
       if (!dom.tabs.length || !dom.container) return;
 
       const activeTab = dom.tabs.find(tab => tab.classList.contains("is-active")) || dom.tabs[0];
-      preloadHandbookTabs(activeTab);
       buildSearchOverlay();
       setupEvents();
       await pdfRuntimeWarmup;

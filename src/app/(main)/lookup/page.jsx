@@ -42,6 +42,25 @@ export default function LookupPage() {
           margin: 0 auto;
         }
 
+        @media (min-width: 1600px) {
+          .personnel-shell {
+            max-width: var(--site-content-width);
+          }
+
+          .personnel-panel {
+            padding: 36px;
+          }
+
+          .personnel-grid {
+            gap: 24px;
+          }
+
+          .personnel-row {
+            font-size: 1rem;
+            grid-template-columns: 220px 1fr;
+          }
+        }
+
         .personnel-shell .resource-editor-submit {
           background:
             linear-gradient(135deg, rgba(255, 66, 82, 0.045), transparent),

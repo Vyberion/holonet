@@ -17,6 +17,10 @@ function formatTime(seconds) {
   return `${mins}:${secs}`;
 }
 
+function muxThumbnailUrl(playbackId) {
+  return `https://image.mux.com/${playbackId}/thumbnail.png?width=214&height=121&time=0`;
+}
+
 export function OldGuardPlayer({ mode = "page" }) {
   const playerRef = useRef(null);
   const [playerReady, setPlayerReady] = useState(false);
@@ -25,6 +29,7 @@ export function OldGuardPlayer({ mode = "page" }) {
   const [currentTime, setCurrentTime] = useState(0);
   const isIntro = mode === "intro";
   const playbackId = isIntro ? OLD_GUARD_INTRO_PLAYBACK_ID : OLD_GUARD_PLAYBACK_ID;
+  const thumbnailUrl = muxThumbnailUrl(playbackId);
 
   useEffect(() => {
     const player = playerRef.current;
@@ -149,6 +154,7 @@ export function OldGuardPlayer({ mode = "page" }) {
           ref={playerRef}
           class="old-guard-mux old-guard-mux--intro"
           playback-id={playbackId}
+          poster={thumbnailUrl}
           metadata-video-title={OLD_GUARD_TITLE}
           video-title={OLD_GUARD_TITLE}
           accent-color="#4d0000"
@@ -176,6 +182,7 @@ export function OldGuardPlayer({ mode = "page" }) {
           ref={playerRef}
           class="old-guard-mux old-guard-mux--page"
           playback-id={playbackId}
+          poster={thumbnailUrl}
           metadata-video-title={OLD_GUARD_TITLE}
           video-title={OLD_GUARD_TITLE}
           accent-color="#4d0000"

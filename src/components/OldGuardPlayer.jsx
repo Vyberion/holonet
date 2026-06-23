@@ -3,7 +3,8 @@
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 
-export const OLD_GUARD_PLAYBACK_ID = "5B00WSZwcoH023XoGAE94RSxu5Pu3GFn9TCqIuNM1x73E";
+export const OLD_GUARD_PLAYBACK_ID = "zB4z6QMgwgilabiIn00fmdcf62mmk00n4N01XnhNfaqTL00";
+export const OLD_GUARD_INTRO_PLAYBACK_ID = "5B00WSZwcoH023XoGAE94RSxu5Pu3GFn9TCqIuNM1x73E";
 export const OLD_GUARD_TITLE = "THE OLD GUARD";
 const MUX_PLAYER_SCRIPT = "https://cdn.jsdelivr.net/npm/@mux/mux-player";
 
@@ -23,6 +24,7 @@ export function OldGuardPlayer({ mode = "page" }) {
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const isIntro = mode === "intro";
+  const playbackId = isIntro ? OLD_GUARD_INTRO_PLAYBACK_ID : OLD_GUARD_PLAYBACK_ID;
 
   useEffect(() => {
     const player = playerRef.current;
@@ -146,7 +148,7 @@ export function OldGuardPlayer({ mode = "page" }) {
         <mux-player
           ref={playerRef}
           class="old-guard-mux old-guard-mux--intro"
-          playback-id={OLD_GUARD_PLAYBACK_ID}
+          playback-id={playbackId}
           metadata-video-title={OLD_GUARD_TITLE}
           video-title={OLD_GUARD_TITLE}
           accent-color="#4d0000"
@@ -173,7 +175,7 @@ export function OldGuardPlayer({ mode = "page" }) {
         <mux-player
           ref={playerRef}
           class="old-guard-mux old-guard-mux--page"
-          playback-id={OLD_GUARD_PLAYBACK_ID}
+          playback-id={playbackId}
           metadata-video-title={OLD_GUARD_TITLE}
           video-title={OLD_GUARD_TITLE}
           accent-color="#4d0000"

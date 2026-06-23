@@ -114,6 +114,57 @@ const MOBILE_STATUS_BAR_CSS = `
 }
 `;
 
+const MID_SIZE_HOME_NAV_CSS = `
+@media (min-width: 1600px) and (max-width: 1899px) {
+  .home-main {
+    max-width: min(calc(100vw - 160px), 1240px) !important;
+  }
+
+  .home-main .nav-card {
+    height: clamp(340px, 32vh, 460px) !important;
+    min-height: 340px !important;
+    padding: 38px 30px !important;
+    padding-right: 16px !important;
+  }
+
+  .home-main .card-bg-glyph {
+    font-size: clamp(11rem, 10vw, 13.5rem) !important;
+  }
+
+  .home-main .card-category {
+    font-size: 0.58rem !important;
+  }
+
+  .home-main .card-title {
+    font-size: clamp(1.75rem, 1.75vw, 2.25rem) !important;
+  }
+
+  .home-main .card-desc {
+    font-size: 0.9rem !important;
+  }
+
+  .site-nav .nav-inner {
+    height: 68px !important;
+  }
+
+  .site-nav .nav-link {
+    padding: 12px 20px !important;
+  }
+
+  .site-nav .nav-link-prefix {
+    font-size: 0.42rem !important;
+  }
+
+  .site-nav .nav-link-label {
+    font-size: 0.86rem !important;
+  }
+
+  .nav-offset {
+    padding-top: 68px !important;
+  }
+}
+`;
+
 const LIBRARY_EDITOR_ADMIN_THEME_CSS = `
 #library-editor-overlay {
   --editor-accent: rgba(255, 108, 124, 0.68) !important;
@@ -233,7 +284,7 @@ export default function RootLayout({ children }) {
         {criticalPreloadImages.map(src => (
           <link href={src} key={src} rel="preload" as="image" />
         ))}
-        <style dangerouslySetInnerHTML={{ __html: `${MOBILE_NAV_FULL_BLEED_CSS}\n${MOBILE_TRACKER_TABLE_CSS}\n${MOBILE_STATUS_BAR_CSS}\n${LIBRARY_EDITOR_ADMIN_THEME_CSS}` }} />
+        <style dangerouslySetInnerHTML={{ __html: `${MOBILE_NAV_FULL_BLEED_CSS}\n${MOBILE_TRACKER_TABLE_CSS}\n${MOBILE_STATUS_BAR_CSS}\n${MID_SIZE_HOME_NAV_CSS}\n${LIBRARY_EDITOR_ADMIN_THEME_CSS}` }} />
       </head>
       <body>
         {children}

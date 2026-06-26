@@ -44,6 +44,12 @@ function requireString(value, fallback = "") {
   return String(value ?? fallback).trim();
 }
 
+function authAuthorName(auth) {
+  const user = auth?.user || {};
+  const fallback = auth?.profile?.isSuperUser ? "Preview Operator" : "";
+  return requireString(user.roblox_username || user.roblox_display_name || user.roblox_id, fallback);
+}
+
 function slugify(value) {
   return requireString(value)
     .toLowerCase()
@@ -1488,6 +1494,7 @@ async function writeResource({ division, resourceType, detailTable, body, author
   const now = new Date().toISOString();
   const slug = slugify(body.slug || title);
   const status = ["draft", "published", "archived"].includes(body.status) ? body.status : "published";
+  const visibility = ["public", "restricted", "private"].includes(body.visibility) ? body.visibility : "restricted";
   const resourceId = requireString(body.id);
   const parentDescription = requireString(body.body || body.summary || body.notes || title);
 
@@ -1498,7 +1505,7 @@ async function writeResource({ division, resourceType, detailTable, body, author
     title,
     description: parentDescription,
     access_key: requireString(body.accessKey || `${division}_${resourceType}s`),
-    visibility: ["public", "restricted", "private"].includes(body.visibility) ? body.visibility : "restricted",
+    visibility,
     status,
     display_order: Number.isFinite(Number(body.displayOrder)) ? Number(body.displayOrder) : 0,
     updated_at: now
@@ -1526,7 +1533,7 @@ async function writeResource({ division, resourceType, detailTable, body, author
         resource_id: resource.id,
         author_name: authorName,
         body: requireString(body.body),
-        published_at: body.status === "published" ? new Date().toISOString() : null
+        published_at: status === "published" ? new Date().toISOString() : null
       };
     }
 
@@ -1556,6 +1563,28 @@ async function writeResource({ division, resourceType, detailTable, body, author
   });
 
   return { ok: true, status: 200, payload: { ok: true, id: resource.id } };
+}
+
+async function deleteResource({ division, resourceType, detailTable, id }) {
+  const resourceId = requireString(id);
+  if (!resourceId) {
+    return { ok: false, status: 400, payload: { ok: false, reason: "RESOURCE_ID_REQUIRED" } };
+  }
+
+  const [resource] = await supabaseRest(
+    `registry_resources?id=eq.${encodeURIComponent(resourceId)}&division_key=eq.${encodeURIComponent(division)}&resource_type=eq.${encodeURIComponent(resourceType)}&select=id`
+  );
+  if (!resource?.id) {
+    return { ok: false, status: 404, payload: { ok: false, reason: "RESOURCE_NOT_FOUND" } };
+  }
+
+  await supabaseRest(`${detailTable}?resource_id=eq.${encodeURIComponent(resourceId)}`, {
+    method: "DELETE"
+  });
+
+  await supabaseRest(`registry_resources?id=eq.${encodeURIComponent(resourceId)}`, { method: "DELETE" });
+
+  return { ok: true, status: 200, payload: { ok: true } };
 }
 
 async function resolveUserByUsername(username) {
@@ -2681,8 +2710,30 @@ export const LEGACY_API_HANDLERS = {
           division,
           resourceType,
           detailTable,
-          body: req.body || {},
-          authorName: auth.user.roblox_username || auth.user.roblox_display_name || String(auth.user.roblox_id)
+          body: resourceType === "transmission"
+            ? { ...(typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {})), status: "published", visibility: "restricted" }
+            : req.body || {},
+          authorName: authAuthorName(auth)
+        });
+
+        return res.status(result.status).json(result.payload);
+      }
+
+      if (req.method === "DELETE") {
+        if (resourceType === "handbook") {
+          return res.status(405).json({ ok: false, reason: "HANDBOOK_UPLOADS_DISABLED" });
+        }
+
+        const writeAccess = checkResourceWriteAccess(auth.profile, { division, resourceType });
+        if (!writeAccess.authorized) {
+          return res.status(200).json({ ok: false, authorized: false, reason: writeAccess.reason });
+        }
+
+        const result = await deleteResource({
+          division,
+          resourceType,
+          detailTable,
+          id: getQueryParam(req, "id")
         });
 
         return res.status(result.status).json(result.payload);
@@ -2764,7 +2815,7 @@ export const LEGACY_API_HANDLERS = {
             status: "published",
             visibility: "public"
           },
-          authorName: auth.user.roblox_username || auth.user.roblox_display_name || String(auth.user.roblox_id)
+          authorName: authAuthorName(auth)
         });
 
         return res.status(result.status).json({ ...result.payload, transmissions: await loadBoardTransmissions() });

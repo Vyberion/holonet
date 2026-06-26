@@ -240,7 +240,7 @@ export default async function DivisionSectionPage({ params }) {
         data-division-section={section}
         data-division={division.id}
         data-division-title={division.name}
-        data-section-title={sectionTitle(section)}
+        data-section-title={`${divisionTitleName(division)} ${sectionTitle(section)}`}
         data-division-node={division.node}
       >
         <p className="hub-empty">Loading section...</p>

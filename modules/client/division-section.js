@@ -1,5 +1,5 @@
 import { getDivision } from "../data/divisions/index.js";
-import { fetchDivisionResourcePayload, saveDivisionResource } from "./resources.js";
+import { deleteDivisionResource, fetchDivisionResourcePayload, saveDivisionResource } from "./resources.js";
 
 let activeEntries = [];
 let activeContext = null;
@@ -74,19 +74,33 @@ async function fetchDivisionRosterPayload(division) {
   return payload;
 }
 
-function titleForSection(section) {
+function divisionSectionName(division = {}) {
   return {
+    reavers: "Reaver",
+    dhg: "Dark Honor Guard",
+    inquisitors: "Inquisitor",
+    dreadmasters: "Dread Master",
+    highranks: "High Rank",
+    darkCouncil: "Dark Council"
+  }[division.id] || division.shortName || division.name || "Division";
+}
+
+function titleForSection(section, division = null) {
+  const baseTitle = {
     transmissions: "Transmissions",
     reports: "Reports",
     trackers: "Tracking"
   }[section] || "Division";
+
+  return division ? `${divisionSectionName(division)} ${baseTitle}` : baseTitle;
 }
 
 function descriptionForSection(division, section) {
+  const divisionName = divisionSectionName(division);
   return {
-    transmissions: `Official announcements and operational transmissions published for ${division.name}.`,
-    reports: `Published weekly activity reports and performance records for ${division.name}.`,
-    trackers: `Current ${division.name} members in rank order with their live tracked hours and minutes.`
+    transmissions: `Official announcements and operational transmissions published for ${divisionName}.`,
+    reports: `Published weekly activity reports and performance records for ${divisionName}.`,
+    trackers: `Current ${divisionName} members in rank order with their live tracked hours and minutes.`
   }[section] || "";
 }
 
@@ -188,6 +202,20 @@ function formFieldsFor(section, entry = {}) {
       <input id="resource-title" name="title" value="${escapeHtml(entry.title || "")}" required>
     </div>
   `;
+
+  if (section === "transmissions") {
+    return `${common}
+      <div class="resource-editor-field">
+        <label for="resource-body">Body</label>
+        <textarea id="resource-body" name="body" required>${escapeHtml(entry.body || "")}</textarea>
+      </div>
+      ${entry.id ? `
+        <div class="library-editor-buttons">
+          <button type="button" class="library-inline-btn danger" data-resource-delete>DELETE TRANSMISSION</button>
+        </div>
+      ` : ""}
+    `;
+  }
 
   return `${common}
     <div class="resource-editor-field">
@@ -353,19 +381,37 @@ function openEditor(entry = {}) {
   const status = overlay.querySelector("[data-resource-status]");
   const title = overlay.querySelector("#resource-editor-title");
 
-  title.textContent = `${entry.id ? "EDIT" : "WRITE"} ${titleForSection(activeContext.section)}`;
+  title.textContent = `${entry.id ? "EDIT" : "WRITE"} ${titleForSection(activeContext.section, activeContext.division)}`;
   status.textContent = "";
   form.innerHTML = `
     ${formFieldsFor(activeContext.section, entry)}
-    <div class="resource-editor-field">
-      <label for="resource-status">Status</label>
-      <select id="resource-status" name="status">
-        <option value="published" ${entry.status === "published" ? "selected" : ""}>Published</option>
-        <option value="draft" ${entry.status === "draft" ? "selected" : ""}>Draft</option>
-        <option value="archived" ${entry.status === "archived" ? "selected" : ""}>Archived</option>
-      </select>
-    </div>
+    ${activeContext.section === "transmissions" ? "" : `
+      <div class="resource-editor-field">
+        <label for="resource-status">Status</label>
+        <select id="resource-status" name="status">
+          <option value="published" ${entry.status === "published" ? "selected" : ""}>Published</option>
+          <option value="draft" ${entry.status === "draft" ? "selected" : ""}>Draft</option>
+          <option value="archived" ${entry.status === "archived" ? "selected" : ""}>Archived</option>
+        </select>
+      </div>
+    `}
   `;
+
+  form.onclick = async event => {
+    const destroy = event.target.closest("[data-resource-delete]");
+    if (!destroy || !entry.id) return;
+    if (!window.confirm("Are you sure you want to delete this transmission?")) return;
+
+    try {
+      status.textContent = "Deleting...";
+      await deleteDivisionResource(activeContext.division.id, activeContext.section, entry.id);
+      status.textContent = "Deleted";
+      await activeContext.reload();
+      setTimeout(closeEditor, 150);
+    } catch (error) {
+      status.textContent = error.message.replace(/_/g, " ");
+    }
+  };
 
   form.onsubmit = async event => {
     event.preventDefault();
@@ -430,7 +476,7 @@ function renderSection(mount, division, section, entries, canWrite) {
         <div class="hub-identity">
           <div>
             <span class="hub-kicker">Registry Node / ${escapeHtml(division.node)}</span>
-            <h2 class="hub-title">${escapeHtml(titleForSection(section))}</h2>
+            <h2 class="hub-title">${escapeHtml(titleForSection(section, division))}</h2>
           </div>
           <div>
             <span class="hub-kicker">Division</span>
@@ -443,7 +489,7 @@ function renderSection(mount, division, section, entries, canWrite) {
       <section class="hub-panel">
         ${section === "trackers" ? "" : `
           <div class="hub-panel-head">
-            <h3 class="hub-panel-title">${escapeHtml(titleForSection(section))}</h3>
+            <h3 class="hub-panel-title">${escapeHtml(titleForSection(section, division))}</h3>
             ${canWrite ? `<button type="button" class="hub-write-btn" data-resource-new>WRITE NEW</button>` : ""}
           </div>
         `}
@@ -490,7 +536,7 @@ async function initDivisionSection() {
 
   document.body.classList.add(division.theme);
   document.querySelector("[data-division-title]")?.replaceChildren(document.createTextNode(division.name));
-  document.querySelector("[data-section-title]")?.replaceChildren(document.createTextNode(titleForSection(section)));
+  document.querySelector("[data-section-title]")?.replaceChildren(document.createTextNode(titleForSection(section, division)));
   document.querySelector("[data-division-node]")?.replaceChildren(document.createTextNode(division.node));
 
   renderSection(mount, division, section, [], false);

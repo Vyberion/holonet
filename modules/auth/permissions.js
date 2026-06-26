@@ -403,7 +403,8 @@ export function checkPageAccess(profile, page) {
     }
 
     const actualTier = profile.divisions[rule.division] || "none";
-    const authorized = tierAtLeast(actualTier, rule.minimumTier);
+    const hasTransmissionAuthority = pageKey.endsWith("_transmissions") && hasAnyDarkCouncilAuthority(profile);
+    const authorized = tierAtLeast(actualTier, rule.minimumTier) || hasTransmissionAuthority;
 
     return {
       authorized,

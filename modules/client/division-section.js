@@ -249,7 +249,7 @@ function weekStartValue() {
 }
 
 function reportMemberRows(members = []) {
-  return members.map((member, index) => {
+  return members.filter(Boolean).map((member, index) => {
     const memberTime = normalizeTime(member.hours, member.minutes);
     return `
       <div class="weekly-report-member" data-report-member="${index}">

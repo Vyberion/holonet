@@ -1226,7 +1226,7 @@ function reportTotals(members) {
 }
 
 function reportMemberRows(reportId, members = []) {
-  return members.map((member, index) => ({
+  return members.filter(Boolean).map((member, index) => ({
     report_id: reportId,
     roblox_id: requireString(member.robloxId),
     username: requireString(member.username),
@@ -1239,6 +1239,25 @@ function reportMemberRows(reportId, members = []) {
     events_attended: Math.max(0, Number(member.eventsAttended) || 0),
     display_order: index
   })).filter(row => row.roblox_id);
+}
+
+function normalizeIncomingReportMember(member) {
+  if (!member || typeof member !== "object") return null;
+
+  const robloxId = requireString(member.robloxId || member.roblox_id || member["roblox id"]);
+  if (!robloxId) return null;
+
+  return {
+    robloxId,
+    username: requireString(member.username),
+    displayName: requireString(member.displayName || member.display_name || member["display name"]),
+    rank: Number(member.rank) || 0,
+    role: requireString(member.role),
+    hours: Math.max(0, Number(member.hours) || 0),
+    minutes: Math.max(0, Number(member.minutes) || 0),
+    eventsHosted: Math.max(0, Number(member.eventsHosted || member.events_hosted || member["events hosted"]) || 0),
+    eventsAttended: Math.max(0, Number(member.eventsAttended || member.events_attended || member["events attended"]) || 0)
+  };
 }
 
 async function replaceWeeklyReportMembers(reportId, members = []) {
@@ -1267,17 +1286,9 @@ async function writeWeeklyReport(auth, body) {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
   }
 
-  const members = Array.isArray(body.members) ? body.members.map(member => ({
-    robloxId: requireString(member.robloxId),
-    username: requireString(member.username),
-    displayName: requireString(member.displayName),
-    rank: Number(member.rank) || 0,
-    role: requireString(member.role),
-    hours: Math.max(0, Number(member.hours) || 0),
-    minutes: Math.max(0, Number(member.minutes) || 0),
-    eventsHosted: Math.max(0, Number(member.eventsHosted) || 0),
-    eventsAttended: Math.max(0, Number(member.eventsAttended) || 0)
-  })).filter(member => member.robloxId) : [];
+  const members = Array.isArray(body.members)
+    ? body.members.map(normalizeIncomingReportMember).filter(Boolean)
+    : [];
 
   const weekStart = requireString(body.weekStart || body.week_start) || new Date().toISOString().slice(0, 10);
   const id = requireString(body.id);

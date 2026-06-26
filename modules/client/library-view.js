@@ -363,9 +363,9 @@ async function initLibraryView() {
     const items = archiveMode ? (payload.articles || payload.documents || []) : (payload.documents || []);
 
     mount.innerHTML = `
-      ${archiveMode && payload.canEdit ? `
+      ${payload.canEdit ? `
         <div class="codex-toolbar">
-          <button type="button" class="hub-write-btn" data-library-new>WRITE ARTICLE</button>
+          <button type="button" class="hub-write-btn" data-library-new>${archiveMode ? "WRITE ARTICLE" : "WRITE CODEX ARTICLE"}</button>
         </div>
       ` : ""}
       ${items.map((documentData, index) => archiveMode
@@ -406,7 +406,7 @@ async function initLibraryView() {
       workingDocument.articleNumber = archiveMode
         ? `ARTICLE ${articleNumber}`
         : workingDocument.articleNumber || `ARTICLE ${toRoman(articleNumber)}`;
-      workingDocument.title = archiveMode ? data.title || "" : workingDocument.title || "";
+      workingDocument.title = data.title || workingDocument.title || "";
       workingDocument.status = "published";
       workingDocument.displayOrder = articleNumber;
       if (archiveMode) {
@@ -429,7 +429,7 @@ async function initLibraryView() {
      function renderForm() {
       title.textContent = archiveMode
         ? `${workingDocument.id ? "EDIT" : "WRITE"} ARCHIVE ARTICLE`
-        : "EDIT CODEX REGULATIONS";
+        : `${workingDocument.id ? "EDIT" : "WRITE"} CODEX ARTICLE`;
 
       if (archiveMode) {
         form.innerHTML = `
@@ -475,6 +475,10 @@ async function initLibraryView() {
       form.innerHTML = `
         <input type="hidden" name="id" value="${escapeHtml(workingDocument.id || "")}">
         <input type="hidden" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}">
+        <div class="resource-editor-field">
+          <label>Article Title</label>
+          <input name="title" value="${escapeHtml(workingDocument.title || "")}" required>
+        </div>
         <div class="library-entry-stack">
           ${workingDocument.entries.map((entry, index) => formEntryMarkup(entry, index)).join("")}
         </div>
@@ -544,6 +548,7 @@ async function initLibraryView() {
         } : {
           id: data.id,
           articleNumber: `ARTICLE ${toRoman(articleNumber)}`,
+          title: data.title,
           displayOrder: articleNumber,
           entries: workingDocument.entries.map((entry, index) => ({
             anchor: generatedAnchor(articleNumber, Number(data[`entry-number-${index}`]) || index + 1),
@@ -570,7 +575,7 @@ async function initLibraryView() {
   render();
 
   mount.addEventListener("click", event => {
-    if (archiveMode && event.target.closest("[data-library-new]")) {
+    if (event.target.closest("[data-library-new]")) {
       event.preventDefault();
       event.stopImmediatePropagation();
       event.stopPropagation();

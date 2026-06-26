@@ -3,9 +3,9 @@
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 
-export const OLD_GUARD_PLAYBACK_ID = "zB4z6QMgwgilabiIn00fmdcf62mmk00n4N01XnhNfaqTL00";
-export const OLD_GUARD_INTRO_PLAYBACK_ID = "5B00WSZwcoH023XoGAE94RSxu5Pu3GFn9TCqIuNM1x73E";
-export const OLD_GUARD_TITLE = "THE OLD GUARD";
+const OLD_GUARD_PLAYBACK_ID = "zB4z6QMgwgilabiIn00fmdcf62mmk00n4N01XnhNfaqTL00";
+const OLD_GUARD_INTRO_PLAYBACK_ID = "5B00WSZwcoH023XoGAE94RSxu5Pu3GFn9TCqIuNM1x73E";
+const OLD_GUARD_TITLE = "THE OLD GUARD";
 const MUX_PLAYER_SCRIPT = "https://cdn.jsdelivr.net/npm/@mux/mux-player";
 
 function formatTime(seconds) {

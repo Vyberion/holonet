@@ -1,7 +1,7 @@
 import { ROBLOX_GROUPS } from "./roblox-groups.js";
 import { tierAtLeast } from "./profile.js";
 
-export const PAGE_ACCESS = {
+const PAGE_ACCESS = {
   codex: { public: true },
   archives: { public: true },
   hierarchy: { public: true },
@@ -122,7 +122,7 @@ export function hasHighCommandAccess(profile) {
   );
 }
 
-export function hasProjectManagerPlus(profile) {
+function hasProjectManagerPlus(profile) {
   const roles = profile?.authorityRoles || {};
 
   return Boolean(
@@ -274,19 +274,6 @@ export function canEditLibrary(profile, libraryKey) {
     : { authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" };
 }
 
-export function canManageArchiveArticles(profile) {
-  if (hasCoreAccess(profile)) {
-    return { authorized: true, reason: coreAccessReason(profile) };
-  }
-
-  const dreadMasterGroupId = ROBLOX_GROUPS.DIVISIONS.dreadmasters.groupId;
-  const dreadMasterRank = Number(profile?.groupRanks?.[dreadMasterGroupId] || 0);
-
-  return dreadMasterRank >= 10
-    ? { authorized: true, reason: "DREAD_MASTER_ARCHIVE_AUTHORITY" }
-    : { authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" };
-}
-
 export function canViewDivisionReports(profile, division) {
   if (hasCoreAccess(profile)) {
     return { authorized: true, reason: coreAccessReason(profile) };
@@ -358,7 +345,7 @@ export function checkResourceWriteAccess(profile, { division, resourceType }) {
     : { authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" };
 }
 
-export function normalizePageKey(page) {
+function normalizePageKey(page) {
   return String(page || "")
     .toLowerCase()
     .replace(/\.html$/, "")

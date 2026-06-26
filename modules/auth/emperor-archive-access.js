@@ -1,4 +1,4 @@
-export const EMPEROR_ARCHIVE_ROBLOX_IDS = [
+const EMPEROR_ARCHIVE_ROBLOX_IDS = [
   "2627035499",
 ];
 

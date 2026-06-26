@@ -1,4 +1,4 @@
-export const DIVISIONS = {
+const DIVISIONS = {
   reavers: {
     id: "reavers",
     name: "The Reavers",

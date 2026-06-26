@@ -98,9 +98,9 @@ function titleForSection(section, division = null) {
 function descriptionForSection(division, section) {
   const divisionName = divisionSectionName(division);
   return {
-    transmissions: `Official announcements and operational transmissions published for ${divisionName}.`,
-    reports: `Published weekly activity reports and performance records for ${divisionName}.`,
-    trackers: `Current ${divisionName} members in rank order with their live tracked hours and minutes.`
+    transmissions: `Official announcements for ${divisionName}.`,
+    reports: `Weekly activity reports for ${divisionName}.`,
+    trackers: `Current ${divisionName} tracked hours and minutes.`
   }[section] || "";
 }
 

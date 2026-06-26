@@ -484,6 +484,7 @@ async function initLibraryView() {
         </div>
         <div class="library-editor-buttons">
           <button type="button" class="library-inline-btn" data-library-add-entry>ADD REGULATION</button>
+          ${workingDocument.id ? `<button type="button" class="library-inline-btn danger" data-library-delete>DELETE ARTICLE</button>` : ""}
         </div>
       `;
     }
@@ -493,24 +494,24 @@ async function initLibraryView() {
     overlay.classList.add("active");
 
     form.onclick = async event => {
-      if (archiveMode) {
-       const destroy = event.target.closest("[data-library-delete]");
-        if (destroy && workingDocument.id) {
-          if (!window.confirm("Delete this archive article?")) return;
+      const destroy = event.target.closest("[data-library-delete]");
+      if (destroy && workingDocument.id) {
+        if (!window.confirm("Are you sure you want to delete this article?")) return;
 
-          try {
-            status.textContent = "Deleting...";
-            await deleteLibraryDocument(libraryKey, workingDocument.id);
-            payload = await refreshLibraryPayload(libraryKey);
-            render();
-            status.textContent = "Deleted";
-            setTimeout(() => overlay.classList.remove("active"), 150);
-          } catch (error) {
-            status.textContent = error.message.replace(/_/g, " ");
-          }
+        try {
+          status.textContent = "Deleting...";
+          await deleteLibraryDocument(libraryKey, workingDocument.id);
+          payload = await refreshLibraryPayload(libraryKey);
+          render();
+          status.textContent = "Deleted";
+          setTimeout(() => overlay.classList.remove("active"), 150);
+        } catch (error) {
+          status.textContent = error.message.replace(/_/g, " ");
         }
         return;
       }
+
+      if (archiveMode) return;
 
       const add = event.target.closest("[data-library-add-entry]");
       if (add) {
@@ -522,6 +523,8 @@ async function initLibraryView() {
 
       const remove = event.target.closest("[data-library-remove-entry]");
       if (remove) {
+        if (!window.confirm("Are you sure you want to delete this regulation?")) return;
+
         syncWorkingDocumentFromForm();
         workingDocument.entries.splice(Number(remove.dataset.libraryRemoveEntry), 1);
         renderForm();

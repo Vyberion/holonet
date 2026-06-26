@@ -630,6 +630,31 @@
     });
   }
 
+  function initEditorOverlayBlur() {
+    const overlaySelector = [
+      "#resource-editor-overlay",
+      "#library-editor-overlay",
+      "#inspection-editor-overlay",
+      "#council-editor-overlay",
+      "#timeline-editor-overlay"
+    ].join(",");
+
+    function syncOverlayState() {
+      const active = Boolean(document.querySelector(`${overlaySelector}.active`));
+      document.body.classList.toggle("editor-overlay-active", active);
+    }
+
+    const observer = new MutationObserver(syncOverlayState);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+      childList: true,
+      subtree: true
+    });
+
+    syncOverlayState();
+  }
+
   function initDeveloperNotice() {
     if (readLocalStorage(DEVELOPER_NOTICE_KEY) === "true") return;
     if (document.getElementById("developer-notice-overlay")) return;
@@ -685,6 +710,7 @@
       initLoader();
       loadNav();
       initDirectoryCards();
+      initEditorOverlayBlur();
       initDeveloperNotice();
     }
   };

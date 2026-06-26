@@ -1,8 +1,20 @@
+body.editor-overlay-active > :not(#resource-editor-overlay):not(#library-editor-overlay):not(#inspection-editor-overlay):not(#council-editor-overlay):not(#timeline-editor-overlay):not(script):not(style),
+body:has(#resource-editor-overlay.active) > :not(#resource-editor-overlay):not(script):not(style),
+body:has(#library-editor-overlay.active) > :not(#library-editor-overlay):not(script):not(style),
+body:has(#inspection-editor-overlay.active) > :not(#inspection-editor-overlay):not(script):not(style),
+body:has(#council-editor-overlay.active) > :not(#council-editor-overlay):not(script):not(style),
+body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(script):not(style) {
+  filter: blur(12px) brightness(0.45);
+  transform: scale(1.012);
+  transition: filter 0.18s ease, transform 0.18s ease;
+}
+
 #resource-editor-overlay {
   align-items: flex-start;
   background:
     radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 9%, transparent), transparent 68%),
-    color-mix(in srgb, var(--theme-bg, var(--void)) 76%, transparent);
+    linear-gradient(rgba(0, 0, 0, 0.46), rgba(0, 0, 0, 0.46)),
+    color-mix(in srgb, var(--theme-bg, var(--void)) 86%, transparent);
   backdrop-filter: blur(10px) saturate(0.82);
   -webkit-backdrop-filter: blur(10px) saturate(0.82);
   display: none;
@@ -360,7 +372,8 @@
   align-items: flex-start;
   background:
     radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 9%, transparent), transparent 68%),
-    color-mix(in srgb, var(--theme-bg, var(--void)) 74%, transparent);
+    linear-gradient(rgba(0, 0, 0, 0.46), rgba(0, 0, 0, 0.46)),
+    color-mix(in srgb, var(--theme-bg, var(--void)) 86%, transparent);
   backdrop-filter: blur(10px) saturate(0.82);
   -webkit-backdrop-filter: blur(10px) saturate(0.82);
   display: none;

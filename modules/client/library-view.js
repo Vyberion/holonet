@@ -365,7 +365,7 @@ async function initLibraryView() {
     mount.innerHTML = `
       ${payload.canEdit ? `
         <div class="codex-toolbar">
-          <button type="button" class="hub-write-btn" data-library-new>${archiveMode ? "WRITE ARTICLE" : "WRITE CODEX ARTICLE"}</button>
+          <button type="button" class="hub-write-btn" data-library-new>${archiveMode ? "WRITE ARTICLE" : "WRITE ARTICLE"}</button>
         </div>
       ` : ""}
       ${items.map((documentData, index) => archiveMode

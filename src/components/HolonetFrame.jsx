@@ -166,7 +166,7 @@ export function HolonetFrame({
             Peace is a lie - There is only passion
           </p>
           <p className="footer-sig" style={{ color: "var(--text-dim)" }}>
-            Sith Holonet - Encrypted Transmission - Node {footerNode}
+            Made by Vyberon
           </p>
           <nav className="footer-links" aria-label="Legal links">
             <a href="/the-serious-stuff/terms-of-service">Terms</a>

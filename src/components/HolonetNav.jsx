@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { isEmperorArchiveRobloxId } from "../../modules/auth/emperor-archive-access.js";
 import { preloadHierarchyImages } from "../lib/preload-images.js";
 
 function readCachedAccess() {
@@ -56,21 +55,6 @@ function currentDivisionContext(pathname = "/") {
     ...route,
     section: segments[1] || "home"
   };
-}
-
-function canAccessEmperorArchives(access) {
-  const profile = access?.profile;
-  const roles = profile?.authorityRoles || {};
-
-  return Boolean(
-    access?.authorized &&
-    (
-      profile?.isSuperUser ||
-      roles.groupOwner ||
-      roles.projectManager ||
-      isEmperorArchiveRobloxId(profile?.robloxId)
-    )
-  );
 }
 
 function readInitialAccess() {
@@ -138,19 +122,10 @@ export function HolonetNav() {
   const activePage = currentPageKey(pathname);
   const divisionContext = currentDivisionContext(pathname);
   const showDivisionReturn = divisionContext && !["home", "info"].includes(divisionContext.section);
-  const showEmperorArchives = canAccessEmperorArchives(access);
   const centerLinks = [
     { href: "/", page: "home", prefix: "00", label: "Home" },
     { href: "/codex", page: "codex", prefix: "01", label: "Codex" },
-    {
-      href: "/archives",
-      page: "archives",
-      prefix: "02",
-      label: "Archives",
-      ...(showEmperorArchives
-        ? { dropdown: [{ href: "/archives/emperors", page: "archives-emperors", label: "Emperors" }] }
-        : {})
-    },
+    { href: "/archives", page: "archives", prefix: "02", label: "Archives" },
     { href: "/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
     ...(access?.permissions?.canAccessRegistry
       ? [{ href: "/registry", page: "registry", prefix: "04", label: "Registry" }]

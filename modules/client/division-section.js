@@ -100,7 +100,7 @@ function descriptionForSection(division, section) {
   return {
     transmissions: `Official announcements for ${divisionName}.`,
     reports: `Weekly activity reports for ${divisionName}.`,
-    trackers: `Current ${divisionName} tracked hours and minutes.`
+    trackers: `Current tracked shifts for ${divisionName}.`
   }[section] || "";
 }
 

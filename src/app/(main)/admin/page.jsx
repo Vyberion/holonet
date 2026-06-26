@@ -5,18 +5,6 @@ export default function AdminPage() {
   return (
     <HolonetFrame title="ADMIN" subtitle="ADMIN CONSOLE">
       <div data-admin-root className="hub-shell">
-        <div className="hub-hero">
-          <div className="hub-identity">
-            <div>
-              <span className="hub-kicker">Administrative Node</span>
-              <h2 className="hub-title">Admin Console</h2>
-            </div>
-            <div>
-              <span className="hub-kicker">Access</span>
-              <span className="hub-value">Restricted</span>
-            </div>
-          </div>
-        </div>
         <div className="hub-layout">
           <section className="hub-panel" id="admin-overrides" />
           <section className="hub-panel" id="admin-activity" />

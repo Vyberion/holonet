@@ -413,7 +413,7 @@ async function initLibraryView() {
         workingDocument.label = data.label || "Archive Entry";
         workingDocument.body = data.body || "";
         workingDocument.imagePath = data.imagePath || "";
-        workingDocument.imageAlt = data.imageAlt || "";
+        workingDocument.imageAlt = data.title || "";
       } else {
         workingDocument.entries = workingDocument.entries.map((entry, index) => ({
           anchor: generatedAnchor(articleNumber, Number(data[`entry-number-${index}`]) || index + 1),
@@ -450,10 +450,6 @@ async function initLibraryView() {
               <div class="resource-editor-field">
                 <label>Image Asset Path</label>
                 <input name="imagePath" value="${escapeHtml(workingDocument.imagePath || "")}" placeholder="archives/example.png">
-              </div>
-              <div class="resource-editor-field">
-                <label>Image Alt</label>
-                <input name="imageAlt" value="${escapeHtml(workingDocument.imageAlt || "")}">
               </div>
               <div class="resource-editor-field">
                 <label>Article Number</label>
@@ -545,7 +541,7 @@ async function initLibraryView() {
           title: data.title,
           body: data.body,
           imagePath: data.imagePath,
-          imageAlt: data.imageAlt,
+          imageAlt: data.title,
           status: "published",
           displayOrder: articleNumber
         } : {

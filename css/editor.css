@@ -4,7 +4,7 @@ body:has(#library-editor-overlay.active) > :not(#library-editor-overlay):not(scr
 body:has(#inspection-editor-overlay.active) > :not(#inspection-editor-overlay):not(script):not(style),
 body:has(#council-editor-overlay.active) > :not(#council-editor-overlay):not(script):not(style),
 body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(script):not(style) {
-  filter: blur(12px) brightness(0.45);
+  filter: blur(12px);
   transform: scale(1.012);
   transition: filter 0.18s ease, transform 0.18s ease;
 }

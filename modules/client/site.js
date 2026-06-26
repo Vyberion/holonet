@@ -631,16 +631,17 @@
   }
 
   function initEditorOverlayBlur() {
-    const overlaySelector = [
+    const overlaySelectors = [
       "#resource-editor-overlay",
       "#library-editor-overlay",
       "#inspection-editor-overlay",
       "#council-editor-overlay",
       "#timeline-editor-overlay"
-    ].join(",");
+    ];
+    const activeOverlaySelector = overlaySelectors.map(selector => `${selector}.active`).join(",");
 
     function syncOverlayState() {
-      const active = Boolean(document.querySelector(`${overlaySelector}.active`));
+      const active = Boolean(document.querySelector(activeOverlaySelector));
       document.body.classList.toggle("editor-overlay-active", active);
     }
 

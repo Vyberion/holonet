@@ -27,7 +27,6 @@ export const PAGE_ACCESS = {
   high_ranks_sith_lord: { public: true },
   high_ranks_darth: { public: true },
   registry: { registry: true },
-  board: { public: true },
   nexus: { nexus: true },
   admin: { capability: "admin" },
   lookup: { public: true },

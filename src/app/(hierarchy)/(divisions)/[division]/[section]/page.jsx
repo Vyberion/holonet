@@ -137,6 +137,7 @@ export default async function DivisionSectionPage({ params }) {
         title={division.shortName.toUpperCase()}
         subtitle={division.subtitle.toUpperCase()}
         footerNode={division.node}
+        mainClassName="division-main"
         showHeader={false}
         theme={division.theme}
       >
@@ -163,6 +164,7 @@ export default async function DivisionSectionPage({ params }) {
         subtitle="SECURE DOCUMENT VIEWER"
         footerNode={division.node}
         includeSearchOverlay
+        mainClassName="division-main"
         showHeader={false}
         theme={division.theme}
       >
@@ -209,6 +211,7 @@ export default async function DivisionSectionPage({ params }) {
         title="COUNCIL FLOOR"
         subtitle="LEGISLATIVE CHANNEL"
         footerNode={division.node}
+        mainClassName="division-main"
         showHeader={false}
         theme={division.theme}
       >
@@ -227,6 +230,7 @@ export default async function DivisionSectionPage({ params }) {
       title={`${divisionTitleName(division).toUpperCase()} ${sectionTitle(section).toUpperCase()}`}
       subtitle={sectionSubtitle(section)}
       footerNode={division.node}
+      mainClassName="division-main"
       showHeader={false}
       theme={division.theme}
     >

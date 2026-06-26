@@ -417,10 +417,11 @@ async function initLibraryView() {
       } else {
         workingDocument.entries = workingDocument.entries.map((entry, index) => ({
           anchor: generatedAnchor(articleNumber, Number(data[`entry-number-${index}`]) || index + 1),
-         label: labelForRegulation(Number(data[`entry-number-${index}`]) || index + 1),
+          label: labelForRegulation(Number(data[`entry-number-${index}`]) || index + 1),
           body: data[`entry-body-${index}`] || entry.body || "",
           subClauses: normalizeLineClauses(data[`entry-sub-${index}`] || ""),
-          displayOrder: Number(data[`entry-number-${index}`]) || index + 1
+          displayOrder: Number(data[`entry-number-${index}`]) || index + 1,
+          originalDisplayOrder: Number(entry.originalDisplayOrder || entry.displayOrder) || index + 1
         }));
       }
     }
@@ -456,7 +457,7 @@ async function initLibraryView() {
               </div>
               <div class="resource-editor-field">
                 <label>Article Number</label>
-                <input type="number" min="1" max="13" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}" required>
+                <input type="number" min="1" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}" required>
               </div>
             </section>
           </div>
@@ -549,7 +550,8 @@ async function initLibraryView() {
             label: labelForRegulation(Number(data[`entry-number-${index}`]) || index + 1),
             body: data[`entry-body-${index}`] || entry.body,
             subClauses: normalizeLineClauses(data[`entry-sub-${index}`] || ""),
-            displayOrder: Number(data[`entry-number-${index}`]) || index + 1
+            displayOrder: Number(data[`entry-number-${index}`]) || index + 1,
+            originalDisplayOrder: Number(entry.originalDisplayOrder || entry.displayOrder) || index + 1
           })).filter(entry => entry.body)
         };
 

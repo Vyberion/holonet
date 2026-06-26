@@ -13,6 +13,7 @@ export default function HomePage() {
       title="THE HOLONET"
       subtitle="IMPERIAL TRANSMISSION NETWORK"
       footerNode="KOR-7"
+      mainClassName="home-main"
     >
       <nav className="nav-grid" aria-label="Holonet Sections">
         <a href="/codex" className="nav-card" aria-label="Enter The Codex">

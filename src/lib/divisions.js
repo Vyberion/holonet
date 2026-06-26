@@ -1,4 +1,4 @@
-import { DIVISIONS, getDivision } from "../../modules/data/divisions/index.js";
+import { getDivision } from "../../modules/data/divisions/index.js";
 
 const ROUTE_ALIASES = {
   reavers: "reavers",
@@ -20,8 +20,4 @@ export function getDivisionByRouteSlug(slug) {
   return getDivision(key);
 }
 
-export function listDivisionRouteSlugs() {
-  return Object.keys(ROUTE_ALIASES).filter((value, index, list) => list.indexOf(value) === index);
-}
-
-export { DIVISIONS, getDivision };
+export { getDivision };

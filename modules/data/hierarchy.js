@@ -87,7 +87,7 @@ function emperorPathTitle(value) {
   }[value] || `The ${ordinal(value)}`;
 }
 
-export const HIERARCHY_GROUPS = [
+const HIERARCHY_GROUPS = [
   {
     id: "low-ranks",
     title: "Low Ranks",

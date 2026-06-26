@@ -64,4 +64,3 @@ export const ROBLOX_GROUPS = {
 };
 
 export const SUPER_USER_IDS = ["2627035499"];
-export const SUPER_USER_ID = SUPER_USER_IDS[0];

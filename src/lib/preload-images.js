@@ -1,6 +1,6 @@
 export const criticalPreloadImages = [];
 
-export const hierarchyPreloadImages = [
+const hierarchyPreloadImages = [
   "/assets/morphs/academy_student.png",
   "/assets/morphs/acolyte.png",
   "/assets/morphs/clown.jpg",
@@ -28,7 +28,7 @@ export const hierarchyPreloadImages = [
 
 const preloadedImages = new Set();
 
-export function preloadImage(src) {
+function preloadImage(src) {
   if (typeof window === "undefined" || !src || preloadedImages.has(src)) return;
 
   preloadedImages.add(src);

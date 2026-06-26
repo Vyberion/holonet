@@ -94,7 +94,7 @@ function articleOrderFrom(value, fallback = 1) {
       ? fallbackNumber
       : 1;
 
-  return Math.max(1, Math.min(13, Math.floor(order)));
+  return Math.max(1, Math.floor(order));
 }
 
 function regulationOrderFrom(entry, index) {
@@ -108,6 +108,99 @@ function regulationOrderFrom(entry, index) {
 
 function regulationAnchor(articleOrder, regulationOrder) {
   return `reg-${String(articleOrder).padStart(2, "0")}-${String(regulationOrder).padStart(2, "0")}`;
+}
+
+function withIncrementedOrder(row, orderColumn = "display_order") {
+  return {
+    [orderColumn]: (Number(row?.[orderColumn]) || 0) + 1
+  };
+}
+
+async function shiftDisplayOrders({ table, targetOrder, scope = "", excludeId = "" }) {
+  const order = Number(targetOrder);
+  if (!Number.isFinite(order) || order < 1) return;
+
+  const scopeFilter = scope ? `${scope}&` : "";
+  const excludeFilter = excludeId ? `&id=neq.${encodeURIComponent(excludeId)}` : "";
+  const rows = await supabaseRest(
+    `${table}?${scopeFilter}display_order=gte.${encodeURIComponent(order)}${excludeFilter}&select=id,display_order&order=display_order.desc`
+  );
+
+  for (const row of rows || []) {
+    await supabaseRest(`${table}?id=eq.${encodeURIComponent(row.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(withIncrementedOrder(row))
+    });
+  }
+}
+
+async function shiftLibraryDocumentOrders(libraryKey, targetOrder, excludeId = "") {
+  const order = Number(targetOrder);
+  if (!Number.isFinite(order) || order < 1) return;
+
+  const excludeFilter = excludeId ? `&id=neq.${encodeURIComponent(excludeId)}` : "";
+  const rows = await supabaseRest(
+    `library_documents?library_key=eq.${encodeURIComponent(libraryKey)}&display_order=gte.${encodeURIComponent(order)}${excludeFilter}&select=id,display_order&order=display_order.desc`
+  );
+
+  for (const row of rows || []) {
+    const displayOrder = (Number(row?.display_order) || 0) + 1;
+    await supabaseRest(`library_documents?id=eq.${encodeURIComponent(row.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        display_order: displayOrder,
+        article_number: `ARTICLE ${toRoman(displayOrder)}`
+      })
+    });
+  }
+}
+
+function insertAtDisplayOrder(items, item, targetOrder) {
+  const order = Math.max(1, Math.floor(Number(targetOrder) || 1));
+
+  items.forEach(existing => {
+    if ((Number(existing.displayOrder) || 0) >= order) {
+      existing.displayOrder = (Number(existing.displayOrder) || 0) + 1;
+    }
+  });
+
+  item.displayOrder = order;
+  items.push(item);
+}
+
+function resolveEntryDisplayOrders(entries = []) {
+  const normalized = entries.map((entry, index) => {
+    const requestedOrder = regulationOrderFrom(entry, index);
+    const originalOrder = Number(entry?.originalDisplayOrder);
+
+    return {
+      entry,
+      index,
+      requestedOrder,
+      originalOrder: Number.isFinite(originalOrder) && originalOrder > 0
+        ? Math.floor(originalOrder)
+        : requestedOrder,
+      displayOrder: requestedOrder
+    };
+  });
+
+  const resolved = [];
+  const changed = [];
+
+  normalized.forEach(item => {
+    if (item.originalOrder === item.requestedOrder) {
+      resolved.push(item);
+      return;
+    }
+
+    changed.push(item);
+  });
+
+  changed.forEach(item => {
+    insertAtDisplayOrder(resolved, item, item.requestedOrder);
+  });
+
+  return resolved.sort((left, right) => left.index - right.index);
 }
 
 function isMissingSchemaError(error) {
@@ -454,6 +547,7 @@ async function writeArchiveArticle(body) {
   const id = requireString(body.id);
   const title = requireString(body.title);
   const articleBody = requireString(body.body);
+  const articleOrder = articleOrderFrom(body.articleNumber || body.displayOrder);
 
   if (!title || !articleBody) {
     return { ok: false, status: 400, payload: { ok: false, reason: "ARTICLE_FIELDS_REQUIRED" } };
@@ -467,13 +561,18 @@ async function writeArchiveArticle(body) {
     image_path: requireString(body.imagePath),
     image_alt: requireString(body.imageAlt || title),
     status: ["draft", "published", "archived"].includes(body.status) ? body.status : "published",
-    display_order: articleOrderFrom(body.articleNumber || body.displayOrder),
+    display_order: articleOrder,
     updated_at: new Date().toISOString()
   };
 
   let article = { id };
 
   if (id) {
+    const [existing] = await supabaseRest(`archive_articles?id=eq.${encodeURIComponent(id)}&select=id,display_order`).catch(() => []);
+    if ((Number(existing?.display_order) || 0) !== articleOrder) {
+      await shiftDisplayOrders({ table: "archive_articles", targetOrder: articleOrder, excludeId: id });
+    }
+
     await supabaseRest(`archive_articles?id=eq.${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: JSON.stringify(payload)
@@ -482,6 +581,8 @@ async function writeArchiveArticle(body) {
     const [stored] = await supabaseRest(`archive_articles?id=eq.${encodeURIComponent(id)}&select=id,slug`);
     article = stored || article;
   } else {
+    await shiftDisplayOrders({ table: "archive_articles", targetOrder: articleOrder });
+
     const [created] = await supabaseRest(
       "archive_articles?on_conflict=slug&select=id,slug",
       {
@@ -628,6 +729,11 @@ async function writeLibraryDocument(libraryKey, body) {
   let document = { id: documentId };
 
   if (documentId) {
+    const [existing] = await supabaseRest(`library_documents?id=eq.${encodeURIComponent(documentId)}&select=id,display_order`).catch(() => []);
+    if ((Number(existing?.display_order) || 0) !== articleOrder) {
+      await shiftLibraryDocumentOrders(libraryKey, articleOrder, documentId);
+    }
+
     await supabaseRest(`library_documents?id=eq.${encodeURIComponent(documentId)}`, {
       method: "PATCH",
       body: JSON.stringify(documentPayload)
@@ -636,6 +742,8 @@ async function writeLibraryDocument(libraryKey, body) {
     const [stored] = await supabaseRest(`library_documents?id=eq.${encodeURIComponent(documentId)}&select=id,slug`);
     document = stored || document;
   } else {
+    await shiftLibraryDocumentOrders(libraryKey, articleOrder);
+
     const [createdDocument] = await supabaseRest(
       "library_documents?on_conflict=library_key,slug&select=id,slug",
       {
@@ -653,11 +761,12 @@ async function writeLibraryDocument(libraryKey, body) {
   });
 
   const entries = Array.isArray(body.entries) ? body.entries : [];
-  if (entries.length) {
+  const orderedEntries = resolveEntryDisplayOrders(entries);
+  if (orderedEntries.length) {
     await supabaseRest("library_entries", {
       method: "POST",
-      body: JSON.stringify(entries.map((entry, index) => {
-        const regulationOrder = regulationOrderFrom(entry, index);
+      body: JSON.stringify(orderedEntries.map(({ entry, displayOrder }, index) => {
+        const regulationOrder = displayOrder || regulationOrderFrom(entry, index);
         return {
           document_id: document.id,
           anchor: regulationAnchor(articleOrder, regulationOrder),

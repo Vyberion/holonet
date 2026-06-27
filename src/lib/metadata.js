@@ -3,7 +3,7 @@ const DEFAULT_TITLE = "Sith Holonet";
 const DEFAULT_DESCRIPTION = "Laws, lore, ranks, records and division resources for Manar's The Sith Order.";
 export const FAVICON_ICON = "/assets/favicon.ico";
 export const EMBED_IMAGE = "/assets/logo.png";
-const EMBED_IMAGE_VERSION = "4";
+const EMBED_IMAGE_VERSION = "5";
 export const EMBED_IMAGE_WIDTH = 150;
 export const EMBED_IMAGE_HEIGHT = 150;
 
@@ -40,9 +40,6 @@ export function embedImageUrl() {
   const assetOrigin = absoluteBaseUrl(
     process.env.NEXT_PUBLIC_EMBED_ASSET_URL ||
     process.env.NEXT_PUBLIC_ASSET_URL ||
-    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
-    process.env.VERCEL_BRANCH_URL ||
-    process.env.VERCEL_URL ||
     "https://holonet.vercel.app"
   );
 

@@ -1,6 +1,5 @@
 (function () {
   const INTRO_COMPLETE_KEY = "holonet:intro:v1:complete";
-  const DEVELOPER_NOTICE_KEY = "holonet:developer-notice:v1:complete";
   const LOADER_SHOWN_KEY = "loaderShown";
   const MUX_PLAYER_SCRIPT = "https://cdn.jsdelivr.net/npm/@mux/mux-player";
   const OLD_GUARD_PLAYBACK_ID = "5B00WSZwcoH023XoGAE94RSxu5Pu3GFn9TCqIuNM1x73E";
@@ -656,49 +655,6 @@
     syncOverlayState();
   }
 
-  function initDeveloperNotice() {
-    if (readLocalStorage(DEVELOPER_NOTICE_KEY) === "true") return;
-    if (document.getElementById("developer-notice-overlay")) return;
-
-    writeLocalStorage(DEVELOPER_NOTICE_KEY, "true");
-
-    const overlay = document.createElement("div");
-    overlay.id = "developer-notice-overlay";
-    overlay.className = "developer-notice-overlay";
-    overlay.innerHTML = `
-      <section class="developer-notice-panel" role="dialog" aria-modal="true" aria-labelledby="developer-notice-title">
-        <div class="developer-notice-scan" aria-hidden="true"></div>
-        <div class="developer-notice-topbar">
-          <span class="developer-notice-kicker">Developer Notice</span>
-          <button type="button" class="developer-notice-close" aria-label="Close developer notice" data-developer-notice-close>X</button>
-        </div>
-        <div class="developer-notice-body">
-          <h2 id="developer-notice-title">This site is a work in progress.</h2>
-        </div>
-      </section>
-    `;
-
-    function closeNotice() {
-      overlay.classList.remove("active");
-      document.removeEventListener("keydown", handleKeydown);
-      window.setTimeout(() => overlay.remove(), 180);
-    }
-
-    function handleKeydown(event) {
-      if (event.key === "Escape") closeNotice();
-    }
-
-    overlay.addEventListener("click", event => {
-      if (event.target === overlay || event.target.closest("[data-developer-notice-close]")) {
-        closeNotice();
-      }
-    });
-
-    document.addEventListener("keydown", handleKeydown);
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add("active"));
-  }
-
   window.HolonetSite = {
     loadNav,
     initLoader,
@@ -712,7 +668,6 @@
       loadNav();
       initDirectoryCards();
       initEditorOverlayBlur();
-      initDeveloperNotice();
     }
   };
 

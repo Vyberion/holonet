@@ -1,5 +1,11 @@
 import { Analytics } from "@vercel/analytics/next";
-import { defaultMetadata } from "../lib/metadata.js";
+import {
+  EMBED_IMAGE_HEIGHT,
+  EMBED_IMAGE_WIDTH,
+  defaultMetadata,
+  embedImageUrl,
+  siteUrl
+} from "../lib/metadata.js";
 import { criticalPreloadImages } from "../lib/preload-images.js";
 
 import "../../css/style.css";
@@ -686,25 +692,23 @@ const HOLONET_GLOBAL_POLISH_JS = `
 })();
 `;
 
-function siteUrl() {
-  const url =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
-    process.env.VERCEL_URL ||
-    "http://localhost:3000";
-
-  return url.startsWith("http") ? url : `https://${url}`;
-}
-
 export const metadata = {
   metadataBase: new URL(siteUrl()),
   ...defaultMetadata
 };
 
 export default function RootLayout({ children }) {
+  const embedImage = embedImageUrl();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta property="og:image" content={embedImage} />
+        <meta property="og:image:secure_url" content={embedImage} />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content={String(EMBED_IMAGE_WIDTH)} />
+        <meta property="og:image:height" content={String(EMBED_IMAGE_HEIGHT)} />
+        <meta name="twitter:image" content={embedImage} />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
         <link rel="modulepreload" href={PDFJS_MODULE_URL} crossOrigin="anonymous" />

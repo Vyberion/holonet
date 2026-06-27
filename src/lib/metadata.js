@@ -1,34 +1,40 @@
 const SITE_NAME = "Sith Holonet";
 const DEFAULT_TITLE = "Sith Holonet";
 const DEFAULT_DESCRIPTION = "Laws, lore, ranks, records and division resources for Manar's The Sith Order.";
-const FAVICON_ICON = "/assets/favicon.ico";
-const EMBED_IMAGE = "/assets/logo.png";
-const EMBED_IMAGE_VERSION = "2";
+export const FAVICON_ICON = "/assets/favicon.ico";
+export const EMBED_IMAGE = "/assets/logo.png";
+const EMBED_IMAGE_VERSION = "3";
+export const EMBED_IMAGE_WIDTH = 150;
+export const EMBED_IMAGE_HEIGHT = 150;
 
-function siteUrl() {
+export function siteUrl() {
   const url =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.VERCEL_PROJECT_PRODUCTION_URL ||
     process.env.VERCEL_BRANCH_URL ||
     process.env.VERCEL_URL ||
-    "http://localhost:3000";
+    "https://holonet.vercel.app";
 
   const absoluteUrl = url.startsWith("http") ? url : `https://${url}`;
   return absoluteUrl.replace(/\/+$/, "");
 }
 
-function versionedAssetUrl(path, version) {
+export function versionedAssetUrl(path, version = EMBED_IMAGE_VERSION) {
   const separator = path.includes("?") ? "&" : "?";
   return `${path}${separator}v=${version}`;
 }
 
-function absoluteAssetUrl(path) {
+export function absoluteAssetUrl(path) {
   const normalisedPath = path.startsWith("/") ? path : `/${path}`;
   return `${siteUrl()}${normalisedPath}`;
 }
 
+export function embedImageUrl() {
+  return absoluteAssetUrl(versionedAssetUrl(EMBED_IMAGE));
+}
+
 export function holonetMetadata({ title = DEFAULT_TITLE, description = DEFAULT_DESCRIPTION } = {}) {
-  const embedImage = absoluteAssetUrl(versionedAssetUrl(EMBED_IMAGE, EMBED_IMAGE_VERSION));
+  const embedImage = embedImageUrl();
 
   return {
     metadataBase: new URL(siteUrl()),
@@ -47,8 +53,9 @@ export function holonetMetadata({ title = DEFAULT_TITLE, description = DEFAULT_D
       images: [
         {
           url: embedImage,
-          width: 150,
-          height: 150,
+          secureUrl: embedImage,
+          width: EMBED_IMAGE_WIDTH,
+          height: EMBED_IMAGE_HEIGHT,
           type: "image/png",
           alt: SITE_NAME
         }

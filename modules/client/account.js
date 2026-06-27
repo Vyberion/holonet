@@ -9,6 +9,17 @@
     if (element) element.classList.toggle("unbound", isUnbound);
   }
 
+  function friendlyDiscordLinkError(reason) {
+    return {
+      LOGIN_WITH_ROBLOX_FIRST: "Log in to the website with Roblox first, then link Discord.",
+      SESSION_REQUIRED: "Log in to the website with Roblox first, then link Discord.",
+      TOKEN_REQUIRED: "Discord verification link missing. Run /verify again.",
+      LINK_TOKEN_NOT_FOUND: "Discord verification link not found. Run /verify again.",
+      LINK_TOKEN_USED: "This Discord verification link was already used.",
+      LINK_TOKEN_EXPIRED: "This Discord verification link expired. Run /verify again."
+    }[reason] || String(reason || "DISCORD_LINK_FAILED").replace(/_/g, " ");
+  }
+
   function clearCachedIdentity() {
     localStorage.removeItem("sith_roblox_id");
     localStorage.removeItem("sith_roblox_user");
@@ -66,7 +77,7 @@
       const payload = await response.json();
 
       if (!response.ok || !payload.ok) {
-        throw new Error(payload.reason || payload.error || "DISCORD_LINK_FAILED");
+        throw new Error(friendlyDiscordLinkError(payload.reason || payload.error));
       }
 
       sessionStorage.removeItem("holonet:discord-link-token");
@@ -139,11 +150,18 @@
 
     if (discordLink && discordBox && discordButton) {
       discordBox.hidden = false;
-      discordButton.onclick = () => confirmDiscordLink(discordLink);
       const loggedIn = localStorage.getItem("sith_roblox_id");
       if (!loggedIn) {
         const statusNode = document.getElementById("discord-link-status");
-        if (statusNode) statusNode.textContent = "Log in with Roblox first, then return here to link Discord.";
+        if (statusNode) statusNode.textContent = "Log in to the website with Roblox first, then link Discord.";
+        discordButton.textContent = "LOG IN FIRST";
+        discordButton.onclick = () => {
+          window.HolonetSite?.clearAccessPayload?.();
+          window.location.href = "/api/auth/login";
+        };
+      } else {
+        discordButton.textContent = "LINK DISCORD";
+        discordButton.onclick = () => confirmDiscordLink(discordLink);
       }
     }
   }

@@ -365,8 +365,8 @@ async function resolveRobloxId(username) {
 
 async function confirmDiscordLink(req) {
   const auth = await getAuthContext(req);
-  if (!auth.authenticated) {
-    return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" } };
+  if (!auth.authenticated || !auth.user?.roblox_id) {
+    return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "LOGIN_WITH_ROBLOX_FIRST" } };
   }
 
   const body = readJsonBody(req);

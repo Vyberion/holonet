@@ -28,6 +28,7 @@ const moduleLoaders = {
     await import("../../modules/client/intro-toggle.js");
     await import("../../modules/client/mobile-ui-polish.js");
     await import("../../modules/client/mobile-icon-colour.js");
+    await import("../../modules/client/hub-layout-fixes.js");
     await import("../../modules/client/site.js");
     return import("../../modules/client/developer-notice-delay.js");
   }

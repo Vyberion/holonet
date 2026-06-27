@@ -9,10 +9,10 @@ export default function AdminPage() {
           <div className="admin-masonry-column">
             <section className="hub-panel" id="admin-overrides" />
             <section className="hub-panel" id="admin-counts" />
+            <section className="hub-panel" id="admin-health" />
           </div>
           <div className="admin-masonry-column">
             <section className="hub-panel" id="admin-activity" />
-            <section className="hub-panel" id="admin-health" />
           </div>
         </div>
       </div>

@@ -6,7 +6,10 @@ import { canManageBot, getVerifiedProfile, syncMemberRoles } from "../services/r
 import { loadGroupRoles, loadRobloxUser } from "../services/roblox.js";
 import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
 
-export const commands = [
+const DISABLED_COMMANDS = new Set(["verification", "verify", "lookup"]);
+const DISABLED_BUTTONS = new Set(["verify:start", "verify:update"]);
+
+const allCommands = [
   new SlashCommandBuilder()
     .setName("verification")
     .setDescription("Verification tools")
@@ -22,6 +25,12 @@ export const commands = [
     .setDescription("Remove a Discord user's Holonet verification link")
     .addUserOption(option => option.setName("user").setDescription("Discord user").setRequired(true))
 ];
+
+export const commands = allCommands.filter(command => !DISABLED_COMMANDS.has(command.name));
+
+async function replyDisabled(interaction) {
+  await interaction.reply(ephemeral({ embeds: [errorEmbed("This bot feature is currently disabled.")] }));
+}
 
 function verifyRow() {
   return new ActionRowBuilder().addComponents(
@@ -56,6 +65,11 @@ async function replyLink(interaction) {
 }
 
 export async function handleCommand(interaction) {
+  if (DISABLED_COMMANDS.has(interaction.commandName)) {
+    await replyDisabled(interaction);
+    return true;
+  }
+
   if (interaction.commandName === "verification") {
     const verified = await getVerifiedProfile(interaction.user.id);
     if (!canManageBot(verified?.profile, interaction.member)) {
@@ -132,6 +146,11 @@ export async function handleCommand(interaction) {
 }
 
 export async function handleButton(interaction) {
+  if (DISABLED_BUTTONS.has(interaction.customId)) {
+    await replyDisabled(interaction);
+    return true;
+  }
+
   if (interaction.customId === "verify:start") {
     await replyLink(interaction);
     return true;

@@ -2,6 +2,7 @@ import { GoogleAuth } from "google-auth-library";
 
 const DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 const DOCUMENTS_READONLY_SCOPE = "https://www.googleapis.com/auth/documents.readonly";
+const SPREADSHEETS_READONLY_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
 const GOOGLE_DOC_PDF_MIME = "application/pdf";
 
 let authClientPromise = null;
@@ -43,7 +44,7 @@ async function getDriveAuthClient() {
   if (!authClientPromise) {
     authClientPromise = new GoogleAuth({
       credentials: serviceAccountCredentials(),
-      scopes: [DRIVE_READONLY_SCOPE, DOCUMENTS_READONLY_SCOPE]
+      scopes: [DRIVE_READONLY_SCOPE, DOCUMENTS_READONLY_SCOPE, SPREADSHEETS_READONLY_SCOPE]
     }).getClient();
   }
 
@@ -90,9 +91,10 @@ export function extractGoogleTabId(value) {
 
   try {
     const url = new URL(text);
-    return url.searchParams.get("tab") || "";
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+    return url.searchParams.get("tab") || url.searchParams.get("gid") || hashParams.get("gid") || hashParams.get("tab") || "";
   } catch {
-    return text.match(/[?&]tab=([^&#]+)/)?.[1] || "";
+    return text.match(/[?&#](?:tab|gid)=([^&#]+)/)?.[1] || "";
   }
 }
 
@@ -104,6 +106,43 @@ export function googleWorkspaceKindFromUrl(value) {
   return "";
 }
 
+export function googlePdfExportUrl(fileId, { tabId = "", sourceUrl = "", fileKind = "" } = {}) {
+  const id = extractGoogleFileId(fileId);
+  if (!id) {
+    throw new Error("GOOGLE_FILE_ID_REQUIRED");
+  }
+
+  const kind = fileKind || googleWorkspaceKindFromUrl(sourceUrl);
+  const exportUrl = kind === "presentation"
+    ? new URL(`https://docs.google.com/presentation/d/${encodeURIComponent(id)}/export/pdf`)
+    : kind === "spreadsheet"
+    ? new URL(`https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/export`)
+    : (tabId || kind === "document")
+    ? new URL(`https://docs.google.com/document/d/${encodeURIComponent(id)}/export`)
+    : new URL(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}/export`);
+
+  if (kind === "presentation") {
+    exportUrl.searchParams.set("id", id);
+  } else if (kind === "spreadsheet") {
+    exportUrl.searchParams.set("format", "pdf");
+    exportUrl.searchParams.set("portrait", "false");
+    exportUrl.searchParams.set("fitw", "true");
+    exportUrl.searchParams.set("sheetnames", "false");
+    exportUrl.searchParams.set("printtitle", "false");
+    exportUrl.searchParams.set("pagenumbers", "false");
+    exportUrl.searchParams.set("gridlines", "false");
+    exportUrl.searchParams.set("fzr", "false");
+    if (tabId) exportUrl.searchParams.set("gid", tabId);
+  } else if (tabId || kind === "document") {
+    exportUrl.searchParams.set("format", "pdf");
+    if (tabId) exportUrl.searchParams.set("tab", tabId);
+  } else {
+    exportUrl.searchParams.set("mimeType", GOOGLE_DOC_PDF_MIME);
+  }
+
+  return exportUrl;
+}
+
 export async function exportGoogleDocPdf(fileId, { tabId = "", sourceUrl = "", fileKind = "" } = {}) {
   const id = extractGoogleFileId(fileId);
   if (!id) {
@@ -111,22 +150,7 @@ export async function exportGoogleDocPdf(fileId, { tabId = "", sourceUrl = "", f
   }
 
   const token = await getGoogleAccessToken();
-  const kind = fileKind || googleWorkspaceKindFromUrl(sourceUrl);
-
-  const exportUrl = kind === "presentation"
-    ? new URL(`https://docs.google.com/presentation/d/${encodeURIComponent(id)}/export/pdf`)
-    : (tabId || kind === "document")
-    ? new URL(`https://docs.google.com/document/d/${encodeURIComponent(id)}/export`)
-    : new URL(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}/export`);
-
-  if (kind === "presentation") {
-    exportUrl.searchParams.set("id", id);
-  } else if (tabId || kind === "document") {
-    exportUrl.searchParams.set("format", "pdf");
-    if (tabId) exportUrl.searchParams.set("tab", tabId);
-  } else {
-    exportUrl.searchParams.set("mimeType", GOOGLE_DOC_PDF_MIME);
-  }
+  const exportUrl = googlePdfExportUrl(id, { tabId, sourceUrl, fileKind });
 
   const response = await fetch(exportUrl, {
     headers: {

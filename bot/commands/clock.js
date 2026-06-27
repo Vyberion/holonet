@@ -27,8 +27,7 @@ export const commands = [
           { name: "Inquisitors", value: "inquisitors" },
           { name: "Dread Masters", value: "dreadmasters" },
           { name: "High Ranks", value: "highranks" },
-          { name: "Dark Council", value: "darkCouncil" },
-          { name: "High Command", value: "highCommand" }
+          { name: "Dark Council", value: "darkCouncil" }
         ))),
   new SlashCommandBuilder()
     .setName("shifts")
@@ -62,8 +61,7 @@ function addScopeChoices(option) {
     { name: "Inquisitors", value: "inquisitors" },
     { name: "Dread Masters", value: "dreadmasters" },
     { name: "High Ranks", value: "highranks" },
-    { name: "Dark Council", value: "darkCouncil" },
-    { name: "High Command", value: "highCommand" }
+    { name: "Dark Council", value: "darkCouncil" }
   );
 }
 
@@ -84,8 +82,7 @@ function scopeLabel(scope) {
     inquisitors: "Inquisitors",
     dreadmasters: "Dread Masters",
     highranks: "High Ranks",
-    darkCouncil: "Dark Council",
-    highCommand: "High Command"
+    darkCouncil: "Dark Council"
   }[scope] || scope;
 }
 

@@ -23,7 +23,7 @@ export default {
     }
   },
   scopes: {
-    priority: ["highCommand", "darkCouncil", "reavers", "dhg", "inquisitors", "dreadmasters", "highranks"],
+    priority: ["darkCouncil", "reavers", "dhg", "inquisitors", "dreadmasters", "highranks"],
     divisionOrder: ["reavers", "dhg", "inquisitors", "dreadmasters"]
   },
   nicknames: {

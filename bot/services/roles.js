@@ -134,15 +134,8 @@ export function canVoteEmperor(profile) {
   return Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0) > 0;
 }
 
-export function isHighCommand(profile) {
-  return Boolean(hasCoreAccess(profile) || Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) >= 252);
-}
-
 export function inferScope(profile) {
   const highRankValue = Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0);
-
-  if (isHighCommand(profile)) return "highCommand";
-  if (Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) > 0) return "darkCouncil";
 
   const tierWeight = { none: 0, member: 1, nco: 2, co: 3, "2ic": 4, "1ic": 5, overseer: 6 };
   const divisionScope = (config.scopes.divisionOrder || [])
@@ -151,6 +144,7 @@ export function inferScope(profile) {
     .sort((a, b) => b.weight - a.weight)[0]?.scope;
 
   if (divisionScope) return divisionScope;
+  if (Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) > 0) return "darkCouncil";
   if (highRankValue >= 44 && highRankValue <= 53) return "highranks";
 
   return "";
@@ -215,7 +209,7 @@ export function canAdjustTime(actorProfile, targetProfile, targetScope, sameUser
   if (sameUser) return true;
   if (!actorProfile || !targetProfile) return false;
   if (hasCoreAccess(actorProfile) || Object.values(actorProfile.authorityRoles || {}).some(Boolean)) return true;
-  if (["highCommand", "darkCouncil", "highranks"].includes(targetScope)) return false;
+  if (["darkCouncil", "highranks"].includes(targetScope)) return false;
 
   const actorTier = divisionTierWeight(actorProfile.divisions?.[targetScope] || "none");
   const targetTier = divisionTierWeight(targetProfile.divisions?.[targetScope] || "none");

@@ -25,7 +25,7 @@ const DIVISIONS = {
       { label: "Open Handbooks", href: "/reavers/handbooks", minimumTier: "member" },
       { label: "Open Transmissions", href: "/reavers/transmissions", minimumTier: "member" },
       { label: "Open Reports", href: "/reavers/reports", minimumTier: "member" },
-      { label: "Open Tracking", href: "/reavers/trackers", minimumTier: "member" }
+      { label: "Open Activity", href: "/reavers/trackers", minimumTier: "member" }
     ]
   },
 
@@ -55,7 +55,7 @@ const DIVISIONS = {
       { label: "Open Handbooks", href: "/dark-honor-guards/handbooks", minimumTier: "member" },
       { label: "Open Transmissions", href: "/dark-honor-guards/transmissions", minimumTier: "member" },
       { label: "Open Reports", href: "/dark-honor-guards/reports", minimumTier: "member" },
-      { label: "Open Tracking", href: "/dark-honor-guards/trackers", minimumTier: "member" }
+      { label: "Open Activity", href: "/dark-honor-guards/trackers", minimumTier: "member" }
     ]
   },
 
@@ -68,7 +68,7 @@ const DIVISIONS = {
     theme: "theme-inquisitors",
     href: "/inquisitors/home",
     status: "restricted",
-    description: "Division closed.",
+    description: "Intelligence and background oversight of the group to ensure high standards.",
     access: {
       home: "inquisitors_home",
       handbooks: "inquisitors_handbooks",
@@ -85,7 +85,7 @@ const DIVISIONS = {
       { label: "Open Handbooks", href: "/inquisitors/handbooks", minimumTier: "member" },
       { label: "Open Transmissions", href: "/inquisitors/transmissions", minimumTier: "member" },
       { label: "Open Reports", href: "/inquisitors/reports", minimumTier: "member" },
-      { label: "Open Tracking", href: "/inquisitors/trackers", minimumTier: "member" }
+      { label: "Open Activity", href: "/inquisitors/trackers", minimumTier: "member" }
     ]
   },
 
@@ -115,7 +115,7 @@ const DIVISIONS = {
       { label: "Open Handbooks", href: "/dread-masters/handbooks", minimumTier: "member" },
       { label: "Open Transmissions", href: "/dread-masters/transmissions", minimumTier: "member" },
       { label: "Open Reports", href: "/dread-masters/reports", minimumTier: "member" },
-      { label: "Open Tracking", href: "/dread-masters/trackers", minimumTier: "member" }
+      { label: "Open Activity", href: "/dread-masters/trackers", minimumTier: "member" }
     ]
   },
 
@@ -145,7 +145,7 @@ const DIVISIONS = {
       { label: "Open Handbooks", href: "/highranks/handbooks", minimumTier: "lower" },
       { label: "Open Transmissions", href: "/highranks/transmissions", minimumTier: "lower" },
       { label: "Open Reports", href: "/highranks/reports", minimumTier: "lower" },
-      { label: "Open Tracking", href: "/highranks/trackers", minimumTier: "lower" }
+      { label: "Open Activity", href: "/highranks/trackers", minimumTier: "lower" }
     ]
   },
 
@@ -176,7 +176,7 @@ const DIVISIONS = {
       { label: "Open Handbooks", href: "/dark-council/handbooks", minimumTier: "powerbase" },
       { label: "Open Transmissions", href: "/dark-council/transmissions", minimumTier: "powerbase" },
       { label: "Open Reports", href: "/dark-council/reports", minimumTier: "powerbase" },
-      { label: "Open Tracking", href: "/dark-council/trackers", minimumTier: "powerbase" }
+      { label: "Open Activity", href: "/dark-council/trackers", minimumTier: "powerbase" }
     ]
   }
 };

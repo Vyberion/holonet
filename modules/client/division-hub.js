@@ -12,7 +12,7 @@ function escapeHtml(value) {
 }
 
 function timestampFor(item, kind) {
-  if (kind === "trackers") return "";
+  if (kind === "activity" || kind === "trackers") return "";
 
   const value = {
     transmissions: item.publishedAt || item.updatedAt || item.createdAt,
@@ -37,6 +37,40 @@ function timestampFor(item, kind) {
 function renderTimestamp(item, kind) {
   const timestamp = timestampFor(item, kind);
   return timestamp ? `<span class="hub-timestamp">${escapeHtml(timestamp)}</span>` : "";
+}
+
+function itemTime(item) {
+  const value = item?.publishedAt || item?.submittedAt || item?.updatedAt || item?.createdAt || 0;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.getTime() : 0;
+}
+
+function latestItems(items = [], limit = Number.POSITIVE_INFINITY) {
+  return (items || [])
+    .slice()
+    .sort((left, right) => itemTime(right) - itemTime(left))
+    .slice(0, limit);
+}
+
+function normalizeTime(hours = 0, minutes = 0) {
+  const totalMinutes = Math.max(0, Math.floor(Number(hours) || 0) * 60 + Math.floor(Number(minutes) || 0));
+  return {
+    hours: Math.floor(totalMinutes / 60),
+    minutes: totalMinutes % 60
+  };
+}
+
+function formatDuration(totalMinutes = 0) {
+  const time = normalizeTime(0, totalMinutes);
+  return `${time.hours}h ${time.minutes}m`;
+}
+
+function totalRosterMinutes(members = []) {
+  return members.reduce((total, member) => {
+    const minutes = Number(member.minutes ?? member.totalMinutes ?? 0) || 0;
+    const hours = Number(member.hours ?? member.totalHours ?? 0) || 0;
+    return total + (hours * 60) + minutes;
+  }, 0);
 }
 
 function renderFeed(items, emptyText) {
@@ -71,7 +105,7 @@ function renderRows(items, emptyText, { kind = "", division = null } = {}) {
   return `<div class="hub-list">${items.map(item => {
     const href = resourceLink(item, kind, division);
     const isExternal = /^https?:\/\//i.test(href);
-    const target = href && isExternal && kind === "trackers" ? ' target="_blank" rel="noopener noreferrer"' : "";
+    const target = href && isExternal && kind === "activity" ? ' target="_blank" rel="noopener noreferrer"' : "";
     const openLink = href ? `<a class="hub-inline-link" href="${escapeHtml(href)}"${target}>OPEN NODE</a>` : "";
 
     return `
@@ -86,7 +120,7 @@ function renderRows(items, emptyText, { kind = "", division = null } = {}) {
 }
 
 function renderActions(items) {
-  if (!items?.length) return `<p class="hub-empty">No provisions</p>`;
+  if (!items?.length) return "";
 
   return `<div class="hub-list">${items.map(item => {
     const disabled = item.disabled ? " is-disabled" : "";
@@ -95,10 +129,36 @@ function renderActions(items) {
     return `
       <a class="hub-action${disabled}" href="${escapeHtml(href)}" aria-disabled="${item.disabled ? "true" : "false"}">
         <strong>${escapeHtml(item.label)}</strong>
-        <span class="hub-action-meta">Minimum: ${escapeHtml(item.minimumTier || "member")}</span>
       </a>
     `;
   }).join("")}</div>`;
+}
+
+function renderPanel(card, title, content) {
+  if (!content) return "";
+
+  return `
+    <section class="hub-panel" data-hub-card="${escapeHtml(card)}">
+      <h3 class="hub-panel-title">${escapeHtml(title)}</h3>
+      ${content}
+    </section>
+  `;
+}
+
+function renderActivityOverview(division) {
+  const members = Array.isArray(division.activityMembers) ? division.activityMembers : [];
+  const totalMinutes = totalRosterMinutes(members);
+
+  return `
+    <div class="hub-list">
+      <div class="hub-row">
+        <strong>Weekly Activity</strong>
+        <span>Total time across ${escapeHtml(members.length)} member${members.length === 1 ? "" : "s"}</span>
+        <p>${escapeHtml(formatDuration(totalMinutes))} recorded this week</p>
+        <a class="hub-inline-link" href="${escapeHtml(`${divisionBasePath(division)}/trackers`)}">OPEN ACTIVITY</a>
+      </div>
+    </div>
+  `;
 }
 
 function renderCouncilFloorCard(division) {
@@ -118,6 +178,22 @@ function renderCouncilFloorCard(division) {
 }
 
 function renderHub(division) {
+  const transmissions = latestItems(division.transmissions, 3);
+  const documents = latestItems(division.documents);
+  const reports = latestItems(division.reports, 1);
+  const activityTotal = formatDuration(totalRosterMinutes(division.activityMembers || []));
+  const pagesPanel = renderPanel("pages", "Pages", renderActions(division.actions));
+  const documentsPanel = documents.length
+    ? renderPanel("documents", "Documents", renderRows(documents, "No documents", { kind: "documents", division }))
+    : "";
+  const transmissionsPanel = transmissions.length
+    ? renderPanel("transmissions", "Transmission Feed", renderFeed(transmissions, "No transmissions"))
+    : "";
+  const activityPanel = renderPanel("activity", "Activity", renderActivityOverview(division));
+  const reportsPanel = reports.length
+    ? renderPanel("reports", "Reports", renderRows(reports, "No reports", { kind: "reports", division }))
+    : "";
+
   return `
     <section class="hub-shell" aria-label="${escapeHtml(division.name)} command hub">
       <div class="hub-hero">
@@ -128,7 +204,7 @@ function renderHub(division) {
           </div>
           <div>
             <span class="hub-kicker">Status</span>
-            <span class="hub-value">${escapeHtml(division.status)}</span>
+            <span class="hub-value">ACTIVE</span>
           </div>
         </div>
         <p class="hub-summary">${escapeHtml(division.description)}</p>
@@ -142,8 +218,8 @@ function renderHub(division) {
             <span class="hub-value">${division.documents?.length || 0}</span>
           </div>
           <div class="hub-status-cell">
-            <span class="hub-label">Trackers</span>
-            <span class="hub-value">${division.trackers?.length || 0}</span>
+            <span class="hub-label">Activity</span>
+            <span class="hub-value">${escapeHtml(activityTotal)}</span>
           </div>
         </div>
       </div>
@@ -152,52 +228,43 @@ function renderHub(division) {
 
       <div class="hub-grid">
         <div class="hub-column">
-          <section class="hub-panel">
-            <h3 class="hub-panel-title">Transmission Feed</h3>
-            ${renderFeed(division.transmissions, "No transmissions")}
-          </section>
-
-          <section class="hub-panel">
-            <h3 class="hub-panel-title">Documents</h3>
-            ${renderRows(division.documents, "No documents", { kind: "documents", division })}
-          </section>
+          ${documentsPanel}
+          ${transmissionsPanel}
         </div>
 
         <aside class="hub-column">
-          <section class="hub-panel">
-            <h3 class="hub-panel-title">Reports</h3>
-            ${renderRows(division.reports, "No reports", { kind: "reports", division })}
-          </section>
-
-          <section class="hub-panel">
-            <h3 class="hub-panel-title">Trackers</h3>
-            ${renderRows(division.trackers, "No trackers", { kind: "trackers", division })}
-          </section>
-
-          <section class="hub-panel">
-            <h3 class="hub-panel-title">Pages</h3>
-            ${renderActions(division.actions)}
-          </section>
+          ${pagesPanel}
+          ${activityPanel}
+          ${reportsPanel}
         </aside>
       </div>
     </section>
   `;
 }
 
+async function fetchDivisionRosterPayload(division) {
+  const response = await fetch(`/api/division-roster?division=${encodeURIComponent(division)}`);
+  const payload = await response.json();
+  if (!response.ok || !payload.ok) throw new Error(payload.reason || payload.error || "ROSTER_UNAVAILABLE");
+  return payload;
+}
+
 async function loadDivisionResourceSets(division) {
-  const [transmissions, documents, reports, trackers] = await Promise.all([
+  const [transmissions, documents, reports, trackers, rosterPayload] = await Promise.all([
     fetchDivisionResources(division.id, "transmissions"),
     fetchDivisionResources(division.id, "documents"),
     fetchDivisionResources(division.id, "reports"),
-    fetchDivisionResources(division.id, "trackers")
+    fetchDivisionResources(division.id, "trackers"),
+    fetchDivisionRosterPayload(division.id).catch(() => ({ members: [] }))
   ]);
 
   return {
     ...division,
-    transmissions,
-    documents: documents.slice().reverse(),
-    reports,
-    trackers
+    transmissions: latestItems(transmissions),
+    documents: latestItems(documents),
+    reports: latestItems(reports),
+    trackers,
+    activityMembers: rosterPayload.members || []
   };
 }
 
@@ -222,7 +289,8 @@ async function initDivisionHub() {
     transmissions: [],
     documents: [],
     reports: [],
-    trackers: []
+    trackers: [],
+    activityMembers: []
   });
 
   const hydratedDivision = await loadDivisionResourceSets(division);

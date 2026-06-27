@@ -3,9 +3,17 @@ const DEFAULT_TITLE = "Sith Holonet";
 const DEFAULT_DESCRIPTION = "Laws, lore, ranks, records and division resources for Manar's The Sith Order.";
 export const FAVICON_ICON = "/assets/favicon.ico";
 export const EMBED_IMAGE = "/assets/logo.png";
-const EMBED_IMAGE_VERSION = "3";
+const EMBED_IMAGE_VERSION = "4";
 export const EMBED_IMAGE_WIDTH = 150;
 export const EMBED_IMAGE_HEIGHT = 150;
+
+function absoluteBaseUrl(value) {
+  const url = String(value || "").trim();
+  if (!url) return "";
+
+  const absoluteUrl = url.startsWith("http") ? url : `https://${url}`;
+  return absoluteUrl.replace(/\/+$/, "");
+}
 
 export function siteUrl() {
   const url =
@@ -15,8 +23,7 @@ export function siteUrl() {
     process.env.VERCEL_URL ||
     "https://holonet.vercel.app";
 
-  const absoluteUrl = url.startsWith("http") ? url : `https://${url}`;
-  return absoluteUrl.replace(/\/+$/, "");
+  return absoluteBaseUrl(url);
 }
 
 export function versionedAssetUrl(path, version = EMBED_IMAGE_VERSION) {
@@ -30,7 +37,16 @@ export function absoluteAssetUrl(path) {
 }
 
 export function embedImageUrl() {
-  return absoluteAssetUrl(versionedAssetUrl(EMBED_IMAGE));
+  const assetOrigin = absoluteBaseUrl(
+    process.env.NEXT_PUBLIC_EMBED_ASSET_URL ||
+    process.env.NEXT_PUBLIC_ASSET_URL ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    process.env.VERCEL_BRANCH_URL ||
+    process.env.VERCEL_URL ||
+    "https://holonet.vercel.app"
+  );
+
+  return `${assetOrigin}${versionedAssetUrl(EMBED_IMAGE)}`;
 }
 
 export function holonetMetadata({ title = DEFAULT_TITLE, description = DEFAULT_DESCRIPTION } = {}) {

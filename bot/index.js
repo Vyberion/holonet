@@ -2,14 +2,26 @@ import { Client, GatewayIntentBits, Partials } from "discord.js";
 import { requireEnv } from "./config/index.js";
 import { routeInteraction } from "./commands/index.js";
 import { ephemeral, errorEmbed } from "./services/discord-ui.js";
+import { syncVerifiedRoleForLinkedUsers } from "./services/roles.js";
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
   partials: [Partials.GuildMember]
 });
 
+async function syncLinkedVerifiedRole() {
+  try {
+    const result = await syncVerifiedRoleForLinkedUsers(client);
+    console.log(`Verified role sync checked ${result.checked} linked user(s), added ${result.added}, failed ${result.failed}.`);
+  } catch (error) {
+    console.error("Verified role sync failed", error);
+  }
+}
+
 client.once("clientReady", () => {
   console.log(`Holonet bot online as ${client.user.tag}`);
+  syncLinkedVerifiedRole();
+  setInterval(syncLinkedVerifiedRole, 5 * 60 * 1000);
 });
 
 client.on("interactionCreate", async interaction => {

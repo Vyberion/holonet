@@ -201,6 +201,53 @@ export async function syncMemberRoles(member, actorDiscordId = member.id) {
   return { ...verified, added: add, removed: remove, roleIds: wanted, nickname, nicknameUpdated };
 }
 
+async function loadLinkedDiscordUserIds() {
+  const ids = [];
+  const pageSize = 1000;
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("verification_links")
+      .select("discord_user_id")
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+    ids.push(...(data || []).map(row => row.discord_user_id).filter(Boolean));
+    if (!data || data.length < pageSize) break;
+  }
+
+  return [...new Set(ids.map(String))];
+}
+
+export async function syncVerifiedRoleForLinkedUsers(client) {
+  const roleId = config.roles?.verified;
+  const guildId = config.discord?.guildId;
+  if (!roleId || !guildId) return { checked: 0, added: 0, failed: 0 };
+
+  const guild = await client.guilds.fetch(guildId);
+  const linkedDiscordIds = await loadLinkedDiscordUserIds();
+  let added = 0;
+  let failed = 0;
+
+  for (const discordUserId of linkedDiscordIds) {
+    try {
+      const member = await guild.members.fetch(discordUserId);
+      if (!member.roles.cache.has(roleId)) {
+        await member.roles.add(roleId, "Holonet verified Discord link");
+        added += 1;
+      }
+    } catch (error) {
+      failed += 1;
+      console.warn("Failed to apply verified role", {
+        discordUserId,
+        reason: error.message || String(error)
+      });
+    }
+  }
+
+  return { checked: linkedDiscordIds.length, added, failed };
+}
+
 export function divisionTierWeight(tier) {
   return { none: 0, member: 1, nco: 2, co: 3, "2ic": 4, "1ic": 5, overseer: 6 }[tier] || 0;
 }

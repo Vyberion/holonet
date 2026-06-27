@@ -26,6 +26,7 @@ const moduleLoaders = {
   "/modules/client/group-timeline.js": () => import("../../modules/client/group-timeline.js"),
   "/modules/client/site.js": async () => {
     await import("../../modules/client/intro-toggle.js");
+    await import("../../modules/client/mobile-ui-polish.js");
     await import("../../modules/client/site.js");
     return import("../../modules/client/developer-notice-delay.js");
   }

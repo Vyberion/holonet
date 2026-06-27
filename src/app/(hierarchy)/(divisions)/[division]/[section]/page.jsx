@@ -7,13 +7,18 @@ import { getDivisionByRouteSlug } from "../../../../../lib/divisions.js";
 import { holonetMetadata } from "../../../../../lib/metadata.js";
 import { HierarchyDetail } from "../../../hierarchy/HierarchyDetail.jsx";
 
+function normalizeSection(section) {
+  const normalized = String(section || "").toLowerCase();
+  return normalized === "activity" ? "trackers" : normalized;
+}
+
 function sectionTitle(section) {
   return {
     home: "Command Hub",
     handbooks: "Handbook Archive",
     transmissions: "Transmissions",
     reports: "Reports",
-    trackers: "Tracking",
+    trackers: "Activity",
     "council-floor": "Council Floor"
   }[section] || "Division";
 }
@@ -24,7 +29,7 @@ function sectionSubtitle(section) {
     handbooks: "SECURE DOCUMENT VIEWER",
     transmissions: "MESSAGE CHANNEL",
     reports: "REPORTING CHANNEL",
-    trackers: "TRACKING CHANNEL",
+    trackers: "ACTIVITY CHANNEL",
     "council-floor": "LEGISLATIVE CHANNEL"
   }[section] || "DIVISION NODE";
 }
@@ -54,7 +59,7 @@ function divisionSingularName(division) {
 export async function generateMetadata({ params }) {
   const routeParams = await params;
   const division = getDivisionByRouteSlug(routeParams.division);
-  const section = String(routeParams.section || "").toLowerCase();
+  const section = normalizeSection(routeParams.section);
 
   if (!division) return {};
   if (!["home", "info", "handbooks", "transmissions", "reports", "trackers", "council-floor"].includes(section)) return {};
@@ -89,7 +94,7 @@ export async function generateMetadata({ params }) {
     handbooks: `${singularName} handbook and guide archive.`,
     transmissions: `${singularName} transmission console.`,
     reports: `${singularName} reporting console.`,
-    trackers: `${singularName} tracking console.`
+    trackers: `${singularName} activity console.`
   };
 
   const titles = {
@@ -97,7 +102,7 @@ export async function generateMetadata({ params }) {
     handbooks: `${singularName} Handbooks`,
     transmissions: `${singularName} Transmissions`,
     reports: `${singularName} Reports`,
-    trackers: `${singularName} Tracking`
+    trackers: `${singularName} Activity`
   };
 
   return holonetMetadata({
@@ -109,7 +114,7 @@ export async function generateMetadata({ params }) {
 export default async function DivisionSectionPage({ params }) {
   const routeParams = await params;
   const division = getDivisionByRouteSlug(routeParams.division);
-  const section = String(routeParams.section || "").toLowerCase();
+  const section = normalizeSection(routeParams.section);
 
   if (!division) notFound();
   if (!["home", "info", "handbooks", "transmissions", "reports", "trackers", "council-floor"].includes(section)) notFound();

@@ -2,11 +2,28 @@
   "use strict";
 
   const STYLE_ID = "holonet-hub-layout-fixes-style";
+  const POPUP_OVERLAYS = [
+    "#resource-editor-overlay",
+    "#library-editor-overlay",
+    "#inspection-editor-overlay",
+    "#council-editor-overlay",
+    "#timeline-editor-overlay",
+    "#search-overlay",
+    "#report-view-overlay"
+  ].join(",");
+  const POPUP_SURFACES = [
+    ".resource-editor-container",
+    ".library-editor-container",
+    "#search-container",
+    ".search-container",
+    ".report-view-body"
+  ].join(",");
   const reportPageState = {
     division: "",
     reports: [],
     loading: null,
-    bound: false
+    bound: false,
+    popupGuardBound: false
   };
 
   function escapeHtml(value) {
@@ -62,6 +79,11 @@
         </tr>
       `;
     }).join("");
+  }
+
+  function hasSelection() {
+    const selection = window.getSelection?.();
+    return Boolean(selection && !selection.isCollapsed && String(selection).trim());
   }
 
   function ensureStyles() {
@@ -395,9 +417,68 @@
     });
   }
 
+  function bindPopupHighlightGuard() {
+    if (reportPageState.popupGuardBound) return;
+    reportPageState.popupGuardBound = true;
+
+    let pointer = null;
+    let suppressBackdropClick = false;
+
+    function movement(event) {
+      if (!pointer) return 0;
+      return Math.hypot((event.clientX || 0) - pointer.x, (event.clientY || 0) - pointer.y);
+    }
+
+    document.addEventListener("pointerdown", event => {
+      const overlay = event.target.closest(POPUP_OVERLAYS);
+      if (!overlay) return;
+
+      pointer = {
+        id: event.pointerId,
+        x: event.clientX || 0,
+        y: event.clientY || 0,
+        startedInsideSurface: Boolean(event.target.closest(POPUP_SURFACES))
+      };
+      suppressBackdropClick = pointer.startedInsideSurface || hasSelection();
+    }, true);
+
+    document.addEventListener("pointermove", event => {
+      if (!pointer || event.pointerId !== pointer.id) return;
+      if (movement(event) > 3) suppressBackdropClick = true;
+    }, true);
+
+    document.addEventListener("pointerup", event => {
+      if (!pointer || event.pointerId !== pointer.id) return;
+      if (movement(event) > 3 || hasSelection()) suppressBackdropClick = true;
+    }, true);
+
+    document.addEventListener("click", event => {
+      if (!event.target.matches?.(POPUP_OVERLAYS)) {
+        setTimeout(() => {
+          if (!hasSelection()) suppressBackdropClick = false;
+          pointer = null;
+        }, 0);
+        return;
+      }
+
+      const shouldBlock = suppressBackdropClick || hasSelection() || Boolean(pointer?.startedInsideSurface) || (pointer && movement(event) > 3);
+      pointer = null;
+
+      if (!shouldBlock) {
+        suppressBackdropClick = false;
+        return;
+      }
+
+      suppressBackdropClick = false;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }, true);
+  }
+
   function boot() {
     ensureStyles();
     bindReportViewerControls();
+    bindPopupHighlightGuard();
     rewriteActivityLinks();
     syncDivisionSectionStatus();
     enhanceReportsPage();

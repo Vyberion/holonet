@@ -12,12 +12,11 @@ const HANDBOOK_SLOT_DEFINITIONS = {
   inquisitors: [
     { key: "handbook", label: "Handbook", slug: "inquisitors-handbook", order: 1 },
     { key: "formations", label: "Formations", slug: "inquisitors-formations", order: 2 },
-    { key: "interrogation", label: "Interrogation", slug: "inquisitors-interrogation", order: 3 }
   ],
   dreadmasters: [
     { key: "handbook", label: "Handbook", slug: "dreadmasters-handbook", order: 1 },
     { key: "formations", label: "Formations", slug: "dreadmasters-formations", order: 2 },
-    { key: "dread-master-lore", label: "Dread Master Lore", slug: "dreadmasters-lore", order: 3 }
+    { key: "dread-master-lore", label: "Dread Archive", slug: "dreadmasters-archive", order: 3 }
   ]
 };
 

@@ -43,7 +43,8 @@ const state = {
   renderTimer: null,
   renderPromise: Promise.resolve(),
   handbookPayload: null,
-  pdfjsLib: null
+  pdfjsLib: null,
+  cropWhitespace: false
 };
 
 const dom = {};
@@ -260,6 +261,7 @@ async function hydratePdfTabsFromResources() {
       data-pdf-document-meta="${escapeHtml(resource.meta || resource.title || "HANDBOOK")}"
       data-pdf-src="${escapeHtml(resource.signedUrl || resource.href || "")}"
       data-pdf-available="${isResourceAvailable(resource) ? "true" : "false"}"
+      data-pdf-crop-whitespace="${resource.sourceType === "google_spreadsheet" || resource.googleKind === "spreadsheet" ? "true" : "false"}"
     >
       ${escapeHtml(tabLabel(resource))}
     </button>
@@ -348,6 +350,84 @@ function fitTextSpanWidth(span, item, viewport) {
   const scaleX = actualWidth > 0 ? desiredWidth / actualWidth : 1;
 
   span.style.transform = `${span.dataset.baseTransform} scaleX(${scaleX})`;
+}
+
+function isVisiblePdfPixel(data, index) {
+  const alpha = data[index + 3];
+  if (alpha <= 8) return false;
+
+  const red = data[index];
+  const green = data[index + 1];
+  const blue = data[index + 2];
+
+  return red < 248 || green < 248 || blue < 248;
+}
+
+function renderedContentBounds(canvas) {
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context || !canvas.width || !canvas.height) return null;
+
+  const { width, height } = canvas;
+  const { data } = context.getImageData(0, 0, width, height);
+  const bounds = {
+    minX: width,
+    minY: height,
+    maxX: -1,
+    maxY: -1
+  };
+
+  for (let y = 0; y < height; y += 1) {
+    const row = y * width * 4;
+
+    for (let x = 0; x < width; x += 1) {
+      if (!isVisiblePdfPixel(data, row + x * 4)) continue;
+
+      bounds.minX = Math.min(bounds.minX, x);
+      bounds.minY = Math.min(bounds.minY, y);
+      bounds.maxX = Math.max(bounds.maxX, x);
+      bounds.maxY = Math.max(bounds.maxY, y);
+    }
+  }
+
+  if (bounds.maxX < bounds.minX || bounds.maxY < bounds.minY) return null;
+
+  const padding = 2;
+  bounds.minX = Math.max(0, bounds.minX - padding);
+  bounds.minY = Math.max(0, bounds.minY - padding);
+  bounds.maxX = Math.min(width - 1, bounds.maxX + padding);
+  bounds.maxY = Math.min(height - 1, bounds.maxY + padding);
+
+  return bounds;
+}
+
+function cropRenderedCanvas(canvas, outputScale) {
+  if (!state.cropWhitespace) return { offsetX: 0, offsetY: 0 };
+
+  const bounds = renderedContentBounds(canvas);
+  if (!bounds) return { offsetX: 0, offsetY: 0 };
+
+  const cropWidth = bounds.maxX - bounds.minX + 1;
+  const cropHeight = bounds.maxY - bounds.minY + 1;
+  const removesWhitespace = cropWidth < canvas.width - 4 || cropHeight < canvas.height - 4;
+  if (!removesWhitespace) return { offsetX: 0, offsetY: 0 };
+
+  const source = document.createElement("canvas");
+  source.width = cropWidth;
+  source.height = cropHeight;
+  source
+    .getContext("2d", { alpha: false })
+    ?.drawImage(canvas, bounds.minX, bounds.minY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+  canvas.width = cropWidth;
+  canvas.height = cropHeight;
+  canvas.getContext("2d", { alpha: false })?.drawImage(source, 0, 0);
+
+  return {
+    offsetX: bounds.minX / outputScale,
+    offsetY: bounds.minY / outputScale,
+    width: cropWidth / outputScale,
+    height: cropHeight / outputScale
+  };
 }
 
 function createHighlightRect(match, span, highlightLayer, globalIndex) {
@@ -483,6 +563,20 @@ async function renderPage(pdf, pageNumber, taskId) {
 
   if (taskId !== state.taskId) return;
 
+  const crop = cropRenderedCanvas(canvas, outputScale);
+  if (crop.width && crop.height) {
+    const cropWidth = Math.ceil(crop.width);
+    const cropHeight = Math.ceil(crop.height);
+    wrapper.style.width = `${cropWidth}px`;
+    wrapper.style.height = `${cropHeight}px`;
+    canvas.style.width = `${cropWidth}px`;
+    canvas.style.height = `${cropHeight}px`;
+    textLayer.style.width = canvas.style.width;
+    textLayer.style.height = canvas.style.height;
+    highlightLayer.style.width = canvas.style.width;
+    highlightLayer.style.height = canvas.style.height;
+  }
+
   const textContent = await page.getTextContent();
   const uniqueItems = getUniqueTextItems(textContent.items);
   const items = uniqueItems.map(item => item.str || "").filter(Boolean);
@@ -501,6 +595,10 @@ async function renderPage(pdf, pageNumber, taskId) {
     const span = document.createElement("span");
     span.textContent = item.str;
     positionTextSpan(span, item, viewport);
+    if (crop.offsetX || crop.offsetY) {
+      span.style.left = `${parseFloat(span.style.left || "0") - crop.offsetX}px`;
+      span.style.top = `${parseFloat(span.style.top || "0") - crop.offsetY}px`;
+    }
     textLayer.appendChild(span);
     fitTextSpanWidth(span, item, viewport);
 
@@ -669,6 +767,7 @@ async function loadPdf(tab) {
   state.pageText = new Map();
   state.renderedPages = new Set();
   state.pageRenderPromises = new Map();
+  state.cropWhitespace = tab.dataset.pdfCropWhitespace === "true";
   disconnectPageObserver();
   clearSearchState();
 

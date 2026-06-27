@@ -4,6 +4,8 @@ import { embed, ephemeral, errorEmbed, successEmbed, textModal } from "../servic
 import { canAdjustTime, canManageBot, getVerifiedProfile, inferScope } from "../services/roles.js";
 import { supabase } from "../services/supabase.js";
 
+const VERIFY_INSTRUCTIONS = "You are not linked yet. Go to <#1046452180074381403> and click the verify button, or use `/verify`.";
+
 export const commands = [
   new SlashCommandBuilder()
     .setName("clockin")
@@ -102,6 +104,14 @@ async function doClockOut(interaction, options = {}) {
   await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked Out", `Duration: ${formatDuration(total)}${shift.adjustment_seconds ? `\nAdjustment: ${formatDuration(Math.abs(shift.adjustment_seconds))} ${shift.adjustment_seconds > 0 ? "added" : "removed"}` : ""}${shift.clockout_late ? `\nLate clock-out: ${shift.clockout_late_minutes || 0} minutes` : ""}`)] }));
 }
 
+function clockErrorMessage(error) {
+  return error?.message === "DISCORD_NOT_LINKED" ? VERIFY_INSTRUCTIONS : error?.message || "Unexpected clock error.";
+}
+
+async function replyClockError(interaction, error) {
+  await interaction.reply(ephemeral({ embeds: [errorEmbed(clockErrorMessage(error))] }));
+}
+
 async function replyShiftSummary(interaction) {
   const [shift, totals] = await Promise.all([
     activeShift(interaction.user.id),
@@ -144,7 +154,7 @@ export async function handleCommand(interaction) {
     if (interaction.options.getBoolean("late")) {
       await interaction.showModal(textModal("clockmodal:in:auto", "Late Clock-In", [{ id: "minutes", label: "How late are you? (minutes)", placeholder: "10" }]));
     } else {
-      try { await doClockIn(interaction); } catch (error) { await interaction.reply(ephemeral({ embeds: [errorEmbed(error.message)] })); }
+      try { await doClockIn(interaction); } catch (error) { await replyClockError(interaction, error); }
     }
     return true;
   }
@@ -153,7 +163,7 @@ export async function handleCommand(interaction) {
     if (interaction.options.getBoolean("late")) {
       await interaction.showModal(textModal("clockmodal:out:auto", "Late Clock-Out", [{ id: "minutes", label: "How late is this clock-out? (minutes)", placeholder: "10" }]));
     } else {
-      try { await doClockOut(interaction); } catch (error) { await interaction.reply(ephemeral({ embeds: [errorEmbed(error.message)] })); }
+      try { await doClockOut(interaction); } catch (error) { await replyClockError(interaction, error); }
     }
     return true;
   }
@@ -235,7 +245,7 @@ export async function handleButton(interaction) {
     if (action === "in") await doClockIn(interaction, { scope });
     if (action === "out") await doClockOut(interaction);
   } catch (error) {
-    await interaction.reply(ephemeral({ embeds: [errorEmbed(error.message)] }));
+    await replyClockError(interaction, error);
   }
   return true;
 }
@@ -250,7 +260,7 @@ export async function handleModal(interaction) {
       const shiftTotal = Math.max(0, Number(shift.duration_seconds || 0) + Number(shift.adjustment_seconds || 0));
       await interaction.reply(ephemeral({ embeds: [successEmbed("Time Adjusted", `${action === "add" ? "Added" : "Removed"} ${minutes} minute(s) ${targetId === interaction.user.id ? "from your shift" : `for <@${targetId}>`}.\nShift total: ${formatDuration(shiftTotal)}.`)] }));
     } catch (error) {
-      await interaction.reply(ephemeral({ embeds: [errorEmbed(error.message)] }));
+      await replyClockError(interaction, error);
     }
     return true;
   }
@@ -262,7 +272,7 @@ export async function handleModal(interaction) {
     if (action === "in") await doClockIn(interaction, { scope: scope === "auto" ? "" : scope, late: true, lateMinutes: minutes });
     if (action === "out") await doClockOut(interaction, { late: true, lateMinutes: minutes });
   } catch (error) {
-    await interaction.reply(ephemeral({ embeds: [errorEmbed(error.message)] }));
+    await replyClockError(interaction, error);
   }
   return true;
 }

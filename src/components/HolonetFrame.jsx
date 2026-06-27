@@ -5,9 +5,158 @@ import { OldGuardPlayer } from "./OldGuardPlayer.jsx";
 const alternativeIntroEnabled = HOLONET_ALTERNATIVE_INTRO_ENABLED;
 const alternativeIntroEnabledScriptValue = alternativeIntroEnabled ? "true" : "false";
 const themeClasses = ["theme-reavers", "theme-dhg", "theme-dreadmasters", "theme-inquisitors", "theme-highranks", "theme-dark-council"];
+const initialThemeTokens = {
+  default: {
+    bg: "#170609",
+    surface: "#171014",
+    panel: "rgba(22, 7, 12, 0.84)",
+    accent: "#ff3b4f",
+    accentSoft: "#d1243a",
+    accentDim: "#7a1a28",
+    accentGlow: "rgba(255, 59, 79, 0.27)",
+    bodyGlowA: "rgba(160, 0, 22, 0.08)",
+    bodyGlowB: "rgba(100, 0, 15, 0.05)",
+    wash: "rgba(192, 0, 26, 0.025)",
+    border: "#3a2a31",
+    borderHot: "#7a1a28",
+    scanline: "rgba(255, 210, 210, 0.018)"
+  },
+  "theme-reavers": {
+    bg: "#101315",
+    surface: "#171c1f",
+    panel: "rgba(18, 22, 24, 0.86)",
+    accent: "#e3e8ec",
+    accentSoft: "#aeb9c2",
+    accentDim: "#66717b",
+    accentGlow: "rgba(210, 222, 232, 0.2)",
+    bodyGlowA: "rgba(170, 184, 196, 0.045)",
+    bodyGlowB: "rgba(150, 166, 180, 0.032)",
+    wash: "rgba(210, 222, 232, 0.026)",
+    border: "#242b30",
+    borderHot: "#364048",
+    scanline: "rgba(224, 232, 238, 0.018)"
+  },
+  "theme-dhg": {
+    bg: "#170509",
+    surface: "#1f0b10",
+    panel: "rgba(28, 7, 12, 0.86)",
+    accent: "#ff2e45",
+    accentSoft: "#d1243a",
+    accentDim: "#771521",
+    accentGlow: "rgba(255, 46, 69, 0.24)",
+    bodyGlowA: "rgba(255, 46, 69, 0.065)",
+    bodyGlowB: "rgba(120, 8, 20, 0.048)",
+    wash: "rgba(255, 46, 69, 0.025)",
+    border: "#32151a",
+    borderHot: "#771521",
+    scanline: "rgba(255, 210, 210, 0.018)"
+  },
+  "theme-dreadmasters": {
+    bg: "#151108",
+    surface: "#1d180d",
+    panel: "rgba(28, 23, 10, 0.86)",
+    accent: "#f4c75e",
+    accentSoft: "#d49a2d",
+    accentDim: "#7b5d1d",
+    accentGlow: "rgba(244, 199, 94, 0.22)",
+    bodyGlowA: "rgba(244, 199, 94, 0.05)",
+    bodyGlowB: "rgba(122, 88, 22, 0.038)",
+    wash: "rgba(244, 199, 94, 0.024)",
+    border: "#342b18",
+    borderHot: "#7b5d1d",
+    scanline: "rgba(255, 210, 210, 0.018)"
+  },
+  "theme-inquisitors": {
+    bg: "#120d18",
+    surface: "#191323",
+    panel: "rgba(20, 14, 30, 0.86)",
+    accent: "#9f65ff",
+    accentSoft: "#b58aff",
+    accentDim: "#43266e",
+    accentGlow: "rgba(159, 101, 255, 0.22)",
+    bodyGlowA: "rgba(159, 101, 255, 0.052)",
+    bodyGlowB: "rgba(70, 38, 110, 0.04)",
+    wash: "rgba(159, 101, 255, 0.026)",
+    border: "#292136",
+    borderHot: "#43266e",
+    scanline: "rgba(255, 210, 210, 0.018)"
+  },
+  "theme-highranks": {
+    bg: "#170609",
+    surface: "#171014",
+    panel: "rgba(22, 7, 12, 0.84)",
+    accent: "#ff3b4f",
+    accentSoft: "#d1243a",
+    accentDim: "#7a1a28",
+    accentGlow: "rgba(255, 59, 79, 0.27)",
+    bodyGlowA: "rgba(160, 0, 22, 0.08)",
+    bodyGlowB: "rgba(100, 0, 15, 0.05)",
+    wash: "rgba(192, 0, 26, 0.05)",
+    border: "#3a2a31",
+    borderHot: "#7a1a28",
+    scanline: "rgba(255, 210, 210, 0.018)"
+  },
+  "theme-dark-council": {
+    bg: "#14110e",
+    surface: "#1c1814",
+    panel: "rgba(22, 19, 16, 0.86)",
+    accent: "#a89786",
+    accentSoft: "#c0ab98",
+    accentDim: "#4d4136",
+    accentGlow: "rgba(168, 151, 134, 0.2)",
+    bodyGlowA: "rgba(168, 151, 134, 0.04)",
+    bodyGlowB: "rgba(84, 66, 50, 0.034)",
+    wash: "rgba(168, 151, 134, 0.022)",
+    border: "#2c2824",
+    borderHot: "#4d4136",
+    scanline: "rgba(255, 210, 210, 0.018)"
+  }
+};
 
 function initialThemeScriptValue(theme) {
   return JSON.stringify(themeClasses.includes(theme) ? theme : "");
+}
+
+function initialThemeCssValue(theme) {
+  const tokens = initialThemeTokens[theme] || initialThemeTokens.default;
+  return `
+    html, body {
+      background: ${tokens.bg};
+    }
+
+    body {
+      --division-accent: ${tokens.accent};
+      --division-accent-dim: ${tokens.accentDim};
+      --division-accent-glow: ${tokens.accentGlow};
+      --division-panel: ${tokens.panel};
+      --theme-bg: ${tokens.bg};
+      --theme-surface: ${tokens.surface};
+      --theme-panel: ${tokens.panel};
+      --theme-accent: ${tokens.accent};
+      --theme-accent-soft: ${tokens.accentSoft};
+      --theme-accent-dim: ${tokens.accentDim};
+      --theme-accent-glow: ${tokens.accentGlow};
+      --theme-border-hot: ${tokens.borderHot};
+      --theme-body-glow-a: ${tokens.bodyGlowA};
+      --theme-body-glow-b: ${tokens.bodyGlowB};
+      --theme-wash: ${tokens.wash};
+      --border: ${tokens.border};
+      --border-hot: ${tokens.borderHot};
+      --scanline: ${tokens.scanline};
+    }
+
+    #loader {
+      background: ${tokens.bg};
+      color: ${tokens.accent};
+    }
+
+    #loader .loader-logo,
+    #loader .loader-logo * {
+      color: ${tokens.accent};
+      fill: currentColor;
+      filter: drop-shadow(0 0 14px ${tokens.accentGlow});
+    }
+  `;
 }
 
 export function HolonetFrame({
@@ -27,6 +176,7 @@ export function HolonetFrame({
 }) {
   return (
     <>
+      <style id="holonet-initial-theme" dangerouslySetInnerHTML={{ __html: initialThemeCssValue(theme) }} />
       <div id="vignette" aria-hidden="true" />
       <div id="rune-field" aria-hidden="true" />
       <div id="holo-grid" aria-hidden="true" />

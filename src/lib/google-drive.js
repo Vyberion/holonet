@@ -113,6 +113,9 @@ export function googlePdfExportUrl(fileId, { tabId = "", sourceUrl = "", fileKin
   }
 
   const kind = fileKind || googleWorkspaceKindFromUrl(sourceUrl);
+  const isSpreadsheet = kind === "spreadsheet";
+  const isPresentation = kind === "presentation";
+  const isDocument = kind === "document";
   const exportUrl = kind === "presentation"
     ? new URL(`https://docs.google.com/presentation/d/${encodeURIComponent(id)}/export/pdf`)
     : kind === "spreadsheet"
@@ -121,9 +124,9 @@ export function googlePdfExportUrl(fileId, { tabId = "", sourceUrl = "", fileKin
     ? new URL(`https://docs.google.com/document/d/${encodeURIComponent(id)}/export`)
     : new URL(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}/export`);
 
-  if (kind === "presentation") {
+  if (isPresentation) {
     exportUrl.searchParams.set("id", id);
-  } else if (kind === "spreadsheet") {
+  } else if (isSpreadsheet) {
     exportUrl.searchParams.set("format", "pdf");
     exportUrl.searchParams.set("portrait", "false");
     exportUrl.searchParams.set("fitw", "true");
@@ -132,8 +135,12 @@ export function googlePdfExportUrl(fileId, { tabId = "", sourceUrl = "", fileKin
     exportUrl.searchParams.set("pagenumbers", "false");
     exportUrl.searchParams.set("gridlines", "false");
     exportUrl.searchParams.set("fzr", "false");
+    exportUrl.searchParams.set("top_margin", "0");
+    exportUrl.searchParams.set("bottom_margin", "0");
+    exportUrl.searchParams.set("left_margin", "0");
+    exportUrl.searchParams.set("right_margin", "0");
     if (tabId) exportUrl.searchParams.set("gid", tabId);
-  } else if (tabId || kind === "document") {
+  } else if (tabId || isDocument) {
     exportUrl.searchParams.set("format", "pdf");
     if (tabId) exportUrl.searchParams.set("tab", tabId);
   } else {

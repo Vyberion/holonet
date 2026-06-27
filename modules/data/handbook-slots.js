@@ -16,7 +16,6 @@ const HANDBOOK_SLOT_DEFINITIONS = {
   dreadmasters: [
     { key: "handbook", label: "Handbook", slug: "dreadmasters-handbook", order: 1 },
     { key: "formations", label: "Formations", slug: "dreadmasters-formations", order: 2 },
-    { key: "dread-master-lore", label: "Dread Archive", slug: "dreadmasters-archive", order: 3 }
   ]
 };
 

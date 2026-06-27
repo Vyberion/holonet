@@ -91,17 +91,17 @@ async function initRegistryDirectory() {
 
   if (overview) {
     if (overviewAccess) {
-      overview.dataset.href = "/nexus";
+      overview.dataset.href = "/reports";
       const enter = overview.querySelector(".dir-card-enter");
       if (enter) {
-        enter.href = "/nexus";
+        enter.href = "/reports";
         enter.textContent = "OPEN DATABASE >>";
         enter.setAttribute("aria-hidden", "false");
         enter.setAttribute("aria-disabled", "false");
         enter.tabIndex = 0;
       }
     } else {
-      lockCard(overview, "Overview - access denied");
+      lockCard(overview, "Reports - access denied");
     }
   }
 

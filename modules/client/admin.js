@@ -1,5 +1,5 @@
 (function () {
-  const ACTIVITY_PAGE_SIZE = 10;
+  const ACTIVITY_PAGE_SIZE = 20;
   const SCOPE_PRESETS = [
     ["", "Select preset"],
     ["capability:admin", "Capability / admin"],
@@ -159,7 +159,7 @@
         </select>
         <span class="resource-editor-status">${escapeHtml(activity.totalApprox || 0)} item(s)</span>
       </div>
-      ${items.length ? `<div class="hub-list">${items.map(item => `
+      ${items.length ? `<div class="hub-list admin-activity-list" data-activity-count="${escapeHtml(items.length)}">${items.map(item => `
         <article class="hub-row">
           <strong>${escapeHtml(item.title)}</strong>
           <span>${escapeHtml(item.source)} / ${escapeHtml(item.type)} / ${escapeHtml(item.scope || "global")}</span>

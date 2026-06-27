@@ -5,23 +5,15 @@ export default function AdminPage() {
   return (
     <HolonetFrame title="ADMIN" subtitle="ADMIN CONSOLE">
       <div data-admin-root className="hub-shell">
-        <div className="hub-hero">
-          <div className="hub-identity">
-            <div>
-              <span className="hub-kicker">Administrative Node</span>
-              <h2 className="hub-title">Admin Console</h2>
-            </div>
-            <div>
-              <span className="hub-kicker">Access</span>
-              <span className="hub-value">Restricted</span>
-            </div>
+        <div className="hub-layout admin-masonry-layout">
+          <div className="admin-masonry-column">
+            <section className="hub-panel" id="admin-overrides" />
+            <section className="hub-panel" id="admin-counts" />
+            <section className="hub-panel" id="admin-health" />
           </div>
-        </div>
-        <div className="hub-layout">
-          <section className="hub-panel" id="admin-overrides" />
-          <section className="hub-panel" id="admin-activity" />
-          <section className="hub-panel" id="admin-counts" />
-          <section className="hub-panel" id="admin-health" />
+          <div className="admin-masonry-column">
+            <section className="hub-panel" id="admin-activity" />
+          </div>
         </div>
       </div>
 
@@ -39,6 +31,13 @@ export default function AdminPage() {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 12px;
+        }
+
+        [data-admin-root] .admin-masonry-column {
+          align-content: start;
+          display: grid;
+          gap: 12px;
+          min-width: 0;
         }
 
         [data-admin-root] #admin-overrides,

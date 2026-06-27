@@ -37,7 +37,7 @@
       if (!username) return;
 
       form.username.value = username;
-      status.textContent = "Consulting...";
+      status.textContent = "Querying";
 
       try {
         const response = await fetch("/api/personnel-lookup", {

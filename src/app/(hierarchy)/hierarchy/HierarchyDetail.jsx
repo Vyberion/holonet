@@ -1,6 +1,55 @@
 import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../../components/PageScripts.jsx";
 
+const SPECIAL_RANK_NEXT = {
+  "sith-adept": [
+    {
+      href: "/middle-ranks/sith-sorcerer",
+      name: "Sorcerer",
+      navLabel: "Lore Path",
+      metaLabel: "Next Rank ››"
+    },
+    {
+      href: "/middle-ranks/sith-warrior",
+      name: "Warrior",
+      navLabel: "Combat Path",
+      metaLabel: "Next Rank ››"
+    }
+  ],
+  "sith-sorcerer": [
+    {
+      href: "/middle-ranks/sith-seer",
+      name: "Seer",
+      navLabel: "Next Rank",
+      metaLabel: "Lore Path ››"
+    }
+  ],
+  "sith-warrior": [
+    {
+      href: "/middle-ranks/sith-marauder",
+      name: "Marauder",
+      navLabel: "Next Rank",
+      metaLabel: "Combat Path ››"
+    }
+  ],
+  "sith-seer": [
+    {
+      href: "/high-ranks/sith-overseer",
+      name: "Overseer",
+      navLabel: "Next Rank",
+      metaLabel: "High Rank ››"
+    }
+  ],
+  "sith-marauder": [
+    {
+      href: "/high-ranks/sith-overseer",
+      name: "Overseer",
+      navLabel: "Next Rank",
+      metaLabel: "High Rank ››"
+    }
+  ]
+};
+
 function renderParagraphs(value) {
   return String(value || "")
     .split(/\n{2,}/)
@@ -15,25 +64,27 @@ function normalizeImageSrc(src) {
 }
 
 function RankNavLink({ direction, item }) {
-  const label = direction === "previous" ? "Previous Rank" : "Next Rank";
+  const label = item.navLabel || (direction === "previous" ? "Previous Rank" : "Next Rank");
   const arrow = direction === "previous" ? "‹‹" : "››";
+  const meta = item.metaLabel || `${item.category || item.groupTitle} ${arrow}`;
 
   return (
     <a className={`hierarchy-rank-nav-link hierarchy-rank-nav-link--${direction}`} href={item.href}>
       <span className="hierarchy-rank-nav-kicker">{label}</span>
       <strong className="hierarchy-rank-nav-name">{item.name}</strong>
-      <span className="hierarchy-rank-nav-meta">{item.category || item.groupTitle} {arrow}</span>
+      <span className="hierarchy-rank-nav-meta">{meta}</span>
     </a>
   );
 }
 
-function HierarchyRankNav({ nav }) {
-  if (!nav?.previous && !nav?.next) return null;
+function HierarchyRankNav({ nav, item }) {
+  const nextItems = SPECIAL_RANK_NEXT[item?.slug] || (nav?.next ? [nav.next] : []);
+  if (!nav?.previous && !nextItems.length) return null;
 
   return (
     <nav className="hierarchy-rank-nav" aria-label="Rank progression">
-      {nav.previous ? <RankNavLink direction="previous" item={nav.previous} /> : null}
-      {nav.next ? <RankNavLink direction="next" item={nav.next} /> : null}
+      {nav?.previous ? <RankNavLink direction="previous" item={nav.previous} /> : null}
+      {nextItems.map(next => <RankNavLink direction="next" item={next} key={next.href} />)}
     </nav>
   );
 }
@@ -81,7 +132,7 @@ export function HierarchyDetail({ item, guarded = false, rankNav = null }) {
               </div>
             )}
           </div>
-          <HierarchyRankNav nav={rankNav} />
+          <HierarchyRankNav nav={rankNav} item={item} />
         </article>
       </div>
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} guarded={guarded} />

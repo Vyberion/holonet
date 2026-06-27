@@ -8,7 +8,6 @@ const moduleLoaders = {
   "/modules/client/account.js": () => import("../../modules/client/account.js"),
   "/modules/client/admin.js": () => import("../../modules/client/admin.js"),
   "/modules/client/archive-map.js": () => import("../../modules/client/archive-map.js"),
-  "/modules/client/board.js": () => import("../../modules/client/board.js"),
   "/modules/client/council-floor.js": () => import("../../modules/client/council-floor.js"),
   "/modules/client/division-hub.js": () => import("../../modules/client/division-hub.js"),
   "/modules/client/division-section.js": () => import("../../modules/client/division-section.js"),
@@ -27,6 +26,10 @@ const moduleLoaders = {
   "/modules/client/group-timeline.js": () => import("../../modules/client/group-timeline.js"),
   "/modules/client/site.js": async () => {
     await import("../../modules/client/intro-toggle.js");
+    await import("../../modules/client/mobile-ui-polish.js");
+    await import("../../modules/client/mobile-icon-colour.js");
+    await import("../../modules/client/hub-layout-fixes.js");
+    await import("../../modules/client/hub-latest-tweaks.js");
     await import("../../modules/client/site.js");
     return import("../../modules/client/developer-notice-delay.js");
   }
@@ -39,7 +42,6 @@ function runModuleInit(modulePath) {
     "/modules/client/account.js": () => window.initHolonetAccount?.(),
     "/modules/client/admin.js": () => window.initHolonetAdmin?.(),
     "/modules/client/archive-map.js": () => window.initHolonetArchiveMap?.(),
-    "/modules/client/board.js": () => window.initHolonetBoard?.(),
     "/modules/client/council-floor.js": () => window.initHolonetCouncilFloor?.(),
     "/modules/client/personnel.js": () => window.initHolonetPersonnel?.(),
     "/modules/client/registry-directory.js": () => window.initHolonetRegistryDirectory?.(),

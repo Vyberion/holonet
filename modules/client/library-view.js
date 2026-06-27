@@ -363,9 +363,9 @@ async function initLibraryView() {
     const items = archiveMode ? (payload.articles || payload.documents || []) : (payload.documents || []);
 
     mount.innerHTML = `
-      ${archiveMode && payload.canEdit ? `
+      ${payload.canEdit ? `
         <div class="codex-toolbar">
-          <button type="button" class="hub-write-btn" data-library-new>WRITE ARTICLE</button>
+          <button type="button" class="hub-write-btn" data-library-new>${archiveMode ? "WRITE ARTICLE" : "WRITE ARTICLE"}</button>
         </div>
       ` : ""}
       ${items.map((documentData, index) => archiveMode
@@ -406,21 +406,22 @@ async function initLibraryView() {
       workingDocument.articleNumber = archiveMode
         ? `ARTICLE ${articleNumber}`
         : workingDocument.articleNumber || `ARTICLE ${toRoman(articleNumber)}`;
-      workingDocument.title = archiveMode ? data.title || "" : workingDocument.title || "";
+      workingDocument.title = data.title || workingDocument.title || "";
       workingDocument.status = "published";
       workingDocument.displayOrder = articleNumber;
       if (archiveMode) {
         workingDocument.label = data.label || "Archive Entry";
         workingDocument.body = data.body || "";
         workingDocument.imagePath = data.imagePath || "";
-        workingDocument.imageAlt = data.imageAlt || "";
+        workingDocument.imageAlt = data.title || "";
       } else {
         workingDocument.entries = workingDocument.entries.map((entry, index) => ({
           anchor: generatedAnchor(articleNumber, Number(data[`entry-number-${index}`]) || index + 1),
-         label: labelForRegulation(Number(data[`entry-number-${index}`]) || index + 1),
+          label: labelForRegulation(Number(data[`entry-number-${index}`]) || index + 1),
           body: data[`entry-body-${index}`] || entry.body || "",
           subClauses: normalizeLineClauses(data[`entry-sub-${index}`] || ""),
-          displayOrder: Number(data[`entry-number-${index}`]) || index + 1
+          displayOrder: Number(data[`entry-number-${index}`]) || index + 1,
+          originalDisplayOrder: Number(entry.originalDisplayOrder || entry.displayOrder) || index + 1
         }));
       }
     }
@@ -428,7 +429,7 @@ async function initLibraryView() {
      function renderForm() {
       title.textContent = archiveMode
         ? `${workingDocument.id ? "EDIT" : "WRITE"} ARCHIVE ARTICLE`
-        : "EDIT CODEX REGULATIONS";
+        : `${workingDocument.id ? "EDIT" : "WRITE"} CODEX ARTICLE`;
 
       if (archiveMode) {
         form.innerHTML = `
@@ -451,12 +452,8 @@ async function initLibraryView() {
                 <input name="imagePath" value="${escapeHtml(workingDocument.imagePath || "")}" placeholder="archives/example.png">
               </div>
               <div class="resource-editor-field">
-                <label>Image Alt</label>
-                <input name="imageAlt" value="${escapeHtml(workingDocument.imageAlt || "")}">
-              </div>
-              <div class="resource-editor-field">
                 <label>Article Number</label>
-                <input type="number" min="1" max="13" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}" required>
+                <input type="number" min="1" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}" required>
               </div>
             </section>
           </div>
@@ -474,11 +471,16 @@ async function initLibraryView() {
       form.innerHTML = `
         <input type="hidden" name="id" value="${escapeHtml(workingDocument.id || "")}">
         <input type="hidden" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}">
+        <div class="resource-editor-field">
+          <label>Article Title</label>
+          <input name="title" value="${escapeHtml(workingDocument.title || "")}" required>
+        </div>
         <div class="library-entry-stack">
           ${workingDocument.entries.map((entry, index) => formEntryMarkup(entry, index)).join("")}
         </div>
         <div class="library-editor-buttons">
           <button type="button" class="library-inline-btn" data-library-add-entry>ADD REGULATION</button>
+          ${workingDocument.id ? `<button type="button" class="library-inline-btn danger" data-library-delete>DELETE ARTICLE</button>` : ""}
         </div>
       `;
     }
@@ -488,24 +490,24 @@ async function initLibraryView() {
     overlay.classList.add("active");
 
     form.onclick = async event => {
-      if (archiveMode) {
-       const destroy = event.target.closest("[data-library-delete]");
-        if (destroy && workingDocument.id) {
-          if (!window.confirm("Delete this archive article?")) return;
+      const destroy = event.target.closest("[data-library-delete]");
+      if (destroy && workingDocument.id) {
+        if (!window.confirm("Are you sure you want to delete this article?")) return;
 
-          try {
-            status.textContent = "Deleting...";
-            await deleteLibraryDocument(libraryKey, workingDocument.id);
-            payload = await refreshLibraryPayload(libraryKey);
-            render();
-            status.textContent = "Deleted";
-            setTimeout(() => overlay.classList.remove("active"), 150);
-          } catch (error) {
-            status.textContent = error.message.replace(/_/g, " ");
-          }
+        try {
+          status.textContent = "Deleting...";
+          await deleteLibraryDocument(libraryKey, workingDocument.id);
+          payload = await refreshLibraryPayload(libraryKey);
+          render();
+          status.textContent = "Deleted";
+          setTimeout(() => overlay.classList.remove("active"), 150);
+        } catch (error) {
+          status.textContent = error.message.replace(/_/g, " ");
         }
         return;
       }
+
+      if (archiveMode) return;
 
       const add = event.target.closest("[data-library-add-entry]");
       if (add) {
@@ -517,6 +519,8 @@ async function initLibraryView() {
 
       const remove = event.target.closest("[data-library-remove-entry]");
       if (remove) {
+        if (!window.confirm("Are you sure you want to delete this regulation?")) return;
+
         syncWorkingDocumentFromForm();
         workingDocument.entries.splice(Number(remove.dataset.libraryRemoveEntry), 1);
         renderForm();
@@ -537,19 +541,21 @@ async function initLibraryView() {
           title: data.title,
           body: data.body,
           imagePath: data.imagePath,
-          imageAlt: data.imageAlt,
+          imageAlt: data.title,
           status: "published",
           displayOrder: articleNumber
         } : {
           id: data.id,
           articleNumber: `ARTICLE ${toRoman(articleNumber)}`,
+          title: data.title,
           displayOrder: articleNumber,
           entries: workingDocument.entries.map((entry, index) => ({
             anchor: generatedAnchor(articleNumber, Number(data[`entry-number-${index}`]) || index + 1),
             label: labelForRegulation(Number(data[`entry-number-${index}`]) || index + 1),
             body: data[`entry-body-${index}`] || entry.body,
             subClauses: normalizeLineClauses(data[`entry-sub-${index}`] || ""),
-            displayOrder: Number(data[`entry-number-${index}`]) || index + 1
+            displayOrder: Number(data[`entry-number-${index}`]) || index + 1,
+            originalDisplayOrder: Number(entry.originalDisplayOrder || entry.displayOrder) || index + 1
           })).filter(entry => entry.body)
         };
 
@@ -568,7 +574,7 @@ async function initLibraryView() {
   render();
 
   mount.addEventListener("click", event => {
-    if (archiveMode && event.target.closest("[data-library-new]")) {
+    if (event.target.closest("[data-library-new]")) {
       event.preventDefault();
       event.stopImmediatePropagation();
       event.stopPropagation();

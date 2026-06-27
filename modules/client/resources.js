@@ -72,3 +72,17 @@ export async function saveDivisionResource(division, type, data) {
   resourcePayloadCache.delete(resourceCacheKey(division, type));
   return payload;
 }
+
+export async function deleteDivisionResource(division, type, id) {
+  const response = await fetch(`/api/resources?division=${encodeURIComponent(division)}&type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`, {
+    method: "DELETE"
+  });
+
+  const payload = await response.json();
+  if (!response.ok || !payload.ok) {
+    throw new Error(payload.reason || payload.error || "DELETE_FAILED");
+  }
+
+  resourcePayloadCache.delete(resourceCacheKey(division, type));
+  return payload;
+}

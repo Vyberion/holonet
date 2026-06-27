@@ -1,7 +1,7 @@
 export default {
   discord: {
     clientId: "DISCORD_CLIENT_ID",
-    guildId: "DISCORD_GUILD_ID"
+    guildId: "1046437795465539604"
   },
   holonet: {
     baseUrl: "https://holonet.vercel.app"

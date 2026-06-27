@@ -44,6 +44,12 @@ function requireString(value, fallback = "") {
   return String(value ?? fallback).trim();
 }
 
+function authAuthorName(auth) {
+  const user = auth?.user || {};
+  const fallback = auth?.profile?.isSuperUser ? "Preview Operator" : "";
+  return requireString(user.roblox_username || user.roblox_display_name || user.roblox_id, fallback);
+}
+
 function slugify(value) {
   return requireString(value)
     .toLowerCase()
@@ -94,7 +100,7 @@ function articleOrderFrom(value, fallback = 1) {
       ? fallbackNumber
       : 1;
 
-  return Math.max(1, Math.min(13, Math.floor(order)));
+  return Math.max(1, Math.floor(order));
 }
 
 function regulationOrderFrom(entry, index) {
@@ -108,6 +114,99 @@ function regulationOrderFrom(entry, index) {
 
 function regulationAnchor(articleOrder, regulationOrder) {
   return `reg-${String(articleOrder).padStart(2, "0")}-${String(regulationOrder).padStart(2, "0")}`;
+}
+
+function withIncrementedOrder(row, orderColumn = "display_order") {
+  return {
+    [orderColumn]: (Number(row?.[orderColumn]) || 0) + 1
+  };
+}
+
+async function shiftDisplayOrders({ table, targetOrder, scope = "", excludeId = "" }) {
+  const order = Number(targetOrder);
+  if (!Number.isFinite(order) || order < 1) return;
+
+  const scopeFilter = scope ? `${scope}&` : "";
+  const excludeFilter = excludeId ? `&id=neq.${encodeURIComponent(excludeId)}` : "";
+  const rows = await supabaseRest(
+    `${table}?${scopeFilter}display_order=gte.${encodeURIComponent(order)}${excludeFilter}&select=id,display_order&order=display_order.desc`
+  );
+
+  for (const row of rows || []) {
+    await supabaseRest(`${table}?id=eq.${encodeURIComponent(row.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(withIncrementedOrder(row))
+    });
+  }
+}
+
+async function shiftLibraryDocumentOrders(libraryKey, targetOrder, excludeId = "") {
+  const order = Number(targetOrder);
+  if (!Number.isFinite(order) || order < 1) return;
+
+  const excludeFilter = excludeId ? `&id=neq.${encodeURIComponent(excludeId)}` : "";
+  const rows = await supabaseRest(
+    `library_documents?library_key=eq.${encodeURIComponent(libraryKey)}&display_order=gte.${encodeURIComponent(order)}${excludeFilter}&select=id,display_order&order=display_order.desc`
+  );
+
+  for (const row of rows || []) {
+    const displayOrder = (Number(row?.display_order) || 0) + 1;
+    await supabaseRest(`library_documents?id=eq.${encodeURIComponent(row.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        display_order: displayOrder,
+        article_number: `ARTICLE ${toRoman(displayOrder)}`
+      })
+    });
+  }
+}
+
+function insertAtDisplayOrder(items, item, targetOrder) {
+  const order = Math.max(1, Math.floor(Number(targetOrder) || 1));
+
+  items.forEach(existing => {
+    if ((Number(existing.displayOrder) || 0) >= order) {
+      existing.displayOrder = (Number(existing.displayOrder) || 0) + 1;
+    }
+  });
+
+  item.displayOrder = order;
+  items.push(item);
+}
+
+function resolveEntryDisplayOrders(entries = []) {
+  const normalized = entries.map((entry, index) => {
+    const requestedOrder = regulationOrderFrom(entry, index);
+    const originalOrder = Number(entry?.originalDisplayOrder);
+
+    return {
+      entry,
+      index,
+      requestedOrder,
+      originalOrder: Number.isFinite(originalOrder) && originalOrder > 0
+        ? Math.floor(originalOrder)
+        : requestedOrder,
+      displayOrder: requestedOrder
+    };
+  });
+
+  const resolved = [];
+  const changed = [];
+
+  normalized.forEach(item => {
+    if (item.originalOrder === item.requestedOrder) {
+      resolved.push(item);
+      return;
+    }
+
+    changed.push(item);
+  });
+
+  changed.forEach(item => {
+    insertAtDisplayOrder(resolved, item, item.requestedOrder);
+  });
+
+  return resolved.sort((left, right) => left.index - right.index);
 }
 
 function isMissingSchemaError(error) {
@@ -454,6 +553,7 @@ async function writeArchiveArticle(body) {
   const id = requireString(body.id);
   const title = requireString(body.title);
   const articleBody = requireString(body.body);
+  const articleOrder = articleOrderFrom(body.articleNumber || body.displayOrder);
 
   if (!title || !articleBody) {
     return { ok: false, status: 400, payload: { ok: false, reason: "ARTICLE_FIELDS_REQUIRED" } };
@@ -467,13 +567,18 @@ async function writeArchiveArticle(body) {
     image_path: requireString(body.imagePath),
     image_alt: requireString(body.imageAlt || title),
     status: ["draft", "published", "archived"].includes(body.status) ? body.status : "published",
-    display_order: articleOrderFrom(body.articleNumber || body.displayOrder),
+    display_order: articleOrder,
     updated_at: new Date().toISOString()
   };
 
   let article = { id };
 
   if (id) {
+    const [existing] = await supabaseRest(`archive_articles?id=eq.${encodeURIComponent(id)}&select=id,display_order`).catch(() => []);
+    if ((Number(existing?.display_order) || 0) !== articleOrder) {
+      await shiftDisplayOrders({ table: "archive_articles", targetOrder: articleOrder, excludeId: id });
+    }
+
     await supabaseRest(`archive_articles?id=eq.${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: JSON.stringify(payload)
@@ -482,6 +587,8 @@ async function writeArchiveArticle(body) {
     const [stored] = await supabaseRest(`archive_articles?id=eq.${encodeURIComponent(id)}&select=id,slug`);
     article = stored || article;
   } else {
+    await shiftDisplayOrders({ table: "archive_articles", targetOrder: articleOrder });
+
     const [created] = await supabaseRest(
       "archive_articles?on_conflict=slug&select=id,slug",
       {
@@ -628,6 +735,11 @@ async function writeLibraryDocument(libraryKey, body) {
   let document = { id: documentId };
 
   if (documentId) {
+    const [existing] = await supabaseRest(`library_documents?id=eq.${encodeURIComponent(documentId)}&select=id,display_order`).catch(() => []);
+    if ((Number(existing?.display_order) || 0) !== articleOrder) {
+      await shiftLibraryDocumentOrders(libraryKey, articleOrder, documentId);
+    }
+
     await supabaseRest(`library_documents?id=eq.${encodeURIComponent(documentId)}`, {
       method: "PATCH",
       body: JSON.stringify(documentPayload)
@@ -636,6 +748,8 @@ async function writeLibraryDocument(libraryKey, body) {
     const [stored] = await supabaseRest(`library_documents?id=eq.${encodeURIComponent(documentId)}&select=id,slug`);
     document = stored || document;
   } else {
+    await shiftLibraryDocumentOrders(libraryKey, articleOrder);
+
     const [createdDocument] = await supabaseRest(
       "library_documents?on_conflict=library_key,slug&select=id,slug",
       {
@@ -653,11 +767,12 @@ async function writeLibraryDocument(libraryKey, body) {
   });
 
   const entries = Array.isArray(body.entries) ? body.entries : [];
-  if (entries.length) {
+  const orderedEntries = resolveEntryDisplayOrders(entries);
+  if (orderedEntries.length) {
     await supabaseRest("library_entries", {
       method: "POST",
-      body: JSON.stringify(entries.map((entry, index) => {
-        const regulationOrder = regulationOrderFrom(entry, index);
+      body: JSON.stringify(orderedEntries.map(({ entry, displayOrder }, index) => {
+        const regulationOrder = displayOrder || regulationOrderFrom(entry, index);
         return {
           document_id: document.id,
           anchor: regulationAnchor(articleOrder, regulationOrder),
@@ -1117,7 +1232,7 @@ function reportTotals(members) {
 }
 
 function reportMemberRows(reportId, members = []) {
-  return members.map((member, index) => ({
+  return members.filter(Boolean).map((member, index) => ({
     report_id: reportId,
     roblox_id: requireString(member.robloxId),
     username: requireString(member.username),
@@ -1130,6 +1245,25 @@ function reportMemberRows(reportId, members = []) {
     events_attended: Math.max(0, Number(member.eventsAttended) || 0),
     display_order: index
   })).filter(row => row.roblox_id);
+}
+
+function normalizeIncomingReportMember(member) {
+  if (!member || typeof member !== "object") return null;
+
+  const robloxId = requireString(member.robloxId || member.roblox_id || member["roblox id"]);
+  if (!robloxId) return null;
+
+  return {
+    robloxId,
+    username: requireString(member.username),
+    displayName: requireString(member.displayName || member.display_name || member["display name"]),
+    rank: Number(member.rank) || 0,
+    role: requireString(member.role),
+    hours: Math.max(0, Number(member.hours) || 0),
+    minutes: Math.max(0, Number(member.minutes) || 0),
+    eventsHosted: Math.max(0, Number(member.eventsHosted || member.events_hosted || member["events hosted"]) || 0),
+    eventsAttended: Math.max(0, Number(member.eventsAttended || member.events_attended || member["events attended"]) || 0)
+  };
 }
 
 async function replaceWeeklyReportMembers(reportId, members = []) {
@@ -1158,17 +1292,9 @@ async function writeWeeklyReport(auth, body) {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
   }
 
-  const members = Array.isArray(body.members) ? body.members.map(member => ({
-    robloxId: requireString(member.robloxId),
-    username: requireString(member.username),
-    displayName: requireString(member.displayName),
-    rank: Number(member.rank) || 0,
-    role: requireString(member.role),
-    hours: Math.max(0, Number(member.hours) || 0),
-    minutes: Math.max(0, Number(member.minutes) || 0),
-    eventsHosted: Math.max(0, Number(member.eventsHosted) || 0),
-    eventsAttended: Math.max(0, Number(member.eventsAttended) || 0)
-  })).filter(member => member.robloxId) : [];
+  const members = Array.isArray(body.members)
+    ? body.members.map(normalizeIncomingReportMember).filter(Boolean)
+    : [];
 
   const weekStart = requireString(body.weekStart || body.week_start) || new Date().toISOString().slice(0, 10);
   const id = requireString(body.id);
@@ -1368,6 +1494,7 @@ async function writeResource({ division, resourceType, detailTable, body, author
   const now = new Date().toISOString();
   const slug = slugify(body.slug || title);
   const status = ["draft", "published", "archived"].includes(body.status) ? body.status : "published";
+  const visibility = ["public", "restricted", "private"].includes(body.visibility) ? body.visibility : "restricted";
   const resourceId = requireString(body.id);
   const parentDescription = requireString(body.body || body.summary || body.notes || title);
 
@@ -1378,7 +1505,7 @@ async function writeResource({ division, resourceType, detailTable, body, author
     title,
     description: parentDescription,
     access_key: requireString(body.accessKey || `${division}_${resourceType}s`),
-    visibility: ["public", "restricted", "private"].includes(body.visibility) ? body.visibility : "restricted",
+    visibility,
     status,
     display_order: Number.isFinite(Number(body.displayOrder)) ? Number(body.displayOrder) : 0,
     updated_at: now
@@ -1406,7 +1533,7 @@ async function writeResource({ division, resourceType, detailTable, body, author
         resource_id: resource.id,
         author_name: authorName,
         body: requireString(body.body),
-        published_at: body.status === "published" ? new Date().toISOString() : null
+        published_at: status === "published" ? new Date().toISOString() : null
       };
     }
 
@@ -1436,6 +1563,28 @@ async function writeResource({ division, resourceType, detailTable, body, author
   });
 
   return { ok: true, status: 200, payload: { ok: true, id: resource.id } };
+}
+
+async function deleteResource({ division, resourceType, detailTable, id }) {
+  const resourceId = requireString(id);
+  if (!resourceId) {
+    return { ok: false, status: 400, payload: { ok: false, reason: "RESOURCE_ID_REQUIRED" } };
+  }
+
+  const [resource] = await supabaseRest(
+    `registry_resources?id=eq.${encodeURIComponent(resourceId)}&division_key=eq.${encodeURIComponent(division)}&resource_type=eq.${encodeURIComponent(resourceType)}&select=id`
+  );
+  if (!resource?.id) {
+    return { ok: false, status: 404, payload: { ok: false, reason: "RESOURCE_NOT_FOUND" } };
+  }
+
+  await supabaseRest(`${detailTable}?resource_id=eq.${encodeURIComponent(resourceId)}`, {
+    method: "DELETE"
+  });
+
+  await supabaseRest(`registry_resources?id=eq.${encodeURIComponent(resourceId)}`, { method: "DELETE" });
+
+  return { ok: true, status: 200, payload: { ok: true } };
 }
 
 async function resolveUserByUsername(username) {
@@ -2561,8 +2710,30 @@ export const LEGACY_API_HANDLERS = {
           division,
           resourceType,
           detailTable,
-          body: req.body || {},
-          authorName: auth.user.roblox_username || auth.user.roblox_display_name || String(auth.user.roblox_id)
+          body: resourceType === "transmission"
+            ? { ...(typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {})), status: "published", visibility: "restricted" }
+            : req.body || {},
+          authorName: authAuthorName(auth)
+        });
+
+        return res.status(result.status).json(result.payload);
+      }
+
+      if (req.method === "DELETE") {
+        if (resourceType === "handbook") {
+          return res.status(405).json({ ok: false, reason: "HANDBOOK_UPLOADS_DISABLED" });
+        }
+
+        const writeAccess = checkResourceWriteAccess(auth.profile, { division, resourceType });
+        if (!writeAccess.authorized) {
+          return res.status(200).json({ ok: false, authorized: false, reason: writeAccess.reason });
+        }
+
+        const result = await deleteResource({
+          division,
+          resourceType,
+          detailTable,
+          id: getQueryParam(req, "id")
         });
 
         return res.status(result.status).json(result.payload);
@@ -2644,7 +2815,7 @@ export const LEGACY_API_HANDLERS = {
             status: "published",
             visibility: "public"
           },
-          authorName: auth.user.roblox_username || auth.user.roblox_display_name || String(auth.user.roblox_id)
+          authorName: authAuthorName(auth)
         });
 
         return res.status(result.status).json({ ...result.payload, transmissions: await loadBoardTransmissions() });

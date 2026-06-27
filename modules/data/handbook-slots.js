@@ -1,4 +1,4 @@
-export const HANDBOOK_SLOT_DEFINITIONS = {
+const HANDBOOK_SLOT_DEFINITIONS = {
   reavers: [
     { key: "handbook", label: "Handbook", slug: "reaver-handbook", order: 1 },
     { key: "formations", label: "Formations", slug: "reaver-formations", order: 2 },

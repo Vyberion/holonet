@@ -37,7 +37,7 @@ export function createRandomToken() {
   return randomBytes(32).toString("base64url");
 }
 
-export function parseCookies(req) {
+function parseCookies(req) {
   const header = req.headers.cookie || "";
 
   return header.split(";").reduce((cookies, part) => {

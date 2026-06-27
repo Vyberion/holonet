@@ -32,7 +32,7 @@ function rowCardLimit(value) {
   return Math.max(1, Math.floor(limit));
 }
 
-export function HierarchyCard({ item }) {
+function HierarchyCard({ item }) {
   const glyph = item.cardGlyph;
   const glyphLines = glyphLinesFor(glyph);
   const glyphLength = glyph
@@ -68,7 +68,7 @@ export function HierarchyCard({ item }) {
   );
 }
 
-export function HierarchyGrid({ items, maxRowCards = DEFAULT_MAX_PATH_ROW_CARDS }) {
+function HierarchyGrid({ items, maxRowCards = DEFAULT_MAX_PATH_ROW_CARDS }) {
   const rows = chunkPathItems(items, maxRowCards);
 
   return (
@@ -177,7 +177,7 @@ function HierarchyPathCardRows({ items, maxPathRowCards = DEFAULT_MAX_PATH_ROW_C
   );
 }
 
-export function HierarchyPathGroups({ items, maxPathRowCards = DEFAULT_MAX_PATH_ROW_CARDS }) {
+function HierarchyPathGroups({ items, maxPathRowCards = DEFAULT_MAX_PATH_ROW_CARDS }) {
   const directItems = items.filter(item => !item.path);
 
   const pathGroups = items

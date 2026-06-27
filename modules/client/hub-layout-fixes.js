@@ -110,6 +110,10 @@
       .council-actions [data-council-vote="no"] { order: 3; }
       .council-actions [data-council-veto] { order: 4; }
 
+      .division-section-status-grid {
+        margin-top: 0 !important;
+      }
+
       [data-hub-card="documents"] .hub-row > span:not(.hub-timestamp) {
         display: none !important;
       }
@@ -298,6 +302,83 @@
     addReportViewButtons(mount, reports);
   }
 
+  function rewriteActivityLinks() {
+    document.querySelectorAll('a[href$="/trackers"]').forEach(link => {
+      link.href = link.getAttribute("href").replace(/\/trackers$/, "/activity");
+    });
+  }
+
+  function renameActivitySurface(mount) {
+    if (mount.dataset.divisionSection !== "trackers") return;
+
+    document.querySelectorAll("[data-section-title]").forEach(node => {
+      node.textContent = node.textContent.replace(/Tracking/g, "Activity");
+    });
+
+    mount.querySelectorAll(".hub-title, .hub-panel-title").forEach(node => {
+      node.textContent = node.textContent.replace(/Tracking/g, "Activity");
+    });
+
+    mount.querySelectorAll(".hub-summary").forEach(node => {
+      node.textContent = node.textContent
+        .replace(/Current tracked shifts/g, "Current activity")
+        .replace(/tracking console/gi, "activity console")
+        .replace(/Tracking/g, "Activity")
+        .replace(/tracking/g, "activity");
+    });
+  }
+
+  function statusCountForSection(mount, section) {
+    if (section === "trackers") {
+      const rows = mount.querySelectorAll(".tracking-table tbody tr");
+      return rows.length ? `${rows.length} MEMBERS` : "LOADING";
+    }
+
+    return `${mount.querySelectorAll(".hub-section-row").length} ENTRIES`;
+  }
+
+  function syncDivisionSectionStatus() {
+    const mount = document.querySelector("[data-division-section][data-division]");
+    if (!mount) return;
+
+    const section = mount.dataset.divisionSection;
+    if (!["transmissions", "reports", "trackers"].includes(section)) return;
+
+    renameActivitySurface(mount);
+    const hero = mount.querySelector(".hub-hero");
+    if (!hero) return;
+
+    let grid = mount.querySelector("[data-section-status-grid]");
+    if (!grid) {
+      grid = document.createElement("div");
+      grid.className = "hub-status-grid division-section-status-grid";
+      grid.dataset.sectionStatusGrid = "true";
+      hero.insertAdjacentElement("afterend", grid);
+    } else if (grid.previousElementSibling !== hero) {
+      hero.insertAdjacentElement("afterend", grid);
+    }
+
+    const label = section === "trackers" ? "Activity" : section;
+    const count = statusCountForSection(mount, section);
+    const signature = `${label}:${count}`;
+    if (grid.dataset.signature === signature) return;
+    grid.dataset.signature = signature;
+    grid.innerHTML = `
+      <div class="hub-status-cell">
+        <span class="hub-label">Status</span>
+        <span class="hub-value">ACTIVE</span>
+      </div>
+      <div class="hub-status-cell">
+        <span class="hub-label">Division</span>
+        <span class="hub-value">${escapeHtml(mount.dataset.divisionTitle || mount.dataset.division || "Division")}</span>
+      </div>
+      <div class="hub-status-cell">
+        <span class="hub-label">${escapeHtml(label)}</span>
+        <span class="hub-value">${escapeHtml(count)}</span>
+      </div>
+    `;
+  }
+
   function bindReportViewerControls() {
     if (reportPageState.bound) return;
     reportPageState.bound = true;
@@ -317,16 +398,18 @@
   function boot() {
     ensureStyles();
     bindReportViewerControls();
+    rewriteActivityLinks();
+    syncDivisionSectionStatus();
     enhanceReportsPage();
   }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
       boot();
-      new MutationObserver(enhanceReportsPage).observe(document.body, { childList: true, subtree: true });
+      new MutationObserver(boot).observe(document.body, { childList: true, subtree: true });
     });
   } else {
     boot();
-    new MutationObserver(enhanceReportsPage).observe(document.body, { childList: true, subtree: true });
+    new MutationObserver(boot).observe(document.body, { childList: true, subtree: true });
   }
 })();

@@ -24,7 +24,8 @@ import { isEmperorArchiveRobloxId } from "../auth/emperor-archive-access.js";
       segments[lastIndex] = segments[lastIndex].replace(".html", "");
     }
 
-    return (segments.join("_") || "home").replace(/-/g, "_");
+    const pageKey = (segments.join("_") || "home").replace(/-/g, "_");
+    return pageKey === "reports" ? "nexus" : pageKey;
   }
 
   function isEmperorArchivePage() {

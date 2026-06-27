@@ -52,23 +52,23 @@ function RegistryCard({ id }) {
   );
 }
 
-function NexusCard() {
+function ReportsCard() {
   return (
     <div
       className="dir-card dir-card--overview"
       data-status="restricted"
-      aria-label="Overview - inspection matrix"
+      aria-label="Reports - inspection matrix"
     >
       <div className="dir-card-frame" aria-hidden="true" />
       <div className="card-vline" aria-hidden="true" />
       <div className="card-scan" aria-hidden="true" />
       <div className="dir-card-top">
-        <h2 className="dir-card-title">Overview</h2>
-        <span className="dir-card-badge">[ INSPECTION ]</span>
+        <h2 className="dir-card-title">Reports</h2>
+        <span className="dir-card-badge">[ REPORTS ]</span>
       </div>
       <p className="dir-card-desc">Divisional inspection scores and weekly reports.</p>
       <div className="dir-card-bottom">
-        <span className="dir-card-node">NODE: NXS-00</span>
+        <span className="dir-card-node">NODE: RPT-00</span>
         <a href="#" className="dir-card-enter action-btn" aria-hidden="true" tabIndex={-1}>VERIFYING ACCESS</a>
       </div>
     </div>
@@ -81,12 +81,12 @@ export default function RegistryPage() {
       <div className="registry-main">
         <section className="registry-section registry-section--overview" aria-labelledby="sec-overview">
           <div className="section-header">
-            <span className="section-tag" id="sec-overview">// OVERVIEW</span>
+            <span className="section-tag" id="sec-overview">// REPORTS</span>
             <div className="section-rule" />
           </div>
 
           <div className="dir-grid dir-grid--overview">
-            <NexusCard />
+            <ReportsCard />
           </div>
         </section>
 

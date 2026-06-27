@@ -20,14 +20,17 @@ export async function clockIn(discordUserId, options = {}) {
 
   const scope = options.scope || inferScope(verified.profile);
   if (!scope) throw new Error("NO_CLOCK_SCOPE");
+  const isLate = Boolean(options.late);
+  const lateMinutes = isLate ? Math.max(0, Number(options.lateMinutes) || 0) : 0;
+  const startedAt = new Date(Date.now() - lateMinutes * 60 * 1000);
 
   const shift = await insert("clock_shifts", {
     scope,
     discord_user_id: discordUserId,
     roblox_user_id: verified.link.roblox_user_id,
-    started_at: new Date().toISOString(),
-    late: Boolean(options.late),
-    late_minutes: options.lateMinutes ?? null,
+    started_at: startedAt.toISOString(),
+    late: isLate,
+    late_minutes: isLate ? lateMinutes : null,
     status: "active"
   });
 

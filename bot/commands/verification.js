@@ -6,7 +6,7 @@ import { canManageBot, getVerifiedProfile, syncMemberRoles } from "../services/r
 import { loadGroupRoles, loadRobloxUser } from "../services/roblox.js";
 import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
 
-const DISABLED_COMMANDS = new Set(["verification", "verify", "lookup"]);
+const DISABLED_COMMANDS = new Set(["verification", "verify", "update-roles", "lookup", "unlink"]);
 const DISABLED_BUTTONS = new Set(["verify:start", "verify:update"]);
 
 const allCommands = [

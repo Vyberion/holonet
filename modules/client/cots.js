@@ -143,10 +143,6 @@ function renderCots(root, state, canEdit, meta = {}) {
             ? `<img src="${escapeHtml(image.url)}" alt="Champion of The Sith podium">`
             : `<div class="cots-media-placeholder"><span>Podium Image</span><strong>Podium Transmission</strong></div>`}
         </div>
-        <figcaption>
-          <span>Podium archive</span>
-          <strong>The champion, second and third place runner-ups.</strong>
-        </figcaption>
       </figure>
 
       <div class="hub-panel cots-podium-panel">

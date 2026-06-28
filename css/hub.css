@@ -379,7 +379,6 @@
   background:
     radial-gradient(ellipse 60% 70% at 50% 50%, rgba(255, 59, 79, 0.12), transparent 68%),
     linear-gradient(145deg, rgba(20, 4, 8, 0.96), rgba(0, 0, 0, 0.82));
-  border-bottom: 1px solid rgba(255, 66, 82, 0.24);
   display: grid;
   min-height: 260px;
   overflow: hidden;
@@ -425,29 +424,6 @@
   font-size: clamp(1.3rem, 4vw, 2.6rem);
   letter-spacing: 0.12em;
   text-shadow: 0 0 18px var(--theme-accent-glow);
-}
-
-.cots-media-card figcaption {
-  display: grid;
-  gap: 5px;
-  padding: 15px 16px 16px;
-}
-
-.cots-media-card figcaption span {
-  color: var(--theme-accent);
-  font-family: 'Orbitron', monospace;
-  font-size: 0.58rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.cots-media-card figcaption strong {
-  color: var(--text-dim);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  line-height: 1.5;
-  text-transform: uppercase;
 }
 
 .cots-podium-list {
@@ -529,6 +505,7 @@
   font-size: 0.62rem;
   letter-spacing: 0.18em;
   min-height: 34px;
+  padding-left: 13px;
   text-transform: uppercase;
 }
 
@@ -555,7 +532,7 @@
 }
 
 .cots-bracket-match::after {
-  background: linear-gradient(180deg, var(--theme-accent-dim), transparent);
+  background: var(--theme-accent-dim);
   content: "";
   height: 1px;
   position: absolute;
@@ -565,7 +542,7 @@
 }
 
 .cots-bracket-round:not(:last-child) .cots-bracket-match:nth-child(odd)::before {
-  background: linear-gradient(180deg, transparent, var(--theme-accent-dim) 14%, var(--theme-accent-dim) 86%, transparent);
+  background: var(--theme-accent-dim);
   content: "";
   height: var(--pair-line-height);
   position: absolute;
@@ -575,7 +552,7 @@
 }
 
 .cots-bracket-round:not(:last-child) .cots-bracket-match:nth-child(even)::before {
-  background: linear-gradient(180deg, transparent, var(--theme-accent-dim) 14%, var(--theme-accent-dim) 86%, transparent);
+  background: var(--theme-accent-dim);
   bottom: 50%;
   content: "";
   height: var(--pair-line-height);
@@ -584,12 +561,8 @@
   width: 1px;
 }
 
-.cots-bracket-round:not(:first-child) .cots-bracket-match::after {
-  box-shadow: calc(var(--round-gap-half) * -1) 0 0 var(--theme-accent-dim);
-}
-
 .cots-bracket-round:not(:first-child) .cots-bracket-match .cots-match-code::before {
-  background: linear-gradient(90deg, transparent, var(--theme-accent-dim));
+  background: var(--theme-accent-dim);
   content: "";
   height: 1px;
   left: calc(var(--round-gap-half) * -1);

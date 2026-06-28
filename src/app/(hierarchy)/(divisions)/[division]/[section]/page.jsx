@@ -9,7 +9,7 @@ import { HierarchyDetail } from "../../../hierarchy/HierarchyDetail.jsx";
 
 function normalizeSection(section) {
   const normalized = String(section || "").toLowerCase();
-  return normalized === "activity" ? "trackers" : normalized;
+  return normalized === "trackers" ? "activity" : normalized;
 }
 
 function sectionTitle(section) {
@@ -18,7 +18,7 @@ function sectionTitle(section) {
     handbooks: "Handbook Archive",
     transmissions: "Transmissions",
     reports: "Reports",
-    trackers: "Activity",
+    activity: "Activity",
     "council-floor": "Council Floor"
   }[section] || "Division";
 }
@@ -29,7 +29,7 @@ function sectionSubtitle(section) {
     handbooks: "SECURE DOCUMENT VIEWER",
     transmissions: "MESSAGE CHANNEL",
     reports: "REPORTING CHANNEL",
-    trackers: "ACTIVITY CHANNEL",
+    activity: "ACTIVITY CHANNEL",
     "council-floor": "LEGISLATIVE CHANNEL"
   }[section] || "DIVISION NODE";
 }
@@ -62,7 +62,7 @@ export async function generateMetadata({ params }) {
   const section = normalizeSection(routeParams.section);
 
   if (!division) return {};
-  if (!["home", "info", "handbooks", "transmissions", "reports", "trackers", "council-floor"].includes(section)) return {};
+  if (!["home", "info", "handbooks", "transmissions", "reports", "activity", "council-floor"].includes(section)) return {};
   if (section === "council-floor" && division.id !== "darkCouncil") return {};
 
   const singularName = divisionSingularName(division);
@@ -94,7 +94,7 @@ export async function generateMetadata({ params }) {
     handbooks: `${singularName} handbook and guide archive.`,
     transmissions: `${singularName} transmission console.`,
     reports: `${singularName} reporting console.`,
-    trackers: `${singularName} activity console.`
+    activity: `${singularName} activity console.`
   };
 
   const titles = {
@@ -102,7 +102,7 @@ export async function generateMetadata({ params }) {
     handbooks: `${singularName} Handbooks`,
     transmissions: `${singularName} Transmissions`,
     reports: `${singularName} Reports`,
-    trackers: `${singularName} Activity`
+    activity: `${singularName} Activity`
   };
 
   return holonetMetadata({
@@ -117,7 +117,7 @@ export default async function DivisionSectionPage({ params }) {
   const section = normalizeSection(routeParams.section);
 
   if (!division) notFound();
-  if (!["home", "info", "handbooks", "transmissions", "reports", "trackers", "council-floor"].includes(section)) notFound();
+  if (!["home", "info", "handbooks", "transmissions", "reports", "activity", "council-floor"].includes(section)) notFound();
   if (section === "council-floor" && division.id !== "darkCouncil") notFound();
 
   if (section === "info") {

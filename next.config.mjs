@@ -18,22 +18,11 @@ if (supabaseUrl) {
 }
 
 const nextConfig = {
+  output: "standalone",
   reactStrictMode: true,
+  poweredByHeader: false,
   images: {
     remotePatterns
-  },
-  async headers() {
-    return [
-      {
-        source: "/:path*",
-        headers: [
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
-          }
-        ]
-      }
-    ];
   },
   async rewrites() {
     return [

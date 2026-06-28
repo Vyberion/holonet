@@ -127,9 +127,8 @@ export function HolonetNav() {
     { href: "/codex", page: "codex", prefix: "01", label: "Codex" },
     { href: "/archives", page: "archives", prefix: "02", label: "Archives" },
     { href: "/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
-    { href: "/cots", page: "cots", prefix: "04", label: "CoTS" },
     ...(access?.permissions?.canAccessRegistry
-      ? [{ href: "/registry", page: "registry", prefix: "05", label: "Registry" }]
+      ? [{ href: "/registry", page: "registry", prefix: "04", label: "Registry" }]
       : [])
   ];
 

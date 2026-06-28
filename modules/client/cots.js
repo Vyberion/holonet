@@ -73,9 +73,13 @@ function competitor(name, winner) {
   `;
 }
 
-function matchCard(match) {
+function matchCard(match, matchIndex, roundSize) {
   return `
-    <article class="cots-bracket-match" role="listitem">
+    <article
+      class="cots-bracket-match"
+      role="listitem"
+      style="--match-index: ${matchIndex}; --round-size: ${roundSize};"
+    >
       <div class="cots-match-code">${escapeHtml(match.id || "")}</div>
       ${competitor(match.left, match.winner && match.winner === match.left)}
       ${competitor(match.right, match.winner && match.winner === match.right)}
@@ -87,12 +91,24 @@ function matchCard(match) {
   `;
 }
 
-function roundMarkup(round) {
+function roundMarkup(round, roundIndex, rounds) {
+  const roundSize = Math.max(1, (round.matches || []).length);
+  const previousSize = roundIndex > 0 ? Math.max(1, (rounds[roundIndex - 1]?.matches || []).length) : 0;
+  const laneHeight = 1248;
+  const cardHeight = 126;
+  const roundGap = roundSize > 1
+    ? Math.max(28, (laneHeight - (roundSize * cardHeight)) / (roundSize - 1))
+    : 0;
+
   return `
-    <section class="cots-bracket-round" aria-label="${escapeHtml(round.name || "Round")}">
+    <section
+      class="cots-bracket-round"
+      aria-label="${escapeHtml(round.name || "Round")}"
+      style="--round-size: ${roundSize}; --previous-round-size: ${previousSize}; --round-match-gap: ${roundGap}px;"
+    >
       <h4>${escapeHtml(round.name || "Round")}</h4>
       <div class="cots-bracket-stack">
-        ${(round.matches || []).map(matchCard).join("")}
+        ${(round.matches || []).map((match, matchIndex) => matchCard(match, matchIndex, roundSize)).join("")}
       </div>
     </section>
   `;

@@ -249,7 +249,7 @@
 
 .cots-main {
   display: grid;
-  gap: 22px;
+  gap: 28px;
   max-width: var(--site-content-width);
   width: 100%;
 }
@@ -354,7 +354,7 @@
 
 .cots-feature-grid {
   display: grid;
-  gap: 18px;
+  gap: 28px;
   grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
 }
 
@@ -447,7 +447,12 @@
 
 .cots-podium-list {
   display: grid;
-  gap: 10px;
+  gap: 16px;
+}
+
+.cots-podium-panel,
+.cots-bracket-panel {
+  padding: 22px;
 }
 
 .cots-podium-row {
@@ -456,7 +461,7 @@
   display: grid;
   gap: 8px 12px;
   grid-template-columns: 42px minmax(0, 1fr);
-  padding: 10px 12px;
+  padding: 14px 16px;
 }
 
 .cots-podium-row span {
@@ -493,19 +498,24 @@
 }
 
 .cots-bracket {
+  --bracket-lane-height: 1248px;
+  --match-card-height: 126px;
+  --round-gap-width: 54px;
+  --round-gap-half: 27px;
   display: grid;
-  gap: 28px;
-  grid-template-columns: repeat(4, minmax(230px, 1fr));
-  min-height: 980px;
+  gap: var(--round-gap-width);
+  grid-template-columns: repeat(4, minmax(250px, 1fr));
+  min-height: var(--bracket-lane-height);
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding: 24px 28px 30px;
 }
 
 .cots-bracket-round {
   display: grid;
-  gap: 14px;
+  gap: 18px;
   grid-template-rows: 34px minmax(0, 1fr);
-  min-width: 230px;
+  min-width: 250px;
+  position: relative;
 }
 
 .cots-bracket-round h4 {
@@ -520,8 +530,9 @@
 .cots-bracket-stack {
   align-content: center;
   display: grid;
-  gap: 18px;
-  min-height: 900px;
+  gap: var(--round-match-gap, 34px);
+  min-height: var(--bracket-lane-height);
+  position: relative;
 }
 
 .cots-bracket-match {
@@ -530,9 +541,9 @@
     rgba(0, 0, 0, 0.34);
   border: 1px solid rgba(255, 66, 82, 0.22);
   display: grid;
-  gap: 6px;
-  height: 96px;
-  padding: 10px;
+  gap: 8px;
+  height: var(--match-card-height);
+  padding: 13px;
   position: relative;
 }
 
@@ -541,23 +552,51 @@
   content: "";
   height: 1px;
   position: absolute;
-  right: -29px;
+  right: calc(var(--round-gap-half) * -1 - 1px);
   top: 50%;
-  width: 28px;
+  width: var(--round-gap-half);
 }
 
-.cots-bracket-round:not(:first-child) .cots-bracket-match::before {
-  background: linear-gradient(180deg, transparent, var(--theme-accent-dim), transparent);
+.cots-bracket-round:not(:last-child) .cots-bracket-match:nth-child(odd)::before {
+  background: linear-gradient(180deg, transparent, var(--theme-accent-dim) 14%, var(--theme-accent-dim) 86%, transparent);
+  content: "";
+  height: calc(var(--match-card-height) + var(--round-match-gap, 34px));
+  position: absolute;
+  right: calc((var(--round-gap-half) * -1) - 1px);
+  top: 50%;
+  width: 1px;
+}
+
+.cots-bracket-round:not(:last-child) .cots-bracket-match:nth-child(even)::before {
+  background: linear-gradient(180deg, transparent, var(--theme-accent-dim) 14%, var(--theme-accent-dim) 86%, transparent);
+  bottom: 50%;
+  content: "";
+  height: calc(var(--match-card-height) + var(--round-match-gap, 34px));
+  position: absolute;
+  right: calc((var(--round-gap-half) * -1) - 1px);
+  width: 1px;
+}
+
+.cots-bracket-round:not(:first-child) .cots-bracket-match::after {
+  box-shadow: calc(var(--round-gap-half) * -1) 0 0 var(--theme-accent-dim);
+}
+
+.cots-bracket-round:not(:first-child) .cots-bracket-match .cots-match-code::before {
+  background: linear-gradient(90deg, transparent, var(--theme-accent-dim));
   content: "";
   height: 1px;
-  left: -29px;
+  left: calc(var(--round-gap-half) * -1);
   position: absolute;
   top: 50%;
-  width: 28px;
+  width: var(--round-gap-half);
 }
 
 .cots-bracket-round:last-child .cots-bracket-match::after {
   display: none;
+}
+
+.cots-bracket-round:last-child .cots-bracket-match .cots-match-code::before {
+  display: block;
 }
 
 .cots-match-code {
@@ -574,8 +613,8 @@
   display: flex;
   gap: 8px;
   justify-content: space-between;
-  min-height: 31px;
-  padding: 7px 8px;
+  min-height: 36px;
+  padding: 8px 10px;
 }
 
 .cots-bracket-competitor span {

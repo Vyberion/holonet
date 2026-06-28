@@ -15,7 +15,7 @@ function escapeHtml(value) {
 }
 
 function timestampFor(item, kind) {
-  if (kind === "activity" || kind === "trackers") return "";
+  if (kind === "activity") return "";
 
   const value = {
     transmissions: item.publishedAt || item.updatedAt || item.createdAt,
@@ -176,7 +176,7 @@ function renderActivityOverview(division) {
         <strong>Weekly Activity</strong>
         <span>Total time across ${escapeHtml(members.length)} member${members.length === 1 ? "" : "s"}</span>
         <p>${escapeHtml(formatDuration(totalMinutes))} recorded this week</p>
-        <a class="hub-inline-link" href="${escapeHtml(`${divisionBasePath(division)}/trackers`)}">OPEN ACTIVITY</a>
+        <a class="hub-inline-link" href="${escapeHtml(`${divisionBasePath(division)}/activity`)}">OPEN ACTIVITY</a>
       </div>
     </div>
   `;
@@ -301,11 +301,10 @@ async function fetchWeeklyReportPayload(division) {
 }
 
 async function loadDivisionResourceSets(division) {
-  const [transmissions, documents, registryReports, trackers, rosterPayload, weeklyPayload] = await Promise.all([
+  const [transmissions, documents, registryReports, rosterPayload, weeklyPayload] = await Promise.all([
     fetchDivisionResources(division.id, "transmissions"),
     fetchDivisionResources(division.id, "documents"),
     fetchDivisionResources(division.id, "reports"),
-    fetchDivisionResources(division.id, "trackers"),
     fetchDivisionRosterPayload(division.id).catch(() => ({ members: [] })),
     fetchWeeklyReportPayload(division.id)
   ]);
@@ -317,7 +316,6 @@ async function loadDivisionResourceSets(division) {
     transmissions: latestItems(transmissions),
     documents: latestItems(documents),
     reports: latestItems([...weeklyReports, ...registryReports]),
-    trackers,
     activityMembers: rosterPayload.members || []
   };
 }
@@ -439,7 +437,6 @@ async function initDivisionHub() {
     transmissions: [],
     documents: [],
     reports: [],
-    trackers: [],
     activityMembers: []
   });
 

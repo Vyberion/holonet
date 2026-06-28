@@ -12,7 +12,7 @@
     "prepare:standalone": "node scripts/prepare-standalone.mjs",
     "start": "next start -H 0.0.0.0",
     "start:standalone": "node .next/standalone/server.js",
-    "deploy:oci": "bash scripts/deploy-oci.sh",
+    "deploy": "bash scripts/deploy-oci.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

@@ -37,7 +37,7 @@ GOOGLE_SERVICE_ACCOUNT_JSON=
 Then deploy:
 
 ```bash
-npm run deploy:oci
+npm run deploy
 ```
 
 That command reloads only the PM2 app named `holonet-web`, so it should not restart `holonet-bot`.
@@ -96,7 +96,7 @@ From the web checkout:
 
 ```bash
 cd ~/holonet-web
-npm run deploy:oci
+npm run deploy
 ```
 
 ## Optional handbook refresh cron later

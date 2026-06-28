@@ -18,7 +18,7 @@ The `migration` branch contains the OCI-ready web deployment setup.
 
 ```bash
 cp .env.oci.example .env.local
-npm run deploy:oci
+npm run deploy
 ```
 
 Full instructions are in `docs/OCI_MIGRATION.md`.

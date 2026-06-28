@@ -8,8 +8,11 @@
   "main": "js/main.js",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "next build && npm run prepare:standalone",
+    "prepare:standalone": "node scripts/prepare-standalone.mjs",
+    "start": "next start -H 0.0.0.0",
+    "start:standalone": "node .next/standalone/server.js",
+    "deploy:oci": "bash scripts/deploy-oci.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

@@ -30,7 +30,7 @@ client.on("interactionCreate", async interaction => {
     if (!handled && interaction.isRepliable()) {
       const subcommand = interaction.isChatInputCommand?.() ? interaction.options?.getSubcommand(false) : "";
       const detail = interaction.commandName
-        ? `Unknown bot interaction: /${interaction.commandName}${subcommand ? ` ${subcommand}` : ""}. Restart the bot and redeploy commands if this command was just changed.`
+        ? `Unknown bot interaction: /${interaction.commandName}${subcommand ? ` ${subcommand}` : ""}.`
         : `Unknown bot interaction: ${interaction.customId || interaction.type}.`;
       await interaction.reply(ephemeral({ embeds: [errorEmbed(detail)] }));
     }

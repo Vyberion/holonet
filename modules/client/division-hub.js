@@ -140,12 +140,16 @@ function renderRows(items, emptyText, { kind = "", division = null } = {}) {
   }).join("")}</div>`;
 }
 
+function activityHrefFrom(value) {
+  return String(value || "#").replace(/\/trackers(?:\.html)?$/i, "/activity");
+}
+
 function renderActions(items) {
   if (!items?.length) return "";
 
   return `<div class="hub-list">${items.map(item => {
     const disabled = item.disabled ? " is-disabled" : "";
-    const href = item.disabled ? "#" : item.href;
+    const href = item.disabled ? "#" : activityHrefFrom(item.href);
 
     return `
       <a class="hub-action${disabled}" href="${escapeHtml(href)}" aria-disabled="${item.disabled ? "true" : "false"}">

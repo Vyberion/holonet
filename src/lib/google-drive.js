@@ -23,7 +23,7 @@ function serviceAccountCredentials() {
   if (jsonCredentials?.client_email && jsonCredentials?.private_key) {
     return {
       client_email: jsonCredentials.client_email,
-      private_key: String(jsonCredentials.private_key).replace(/\\n/g, "\n")
+      private_key: String(jsonCredentials.private_key).replace(/\n/g, "\n")
     };
   }
 
@@ -36,7 +36,7 @@ function serviceAccountCredentials() {
 
   return {
     client_email: clientEmail,
-    private_key: privateKey.replace(/\\n/g, "\n")
+    private_key: privateKey.replace(/\n/g, "\n")
   };
 }
 
@@ -297,6 +297,19 @@ export function googlePdfExportUrl(fileId, { tabId = "", sourceUrl = "", fileKin
   }
 
   return exportUrl;
+}
+
+export async function fetchGoogleFileMetadata(fileId) {
+  const id = extractGoogleFileId(fileId);
+  if (!id) {
+    throw new Error("GOOGLE_FILE_ID_REQUIRED");
+  }
+
+  const token = await getGoogleAccessToken();
+  const url = new URL(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}`);
+  url.searchParams.set("fields", "id,name,mimeType,modifiedTime");
+  url.searchParams.set("supportsAllDrives", "true");
+  return fetchGoogleJson(url, token);
 }
 
 export async function exportGoogleDocPdf(fileId, { tabId = "", sourceUrl = "", fileKind = "" } = {}) {

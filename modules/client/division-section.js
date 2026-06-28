@@ -23,7 +23,7 @@ function normalizeTime(hours = 0, minutes = 0) {
 }
 
 function timestampFor(entry, section) {
-  if (section === "trackers") return "";
+  if (section === "activity") return "";
 
   const value = {
     transmissions: entry.publishedAt || entry.updatedAt || entry.createdAt,
@@ -89,7 +89,7 @@ function titleForSection(section, division = null) {
   const baseTitle = {
     transmissions: "Transmissions",
     reports: "Reports",
-    trackers: "Tracking"
+    activity: "Activity"
   }[section] || "Division";
 
   return division ? `${divisionSectionName(division)} ${baseTitle}` : baseTitle;
@@ -100,7 +100,7 @@ function descriptionForSection(division, section) {
   return {
     transmissions: `Official announcements for ${divisionName}.`,
     reports: `Weekly activity reports for ${divisionName}.`,
-    trackers: `Current tracked shifts for ${divisionName}.`
+    activity: `Current activity records for ${divisionName}.`
   }[section] || "";
 }
 
@@ -108,7 +108,7 @@ function emptyForSection(section) {
   return {
     transmissions: "No transmissions connected",
     reports: "No report feed connected",
-    trackers: "No trackers connected"
+    activity: "No activity connected"
   }[section] || "No entries connected";
 }
 
@@ -120,8 +120,8 @@ function renderEntries(section, entries) {
     const meta = entry.meta || entry.scope || entry.author || entry.value || "Pending";
     const body = entry.body || entry.summary || entry.description || "";
     const href = entry.href && entry.href !== "#" ? entry.href : "";
-    const isTracker = section === "trackers";
-    const target = href && isTracker ? ' target="_blank" rel="noopener noreferrer"' : "";
+    const isActivity = section === "activity";
+    const target = href && isActivity ? ' target="_blank" rel="noopener noreferrer"' : "";
     const editButton = activeContext?.canWrite
       ? `<div class="hub-row-tools"><button type="button" class="hub-row-edit" data-resource-edit="${index}">EDIT</button></div>`
       : "";
@@ -158,7 +158,7 @@ function renderWeeklyReports(entries) {
   }).join("")}</div>`;
 }
 
-function renderTrackingRoster(members) {
+function renderActivityRoster(members) {
   if (!members?.length) return '<p class="hub-empty">No current division members found</p>';
 
   return `
@@ -487,7 +487,7 @@ function renderSection(mount, division, section, entries, canWrite) {
       </div>
 
       <section class="hub-panel">
-        ${section === "trackers" ? "" : `
+        ${section === "activity" ? "" : `
           <div class="hub-panel-head">
             <h3 class="hub-panel-title">${escapeHtml(titleForSection(section, division))}</h3>
             ${canWrite ? `<button type="button" class="hub-write-btn" data-resource-new>WRITE NEW</button>` : ""}
@@ -495,8 +495,8 @@ function renderSection(mount, division, section, entries, canWrite) {
         `}
         ${section === "reports"
           ? renderWeeklyReports(entries)
-          : section === "trackers"
-            ? renderTrackingRoster(entries)
+          : section === "activity"
+            ? renderActivityRoster(entries)
             : renderEntries(section, entries)}
       </section>
     </section>
@@ -506,7 +506,7 @@ function renderSection(mount, division, section, entries, canWrite) {
 }
 
 async function hydrateSection(mount, division, section) {
-  if (section === "trackers") {
+  if (section === "activity") {
     const payload = await fetchDivisionRosterPayload(division.id);
     renderSection(mount, division, section, payload.members, false);
     return;

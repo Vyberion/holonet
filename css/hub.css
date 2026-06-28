@@ -250,11 +250,12 @@
 .cots-main {
   display: grid;
   gap: 22px;
-  max-width: min(1280px, calc(100vw - 80px));
+  max-width: var(--site-content-width);
+  width: 100%;
 }
 
 .cots-hero {
-  align-items: end;
+  align-items: stretch;
   background:
     radial-gradient(ellipse 70% 80% at 68% 100%, rgba(255, 154, 61, 0.16), transparent 62%),
     radial-gradient(ellipse 82% 84% at 20% 0%, rgba(255, 59, 79, 0.16), transparent 68%),
@@ -263,9 +264,9 @@
   box-shadow: 0 0 36px var(--theme-accent-glow), inset 0 0 34px rgba(255, 255, 255, 0.02);
   clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
   display: grid;
-  gap: 24px;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.34fr);
-  min-height: 260px;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.32fr);
+  min-height: 188px;
   overflow: hidden;
   padding: clamp(22px, 4vw, 38px);
   position: relative;
@@ -289,16 +290,24 @@
   z-index: 1;
 }
 
+.cots-hero-copy {
+  align-content: center;
+  container-type: inline-size;
+  display: grid;
+}
+
 .cots-title {
   color: var(--theme-accent);
   font-family: 'Cinzel', serif;
-  font-size: clamp(2.2rem, 6.2vw, 5.4rem);
+  font-size: clamp(2rem, 5.2cqw, 4.65rem);
   letter-spacing: 0.12em;
   line-height: 0.95;
   margin-top: 10px;
-  overflow-wrap: anywhere;
+  max-width: 100%;
+  overflow: hidden;
   text-shadow: 0 0 24px var(--theme-accent-glow);
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .cots-quote {
@@ -313,12 +322,15 @@
 
 .cots-hero-stats {
   display: grid;
-  gap: 10px;
+  gap: 18px;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
 }
 
 .cots-hero-stats div {
   background: rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(255, 59, 79, 0.28);
+  display: grid;
+  min-height: 66px;
   padding: 13px 14px;
 }
 
@@ -482,16 +494,18 @@
 
 .cots-bracket {
   display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 28px;
+  grid-template-columns: repeat(4, minmax(230px, 1fr));
+  min-height: 980px;
   overflow-x: auto;
   padding-bottom: 4px;
 }
 
 .cots-bracket-round {
   display: grid;
-  gap: 12px;
-  min-width: 190px;
+  gap: 14px;
+  grid-template-rows: 34px minmax(0, 1fr);
+  min-width: 230px;
 }
 
 .cots-bracket-round h4 {
@@ -504,8 +518,10 @@
 }
 
 .cots-bracket-stack {
+  align-content: center;
   display: grid;
-  gap: 10px;
+  gap: 18px;
+  min-height: 900px;
 }
 
 .cots-bracket-match {
@@ -515,6 +531,7 @@
   border: 1px solid rgba(255, 66, 82, 0.22);
   display: grid;
   gap: 6px;
+  height: 96px;
   padding: 10px;
   position: relative;
 }
@@ -524,9 +541,19 @@
   content: "";
   height: 1px;
   position: absolute;
-  right: -15px;
+  right: -29px;
   top: 50%;
-  width: 14px;
+  width: 28px;
+}
+
+.cots-bracket-round:not(:first-child) .cots-bracket-match::before {
+  background: linear-gradient(180deg, transparent, var(--theme-accent-dim), transparent);
+  content: "";
+  height: 1px;
+  left: -29px;
+  position: absolute;
+  top: 50%;
+  width: 28px;
 }
 
 .cots-bracket-round:last-child .cots-bracket-match::after {

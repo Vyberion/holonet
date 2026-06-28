@@ -128,8 +128,8 @@ function renderCots(root, state, canEdit, meta = {}) {
             : `<div class="cots-media-placeholder"><span>Podium Image</span><strong>Podium Transmission</strong></div>`}
         </div>
         <figcaption>
-          <span>Final podium archive</span>
-          <strong>Champion platform, runner-up positions and ceremony capture.</strong>
+          <span>Podium archive</span>
+          <strong>The champion, second and third place runner-ups.</strong>
         </figcaption>
       </figure>
 
@@ -144,7 +144,6 @@ function renderCots(root, state, canEdit, meta = {}) {
     <section class="hub-panel cots-bracket-panel" aria-label="Tournament bracket">
       <div class="hub-panel-head">
         <h3 class="hub-panel-title">Tournament Bracket</h3>
-        <span class="cots-bracket-status">${meta.migrationRequired ? "Migration required" : "Dynamic bracket system"}</span>
       </div>
       <div class="cots-bracket" role="list">
         ${(state.bracket || []).map(roundMarkup).join("")}

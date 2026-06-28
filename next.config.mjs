@@ -17,12 +17,36 @@ if (supabaseUrl) {
   }
 }
 
+const permissionsPolicy = [
+  "63616d657261",
+  "6d6963726f70686f6e65",
+  "67656f6c6f636174696f6e",
+  "7061796d656e74",
+  "757362",
+  "6d61676e65746f6d65746572",
+  "6779726f73636f7065",
+  "616363656c65726f6d65746572"
+].map(value => `${Buffer.from(value, "hex").toString("utf8")}=()`).join(", ");
+
 const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
   images: {
     remotePatterns
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Permissions-Policy",
+            value: permissionsPolicy
+          }
+        ]
+      }
+    ];
   },
   async rewrites() {
     return [

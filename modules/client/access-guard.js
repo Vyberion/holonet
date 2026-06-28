@@ -22,7 +22,6 @@ import { isEmperorArchiveRobloxId } from "../auth/emperor-archive-access.js";
     if (segments.length > 0) {
       const lastIndex = segments.length - 1;
       segments[lastIndex] = segments[lastIndex].replace(".html", "");
-      if (segments[lastIndex] === "activity") segments[lastIndex] = "trackers";
     }
 
     const pageKey = (segments.join("_") || "home").replace(/-/g, "_");

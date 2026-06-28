@@ -1,9 +1,10 @@
-body.editor-overlay-active > :not(#resource-editor-overlay):not(#library-editor-overlay):not(#inspection-editor-overlay):not(#council-editor-overlay):not(#timeline-editor-overlay):not(script):not(style),
+body.editor-overlay-active > :not(#resource-editor-overlay):not(#library-editor-overlay):not(#inspection-editor-overlay):not(#council-editor-overlay):not(#timeline-editor-overlay):not(#cots-editor-overlay):not(script):not(style),
 body:has(#resource-editor-overlay.active) > :not(#resource-editor-overlay):not(script):not(style),
 body:has(#library-editor-overlay.active) > :not(#library-editor-overlay):not(script):not(style),
 body:has(#inspection-editor-overlay.active) > :not(#inspection-editor-overlay):not(script):not(style),
 body:has(#council-editor-overlay.active) > :not(#council-editor-overlay):not(script):not(style),
-body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(script):not(style) {
+body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(script):not(style),
+body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):not(style) {
   filter: blur(12px);
   transform: scale(1.012);
   transition: filter 0.18s ease, transform 0.18s ease;
@@ -368,7 +369,8 @@ body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(s
 #library-editor-overlay,
 #inspection-editor-overlay,
 #council-editor-overlay,
-#timeline-editor-overlay {
+#timeline-editor-overlay,
+#cots-editor-overlay {
   align-items: flex-start;
   background:
     radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 9%, transparent), transparent 68%),
@@ -398,14 +400,16 @@ body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(s
 #library-editor-overlay.active,
 #inspection-editor-overlay.active,
 #council-editor-overlay.active,
-#timeline-editor-overlay.active {
+#timeline-editor-overlay.active,
+#cots-editor-overlay.active {
   display: flex;
 }
 
 #library-editor-overlay::before,
 #inspection-editor-overlay::before,
 #council-editor-overlay::before,
-#timeline-editor-overlay::before {
+#timeline-editor-overlay::before,
+#cots-editor-overlay::before {
   content: "";
   position: fixed;
   inset: 0;
@@ -524,7 +528,8 @@ body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(s
 #library-editor-overlay .resource-editor-topbar,
 #inspection-editor-overlay .resource-editor-topbar,
 #council-editor-overlay .resource-editor-topbar,
-#timeline-editor-overlay .resource-editor-topbar {
+#timeline-editor-overlay .resource-editor-topbar,
+#cots-editor-overlay .resource-editor-topbar {
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--editor-accent) 8%, transparent) 0%, transparent 100%),
     rgba(255, 255, 255, 0.015);
@@ -534,7 +539,8 @@ body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(s
 #library-editor-overlay .resource-editor-title,
 #inspection-editor-overlay .resource-editor-title,
 #council-editor-overlay .resource-editor-title,
-#timeline-editor-overlay .resource-editor-title {
+#timeline-editor-overlay .resource-editor-title,
+#cots-editor-overlay .resource-editor-title {
   color: var(--text);
   text-shadow: 0 0 6px var(--editor-accent-glow);
 }
@@ -546,7 +552,9 @@ body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(s
 #council-editor-overlay .resource-editor-close,
 #council-editor-overlay .resource-editor-submit,
 #timeline-editor-overlay .resource-editor-close,
-#timeline-editor-overlay .resource-editor-submit {
+#timeline-editor-overlay .resource-editor-submit,
+#cots-editor-overlay .resource-editor-close,
+#cots-editor-overlay .resource-editor-submit {
   border-color: var(--editor-accent);
   color: var(--editor-accent);
   box-shadow: 0 0 10px color-mix(in srgb, var(--editor-accent-glow) 65%, transparent);
@@ -559,7 +567,9 @@ body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(s
 #council-editor-overlay .resource-editor-close:hover,
 #council-editor-overlay .resource-editor-submit:hover,
 #timeline-editor-overlay .resource-editor-close:hover,
-#timeline-editor-overlay .resource-editor-submit:hover {
+#timeline-editor-overlay .resource-editor-submit:hover,
+#cots-editor-overlay .resource-editor-close:hover,
+#cots-editor-overlay .resource-editor-submit:hover {
   background: color-mix(in srgb, var(--editor-accent) 12%, transparent);
   color: var(--editor-accent);
   border-color: var(--editor-accent);
@@ -570,7 +580,8 @@ body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(s
 #library-editor-overlay .resource-editor-field,
 #inspection-editor-overlay .resource-editor-field,
 #council-editor-overlay .resource-editor-field,
-#timeline-editor-overlay .resource-editor-field {
+#timeline-editor-overlay .resource-editor-field,
+#cots-editor-overlay .resource-editor-field {
   background: var(--editor-field);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, var(--editor-accent-dim) 28%);
 }
@@ -578,6 +589,7 @@ body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(s
 #library-editor-overlay .resource-editor-field label,
 #inspection-editor-overlay .resource-editor-field label,
 #council-editor-overlay .resource-editor-field label,
-#timeline-editor-overlay .resource-editor-field label {
+#timeline-editor-overlay .resource-editor-field label,
+#cots-editor-overlay .resource-editor-field label {
   color: var(--editor-label);
 }

@@ -368,7 +368,8 @@ body.theme-highranks #resource-editor-overlay .resource-editor-container,
   #library-editor-overlay,
   #inspection-editor-overlay,
   #council-editor-overlay,
-  #timeline-editor-overlay {
+  #timeline-editor-overlay,
+  #cots-editor-overlay {
     align-items: stretch !important;
     justify-content: stretch !important;
     padding: 0 !important;
@@ -378,7 +379,8 @@ body.theme-highranks #resource-editor-overlay .resource-editor-container,
   #library-editor-overlay.active,
   #inspection-editor-overlay.active,
   #council-editor-overlay.active,
-  #timeline-editor-overlay.active {
+  #timeline-editor-overlay.active,
+  #cots-editor-overlay.active {
     display: flex !important;
   }
 
@@ -387,10 +389,12 @@ body.theme-highranks #resource-editor-overlay .resource-editor-container,
   #inspection-editor-overlay .resource-editor-container,
   #council-editor-overlay .resource-editor-container,
   #timeline-editor-overlay .resource-editor-container,
+  #cots-editor-overlay .resource-editor-container,
   #library-editor-overlay .library-editor-container,
   #inspection-editor-overlay .library-editor-container,
   #council-editor-overlay .library-editor-container,
-  #timeline-editor-overlay .library-editor-container {
+  #timeline-editor-overlay .library-editor-container,
+  #cots-editor-overlay .library-editor-container {
     border-left: 0 !important;
     border-right: 0 !important;
     clip-path: none !important;
@@ -408,6 +412,7 @@ body.theme-highranks #resource-editor-overlay .resource-editor-container,
   #inspection-editor-overlay .resource-editor-form,
   #council-editor-overlay .resource-editor-form,
   #timeline-editor-overlay .resource-editor-form,
+  #cots-editor-overlay .resource-editor-form,
   #library-editor-overlay .library-editor-form {
     flex: 1 1 auto !important;
     max-height: none !important;
@@ -509,7 +514,7 @@ const HOLONET_GLOBAL_POLISH_JS = `
 (function () {
   if (typeof window === "undefined") return;
 
-  const activeOverlays = "#resource-editor-overlay, #library-editor-overlay, #inspection-editor-overlay, #council-editor-overlay, #timeline-editor-overlay, #search-overlay";
+  const activeOverlays = "#resource-editor-overlay, #library-editor-overlay, #inspection-editor-overlay, #council-editor-overlay, #timeline-editor-overlay, #cots-editor-overlay, #search-overlay";
   const editorPanels = ".resource-editor-container, .library-editor-container, #search-container, .search-container";
   let selectionGuard = false;
 

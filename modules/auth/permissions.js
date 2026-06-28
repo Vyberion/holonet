@@ -3,6 +3,7 @@ import { tierAtLeast } from "./profile.js";
 
 const PAGE_ACCESS = {
   codex: { public: true },
+  cots: { public: true },
   archives: { public: true },
   hierarchy: { public: true },
   low_ranks: { public: true },

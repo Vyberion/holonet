@@ -9,6 +9,7 @@ const moduleLoaders = {
   "/modules/client/admin.js": () => import("../../modules/client/admin.js"),
   "/modules/client/archive-map.js": () => import("../../modules/client/archive-map.js"),
   "/modules/client/council-floor.js": () => import("../../modules/client/council-floor.js"),
+  "/modules/client/cots.js": () => import("../../modules/client/cots.js"),
   "/modules/client/division-hub.js": () => import("../../modules/client/division-hub.js"),
   "/modules/client/division-section.js": () => import("../../modules/client/division-section.js"),
   "/modules/client/library-view.js": async () => {
@@ -42,6 +43,7 @@ function runModuleInit(modulePath) {
     "/modules/client/admin.js": () => window.initHolonetAdmin?.(),
     "/modules/client/archive-map.js": () => window.initHolonetArchiveMap?.(),
     "/modules/client/council-floor.js": () => window.initHolonetCouncilFloor?.(),
+    "/modules/client/cots.js": () => window.initHolonetCots?.(),
     "/modules/client/personnel.js": () => window.initHolonetPersonnel?.(),
     "/modules/client/registry-directory.js": () => window.initHolonetRegistryDirectory?.(),
     "/modules/client/group-timeline.js": () => window.initHolonetGroupTimeline?.(),

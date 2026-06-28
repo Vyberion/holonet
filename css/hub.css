@@ -254,6 +254,11 @@
   width: 100%;
 }
 
+[data-cots-root] {
+  display: grid;
+  gap: 34px;
+}
+
 .cots-hero {
   align-items: stretch;
   background:
@@ -498,23 +503,23 @@
 }
 
 .cots-bracket {
-  --bracket-lane-height: 1248px;
-  --match-card-height: 126px;
-  --round-gap-width: 54px;
-  --round-gap-half: 27px;
+  --bracket-lane-height: 1424px;
+  --match-card-height: 154px;
+  --round-gap-width: 64px;
+  --round-gap-half: 32px;
   display: grid;
   gap: var(--round-gap-width);
-  grid-template-columns: repeat(4, minmax(250px, 1fr));
+  grid-template-columns: repeat(4, minmax(270px, 1fr));
   min-height: var(--bracket-lane-height);
   overflow-x: auto;
-  padding: 24px 28px 30px;
+  padding: 30px 34px 36px;
 }
 
 .cots-bracket-round {
   display: grid;
   gap: 18px;
   grid-template-rows: 34px minmax(0, 1fr);
-  min-width: 250px;
+  min-width: 270px;
   position: relative;
 }
 
@@ -528,9 +533,7 @@
 }
 
 .cots-bracket-stack {
-  align-content: center;
-  display: grid;
-  gap: var(--round-match-gap, 34px);
+  height: var(--bracket-lane-height);
   min-height: var(--bracket-lane-height);
   position: relative;
 }
@@ -543,8 +546,12 @@
   display: grid;
   gap: 8px;
   height: var(--match-card-height);
+  left: 0;
   padding: 13px;
-  position: relative;
+  position: absolute;
+  right: 0;
+  top: var(--match-top, 50%);
+  transform: translateY(-50%);
 }
 
 .cots-bracket-match::after {
@@ -560,7 +567,7 @@
 .cots-bracket-round:not(:last-child) .cots-bracket-match:nth-child(odd)::before {
   background: linear-gradient(180deg, transparent, var(--theme-accent-dim) 14%, var(--theme-accent-dim) 86%, transparent);
   content: "";
-  height: calc(var(--match-card-height) + var(--round-match-gap, 34px));
+  height: var(--pair-line-height);
   position: absolute;
   right: calc((var(--round-gap-half) * -1) - 1px);
   top: 50%;
@@ -571,7 +578,7 @@
   background: linear-gradient(180deg, transparent, var(--theme-accent-dim) 14%, var(--theme-accent-dim) 86%, transparent);
   bottom: 50%;
   content: "";
-  height: calc(var(--match-card-height) + var(--round-match-gap, 34px));
+  height: var(--pair-line-height);
   position: absolute;
   right: calc((var(--round-gap-half) * -1) - 1px);
   width: 1px;

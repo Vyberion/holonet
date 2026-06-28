@@ -56,16 +56,16 @@ const defaultCotsState = {
 
 export const metadata = holonetMetadata({
   title: "Champion of The Sith",
-  description: "Champion of The Sith records, podium imagery and tournament bracket."
+  description: "Champion of The Sith tournament bracket and Champion."
 });
 
 export default function CotsPage() {
   return (
     <HolonetFrame
       title="CHAMPION OF THE SITH"
-      subtitle="CoTS TOURNAMENT RECORD"
-      node="KOR-7 / ARENA ARCHIVE"
-      signalLabel="LOCKED"
+      subtitle="TOURNAMENT RECORD"
+      node="KOR-7"
+      signalLabel="LIVE"
       signalValue="|||||||||."
       signalPercent="91%"
       footerNode="CoTS"

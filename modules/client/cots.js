@@ -73,12 +73,15 @@ function competitor(name, winner) {
   `;
 }
 
-function matchCard(match, matchIndex, roundSize) {
+function matchCard(match, matchIndex, roundSize, laneHeight) {
+  const topPercent = ((matchIndex + 0.5) / Math.max(1, roundSize)) * 100;
+  const pairLineHeight = laneHeight / Math.max(1, roundSize);
+
   return `
     <article
       class="cots-bracket-match"
       role="listitem"
-      style="--match-index: ${matchIndex}; --round-size: ${roundSize};"
+      style="--match-top: ${topPercent}%; --pair-line-height: ${pairLineHeight}px;"
     >
       <div class="cots-match-code">${escapeHtml(match.id || "")}</div>
       ${competitor(match.left, match.winner && match.winner === match.left)}
@@ -94,21 +97,18 @@ function matchCard(match, matchIndex, roundSize) {
 function roundMarkup(round, roundIndex, rounds) {
   const roundSize = Math.max(1, (round.matches || []).length);
   const previousSize = roundIndex > 0 ? Math.max(1, (rounds[roundIndex - 1]?.matches || []).length) : 0;
-  const laneHeight = 1248;
-  const cardHeight = 126;
-  const roundGap = roundSize > 1
-    ? Math.max(28, (laneHeight - (roundSize * cardHeight)) / (roundSize - 1))
-    : 0;
+  const largestRoundSize = Math.max(1, ...rounds.map(item => (item.matches || []).length));
+  const laneHeight = Math.max(720, largestRoundSize * 178);
 
   return `
     <section
       class="cots-bracket-round"
       aria-label="${escapeHtml(round.name || "Round")}"
-      style="--round-size: ${roundSize}; --previous-round-size: ${previousSize}; --round-match-gap: ${roundGap}px;"
+      style="--round-size: ${roundSize}; --previous-round-size: ${previousSize}; --bracket-lane-height: ${laneHeight}px;"
     >
       <h4>${escapeHtml(round.name || "Round")}</h4>
       <div class="cots-bracket-stack">
-        ${(round.matches || []).map((match, matchIndex) => matchCard(match, matchIndex, roundSize)).join("")}
+        ${(round.matches || []).map((match, matchIndex) => matchCard(match, matchIndex, roundSize, laneHeight)).join("")}
       </div>
     </section>
   `;

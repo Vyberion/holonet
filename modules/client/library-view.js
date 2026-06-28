@@ -170,6 +170,16 @@ function normalizeLineClauses(value) {
     }));
 }
 
+function subClauseText(subClauses = []) {
+  if (!Array.isArray(subClauses)) return "";
+
+  return subClauses
+    .map(clause => typeof clause === "string" ? clause : clause?.body)
+    .map(body => String(body || "").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
 function toRoman(value) {
   const number = Math.max(1, Math.min(3999, Number(value) || 1));
   const numerals = [
@@ -251,6 +261,10 @@ function formEntryMarkup(entry, index) {
       <div class="resource-editor-field">
         <label>Regulation Body</label>
         <textarea name="entry-body-${index}" required>${escapeHtml(entry.body || "")}</textarea>
+      </div>
+      <div class="resource-editor-field">
+        <label>Sub-Sections</label>
+        <textarea name="entry-sub-${index}" placeholder="One sub-section per line">${escapeHtml(subClauseText(entry.subClauses))}</textarea>
       </div>
     </section>
   `;

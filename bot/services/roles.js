@@ -5,6 +5,8 @@ import { hasCoreAccess } from "../../modules/auth/permissions.js";
 import { loadProfileForRoblox, loadRobloxUser, rawRanksFromProfile } from "./roblox.js";
 import { audit, supabase } from "./supabase.js";
 
+const ROBLOX_RANK_DELEGATE_DISCORD_IDS = new Set(["1046546991360004136"]);
+
 function compactIds(values) {
   return values.flat().filter(value => value && !String(value).includes("ROLE_ID"));
 }
@@ -123,6 +125,31 @@ export function canManageBot(profile, member = null) {
     roles.emperor ||
     roles["emperorPowerbase"]
   );
+}
+
+function robloxRankPairs(profile) {
+  const ranks = rawRanksFromProfile(profile);
+  return [
+    ["darkCouncil", ranks.darkCouncil],
+    ["highranks", ranks.highranks],
+    ...Object.entries(ranks.divisions)
+  ];
+}
+
+function hasHigherSharedRobloxRank(actorProfile, targetProfile) {
+  if (!actorProfile || !targetProfile) return false;
+
+  const targetRanks = new Map(robloxRankPairs(targetProfile));
+  return robloxRankPairs(actorProfile).some(([scope, actorRank]) => {
+    const targetRank = Number(targetRanks.get(scope) || 0);
+    return Number(actorRank || 0) > 0 && targetRank > 0 && Number(actorRank) > targetRank;
+  });
+}
+
+export function canUpdateMemberRoles(actorProfile, targetProfile, actorMember = null, actorDiscordId = "") {
+  if (canManageBot(actorProfile, actorMember)) return true;
+  if (!ROBLOX_RANK_DELEGATE_DISCORD_IDS.has(String(actorDiscordId))) return false;
+  return hasHigherSharedRobloxRank(actorProfile, targetProfile);
 }
 
 export function canManageEmperorVote(profile, member = null) {

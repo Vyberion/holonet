@@ -480,6 +480,7 @@
 
 .cots-bracket {
   --bracket-lane-height: 1424px;
+  --cots-bracket-line: var(--theme-accent-dim);
   --match-card-height: 154px;
   --round-gap-width: 64px;
   --round-gap-half: 32px;
@@ -519,7 +520,7 @@
   background:
     linear-gradient(135deg, rgba(255, 66, 82, 0.04), transparent),
     rgba(0, 0, 0, 0.34);
-  border: 1px solid rgba(255, 66, 82, 0.22);
+  border: 1px solid var(--cots-bracket-line);
   display: grid;
   gap: 8px;
   height: var(--match-card-height);
@@ -532,7 +533,7 @@
 }
 
 .cots-bracket-match::after {
-  background: var(--theme-accent-dim);
+  background: var(--cots-bracket-line);
   content: "";
   height: 1px;
   position: absolute;
@@ -542,7 +543,7 @@
 }
 
 .cots-bracket-round:not(:last-child) .cots-bracket-match:nth-child(odd)::before {
-  background: var(--theme-accent-dim);
+  background: var(--cots-bracket-line);
   content: "";
   height: var(--pair-line-height);
   position: absolute;
@@ -552,7 +553,7 @@
 }
 
 .cots-bracket-round:not(:last-child) .cots-bracket-match:nth-child(even)::before {
-  background: var(--theme-accent-dim);
+  background: var(--cots-bracket-line);
   bottom: 50%;
   content: "";
   height: var(--pair-line-height);
@@ -562,7 +563,7 @@
 }
 
 .cots-bracket-round:not(:first-child) .cots-bracket-match .cots-match-code::before {
-  background: var(--theme-accent-dim);
+  background: var(--cots-bracket-line);
   content: "";
   height: 1px;
   left: calc(var(--round-gap-half) * -1);

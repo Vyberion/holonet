@@ -2,7 +2,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } fro
 import { config } from "../config/index.js";
 import { createLinkToken, unlinkDiscordUser } from "../services/verification.js";
 import { embed, ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
-import { canManageBot, getVerifiedProfile, syncMemberRoles } from "../services/roles.js";
+import { canManageBot, canUpdateMemberRoles, getVerifiedProfile, syncMemberRoles } from "../services/roles.js";
 import { loadGroupRoles, loadRobloxUser } from "../services/roblox.js";
 import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
 
@@ -15,7 +15,10 @@ const allCommands = [
     .setDescription("Verification tools")
     .addSubcommand(subcommand => subcommand.setName("panel").setDescription("Post the verification panel")),
   new SlashCommandBuilder().setName("verify").setDescription("Link your Discord account to your Holonet Roblox account"),
-  new SlashCommandBuilder().setName("update-roles").setDescription("Re-check your Roblox ranks and update Discord roles"),
+  new SlashCommandBuilder()
+    .setName("update-roles")
+    .setDescription("Re-check Roblox ranks and update Discord roles")
+    .addUserOption(option => option.setName("user").setDescription("Discord user").setRequired(false)),
   new SlashCommandBuilder()
     .setName("lookup")
     .setDescription("Look up a linked Discord user")
@@ -92,8 +95,30 @@ export async function handleCommand(interaction) {
 
   if (interaction.commandName === "update-roles") {
     try {
-      const result = await syncMemberRoles(interaction.member);
-      await interaction.reply(ephemeral({ embeds: [successEmbed("Roles Updated", `Added ${result.added.length} role(s), removed ${result.removed.length} role(s).${result.nickname ? `\nNickname: ${result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`}` : ""}`)] }));
+      const user = interaction.options.getUser("user", false);
+      const targetUser = user || interaction.user;
+      const sameUser = targetUser.id === interaction.user.id;
+      const targetMember = sameUser
+        ? interaction.member
+        : await interaction.guild.members.fetch(targetUser.id);
+
+      if (!sameUser) {
+        const [actor, target] = await Promise.all([
+          getVerifiedProfile(interaction.user.id),
+          getVerifiedProfile(targetUser.id)
+        ]);
+
+        if (!actor) throw new Error("YOUR_DISCORD_NOT_LINKED");
+        if (!target) throw new Error("TARGET_DISCORD_NOT_LINKED");
+
+        if (!canUpdateMemberRoles(actor.profile, target.profile, interaction.member, interaction.user.id)) {
+          throw new Error("You do not have clearance to update that user's roles.");
+        }
+      }
+
+      const result = await syncMemberRoles(targetMember, interaction.user.id);
+      const targetLabel = sameUser ? "" : ` for <@${targetUser.id}>`;
+      await interaction.reply(ephemeral({ embeds: [successEmbed("Roles Updated", `Updated roles${targetLabel}. Added ${result.added.length} role(s), removed ${result.removed.length} role(s).${result.nickname ? `\nNickname: ${result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`}` : ""}`)] }));
     } catch (error) {
       await interaction.reply(ephemeral({ embeds: [errorEmbed(error.message)] }));
     }

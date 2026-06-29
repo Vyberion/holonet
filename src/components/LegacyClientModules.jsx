@@ -16,7 +16,11 @@ const moduleLoaders = {
     await import("../../modules/client/library-regulations.js");
     return import("../../modules/client/library-view.js");
   },
-  "/modules/client/nexus.js": () => import("../../modules/client/nexus.js"),
+  "/modules/client/nexus.js": async () => {
+    await import("../../modules/client/nexus.js");
+    return import("../../modules/client/report-cycle.js");
+  },
+  "/modules/client/report-cycle.js": () => import("../../modules/client/report-cycle.js"),
   "/modules/client/pdf-tabs.js": async () => {
     await import("../../modules/client/pdf-slot-tabs.js");
     await import("../../modules/client/pdf-viewer-controls.js");
@@ -39,6 +43,7 @@ function runModuleInit(modulePath) {
   const initializers = {
     "/modules/client/library-view.js": () => window.initHolonetLibraryView?.(),
     "/modules/client/nexus.js": () => window.initHolonetNexus?.(),
+    "/modules/client/report-cycle.js": () => window.initHolonetReportCycle?.(),
     "/modules/client/account.js": () => window.initHolonetAccount?.(),
     "/modules/client/admin.js": () => window.initHolonetAdmin?.(),
     "/modules/client/archive-map.js": () => window.initHolonetArchiveMap?.(),

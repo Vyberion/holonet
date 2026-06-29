@@ -6,119 +6,61 @@ import { canAdjustTime, canManageBot, getVerifiedProfile, inferScope } from "../
 import { supabase } from "../services/supabase.js";
 import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
 
-const VERIFY_INSTRUCTIONS = "You are not linked yet. Go to <#1046452180074381403> and click the verify button, or use `/verify`.";
+const VERIFY_INSTRUCTIONS = "You are not linked yet. Use `/verify` or the verification panel.";
 const LEADERBOARD_PAGE_SIZE = 5;
-
-export const commands = [
-  new SlashCommandBuilder()
-    .setName("clockin")
-    .setDescription("Start a shift")
-    .addBooleanOption(option => option.setName("late").setDescription("Clock in late")),
-  new SlashCommandBuilder()
-    .setName("clockout")
-    .setDescription("End your active shift")
-    .addBooleanOption(option => option.setName("late").setDescription("Clock out late")),
-  new SlashCommandBuilder().setName("shift").setDescription("Show your active shift"),
-  new SlashCommandBuilder()
-    .setName("clockpanel")
-    .setDescription("Clock panel tools")
-    .addSubcommand(subcommand => subcommand
-      .setName("create")
-      .setDescription("Create a clock panel")
-      .addStringOption(option => option.setName("scope").setDescription("Clock scope").setRequired(true)
-        .addChoices(
-          { name: "Reavers", value: "reavers" },
-          { name: "DHG", value: "dhg" },
-          { name: "Inquisitors", value: "inquisitors" },
-          { name: "Dread Masters", value: "dreadmasters" },
-          { name: "High Ranks", value: "highranks" },
-          { name: "Dark Council", value: "darkCouncil" }
-        ))),
-  new SlashCommandBuilder()
-    .setName("shifts")
-    .setDescription("Shift reports")
-    .addSubcommand(subcommand => subcommand.setName("active").setDescription("Show active shifts"))
-    .addSubcommand(subcommand => subcommand
-      .setName("weekly")
-      .setDescription("Show this week's shifts")
-      .addStringOption(option => addScopeChoices(option.setName("scope").setDescription("Clock scope").setRequired(true))))
-    .addSubcommand(subcommand => subcommand.setName("user").setDescription("Show a user's shifts").addUserOption(option => option.setName("user").setDescription("User").setRequired(true))),
-  new SlashCommandBuilder()
-    .setName("add")
-    .setDescription("Add time")
-    .addSubcommand(subcommand => subcommand
-      .setName("time")
-      .setDescription("Add minutes to a shift")
-      .addUserOption(option => option.setName("user").setDescription("User to adjust"))),
-  new SlashCommandBuilder()
-    .setName("remove")
-    .setDescription("Remove time")
-    .addSubcommand(subcommand => subcommand
-      .setName("time")
-      .setDescription("Remove minutes from a shift")
-      .addUserOption(option => option.setName("user").setDescription("User to adjust"))),
-  new SlashCommandBuilder()
-    .setName("view")
-    .setDescription("View Holonet records")
-    .addSubcommand(subcommand => subcommand
-      .setName("scopes")
-      .setDescription("List all clock scopes and who is eligible for each one"))
-    .addSubcommand(subcommand => subcommand
-      .setName("time")
-      .setDescription("View user time or a scope leaderboard")
-      .addUserOption(option => option.setName("user").setDescription("Discord user"))
-      .addStringOption(option => addLeaderboardScopeChoices(option.setName("scope").setDescription("Leaderboard scope"))))
+const PANEL_DESCRIPTION = "Use the buttons below to clock in, clock in late, clock out, clock out late, check your current shift or view the leaderboard.";
+const SCOPE_CHOICES = [
+  { name: "Reavers", value: "reavers" },
+  { name: "DHG", value: "dhg" },
+  { name: "Inquisitors", value: "inquisitors" },
+  { name: "Dread Masters", value: "dreadmasters" },
+  { name: "High Ranks", value: "highranks" },
+  { name: "Dark Council", value: "darkCouncil" }
 ];
 
-function addScopeChoices(option) {
-  return option.addChoices(
-    { name: "Reavers", value: "reavers" },
-    { name: "DHG", value: "dhg" },
-    { name: "Inquisitors", value: "inquisitors" },
-    { name: "Dread Masters", value: "dreadmasters" },
-    { name: "High Ranks", value: "highranks" },
-    { name: "Dark Council", value: "darkCouncil" }
-  );
-}
+export const commands = [
+  new SlashCommandBuilder().setName("clockin").setDescription("Start a shift").addBooleanOption(option => option.setName("late").setDescription("Clock in late")),
+  new SlashCommandBuilder().setName("clockout").setDescription("End your active shift").addBooleanOption(option => option.setName("late").setDescription("Clock out late")),
+  new SlashCommandBuilder().setName("shift").setDescription("Show your active shift"),
+  new SlashCommandBuilder().setName("clockpanel").setDescription("Clock panel tools").addSubcommand(subcommand => subcommand.setName("create").setDescription("Create a clock panel").addStringOption(option => addScopeChoices(option.setName("scope").setDescription("Clock scope").setRequired(true)))),
+  new SlashCommandBuilder().setName("shifts").setDescription("Shift reports")
+    .addSubcommand(subcommand => subcommand.setName("active").setDescription("Show active shifts"))
+    .addSubcommand(subcommand => subcommand.setName("weekly").setDescription("Show this week's shifts").addStringOption(option => addScopeChoices(option.setName("scope").setDescription("Clock scope").setRequired(true))))
+    .addSubcommand(subcommand => subcommand.setName("user").setDescription("Show a user's shifts").addUserOption(option => option.setName("user").setDescription("User").setRequired(true))),
+  new SlashCommandBuilder().setName("add").setDescription("Add time").addSubcommand(subcommand => subcommand.setName("time").setDescription("Add minutes to a shift").addUserOption(option => option.setName("user").setDescription("User to adjust"))),
+  new SlashCommandBuilder().setName("remove").setDescription("Remove time").addSubcommand(subcommand => subcommand.setName("time").setDescription("Remove minutes from a shift").addUserOption(option => option.setName("user").setDescription("User to adjust"))),
+  new SlashCommandBuilder().setName("view").setDescription("View Holonet records")
+    .addSubcommand(subcommand => subcommand.setName("scopes").setDescription("List all clock scopes and who is eligible for each one"))
+    .addSubcommand(subcommand => subcommand.setName("time").setDescription("View user time or a scope leaderboard").addUserOption(option => option.setName("user").setDescription("Discord user")).addStringOption(option => addScopeChoices(option.addChoices({ name: "All", value: "all" }).setName("scope").setDescription("Leaderboard scope"))))
+];
 
-function addLeaderboardScopeChoices(option) {
-  return addScopeChoices(option.addChoices({ name: "All", value: "all" }));
-}
+function addScopeChoices(option) { return option.addChoices(...SCOPE_CHOICES); }
 
-function panelRow(scope) {
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`clock:in:${scope}:0`).setLabel("Clock In").setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(`clock:in:${scope}:1`).setLabel("Clock In Late").setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`clock:out:${scope}:0`).setLabel("Clock Out").setStyle(ButtonStyle.Danger),
-    new ButtonBuilder().setCustomId(`clock:out:${scope}:1`).setLabel("Clock Out Late").setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`clock:shift:${scope}:0`).setLabel("My Shift").setStyle(ButtonStyle.Primary)
-  );
+function panelRows(scope) {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`clock:in:${scope}:0`).setLabel("Clock In").setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(`clock:in:${scope}:1`).setLabel("Clock In Late").setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`clock:out:${scope}:0`).setLabel("Clock Out").setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId(`clock:out:${scope}:1`).setLabel("Clock Out Late").setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`clock:shift:${scope}:0`).setLabel("My Shift").setStyle(ButtonStyle.Primary)
+    ),
+    new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`clock:leaderboard:${scope}:0`).setLabel("Leaderboard").setStyle(ButtonStyle.Primary))
+  ];
 }
 
 function scopeLabel(scope) {
-  return {
-    reavers: "Reavers",
-    dhg: "DHG",
-    inquisitors: "Inquisitors",
-    dreadmasters: "Dread Masters",
-    highranks: "High Ranks",
-    darkCouncil: "Dark Council"
-  }[scope] || scope;
+  return { reavers: "Reavers", dhg: "DHG", inquisitors: "Inquisitors", dreadmasters: "Dread Masters", highranks: "High Ranks", darkCouncil: "Dark Council", all: "All" }[scope] || scope;
 }
 
-function scopeLeaderboardLabel(scope) {
-  return scope === "all" ? "All" : scopeLabel(scope);
+function clockPanelPayload(scope) {
+  return { embeds: [embed(`${scopeLabel(scope)} Clock Panel`, PANEL_DESCRIPTION)], components: panelRows(scope) };
 }
 
-function rankName(section, rank) {
-  const rule = section?.ranks?.[String(rank)];
-  return rule?.value || `Rank ${rank}`;
-}
+function rankName(section, rank) { return section?.ranks?.[String(rank)]?.value || `Rank ${rank}`; }
 
 function eligibleRanks(ranks, keys, section) {
-  return keys
-    .flatMap(key => (ranks?.[key] || []).map(rank => `${rankName(section, rank)} [${rank}]`))
-    .join(", ");
+  return keys.flatMap(key => (ranks?.[key] || []).map(rank => `${rankName(section, rank)} [${rank}]`)).join(", ");
 }
 
 function scopeEligibilityLines() {
@@ -142,24 +84,17 @@ function formatDurationLong(seconds = 0) {
 }
 
 function shiftTotalSeconds(shift, now = Date.now()) {
-  const liveSeconds = shift.status === "active"
-    ? Math.max(0, Math.floor((now - new Date(shift.started_at).getTime()) / 1000))
-    : Number(shift.duration_seconds || 0);
+  const liveSeconds = shift.status === "active" ? Math.max(0, Math.floor((now - new Date(shift.started_at).getTime()) / 1000)) : Number(shift.duration_seconds || 0);
   return Math.max(0, liveSeconds + Number(shift.adjustment_seconds || 0));
 }
 
 async function loadScopeLeaderboard(scope) {
   const rows = [];
   const pageSize = 1000;
+
   for (let from = 0; ; from += pageSize) {
-    let query = supabase
-      .from("clock_shifts")
-      .select("discord_user_id,scope,status,started_at,duration_seconds,adjustment_seconds")
-      .not("discord_user_id", "is", null)
-      .range(from, from + pageSize - 1);
-
+    let query = supabase.from("clock_shifts").select("discord_user_id,scope,status,started_at,duration_seconds,adjustment_seconds").not("discord_user_id", "is", null).range(from, from + pageSize - 1);
     if (scope !== "all") query = query.eq("scope", scope);
-
     const { data, error } = await query;
     if (error) throw error;
     rows.push(...(data || []));
@@ -170,8 +105,7 @@ async function loadScopeLeaderboard(scope) {
   const totals = new Map();
   for (const shift of rows) {
     const userId = String(shift.discord_user_id || "");
-    if (!userId) continue;
-    totals.set(userId, (totals.get(userId) || 0) + shiftTotalSeconds(shift, now));
+    if (userId) totals.set(userId, (totals.get(userId) || 0) + shiftTotalSeconds(shift, now));
   }
 
   return [...totals.entries()]
@@ -182,16 +116,8 @@ async function loadScopeLeaderboard(scope) {
 
 function leaderboardRow(scope, page, totalPages) {
   return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`viewtime:${scope}:prev:${Math.max(0, page - 1)}`)
-      .setLabel("Previous")
-      .setStyle(ButtonStyle.Danger)
-      .setDisabled(page <= 0),
-    new ButtonBuilder()
-      .setCustomId(`viewtime:${scope}:next:${Math.min(totalPages - 1, page + 1)}`)
-      .setLabel("Next")
-      .setStyle(ButtonStyle.Success)
-      .setDisabled(page >= totalPages - 1)
+    new ButtonBuilder().setCustomId(`viewtime:${scope}:prev:${Math.max(0, page - 1)}`).setLabel("Previous").setStyle(ButtonStyle.Danger).setDisabled(page <= 0),
+    new ButtonBuilder().setCustomId(`viewtime:${scope}:next:${Math.min(totalPages - 1, page + 1)}`).setLabel("Next").setStyle(ButtonStyle.Success).setDisabled(page >= totalPages - 1)
   );
 }
 
@@ -199,23 +125,14 @@ function leaderboardEmbed(scope, rows, page) {
   const totalPages = Math.max(1, Math.ceil(rows.length / LEADERBOARD_PAGE_SIZE));
   const safePage = Math.min(Math.max(0, page), totalPages - 1);
   const pageRows = rows.slice(safePage * LEADERBOARD_PAGE_SIZE, (safePage + 1) * LEADERBOARD_PAGE_SIZE);
-  const title = `${scopeLeaderboardLabel(scope)} Leaderboard`;
-  const description = pageRows.length
-    ? pageRows.map((row, index) => {
-      const rank = safePage * LEADERBOARD_PAGE_SIZE + index + 1;
-      return `**Rank:** ${rank}\n**User:** <@${row.discordUserId}>\n**Total time:** ${formatDurationLong(row.totalSeconds)}`;
-    }).join("\n\n")
-    : "No time recorded.";
-
   return {
-    embeds: [embed(title, description)],
+    embeds: [embed(`${scopeLabel(scope)} Leaderboard`, pageRows.length ? pageRows.map((row, index) => `**Rank:** ${safePage * LEADERBOARD_PAGE_SIZE + index + 1}\n**User:** <@${row.discordUserId}>\n**Total time:** ${formatDurationLong(row.totalSeconds)}`).join("\n\n") : "No time recorded.")],
     components: [leaderboardRow(scope, safePage, totalPages)]
   };
 }
 
 async function replyScopeLeaderboard(interaction, scope, page = 0, update = false) {
-  const rows = await loadScopeLeaderboard(scope);
-  const payload = leaderboardEmbed(scope, rows, page);
+  const payload = leaderboardEmbed(scope, await loadScopeLeaderboard(scope), page);
   if (update) await interaction.update(payload);
   else await interaction.reply(ephemeral(payload));
 }
@@ -224,17 +141,13 @@ async function replyUserTime(interaction, user) {
   const totals = await shiftTotals(user.id);
   const verified = await getVerifiedProfile(user.id).catch(() => null);
   const scope = verified?.profile ? inferScope(verified.profile) : "";
-  const activeText = totals.hasActiveShift ? "Current Shift: active" : "Current Shift: none";
-
-  await interaction.reply(ephemeral({
-    embeds: [embed("Shift Time", [
-      `User: <@${user.id}>`,
-      `Scope: ${scope ? scopeLabel(scope) : "Unassigned"}`,
-      `Total Time: ${formatDurationLong(totals.totalSeconds)}`,
-      totals.adjustmentSeconds ? `Adjustments: ${totals.adjustmentSeconds >= 0 ? "+" : "-"}${formatDurationLong(Math.abs(totals.adjustmentSeconds))}` : "",
-      activeText
-    ].filter(Boolean).join("\n"))]
-  }));
+  await interaction.reply(ephemeral({ embeds: [embed("Shift Time", [
+    `User: <@${user.id}>`,
+    `Scope: ${scope ? scopeLabel(scope) : "Unassigned"}`,
+    `Total Time: ${formatDurationLong(totals.totalSeconds)}`,
+    totals.adjustmentSeconds ? `Adjustments: ${totals.adjustmentSeconds >= 0 ? "+" : "-"}${formatDurationLong(Math.abs(totals.adjustmentSeconds))}` : "",
+    totals.hasActiveShift ? "Current Shift: active" : "Current Shift: none"
+  ].filter(Boolean).join("\n"))] }));
 }
 
 async function requireManager(interaction) {
@@ -253,38 +166,20 @@ async function doClockOut(interaction, options = {}) {
   await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked Out", `Duration: ${formatDuration(total)}${shift.adjustment_seconds ? `\nAdjustment: ${formatDuration(Math.abs(shift.adjustment_seconds))} ${shift.adjustment_seconds > 0 ? "added" : "removed"}` : ""}${shift.clockout_late ? `\nLate clock-out: ${shift.clockout_late_minutes || 0} minutes` : ""}`)] }));
 }
 
-function clockErrorMessage(error) {
-  return error?.message === "DISCORD_NOT_LINKED" ? VERIFY_INSTRUCTIONS : error?.message || "Unexpected clock error.";
-}
-
 async function replyClockError(interaction, error) {
-  await interaction.reply(ephemeral({ embeds: [errorEmbed(clockErrorMessage(error))] }));
+  await interaction.reply(ephemeral({ embeds: [errorEmbed(error?.message === "DISCORD_NOT_LINKED" ? VERIFY_INSTRUCTIONS : error?.message || "Unexpected clock error.")] }));
 }
 
 async function replyShiftSummary(interaction) {
-  const [shift, totals] = await Promise.all([
-    activeShift(interaction.user.id),
-    shiftTotals(interaction.user.id)
-  ]);
-  const activeText = shift
-    ? `Current Shift: ${shift.scope}, started <t:${Math.floor(new Date(shift.started_at).getTime() / 1000)}:R>`
-    : "Current Shift: none";
-  const adjustmentText = totals.adjustmentSeconds
-    ? `\nAdjustments: ${totals.adjustmentSeconds >= 0 ? "+" : "-"}${formatDuration(Math.abs(totals.adjustmentSeconds))}`
-    : "";
-
-  await interaction.reply(ephemeral({
-    embeds: [embed("Shift Time", `${activeText}\nTotal Time: ${formatDuration(totals.totalSeconds)}${adjustmentText}`)]
-  }));
+  const [shift, totals] = await Promise.all([activeShift(interaction.user.id), shiftTotals(interaction.user.id)]);
+  const activeText = shift ? `Current Shift: ${shift.scope}, started <t:${Math.floor(new Date(shift.started_at).getTime() / 1000)}:R>` : "Current Shift: none";
+  const adjustmentText = totals.adjustmentSeconds ? `\nAdjustments: ${totals.adjustmentSeconds >= 0 ? "+" : "-"}${formatDuration(Math.abs(totals.adjustmentSeconds))}` : "";
+  await interaction.reply(ephemeral({ embeds: [embed("Shift Time", `${activeText}\nTotal Time: ${formatDuration(totals.totalSeconds)}${adjustmentText}`)] }));
 }
 
 async function canAdjustTarget(interaction, targetUser) {
   if (targetUser.id === interaction.user.id) return { allowed: true };
-
-  const [actor, target] = await Promise.all([
-    getVerifiedProfile(interaction.user.id),
-    getVerifiedProfile(targetUser.id)
-  ]);
+  const [actor, target] = await Promise.all([getVerifiedProfile(interaction.user.id), getVerifiedProfile(targetUser.id)]);
   if (!actor || !target) return { allowed: false, reason: "Both users must be linked." };
 
   const targetScope = inferScope(target.profile);
@@ -300,20 +195,14 @@ export async function handleCommand(interaction) {
   const subcommand = interaction.options?.getSubcommand(false) || "";
 
   if (interaction.commandName === "clockin") {
-    if (interaction.options.getBoolean("late")) {
-      await interaction.showModal(textModal("clockmodal:in:auto", "Late Clock-In", [{ id: "minutes", label: "How late are you? (minutes)", placeholder: "10" }]));
-    } else {
-      try { await doClockIn(interaction); } catch (error) { await replyClockError(interaction, error); }
-    }
+    if (interaction.options.getBoolean("late")) await interaction.showModal(textModal("clockmodal:in:auto", "Late Clock-In", [{ id: "minutes", label: "How late are you? (minutes)", placeholder: "10" }]));
+    else try { await doClockIn(interaction); } catch (error) { await replyClockError(interaction, error); }
     return true;
   }
 
   if (interaction.commandName === "clockout") {
-    if (interaction.options.getBoolean("late")) {
-      await interaction.showModal(textModal("clockmodal:out:auto", "Late Clock-Out", [{ id: "minutes", label: "How late is this clock-out? (minutes)", placeholder: "10" }]));
-    } else {
-      try { await doClockOut(interaction); } catch (error) { await replyClockError(interaction, error); }
-    }
+    if (interaction.options.getBoolean("late")) await interaction.showModal(textModal("clockmodal:out:auto", "Late Clock-Out", [{ id: "minutes", label: "How late is this clock-out? (minutes)", placeholder: "10" }]));
+    else try { await doClockOut(interaction); } catch (error) { await replyClockError(interaction, error); }
     return true;
   }
 
@@ -324,25 +213,15 @@ export async function handleCommand(interaction) {
 
   if (interaction.commandName === "view") {
     const sub = interaction.options.getSubcommand();
-
-    if (sub === "scopes") {
-      await interaction.reply(ephemeral({ embeds: [embed("Clock Scopes", scopeEligibilityLines().join("\n"))] }));
-      return true;
-    }
-
+    if (sub === "scopes") await interaction.reply(ephemeral({ embeds: [embed("Clock Scopes", scopeEligibilityLines().join("\n"))] }));
     if (sub === "time") {
       const user = interaction.options.getUser("user", false);
       const scope = interaction.options.getString("scope", false);
-
-      if (user && scope) {
-        await interaction.reply(ephemeral({ embeds: [errorEmbed("Choose either a user or a scope, not both.")] }));
-        return true;
-      }
-
-      if (scope) await replyScopeLeaderboard(interaction, scope);
+      if (user && scope) await interaction.reply(ephemeral({ embeds: [errorEmbed("Choose either a user or a scope, not both.")] }));
+      else if (scope) await replyScopeLeaderboard(interaction, scope);
       else await replyUserTime(interaction, user || interaction.user);
-      return true;
     }
+    return true;
   }
 
   if (interaction.commandName === "clockpanel") {
@@ -351,20 +230,13 @@ export async function handleCommand(interaction) {
       return true;
     }
     const scope = interaction.options.getString("scope", true);
-    const message = await interaction.channel.send({
-      embeds: [embed(`${scopeLabel(scope)} Clock Panel`, "Use the buttons below to clock in, clock in late, clock out, clock out late or check your current shift.")],
-      components: [panelRow(scope)]
-    });
+    const message = await interaction.channel.send(clockPanelPayload(scope));
     await saveClockPanel({ scope, channelId: message.channelId, messageId: message.id, createdBy: interaction.user.id });
     await interaction.reply(ephemeral({ embeds: [successEmbed("Clock Panel Created", `Scope: ${scope}`)] }));
     return true;
   }
 
-  if (
-    ((commandName === "add" || commandName === "remove") && (!subcommand || subcommand === "time")) ||
-    commandName === "addtime" ||
-    commandName === "removetime"
-  ) {
+  if (((commandName === "add" || commandName === "remove") && (!subcommand || subcommand === "time")) || commandName === "addtime" || commandName === "removetime") {
     const action = commandName === "remove" || commandName === "removetime" ? "remove" : "add";
     const target = interaction.options.getUser("user") || interaction.user;
     const decision = await canAdjustTarget(interaction, target);
@@ -372,9 +244,7 @@ export async function handleCommand(interaction) {
       await interaction.reply(ephemeral({ embeds: [errorEmbed(decision.reason)] }));
       return true;
     }
-    await interaction.showModal(textModal(`timeadjust:${action}:${target.id}`, `${action === "add" ? "Add" : "Remove"} Time`, [
-      { id: "minutes", label: "How many minutes?", placeholder: "10" }
-    ]));
+    await interaction.showModal(textModal(`timeadjust:${action}:${target.id}`, `${action === "add" ? "Add" : "Remove"} Time`, [{ id: "minutes", label: "How many minutes?", placeholder: "10" }]));
     return true;
   }
 
@@ -387,11 +257,7 @@ export async function handleCommand(interaction) {
     let query = supabase.from("clock_shifts").select("*").order("started_at", { ascending: false }).limit(10);
     if (sub === "active") query = query.eq("status", "active");
     if (sub === "user") query = query.eq("discord_user_id", interaction.options.getUser("user", true).id);
-    if (sub === "weekly") {
-      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const scope = interaction.options.getString("scope", true);
-      query = query.gte("started_at", since).eq("scope", scope);
-    }
+    if (sub === "weekly") query = query.gte("started_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).eq("scope", interaction.options.getString("scope", true));
     const { data, error } = await query;
     if (error) throw error;
     const lines = (data || []).map(row => `<@${row.discord_user_id}> ${row.scope} ${row.status} ${row.duration_seconds ? formatDuration(row.duration_seconds) : ""}`);
@@ -411,14 +277,23 @@ export async function handleButton(interaction) {
 
   if (!interaction.customId.startsWith("clock:")) return false;
   const [, action, scope, late] = interaction.customId.split(":");
+  await interaction.message?.edit(clockPanelPayload(scope)).catch(() => {});
+
   if (action === "shift") {
     await replyShiftSummary(interaction);
     return true;
   }
+
+  if (action === "leaderboard") {
+    await replyScopeLeaderboard(interaction, scope);
+    return true;
+  }
+
   if (late === "1") {
     await interaction.showModal(textModal(`clockmodal:${action}:${scope}`, action === "in" ? "Late Clock-In" : "Late Clock-Out", [{ id: "minutes", label: "How late? (minutes)", placeholder: "10" }]));
     return true;
   }
+
   try {
     if (action === "in") await doClockIn(interaction, { scope });
     if (action === "out") await doClockOut(interaction);
@@ -432,9 +307,8 @@ export async function handleModal(interaction) {
   if (interaction.customId.startsWith("timeadjust:")) {
     const [, action, targetId] = interaction.customId.split(":");
     const minutes = Math.max(0, Number(interaction.fields.getTextInputValue("minutes")) || 0);
-    const signedMinutes = action === "add" ? minutes : -minutes;
     try {
-      const shift = await adjustShiftTime(targetId, signedMinutes);
+      const shift = await adjustShiftTime(targetId, action === "add" ? minutes : -minutes);
       const shiftTotal = Math.max(0, Number(shift.duration_seconds || 0) + Number(shift.adjustment_seconds || 0));
       await interaction.reply(ephemeral({ embeds: [successEmbed("Time Adjusted", `${action === "add" ? "Added" : "Removed"} ${minutes} minute(s) ${targetId === interaction.user.id ? "from your shift" : `for <@${targetId}>`}.\nShift total: ${formatDuration(shiftTotal)}.`)] }));
     } catch (error) {

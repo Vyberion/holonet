@@ -57,9 +57,31 @@ function runModuleInit(modulePath) {
   initializers[modulePath]?.();
 }
 
+function guardEditorOverlayDismissal() {
+  if (typeof window === "undefined" || window.__holonetEditorOverlayDismissalGuard) return;
+  window.__holonetEditorOverlayDismissalGuard = true;
+
+  const editorOverlaySelector = [
+    "#resource-editor-overlay",
+    "#library-editor-overlay",
+    "#inspection-editor-overlay",
+    "#council-editor-overlay",
+    "#timeline-editor-overlay"
+  ].join(", ");
+
+  document.addEventListener("click", event => {
+    const target = event.target;
+    if (!(target instanceof Element) || !target.matches(editorOverlaySelector)) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
+}
+
 export function LegacyClientModules({ modules = [], guarded = false }) {
   useEffect(() => {
     let cancelled = false;
+    guardEditorOverlayDismissal();
 
     async function loadModules() {
       const queue = guarded

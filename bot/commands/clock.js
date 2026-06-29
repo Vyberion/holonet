@@ -1,5 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from "discord.js";
 import { activeShift, adjustShiftTime, clockIn, clockOut, formatDuration, saveClockPanel, shiftTotals } from "../services/clock.js";
+import { config } from "../config/index.js";
 import { embed, ephemeral, errorEmbed, successEmbed, textModal } from "../services/discord-ui.js";
 import { canAdjustTime, canManageBot, getVerifiedProfile, inferScope } from "../services/roles.js";
 import { supabase } from "../services/supabase.js";
@@ -109,20 +110,26 @@ function scopeLeaderboardLabel(scope) {
   return scope === "all" ? "All" : scopeLabel(scope);
 }
 
-function eligibleRanks(ranks, keys) {
+function rankName(section, rank) {
+  const rule = section?.ranks?.[String(rank)];
+  return rule?.value || `Rank ${rank}`;
+}
+
+function eligibleRanks(ranks, keys, section) {
   return keys
-    .flatMap(key => (ranks?.[key] || []).map(rank => `${key.toUpperCase()} [${rank}]`))
+    .flatMap(key => (ranks?.[key] || []).map(rank => `${rankName(section, rank)} [${rank}]`))
     .join(", ");
 }
 
 function scopeEligibilityLines() {
+  const nicknameRanks = config.nicknames?.managed || {};
   return [
-    `- Reavers: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.reavers.ranks, ["1ic", "co", "nco", "member"])}`,
-    `- DHG: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.dhg.ranks, ["1ic", "2ic", "co", "nco", "member"])}`,
-    `- Inquisitors: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.inquisitors.ranks, ["1ic", "co", "nco", "member"])}`,
-    `- Dread Masters: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.dreadmasters.ranks, ["1ic", "2ic", "member"])}`,
-    `- High Ranks: ${eligibleRanks(ROBLOX_GROUPS.HIGH_RANKS.ranks, ["upper", "lower"])}`,
-    `- Dark Council: ${eligibleRanks(ROBLOX_GROUPS.DARK_COUNCIL.ranks, Object.keys(ROBLOX_GROUPS.DARK_COUNCIL.ranks))}`
+    `- Reavers: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.reavers.ranks, ["1ic", "co", "nco", "member"], nicknameRanks.DIVISIONS?.reavers)}`,
+    `- DHG: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.dhg.ranks, ["1ic", "2ic", "co", "nco", "member"], nicknameRanks.DIVISIONS?.dhg)}`,
+    `- Inquisitors: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.inquisitors.ranks, ["1ic", "co", "nco", "member"], nicknameRanks.DIVISIONS?.inquisitors)}`,
+    `- Dread Masters: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.dreadmasters.ranks, ["1ic", "2ic", "member"], nicknameRanks.DIVISIONS?.dreadmasters)}`,
+    `- High Ranks: ${eligibleRanks(ROBLOX_GROUPS.HIGH_RANKS.ranks, ["upper", "lower"], nicknameRanks.HIGH_RANKS)}`,
+    `- Dark Council: ${eligibleRanks(ROBLOX_GROUPS.DARK_COUNCIL.ranks, Object.keys(ROBLOX_GROUPS.DARK_COUNCIL.ranks), nicknameRanks.DARK_COUNCIL)}`
   ];
 }
 

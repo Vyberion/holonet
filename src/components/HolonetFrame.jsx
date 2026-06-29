@@ -177,7 +177,6 @@ export function HolonetFrame({
   return (
     <>
       <style id="holonet-initial-theme" dangerouslySetInnerHTML={{ __html: initialThemeCssValue(theme) }} />
-      <div id="vignette" aria-hidden="true" />
       <div id="rune-field" aria-hidden="true" />
       <div id="holo-grid" aria-hidden="true" />
 

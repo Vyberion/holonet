@@ -141,7 +141,7 @@ function renderCots(root, state, canEdit, meta = {}) {
         <div class="cots-media-frame">
           ${image.url
             ? `<img src="${escapeHtml(image.url)}" alt="Champion of The Sith podium">`
-            : `<div class="cots-media-placeholder"><span>Podium Image</span><strong>Podium Transmission</strong></div>`}
+            : `<div class="cots-media-placeholder"><span>Podium Image</span></div>`}
         </div>
       </figure>
 

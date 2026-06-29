@@ -1,8 +1,9 @@
+import * as lookup from "./lookup.js";
 import * as verification from "./verification.js";
 import * as reports from "./reports.js";
 import * as clock from "./clock.js";
 
-export const modules = [verification, reports, clock];
+export const modules = [lookup, verification, reports, clock];
 
 export const commandData = (() => {
   const commandsByName = new Map();

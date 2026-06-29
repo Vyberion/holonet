@@ -146,6 +146,19 @@
     `;
   }
 
+  function activityUserLine(item = {}) {
+    const meta = item.meta || {};
+    const isClock = item.source === "clock" || String(item.type || "").startsWith("clock_");
+    if (!isClock) return "";
+
+    const userParts = [
+      meta.robloxUserId ? `Roblox ${meta.robloxUserId}` : "",
+      meta.discordUserId ? `Discord ${meta.discordUserId}` : ""
+    ].filter(Boolean);
+
+    return `<p>User: ${escapeHtml(userParts.join(" · ") || "Unknown user")}</p>`;
+  }
+
   function renderActivity(activity = {}) {
     const items = activity.items || [];
     return `
@@ -163,6 +176,7 @@
         <article class="hub-row">
           <strong>${escapeHtml(item.title)}</strong>
           <span>${escapeHtml(item.source)} / ${escapeHtml(item.type)} / ${escapeHtml(item.scope || "global")}</span>
+          ${activityUserLine(item)}
           <p>${escapeHtml(formatDate(item.at))}</p>
         </article>
       `).join("")}</div>` : '<p class="hub-empty">No recent activity recorded.</p>'}

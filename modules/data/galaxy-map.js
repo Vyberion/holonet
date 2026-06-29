@@ -1,0 +1,73 @@
+export const GALAXY_MAP = {
+  title: "Hidden Archives Galaxy Map",
+  focus: {
+    id: "sith-worlds",
+    name: "Sith Worlds",
+    region: "Esstran sector",
+    grid: "R-5",
+    position: [7.35, 0.12, -2.82],
+    radius: 1.36,
+    summary: "A remote Outer Rim cluster tied to ancient Sith worlds and forgotten imperial records."
+  },
+  bodies: [
+    {
+      id: "korriban",
+      name: "Korriban / Moraband",
+      shortName: "Korriban",
+      kind: "Ancient Sith homeworld",
+      region: "Sith Worlds, Esstran sector",
+      grid: "R-5",
+      position: [7.05, 0.08, -2.95],
+      radius: 0.26,
+      selectable: true,
+      colors: {
+        surface: "#8f2f22",
+        surfaceDark: "#2a0806",
+        glow: "#ff4e36",
+        accent: "#ffb05f"
+      },
+      summary: "The ancient Sith homeworld, marked in later records as Moraband, placed in the R-5 Sith Worlds cluster."
+    },
+    {
+      id: "khar-delba",
+      name: "Khar Delba",
+      shortName: "Khar Delba",
+      kind: "Sith Worlds anchor",
+      region: "Sith Worlds, Esstran sector",
+      grid: "R-5",
+      position: [7.78, -0.04, -2.58],
+      radius: 0.21,
+      selectable: false,
+      colors: {
+        surface: "#52333c",
+        surfaceDark: "#0e070b",
+        glow: "#a46a8a",
+        accent: "#5eb6c4"
+      },
+      summary: "The parent world used here as a dim anchor for Khar Shian's local placement."
+    },
+    {
+      id: "khar-shian",
+      name: "Khar Shian",
+      shortName: "Khar Shian",
+      kind: "Moon of Khar Delba",
+      region: "Sith Worlds, Esstran sector",
+      grid: "R-5",
+      parentId: "khar-delba",
+      position: [8.08, 0.18, -2.36],
+      radius: 0.12,
+      selectable: true,
+      colors: {
+        surface: "#b7c7cc",
+        surfaceDark: "#1a2328",
+        glow: "#76e0ef",
+        accent: "#f2c66d"
+      },
+      summary: "A moon of Khar Delba, represented as a close secondary body inside the same R-5 Sith Worlds focus."
+    }
+  ]
+};
+
+export function selectableGalaxyBodies(map = GALAXY_MAP) {
+  return (map.bodies || []).filter(body => body.selectable);
+}

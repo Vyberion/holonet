@@ -35,7 +35,7 @@ export const GALAXY_MAP = {
       kind: "Sith Worlds anchor",
       region: "Sith Worlds, Esstran sector",
       grid: "R-5",
-      position: [7.78, -0.04, -2.58],
+      position: [6.42, -0.06, -2.5],
       radius: 0.21,
       selectable: false,
       colors: {
@@ -54,7 +54,7 @@ export const GALAXY_MAP = {
       region: "Sith Worlds, Esstran sector",
       grid: "R-5",
       parentId: "khar-delba",
-      position: [8.08, 0.18, -2.36],
+      position: [5.96, 0.14, -2.68],
       radius: 0.12,
       selectable: true,
       colors: {

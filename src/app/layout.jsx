@@ -547,12 +547,12 @@ const HOLONET_GLOBAL_POLISH_JS = `
   }
 
   function searchShortcutAllowed() {
-    const path = window.location.pathname.replace(/\/+$/, "") || "/";
+    const path = window.location.pathname.replace(/\\/+$/, "") || "/";
     return path === "/codex" || path === "/archives" || path.endsWith("/handbooks");
   }
 
   function openPageSearch() {
-    const handbookPath = window.location.pathname.replace(/\/+$/, "").endsWith("/handbooks");
+    const handbookPath = window.location.pathname.replace(/\\/+$/, "").endsWith("/handbooks");
     const handbookToggle = document.querySelector('[data-pdf-open-search], [data-pdf-search-toggle], [data-search-toggle], .pdf-search-toggle, .document-search-toggle, button[aria-label*="Search" i]');
     if (handbookPath && handbookToggle) {
       handbookToggle.click();
@@ -628,7 +628,7 @@ const HOLONET_GLOBAL_POLISH_JS = `
   let inquisitoriusAccessChecked = false;
 
   async function syncInquisitoriusDescription() {
-    const path = window.location.pathname.replace(/\/+$/, "") || "/";
+    const path = window.location.pathname.replace(/\\/+$/, "") || "/";
     if (path !== "/inquisitors/info") return;
 
     const targets = Array.from(document.querySelectorAll(".reg-text, .hub-summary"));

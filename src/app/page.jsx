@@ -67,7 +67,7 @@ export default function HomePage() {
           <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
         </a>
 
-        <a href="/cots" className="nav-card nav-card--wide" aria-label="Enter Champion of The Sith">
+        <a href="/archives/cots" className="nav-card nav-card--wide" aria-label="Enter Champion of The Sith">
           <div className="card-inner-border" aria-hidden="true" />
           <div className="card-corners" aria-hidden="true" />
           <div className="card-vline" aria-hidden="true" />

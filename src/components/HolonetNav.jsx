@@ -125,7 +125,15 @@ export function HolonetNav() {
   const centerLinks = [
     { href: "/", page: "home", prefix: "00", label: "Home" },
     { href: "/codex", page: "codex", prefix: "01", label: "Codex" },
-    { href: "/archives", page: "archives", prefix: "02", label: "Archives" },
+    {
+      href: "/archives",
+      page: "archives",
+      prefix: "02",
+      label: "Archives",
+      dropdown: [
+        { href: "/cots", page: "cots", label: "CoTS" }
+      ]
+    },
     { href: "/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
     ...(access?.permissions?.canAccessRegistry
       ? [{ href: "/registry", page: "registry", prefix: "04", label: "Registry" }]

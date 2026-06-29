@@ -285,6 +285,24 @@ main {
 .nav-card:nth-child(1) { animation-delay: 0.15s; }
 .nav-card:nth-child(2) { animation-delay: 0.3s; }
 .nav-card:nth-child(3) { animation-delay: 0.45s; }
+.nav-card:nth-child(4) { animation-delay: 0.6s; }
+
+.nav-card--wide {
+  grid-column: 1 / -1;
+  height: clamp(190px, 19vh, 270px);
+  min-height: 190px;
+}
+
+.nav-card--wide .card-bg-glyph {
+  font-size: clamp(7rem, 9vw, 12rem);
+  left: auto;
+  right: clamp(74px, 10vw, 150px);
+  transform: translateY(-50%);
+}
+
+.nav-card--wide .card-desc {
+  max-width: 34ch;
+}
 
 .nav-card::before {
   content: '';
@@ -1778,6 +1796,18 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
 @media (max-width: 860px) {
   .nav-grid { grid-template-columns: 1fr; background: transparent; gap: 2px; }
   .nav-card { height: 240px; }
+  .nav-card--wide {
+    grid-column: auto;
+    height: 200px;
+    min-height: 200px;
+  }
+
+  .nav-card--wide .card-bg-glyph {
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -50%);
+  }
+
   #app { padding: 40px 20px 60px; }
 
   .old-guard-page-topbar {

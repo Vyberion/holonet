@@ -66,6 +66,23 @@ export default function HomePage() {
           <p className="card-desc">Sith ranks.</p>
           <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
         </a>
+
+        <a href="/cots" className="nav-card nav-card--wide" aria-label="Enter Champion of The Sith">
+          <div className="card-inner-border" aria-hidden="true" />
+          <div className="card-corners" aria-hidden="true" />
+          <div className="card-vline" aria-hidden="true" />
+          <div className="card-scan" aria-hidden="true" />
+          <div className="card-bg-glyph" aria-hidden="true">IV</div>
+          <div className="card-hex" aria-hidden="true">0x4D&nbsp;&nbsp;SECT.04</div>
+          <div className="card-data" aria-hidden="true">
+            CLEARANCE: UNCLASSIFIED<br />
+            DESIGNATION: LEVEL 1<br />
+          </div>
+          <span className="card-category">Section 04 &mdash; Tournament</span>
+          <h2 className="card-title">Champion of The Sith</h2>
+          <p className="card-desc">CoTS records.</p>
+          <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
+        </a>
       </nav>
 
       <div className="marquee-wrap" aria-hidden="true">

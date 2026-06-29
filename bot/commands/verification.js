@@ -81,7 +81,7 @@ export async function handleCommand(interaction) {
     }
 
     await interaction.channel.send({
-      embeds: [embed("Holonet Verification", "Link your Discord account to your Holonet Roblox account, then sync your Sith Order roles.")],
+      embeds: [embed("Holonet Verification", "Link your Discord account to your Holonet Roblox account, then sync your roles.")],
       components: [verifyRow()]
     });
     await interaction.reply(ephemeral({ embeds: [successEmbed("Verification Panel Posted", "The verification panel is live.")] }));

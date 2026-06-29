@@ -1,6 +1,7 @@
 (function () {
   const READY_CLASS = "holonet-developer-notice-ready";
   const INTRO_COMPLETE_KEY = "holonet:intro:v1:complete";
+  const INTRO_COMPLETE_COOKIE = "holonet_intro_v1_complete";
   const WAIT_LIMIT_MS = 180000;
 
   function wait(ms) {
@@ -8,10 +9,17 @@
   }
 
   function readIntroComplete() {
+    let storageComplete = false;
     try {
-      return localStorage.getItem(INTRO_COMPLETE_KEY) === "true";
+      storageComplete = localStorage.getItem(INTRO_COMPLETE_KEY) === "true";
     } catch {
-      return true;
+      storageComplete = false;
+    }
+
+    try {
+      return storageComplete || document.cookie.split(";").some(part => part.trim() === `${INTRO_COMPLETE_COOKIE}=true`);
+    } catch {
+      return storageComplete || true;
     }
   }
 

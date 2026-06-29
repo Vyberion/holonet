@@ -1,5 +1,7 @@
 (function () {
   const INTRO_COMPLETE_KEY = "holonet:intro:v1:complete";
+  const INTRO_COMPLETE_COOKIE = "holonet_intro_v1_complete";
+  const INTRO_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
   const LOADER_SHOWN_KEY = "loaderShown";
   const MUX_PLAYER_SCRIPT = "https://cdn.jsdelivr.net/npm/@mux/mux-player";
   const OLD_GUARD_PLAYBACK_ID = "5B00WSZwcoH023XoGAE94RSxu5Pu3GFn9TCqIuNM1x73E";
@@ -334,6 +336,48 @@
     }
   }
 
+  function readCookie(name) {
+    try {
+      const prefix = `${name}=`;
+      return document.cookie
+        .split(";")
+        .map(part => part.trim())
+        .find(part => part.startsWith(prefix))
+        ?.slice(prefix.length) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeCookie(name, value, maxAge = INTRO_COOKIE_MAX_AGE_SECONDS) {
+    try {
+      const secure = window.location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure}`;
+    } catch {
+      return null;
+    }
+  }
+
+  function readIntroComplete() {
+    const storageComplete = readLocalStorage(INTRO_COMPLETE_KEY) === "true";
+    const cookieComplete = readCookie(INTRO_COMPLETE_COOKIE) === "true";
+
+    if (cookieComplete && !storageComplete) {
+      writeLocalStorage(INTRO_COMPLETE_KEY, "true");
+    }
+
+    if (storageComplete && !cookieComplete) {
+      writeCookie(INTRO_COMPLETE_COOKIE, "true");
+    }
+
+    return storageComplete || cookieComplete;
+  }
+
+  function markIntroComplete() {
+    writeLocalStorage(INTRO_COMPLETE_KEY, "true");
+    writeCookie(INTRO_COMPLETE_COOKIE, "true");
+  }
+
   function shouldForceIntro() {
     try {
       return new URLSearchParams(window.location.search).get("intro") === "1";
@@ -343,7 +387,18 @@
   }
 
   function shouldRunReleaseIntro() {
-    return shouldForceIntro() || readLocalStorage(INTRO_COMPLETE_KEY) !== "true";
+    return shouldForceIntro() || !readIntroComplete();
+  }
+
+  function clearIntroForceParam() {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("intro") !== "1") return;
+      url.searchParams.delete("intro");
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    } catch {
+      return null;
+    }
   }
 
   function ensureMuxPlayerReady() {
@@ -559,7 +614,8 @@
       setLoaderPhase(loader, "intro-reveal");
       await wait(1850);
 
-      writeLocalStorage(INTRO_COMPLETE_KEY, "true");
+      markIntroComplete();
+      clearIntroForceParam();
       try {
         sessionStorage.setItem(LOADER_SHOWN_KEY, "true");
       } catch {}

@@ -1,6 +1,18 @@
 import { HOLONET_ALTERNATIVE_INTRO_ENABLED } from "../config/intro.js";
 
 (function () {
+  const INTRO_COMPLETE_COOKIE = "holonet_intro_v1_complete";
+  const INTRO_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+
+  function writeCookie(name, value, maxAge = INTRO_COOKIE_MAX_AGE_SECONDS) {
+    try {
+      const secure = window.location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure}`;
+    } catch {
+      return null;
+    }
+  }
+
   window.HOLONET_ALTERNATIVE_INTRO_ENABLED = HOLONET_ALTERNATIVE_INTRO_ENABLED;
 
   if (HOLONET_ALTERNATIVE_INTRO_ENABLED) return;
@@ -8,6 +20,7 @@ import { HOLONET_ALTERNATIVE_INTRO_ENABLED } from "../config/intro.js";
   try {
     localStorage.setItem("holonet:intro:v1:complete", "true");
   } catch {}
+  writeCookie(INTRO_COMPLETE_COOKIE, "true");
 
   try {
     sessionStorage.setItem("loaderShown", "true");

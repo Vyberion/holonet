@@ -5,6 +5,9 @@ import { OldGuardPlayer } from "./OldGuardPlayer.jsx";
 const alternativeIntroEnabled = HOLONET_ALTERNATIVE_INTRO_ENABLED;
 const alternativeIntroEnabledScriptValue = alternativeIntroEnabled ? "true" : "false";
 const themeClasses = ["theme-reavers", "theme-dhg", "theme-dreadmasters", "theme-inquisitors", "theme-highranks", "theme-dark-council"];
+const INTRO_COMPLETE_KEY = "holonet:intro:v1:complete";
+const INTRO_COMPLETE_COOKIE = "holonet_intro_v1_complete";
+const INTRO_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 const initialThemeTokens = {
   default: {
     bg: "#170609",
@@ -159,6 +162,76 @@ function initialThemeCssValue(theme) {
   `;
 }
 
+function initialBootScript(theme) {
+  return `
+    (function(){
+      var alternativeIntroEnabled=${alternativeIntroEnabledScriptValue};
+      var initialTheme=${initialThemeScriptValue(theme)};
+      var themeClasses=${JSON.stringify(themeClasses)};
+      var introCompleteKey=${JSON.stringify(INTRO_COMPLETE_KEY)};
+      var introCompleteCookie=${JSON.stringify(INTRO_COMPLETE_COOKIE)};
+      var introMaxAge=${INTRO_COOKIE_MAX_AGE_SECONDS};
+
+      function cookieSecureSuffix() {
+        return window.location && window.location.protocol === "https:" ? "; Secure" : "";
+      }
+
+      function readCookie(name) {
+        try {
+          var prefix = name + "=";
+          var parts = document.cookie ? document.cookie.split(";") : [];
+          for (var i = 0; i < parts.length; i += 1) {
+            var part = parts[i].trim();
+            if (part.indexOf(prefix) === 0) return decodeURIComponent(part.slice(prefix.length));
+          }
+        } catch (e) {}
+        return null;
+      }
+
+      function writeCookie(name, value) {
+        try {
+          document.cookie = name + "=" + encodeURIComponent(value) + "; Max-Age=" + introMaxAge + "; Path=/; SameSite=Lax" + cookieSecureSuffix();
+        } catch (e) {}
+      }
+
+      function readFlag(storageKey, cookieName) {
+        var storageValue = false;
+        var cookieValue = readCookie(cookieName) === "true";
+        try {
+          storageValue = localStorage.getItem(storageKey) === "true";
+        } catch (e) {}
+        if (cookieValue && !storageValue) {
+          try { localStorage.setItem(storageKey, "true"); } catch (e) {}
+        }
+        if (storageValue && !cookieValue) writeCookie(cookieName, "true");
+        return storageValue || cookieValue;
+      }
+
+      function writeFlag(storageKey, cookieName) {
+        try { localStorage.setItem(storageKey, "true"); } catch (e) {}
+        writeCookie(cookieName, "true");
+      }
+
+      try {
+        if (initialTheme && document.body) {
+          themeClasses.forEach(function(className){ document.body.classList.remove(className); });
+          document.body.classList.add(initialTheme);
+        }
+        window.HOLONET_ALTERNATIVE_INTRO_ENABLED = alternativeIntroEnabled;
+        if (!alternativeIntroEnabled) {
+          writeFlag(introCompleteKey, introCompleteCookie);
+        }
+        var q = new URLSearchParams(window.location.search);
+        var intro = alternativeIntroEnabled && (q.get("intro") === "1" || !readFlag(introCompleteKey, introCompleteCookie));
+        document.documentElement.style.setProperty("--loader-progress", "0%");
+        document.documentElement.classList.add(intro ? "holonet-release-intro" : "holonet-standard-loader");
+      } catch (e) {
+        document.documentElement.classList.add(alternativeIntroEnabled ? "holonet-release-intro" : "holonet-standard-loader");
+      }
+    })();
+  `;
+}
+
 export function HolonetFrame({
   title,
   subtitle,
@@ -182,7 +255,7 @@ export function HolonetFrame({
 
       <script
         dangerouslySetInnerHTML={{
-          __html: `(function(){var alternativeIntroEnabled=${alternativeIntroEnabledScriptValue};var initialTheme=${initialThemeScriptValue(theme)};var themeClasses=${JSON.stringify(themeClasses)};try{if(initialTheme&&document.body){themeClasses.forEach(function(className){document.body.classList.remove(className);});document.body.classList.add(initialTheme);}window.HOLONET_ALTERNATIVE_INTRO_ENABLED=alternativeIntroEnabled;var introCompleteKey="holonet:intro:v1:complete";var introRearmKey="holonet:intro:v2:rearmed";if(alternativeIntroEnabled&&localStorage.getItem(introRearmKey)!=="true"){localStorage.removeItem(introCompleteKey);localStorage.setItem(introRearmKey,"true");}if(!alternativeIntroEnabled){localStorage.setItem(introCompleteKey,"true");}var q=new URLSearchParams(window.location.search);var intro=alternativeIntroEnabled&&(q.get("intro")==="1"||localStorage.getItem(introCompleteKey)!=="true");document.documentElement.style.setProperty("--loader-progress","0%");document.documentElement.classList.add(intro?"holonet-release-intro":"holonet-standard-loader");}catch(e){document.documentElement.classList.add(alternativeIntroEnabled?"holonet-release-intro":"holonet-standard-loader");}})();`
+          __html: initialBootScript(theme)
         }}
       />
 

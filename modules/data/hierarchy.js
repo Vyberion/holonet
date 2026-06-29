@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-const MORPH_FALLBACK_IMAGE = "/assets/morphs/clown.jpg";
+const MORPH_FALLBACK_IMAGE = "/assets/morphs/throne.png";
 const CURRENT_EMPEROR_SLUG = "the-40th-emperor";
 const CURRENT_EMPEROR_MORPH_IMAGE = "/assets/morphs/current_emperor.png";
 const RANK_PROGRESSION_GROUP_IDS = ["low-ranks", "middle-ranks", "high-ranks"];
@@ -642,7 +642,7 @@ function imageForItem(item) {
     return morphExists(explicitImage) ? explicitImage : MORPH_FALLBACK_IMAGE;
   }
   else if (item.slug === "servant_one") {
-    return "assets/morphs/serious.avif"
+    return "/assets/morphs/throne.png";
   }
 
   const imageName = IMAGE_BY_SLUG[item.slug] || item.slug.replace(/-/g, "_");

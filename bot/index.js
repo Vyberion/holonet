@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Partials } from "discord.js";
+import { ActivityType, Client, GatewayIntentBits, Partials } from "discord.js";
 import { requireEnv } from "./config/index.js";
 import { routeInteraction } from "./commands/index.js";
 import { ephemeral, errorEmbed } from "./services/discord-ui.js";
@@ -20,6 +20,7 @@ async function syncLinkedVerifiedRole() {
 
 client.once("clientReady", () => {
   console.log(`Holonet bot online as ${client.user.tag}`);
+  client.user.setActivity("Torreto do his Hell Jacks", { type: ActivityType.Watching });
   syncLinkedVerifiedRole();
   setInterval(syncLinkedVerifiedRole, 5 * 60 * 1000);
 });

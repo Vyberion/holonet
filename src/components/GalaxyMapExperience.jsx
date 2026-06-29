@@ -1,16 +1,16 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Billboard, Html, OrbitControls, Sparkles, Stars } from "@react-three/drei";
+import { Billboard, OrbitControls, Sparkles, Stars } from "@react-three/drei";
 import { Bloom, ChromaticAberration, DepthOfField, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 const TAU = Math.PI * 2;
-const WIDE_CAMERA = new THREE.Vector3(0.6, 5.8, 15.8);
-const WIDE_TARGET = new THREE.Vector3(1.65, 0.02, -0.8);
-const GALAXY_TILT = new THREE.Euler(-0.09, -0.18, 0.035);
-const GALAXY_SPIN_SPEED = 0.0024;
+const WIDE_CAMERA = new THREE.Vector3(0.35, 5.7, 15.8);
+const WIDE_TARGET = new THREE.Vector3(1.45, 0.04, -0.62);
+const GALAXY_TILT = new THREE.Euler(-0.1, -0.2, 0.02);
+const GALAXY_SPIN_SPEED = 0.0032;
 
 function seededRandom(seed) {
   let state = seed >>> 0;
@@ -40,12 +40,32 @@ function colorWithAlpha(hex, alpha) {
   return `rgba(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)}, ${alpha})`;
 }
 
-function makeFallbackTexture(color = "#ffffff") {
+function layoutGalaxyMap(map) {
+  return {
+    ...map,
+    bodies: (map.bodies || []).map(body => {
+      if (body.id === "korriban") {
+        return { ...body, position: [5.7, 0.08, -5.4] };
+      }
+
+      if (body.id === "khar-delba") {
+        return { ...body, position: [7.72, -0.06, -0.52] };
+      }
+
+      if (body.id === "khar-shian") {
+        return { ...body, position: [8.38, 0.14, -0.26] };
+      }
+
+      return body;
+    })
+  };
+}
+
+function makeFallbackTexture() {
   const data = new Uint8Array([255, 255, 255, 255]);
   const texture = new THREE.DataTexture(data, 1, 1);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.needsUpdate = true;
-  texture.userData.fallbackColor = color;
   return texture;
 }
 
@@ -262,31 +282,29 @@ function makeGalaxyGeometry(count, seed, mode = "arm") {
   const color = new THREE.Color();
 
   for (let i = 0; i < count; i += 1) {
-    const arm = i % 6;
-    const coreBias = mode === "core" ? 0.28 : mode === "dust" ? 0.5 : 0.62;
-    const radius = Math.pow(rnd(), coreBias) * (mode === "core" ? 3.8 : 11.8) + 0.08;
-    const curl = radius * (mode === "cluster" ? 0.82 : 0.58);
-    const angle = (arm / 6) * TAU + curl + randRange(rnd, -0.42, 0.42);
-    const spread = mode === "dust" ? 0.68 : mode === "cluster" ? 0.22 + radius * 0.04 : 0.13 + radius * 0.025;
-    const x = Math.cos(angle) * radius * 1.22 + randRange(rnd, -spread, spread);
-    const z = Math.sin(angle) * radius * 0.84 + randRange(rnd, -spread, spread);
-    const y = randRange(rnd, -0.2, 0.2) * (mode === "dust" ? 2.1 : 1 + radius * 0.08);
+    const arm = i % 5;
+    const radius = Math.pow(rnd(), mode === "dust" ? 0.5 : mode === "core" ? 0.3 : 0.62) * (mode === "core" ? 3.8 : 11.2) + 0.12;
+    const curl = radius * (mode === "cluster" ? 0.76 : 0.58);
+    const angle = (arm / 5) * TAU + curl + randRange(rnd, -0.38, 0.38);
+    const spread = mode === "dust" ? 0.62 : mode === "cluster" ? 0.22 + radius * 0.035 : 0.16 + radius * 0.028;
+    const x = Math.cos(angle) * radius * 1.18 + randRange(rnd, -spread, spread);
+    const z = Math.sin(angle) * radius * 0.82 + randRange(rnd, -spread, spread);
+    const y = randRange(rnd, -0.22, 0.22) * (mode === "dust" ? 1.8 : 1 + radius * 0.08);
 
     positions[i * 3] = x;
     positions[i * 3 + 1] = y;
     positions[i * 3 + 2] = z;
 
     const palette = mode === "dust"
-      ? (rnd() > 0.7 ? "#8a2b2c" : "#2d0a0e")
-      : rnd() > 0.93 ? "#ff463f" : rnd() > 0.72 ? "#ffd58a" : rnd() > 0.37 ? "#fff8e9" : "#8eeaff";
-
+      ? (rnd() > 0.68 ? "#8a2b2c" : "#2d0a0e")
+      : rnd() > 0.92 ? "#ff463f" : rnd() > 0.68 ? "#ffd58a" : rnd() > 0.36 ? "#fff8e9" : "#8eeaff";
     color.set(palette);
-    if (mode !== "dust" && rnd() > 0.91) color.lerp(new THREE.Color("#5b6dff"), 0.34);
+    if (mode !== "dust" && rnd() > 0.92) color.lerp(new THREE.Color("#5b6dff"), 0.28);
 
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
-    sizes[i] = mode === "dust" ? randRange(rnd, 0.035, 0.11) : mode === "core" ? randRange(rnd, 0.018, 0.075) : randRange(rnd, 0.014, 0.056);
+    sizes[i] = mode === "dust" ? randRange(rnd, 0.03, 0.095) : mode === "core" ? randRange(rnd, 0.018, 0.072) : randRange(rnd, 0.014, 0.052);
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -296,29 +314,7 @@ function makeGalaxyGeometry(count, seed, mode = "arm") {
   return geometry;
 }
 
-function makeStreakGeometry(count, seed) {
-  const rnd = seededRandom(seed);
-  const positions = new Float32Array(count * 2 * 3);
-
-  for (let i = 0; i < count; i += 1) {
-    const x = randRange(rnd, -18, 18);
-    const y = randRange(rnd, -7, 7);
-    const z = randRange(rnd, -24, 8);
-    const length = randRange(rnd, 0.18, 0.78);
-    positions[i * 6] = x;
-    positions[i * 6 + 1] = y;
-    positions[i * 6 + 2] = z;
-    positions[i * 6 + 3] = x + length * 0.35;
-    positions[i * 6 + 4] = y + length * 0.08;
-    positions[i * 6 + 5] = z + length;
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  return geometry;
-}
-
-function makeOrbitPoints(radiusX, radiusZ, segments = 224) {
+function makeOrbitPoints(radiusX, radiusZ, segments = 192) {
   const points = [];
   for (let i = 0; i <= segments; i += 1) {
     const angle = (i / segments) * TAU;
@@ -327,13 +323,13 @@ function makeOrbitPoints(radiusX, radiusZ, segments = 224) {
   return points;
 }
 
-function makeRoutePoints(start, end, lift = 1.7) {
+function makeRoutePoints(start, end, lift = 1.5) {
   const curve = new THREE.QuadraticBezierCurve3(
     start,
     start.clone().lerp(end, 0.52).add(new THREE.Vector3(0, lift, 0)),
     end
   );
-  return curve.getPoints(160);
+  return curve.getPoints(120);
 }
 
 function LineGeometry({ points }) {
@@ -344,14 +340,14 @@ function LineGeometry({ points }) {
   return <primitive attach="geometry" object={geometry} />;
 }
 
-function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1, rotationSpeed = 1 }) {
+function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1, driftScale = 1 }) {
   const geometry = useMemo(() => makeGalaxyGeometry(count, seed, mode), [count, seed, mode]);
   const materialRef = useRef(null);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   useFrame(({ clock }) => {
-    if (materialRef.current) materialRef.current.uniforms.uTime.value = clock.elapsedTime * rotationSpeed;
+    if (materialRef.current) materialRef.current.uniforms.uTime.value = clock.elapsedTime * driftScale;
   });
 
   return (
@@ -376,10 +372,9 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1, rotationSp
           void main() {
             vColor = color;
             vec3 pos = position;
-            pos.y += sin(uTime * 0.18 + position.x * 1.28 + position.z * 0.82) * 0.018;
-            pos.xz = mat2(cos(uTime * 0.015), -sin(uTime * 0.015), sin(uTime * 0.015), cos(uTime * 0.015)) * pos.xz;
+            pos.y += sin(uTime * 0.22 + position.x * 1.4 + position.z * 0.9) * 0.016;
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            gl_PointSize = aSize * uScale * (520.0 / max(4.2, -mvPosition.z));
+            gl_PointSize = aSize * uScale * (470.0 / max(4.8, -mvPosition.z));
             gl_Position = projectionMatrix * mvPosition;
           }
         `}
@@ -392,32 +387,13 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1, rotationSp
             vec2 uv = gl_PointCoord * 2.0 - 1.0;
             float d = length(uv);
             float core = 1.0 - smoothstep(0.0, 0.18, d);
-            float glow = 1.0 - smoothstep(0.14, 1.0, d);
-            float twinkle = 0.76 + 0.24 * sin(uTime * 1.25 + vColor.r * 18.0 + vColor.g * 11.0);
-            gl_FragColor = vec4(vColor, (core + glow * 0.66) * uOpacity * twinkle);
+            float glow = 1.0 - smoothstep(0.12, 1.0, d);
+            float twinkle = 0.76 + 0.24 * sin(uTime * 1.4 + vColor.r * 18.0 + vColor.g * 11.0);
+            gl_FragColor = vec4(vColor, (core + glow * 0.64) * uOpacity * twinkle);
           }
         `}
       />
     </points>
-  );
-}
-
-function StellarDrift({ quality }) {
-  const geometry = useMemo(() => makeStreakGeometry(quality === "high" ? 180 : 82, 9162), [quality]);
-  const groupRef = useRef(null);
-
-  useEffect(() => () => geometry.dispose(), [geometry]);
-
-  useFrame(({ clock }) => {
-    if (!groupRef.current) return;
-    groupRef.current.position.z = (clock.elapsedTime * 0.18) % 2.4;
-    groupRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.04) * 0.035;
-  });
-
-  return (
-    <lineSegments ref={groupRef} geometry={geometry}>
-      <lineBasicMaterial color="#9beeff" transparent opacity={0.18} blending={THREE.AdditiveBlending} depthWrite={false} />
-    </lineSegments>
   );
 }
 
@@ -436,57 +412,19 @@ function NebulaField() {
 
   return (
     <>
-      <sprite position={[-4.8, -0.32, -5.4]} scale={[14, 7.6, 1]} rotation={[0.14, 0, -0.24]}>
-        <spriteMaterial map={red} color="#ffffff" transparent opacity={0.34} depthWrite={false} blending={THREE.AdditiveBlending} />
+      <sprite position={[-4.6, -0.3, -5.2]} scale={[13, 7, 1]} rotation={[0.14, 0, -0.24]}>
+        <spriteMaterial map={red} color="#ffffff" transparent opacity={0.3} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
-      <sprite position={[4.9, 0.2, 3.6]} scale={[12.4, 7.2, 1]} rotation={[-0.12, 0, 0.24]}>
-        <spriteMaterial map={blue} color="#ffffff" transparent opacity={0.22} depthWrite={false} blending={THREE.AdditiveBlending} />
+      <sprite position={[4.6, 0.18, 3.3]} scale={[11, 6.6, 1]} rotation={[-0.12, 0, 0.24]}>
+        <spriteMaterial map={blue} color="#ffffff" transparent opacity={0.18} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
-      <sprite position={[0.2, 0.02, -0.2]} scale={[16, 8.4, 1]} rotation={[0.08, 0, 0.04]}>
-        <spriteMaterial map={violet} color="#ffffff" transparent opacity={0.16} depthWrite={false} blending={THREE.AdditiveBlending} />
+      <sprite position={[0.2, 0.02, -0.2]} scale={[15, 7.8, 1]} rotation={[0.08, 0, 0.04]}>
+        <spriteMaterial map={violet} color="#ffffff" transparent opacity={0.13} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
-      <sprite position={[0.1, -0.08, -0.3]} scale={[16.8, 4.2, 1]} rotation={[0.42, 0.12, -0.17]}>
-        <spriteMaterial map={dust} color="#180407" transparent opacity={0.56} depthWrite={false} />
-      </sprite>
-      <sprite position={[1.8, 0.04, 1.3]} scale={[13.6, 3.3, 1]} rotation={[0.5, -0.12, 0.22]}>
-        <spriteMaterial map={dust} color="#080102" transparent opacity={0.42} depthWrite={false} />
+      <sprite position={[0.1, -0.08, -0.3]} scale={[16, 4.1, 1]} rotation={[0.42, 0.12, -0.17]}>
+        <spriteMaterial map={dust} color="#170407" transparent opacity={0.48} depthWrite={false} />
       </sprite>
     </>
-  );
-}
-
-function MicroLabel({ body, selected, hovered, onSelect, onHover }) {
-  const labelRef = useRef(null);
-  const groupRef = useRef(null);
-  const worldPosition = useMemo(() => new THREE.Vector3(), []);
-  const { camera } = useThree();
-
-  useFrame(() => {
-    if (!labelRef.current || !groupRef.current) return;
-    groupRef.current.getWorldPosition(worldPosition);
-    const distance = camera.position.distanceTo(worldPosition);
-    const opacity = selected || hovered ? 1 : THREE.MathUtils.clamp(1.7 - distance / 13.5, 0.14, 0.82);
-    const scale = selected || hovered ? 1 : THREE.MathUtils.clamp(1.18 - distance / 38, 0.76, 1);
-    labelRef.current.style.opacity = opacity.toFixed(3);
-    labelRef.current.style.transform = `scale(${scale.toFixed(3)})`;
-  });
-
-  return (
-    <Billboard ref={groupRef} position={[0, body.radius * 3, 0]}>
-      <Html center distanceFactor={8.5} transform occlude={false}>
-        <button
-          ref={labelRef}
-          type="button"
-          className={`gm-world-label${selected ? " is-selected" : ""}${hovered ? " is-hovered" : ""}`}
-          onClick={() => onSelect(body.id)}
-          onPointerEnter={() => onHover(body.id)}
-          onPointerLeave={() => onHover(null)}
-        >
-          <span>{body.shortName || body.name}</span>
-          <small>{body.grid}</small>
-        </button>
-      </Html>
-    </Billboard>
   );
 }
 
@@ -499,17 +437,17 @@ function PlanetReticle({ body, selected, hovered }) {
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
     if (outerRef.current) {
-      outerRef.current.rotation.z = t * (selected ? 0.7 : 0.38);
-      outerRef.current.material.opacity = active ? (selected ? 0.62 : 0.44) : 0.18;
+      outerRef.current.rotation.z = t * (selected ? 0.7 : 0.34);
+      outerRef.current.material.opacity = active ? (selected ? 0.58 : 0.42) : 0.18;
     }
     if (innerRef.current) {
-      innerRef.current.rotation.z = -t * (selected ? 0.55 : 0.22);
-      innerRef.current.material.opacity = active ? (selected ? 0.48 : 0.32) : 0.12;
+      innerRef.current.rotation.z = -t * (selected ? 0.52 : 0.2);
+      innerRef.current.material.opacity = active ? (selected ? 0.42 : 0.3) : 0.12;
     }
     if (pingRef.current) {
       const pulse = (Math.sin(t * 4.2) + 1) * 0.5;
       pingRef.current.scale.setScalar(1 + pulse * 0.35);
-      pingRef.current.material.opacity = active ? (0.16 + pulse * 0.28) : 0.05;
+      pingRef.current.material.opacity = active ? (0.16 + pulse * 0.26) : 0.04;
     }
   });
 
@@ -528,6 +466,19 @@ function PlanetReticle({ body, selected, hovered }) {
         <lineBasicMaterial color="#ffffff" transparent opacity={0.08} blending={THREE.AdditiveBlending} depthWrite={false} />
       </line>
     </>
+  );
+}
+
+function PlanetLabel({ body, selected, hovered }) {
+  const opacity = selected ? 0.95 : hovered ? 0.82 : 0.44;
+
+  return (
+    <Billboard position={[0, body.radius * 3.15, 0]}>
+      <mesh>
+        <planeGeometry args={[body.radius * 4.2, body.radius * 0.66]} />
+        <meshBasicMaterial color={body.colors?.glow || "#ff3b4f"} transparent opacity={opacity * 0.16} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+    </Billboard>
   );
 }
 
@@ -551,7 +502,7 @@ function PlanetBody({ body, selected, hovered, onSelect, onHover }) {
     const t = clock.elapsedTime;
     if (!groupRef.current) return;
 
-    const targetScale = body.selectable ? (selected ? 1.72 : hovered ? 1.31 : 1) : 0.86;
+    const targetScale = body.selectable ? (selected ? 1.68 : hovered ? 1.26 : 1) : 0.86;
     groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
 
     if (planetRef.current) {
@@ -594,25 +545,12 @@ function PlanetBody({ body, selected, hovered, onSelect, onHover }) {
 
       <mesh ref={nightRef} scale={1.004}>
         <sphereGeometry args={[body.radius * 1.006, 96, 48]} />
-        <meshBasicMaterial
-          map={textures.nightMap}
-          transparent
-          opacity={selected ? 0.2 : 0.11}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
+        <meshBasicMaterial map={textures.nightMap} transparent opacity={selected ? 0.2 : 0.11} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
 
       <mesh ref={cloudsRef} scale={1.018}>
         <sphereGeometry args={[body.radius * 1.018, 128, 64]} />
-        <meshStandardMaterial
-          map={textures.cloudMap}
-          transparent
-          opacity={body.id === "khar-shian" ? 0.34 : 0.18}
-          roughness={0.72}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
+        <meshStandardMaterial map={textures.cloudMap} transparent opacity={body.id === "khar-shian" ? 0.34 : 0.18} roughness={0.72} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
 
       <mesh scale={1.22}>
@@ -627,22 +565,19 @@ function PlanetBody({ body, selected, hovered, onSelect, onHover }) {
         />
       </mesh>
 
-      <sprite scale={[body.radius * (selected ? 10.8 : hovered ? 8.2 : 6.3), body.radius * (selected ? 10.8 : hovered ? 8.2 : 6.3), 1]}>
+      <sprite scale={[body.radius * (selected ? 10.4 : hovered ? 8 : 6.1), body.radius * (selected ? 10.4 : hovered ? 8 : 6.1), 1]}>
         <spriteMaterial
           map={haloTexture}
           color={body.colors?.glow || "#ffffff"}
           transparent
-          opacity={body.selectable ? (selected ? 0.38 : hovered ? 0.27 : 0.13) : 0.06}
+          opacity={body.selectable ? (selected ? 0.36 : hovered ? 0.25 : 0.12) : 0.06}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
       </sprite>
 
       <PlanetReticle body={body} selected={selected} hovered={hovered} />
-
-      {body.selectable ? (
-        <MicroLabel body={body} selected={selected} hovered={hovered} onSelect={onSelect} onHover={onHover} />
-      ) : null}
+      {body.selectable ? <PlanetLabel body={body} selected={selected} hovered={hovered} /> : null}
     </group>
   );
 }
@@ -652,12 +587,12 @@ function OrbitTrace({ body, parent }) {
   const parentVector = useMemo(() => makeVector(parent.position), [parent]);
   const childVector = useMemo(() => makeVector(body.position), [body]);
   const distance = parentVector.distanceTo(childVector);
-  const points = useMemo(() => makeOrbitPoints(distance, distance * 0.52, 224), [distance]);
+  const points = useMemo(() => makeOrbitPoints(distance, distance * 0.52, 192), [distance]);
 
   useFrame(({ clock }) => {
     if (!lineRef.current) return;
     lineRef.current.rotation.y = clock.elapsedTime * 0.06;
-    lineRef.current.material.opacity = 0.22 + Math.sin(clock.elapsedTime * 1.1) * 0.05;
+    lineRef.current.material.opacity = 0.24 + Math.sin(clock.elapsedTime * 1.1) * 0.05;
   });
 
   return (
@@ -727,12 +662,12 @@ function ArchiveReticle({ focus }) {
   return (
     <group ref={groupRef} position={position}>
       <sprite scale={[focus.radius * 2.9, focus.radius * 2.9, 1]}>
-        <spriteMaterial map={glowTexture} color="#ff3b4f" transparent opacity={0.36} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <spriteMaterial map={glowTexture} color="#ff3b4f" transparent opacity={0.34} blending={THREE.AdditiveBlending} depthWrite={false} />
       </sprite>
       {[0.86, 1.28, 1.78, 2.28].map((scale, index) => (
         <line key={scale} rotation={[Math.PI / 2.35, 0, index * 0.46]}>
-          <LineGeometry points={makeOrbitPoints(focus.radius * scale, focus.radius * scale * 0.66, 224)} />
-          <lineBasicMaterial color={index === 1 ? "#ffcf91" : "#ff3b4f"} transparent opacity={index === 1 ? 0.54 : 0.24} blending={THREE.AdditiveBlending} depthWrite={false} />
+          <LineGeometry points={makeOrbitPoints(focus.radius * scale, focus.radius * scale * 0.66, 192)} />
+          <lineBasicMaterial color={index === 1 ? "#ffcf91" : "#ff3b4f"} transparent opacity={index === 1 ? 0.5 : 0.22} blending={THREE.AdditiveBlending} depthWrite={false} />
         </line>
       ))}
     </group>
@@ -750,17 +685,11 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
-    const controls = controlsRef.current;
-
     if (selectedId) {
       focusTravel.current = true;
       zoomTravel.current = false;
-      if (controls) controls.autoRotate = false;
-    } else {
-      focusTravel.current = false;
-      if (controls) controls.autoRotate = false;
     }
-  }, [selectedId, controlsRef]);
+  }, [selectedId]);
 
   useEffect(() => {
     if (zoomSignalRef.current === zoomOutSignal) return;
@@ -778,11 +707,6 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
     targetControl.current.copy(orbitTarget);
     zoomTravel.current = true;
     focusTravel.current = false;
-
-    if (controls) {
-      controls.autoRotate = false;
-      controls.enablePan = true;
-    }
   }, [camera, controlsRef, zoomOutSignal]);
 
   useFrame(() => {
@@ -797,7 +721,6 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
       const outward = selectedPosition.clone().sub(WIDE_TARGET).normalize().multiplyScalar(1.05 * scale);
       targetCamera.current.copy(selectedPosition).add(outward).add(new THREE.Vector3(0.92 * scale, 0.78 * scale, 1.54 * scale));
       targetControl.current.copy(selectedPosition);
-      controls.autoRotate = false;
     }
 
     if (focusTravel.current) {
@@ -833,7 +756,7 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
     if (groupRef.current) {
       groupRef.current.rotation.x = GALAXY_TILT.x;
       groupRef.current.rotation.y = GALAXY_TILT.y + clock.elapsedTime * GALAXY_SPIN_SPEED;
-      groupRef.current.rotation.z = GALAXY_TILT.z + Math.sin(clock.elapsedTime * 0.07) * 0.012;
+      groupRef.current.rotation.z = GALAXY_TILT.z + Math.sin(clock.elapsedTime * 0.07) * 0.01;
     }
   });
 
@@ -864,16 +787,15 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
       <pointLight position={[3.4, 2.4, 2.8]} intensity={24} distance={22} color="#76e0ef" />
       <pointLight position={[-4.5, 1.3, -4.8]} intensity={18} distance={18} color="#b25cff" />
 
-      <Stars radius={68} depth={36} count={quality === "high" ? 5600 : 2600} factor={5.3} saturation={0.5} fade speed={0.1} />
-      <StellarDrift quality={quality} />
-      <Sparkles count={quality === "high" ? 210 : 92} scale={[21, 5.5, 15]} size={1.25} speed={0.16} color="#ff9a3d" opacity={0.62} />
+      <Stars radius={68} depth={36} count={quality === "high" ? 5200 : 2500} factor={5.1} saturation={0.5} fade speed={0.1} />
+      <Sparkles count={quality === "high" ? 180 : 86} scale={[21, 5.5, 15]} size={1.2} speed={0.16} color="#ff9a3d" opacity={0.58} />
 
       <group ref={groupRef} rotation={GALAXY_TILT}>
         <NebulaField />
-        <GalaxyParticles mode="core" count={quality === "high" ? 4200 : 1900} seed={9211} opacity={0.76} sizeScale={1.36} rotationSpeed={0.5} />
-        <GalaxyParticles mode="arm" count={quality === "high" ? 17800 : 8400} seed={4321} opacity={0.68} sizeScale={1.16} rotationSpeed={0.42} />
-        <GalaxyParticles mode="cluster" count={quality === "high" ? 7600 : 3300} seed={7721} opacity={0.52} sizeScale={1.34} rotationSpeed={0.36} />
-        <GalaxyParticles mode="dust" count={quality === "high" ? 6200 : 2700} seed={8827} opacity={0.19} sizeScale={2.05} rotationSpeed={0.3} />
+        <GalaxyParticles mode="core" count={quality === "high" ? 3600 : 1800} seed={9211} opacity={0.7} sizeScale={1.28} driftScale={0.5} />
+        <GalaxyParticles mode="arm" count={quality === "high" ? 14600 : 7600} seed={4321} opacity={0.62} sizeScale={1.12} driftScale={0.42} />
+        <GalaxyParticles mode="cluster" count={quality === "high" ? 5600 : 2800} seed={7721} opacity={0.46} sizeScale={1.28} driftScale={0.36} />
+        <GalaxyParticles mode="dust" count={quality === "high" ? 5000 : 2400} seed={8827} opacity={0.17} sizeScale={1.95} driftScale={0.3} />
 
         <RoutePulse end={map.focus.position} />
         <ArchiveReticle focus={map.focus} />
@@ -896,13 +818,7 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
         })}
       </group>
 
-      <CameraRig
-        map={map}
-        selectedId={selectedId}
-        zoomOutSignal={zoomOutSignal}
-        controlsRef={controlsRef}
-        selectedPositionRef={selectedPositionRef}
-      />
+      <CameraRig map={map} selectedId={selectedId} zoomOutSignal={zoomOutSignal} controlsRef={controlsRef} selectedPositionRef={selectedPositionRef} />
 
       <OrbitControls
         ref={controlsRef}
@@ -923,28 +839,27 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
       />
 
       <EffectComposer multisampling={quality === "high" ? 4 : 0}>
-        <Bloom intensity={quality === "high" ? 0.92 : 0.58} luminanceThreshold={0.12} luminanceSmoothing={0.58} mipmapBlur />
-        {selectedBody ? (
-          <DepthOfField focusDistance={0.022} focalLength={0.032} bokehScale={quality === "high" ? 0.38 : 0.22} />
-        ) : null}
-        <ChromaticAberration offset={quality === "high" ? [0.00055, 0.00025] : [0.00028, 0.00014]} />
-        <Noise opacity={0.026} premultiply />
-        <Vignette eskil={false} offset={0.18} darkness={0.52} />
+        <Bloom intensity={quality === "high" ? 0.86 : 0.54} luminanceThreshold={0.12} luminanceSmoothing={0.58} mipmapBlur />
+        {selectedBody ? <DepthOfField focusDistance={0.022} focalLength={0.032} bokehScale={quality === "high" ? 0.34 : 0.18} /> : null}
+        <ChromaticAberration offset={quality === "high" ? [0.0005, 0.00022] : [0.00025, 0.00012]} />
+        <Noise opacity={0.024} premultiply />
+        <Vignette eskil={false} offset={0.18} darkness={0.5} />
       </EffectComposer>
     </>
   );
 }
 
 export function GalaxyMapExperience({ map }) {
+  const renderedMap = useMemo(() => layoutGalaxyMap(map), [map]);
   const [ready, setReady] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [hoveredId, setHoveredId] = useState(null);
   const [zoomOutSignal, setZoomOutSignal] = useState(0);
   const [quality, setQuality] = useState("high");
 
-  const selectableBodies = useMemo(() => (map.bodies || []).filter(body => body.selectable), [map]);
-  const selectedBody = bodyById(map, selectedId);
-  const panelBody = selectedBody || map.focus;
+  const selectableBodies = useMemo(() => (renderedMap.bodies || []).filter(body => body.selectable), [renderedMap]);
+  const selectedBody = bodyById(renderedMap, selectedId);
+  const panelBody = selectedBody || renderedMap.focus;
 
   useEffect(() => {
     const isReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -954,10 +869,10 @@ export function GalaxyMapExperience({ map }) {
   }, []);
 
   const selectBody = useCallback(id => {
-    const body = bodyById(map, id);
+    const body = bodyById(renderedMap, id);
     if (!body?.selectable) return;
     setSelectedId(id);
-  }, [map]);
+  }, [renderedMap]);
 
   const zoomOut = useCallback(() => {
     setSelectedId(null);
@@ -970,27 +885,17 @@ export function GalaxyMapExperience({ map }) {
       <div className="gm-stage">
         <Canvas
           camera={{ position: WIDE_CAMERA.toArray(), fov: 47, near: 0.035, far: 160 }}
-          dpr={quality === "high" ? [1.35, 2.75] : [1, 1.65]}
-          gl={{
-            antialias: true,
-            alpha: false,
-            powerPreference: "high-performance",
-            stencil: false,
-            depth: true
-          }}
+          dpr={quality === "high" ? [1.35, 2.5] : [1, 1.55]}
+          gl={{ antialias: true, alpha: false, powerPreference: "high-performance", stencil: false, depth: true }}
           onCreated={({ gl }) => {
             gl.toneMapping = THREE.ACESFilmicToneMapping;
             gl.toneMappingExposure = 0.96;
             gl.outputColorSpace = THREE.SRGBColorSpace;
             setReady(true);
           }}
-          onPointerMissed={() => {
-            setSelectedId(null);
-            setHoveredId(null);
-          }}
         >
           <GalaxyScene
-            map={map}
+            map={renderedMap}
             selectedId={selectedId}
             hoveredId={hoveredId}
             onSelect={selectBody}
@@ -1043,13 +948,6 @@ export function GalaxyMapExperience({ map }) {
           ))}
         </div>
       </aside>
-
-      <div className="gm-hint" aria-hidden="true">
-        <span>DRAG TO ORBIT</span>
-        <span>RIGHT DRAG TO PAN</span>
-        <span>SCROLL TO RANGE</span>
-        <span>{quality.toUpperCase()} RENDER</span>
-      </div>
 
       {!ready ? (
         <div className="gm-loading">
@@ -1139,12 +1037,12 @@ const STYLES = `
   }
 
   .gm-holo-sweep {
+    animation: gm-sweep 8.8s ease-in-out infinite;
     background: linear-gradient(115deg, transparent 0%, transparent 43%, rgba(255, 80, 96, .08) 49%, rgba(255, 216, 160, .08) 50%, transparent 57%, transparent 100%);
     mix-blend-mode: screen;
     opacity: .58;
     pointer-events: none;
     transform: translateX(-120%);
-    animation: gm-sweep 8.8s ease-in-out infinite;
     z-index: 5;
   }
 
@@ -1199,15 +1097,14 @@ const STYLES = `
 
   .gm-lockup,
   .gm-panel,
-  .gm-loading,
-  .gm-hint {
+  .gm-loading {
+    backdrop-filter: blur(14px);
     background:
       linear-gradient(135deg, rgba(255, 52, 70, .07), transparent 62%),
       var(--gm-panel);
     border: 1px solid var(--theme-accent-dim, #7a1a28);
     box-shadow: 0 0 30px rgba(255, 59, 79, .2), inset 0 0 34px rgba(255, 255, 255, .02);
     clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
-    backdrop-filter: blur(14px);
   }
 
   .gm-lockup {
@@ -1220,7 +1117,6 @@ const STYLES = `
   .gm-lockup span,
   .gm-kicker,
   .gm-kind,
-  .gm-hint,
   .gm-selector small {
     color: var(--text-dim, #ffffff);
     font-size: .66rem;
@@ -1233,8 +1129,8 @@ const STYLES = `
     font-family: Orbitron, monospace;
     font-size: .78rem;
     font-weight: 700;
-    text-transform: uppercase;
     text-shadow: 0 0 14px rgba(255, 59, 79, .38);
+    text-transform: uppercase;
   }
 
   .gm-panel {
@@ -1264,8 +1160,8 @@ const STYLES = `
     font-size: 1.82rem;
     line-height: 1.08;
     margin: 8px 0 7px;
-    text-transform: uppercase;
     text-shadow: 0 0 24px rgba(255, 59, 79, .28);
+    text-transform: uppercase;
   }
 
   .gm-panel p {
@@ -1307,8 +1203,6 @@ const STYLES = `
     background: var(--body-color);
     border-radius: 999px;
     box-shadow: 0 0 16px var(--body-color), 0 0 28px var(--body-color);
-    flex: 0 0 auto;
-    grid-row: 1 / span 1;
     height: 9px;
     width: 9px;
   }
@@ -1336,57 +1230,6 @@ const STYLES = `
     color: var(--text, #ffffff);
   }
 
-  .gm-hint {
-    bottom: clamp(18px, 3vw, 32px);
-    color: var(--text-faint, #ffffff);
-    display: flex;
-    gap: 14px;
-    left: clamp(18px, 3vw, 32px);
-    padding: 10px 13px;
-    position: absolute;
-    z-index: 8;
-  }
-
-  .gm-hint span {
-    white-space: nowrap;
-  }
-
-  .gm-world-label {
-    appearance: none;
-    background: rgba(8, 1, 4, .72);
-    border: 1px solid var(--theme-accent-dim, #7a1a28);
-    box-shadow: 0 0 18px rgba(255, 59, 79, .24), inset 0 0 18px rgba(255, 255, 255, .025);
-    color: var(--text-dim, #ffffff);
-    cursor: crosshair;
-    display: grid;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    gap: 1px;
-    min-width: 70px;
-    padding: 5px 8px;
-    text-transform: uppercase;
-    transform-origin: center;
-    transition: border-color .18s ease, box-shadow .18s ease, color .18s ease;
-    white-space: nowrap;
-  }
-
-  .gm-world-label small {
-    color: #ffcf91;
-    font-size: 8px;
-    letter-spacing: .08em;
-    opacity: .74;
-  }
-
-  .gm-world-label.is-selected,
-  .gm-world-label.is-hovered,
-  .gm-world-label:hover,
-  .gm-world-label:focus-visible {
-    border-color: var(--theme-accent, #ff3b4f);
-    box-shadow: 0 0 22px rgba(255, 59, 79, .34), inset 0 0 20px rgba(255, 255, 255, .04);
-    color: var(--text, #ffffff);
-    outline: none;
-  }
-
   .gm-loading {
     align-items: center;
     color: var(--text, #ffffff);
@@ -1403,8 +1246,8 @@ const STYLES = `
   .gm-loading span {
     animation: gm-spin 1.1s linear infinite;
     border: 2px solid var(--theme-accent-dim, #7a1a28);
-    border-top-color: var(--theme-accent, #ff3b4f);
     border-radius: 999px;
+    border-top-color: var(--theme-accent, #ff3b4f);
     height: 18px;
     width: 18px;
   }
@@ -1466,10 +1309,6 @@ const STYLES = `
       font-size: .72rem;
       min-height: 36px;
       padding: 8px;
-    }
-
-    .gm-hint {
-      display: none;
     }
   }
 

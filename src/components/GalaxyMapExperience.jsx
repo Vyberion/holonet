@@ -7,9 +7,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 const TAU = Math.PI * 2;
-const WIDE_CAMERA = new THREE.Vector3(0, 5.4, 14.6);
-const WIDE_TARGET = new THREE.Vector3(1.25, 0.04, -0.54);
-const GALAXY_TILT = new THREE.Euler(-0.1, -0.2, 0.02);
+const WIDE_CAMERA = new THREE.Vector3(0.6, 5.8, 15.8);
+const WIDE_TARGET = new THREE.Vector3(1.65, 0.02, -0.8);
+const GALAXY_TILT = new THREE.Euler(-0.09, -0.18, 0.035);
+const GALAXY_SPIN_SPEED = 0.0024;
 
 function seededRandom(seed) {
   let state = seed >>> 0;
@@ -31,7 +32,7 @@ function bodyById(map, id) {
 }
 
 function makeVector(value) {
-  return new THREE.Vector3(value[0], value[1], value[2]);
+  return new THREE.Vector3(value?.[0] || 0, value?.[1] || 0, value?.[2] || 0);
 }
 
 function colorWithAlpha(hex, alpha) {
@@ -39,17 +40,30 @@ function colorWithAlpha(hex, alpha) {
   return `rgba(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)}, ${alpha})`;
 }
 
+function makeFallbackTexture(color = "#ffffff") {
+  const data = new Uint8Array([255, 255, 255, 255]);
+  const texture = new THREE.DataTexture(data, 1, 1);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  texture.userData.fallbackColor = color;
+  return texture;
+}
+
 function makeTextureFromCanvas(draw, width = 1024, height = 512) {
+  if (typeof document === "undefined") return makeFallbackTexture();
+
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: true });
   draw(ctx, width, height);
+
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
-  texture.anisotropy = 8;
+  texture.anisotropy = 16;
+  texture.generateMipmaps = true;
   texture.needsUpdate = true;
   return texture;
 }
@@ -59,120 +73,185 @@ function makePlanetTextures(body) {
   const rnd = seededRandom(seed + 1447);
   const base = body.colors?.surface || "#777777";
   const dark = body.colors?.surfaceDark || "#111111";
+  const glow = body.colors?.glow || "#ffffff";
   const accent = body.colors?.accent || "#ffffff";
+  const isRock = body.id === "korriban";
 
   const map = makeTextureFromCanvas((ctx, width, height) => {
     const gradient = ctx.createLinearGradient(0, 0, width, height);
     gradient.addColorStop(0, dark);
-    gradient.addColorStop(0.28, base);
-    gradient.addColorStop(0.54, dark);
-    gradient.addColorStop(0.74, base);
+    gradient.addColorStop(0.2, base);
+    gradient.addColorStop(0.43, "#120405");
+    gradient.addColorStop(0.62, base);
+    gradient.addColorStop(0.82, dark);
     gradient.addColorStop(1, accent);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    for (let i = 0; i < 260; i += 1) {
+    for (let i = 0; i < 460; i += 1) {
       const y = rnd() * height;
-      const h = randRange(rnd, 1, body.id === "korriban" ? 20 : 10);
-      ctx.globalAlpha = randRange(rnd, 0.045, 0.2);
+      const h = randRange(rnd, 1, isRock ? 18 : 9);
+      ctx.globalAlpha = randRange(rnd, 0.035, 0.18);
       ctx.fillStyle = rnd() > 0.55 ? accent : dark;
       ctx.fillRect(0, y, width, h);
     }
 
-    for (let i = 0; i < 190; i += 1) {
+    for (let i = 0; i < 360; i += 1) {
       const x = rnd() * width;
       const y = rnd() * height;
-      const rx = randRange(rnd, body.id === "korriban" ? 8 : 4, body.id === "korriban" ? 72 : 34);
-      const ry = randRange(rnd, 2, body.id === "korriban" ? 22 : 12);
-      ctx.globalAlpha = randRange(rnd, 0.04, 0.22);
-      ctx.fillStyle = rnd() > 0.48 ? colorWithAlpha(accent, 1) : colorWithAlpha(dark, 1);
+      const rx = randRange(rnd, isRock ? 7 : 4, isRock ? 78 : 42);
+      const ry = randRange(rnd, 2, isRock ? 18 : 10);
+      ctx.globalAlpha = randRange(rnd, 0.035, 0.22);
+      ctx.fillStyle = rnd() > 0.52 ? colorWithAlpha(accent, 1) : colorWithAlpha(dark, 1);
       ctx.beginPath();
       ctx.ellipse(x, y, rx, ry, rnd() * TAU, 0, TAU);
       ctx.fill();
     }
 
-    if (body.id === "korriban") {
-      for (let i = 0; i < 56; i += 1) {
-        ctx.globalAlpha = randRange(rnd, 0.07, 0.18);
-        ctx.strokeStyle = colorWithAlpha("#ffd0a0", 1);
-        ctx.lineWidth = randRange(rnd, 1, 4);
+    if (isRock) {
+      for (let i = 0; i < 92; i += 1) {
+        ctx.globalAlpha = randRange(rnd, 0.06, 0.18);
+        ctx.strokeStyle = colorWithAlpha("#ffbb82", 1);
+        ctx.lineWidth = randRange(rnd, 0.8, 3.4);
         ctx.beginPath();
         const y = rnd() * height;
-        ctx.moveTo(-40, y);
-        for (let x = 0; x <= width + 80; x += 80) {
-          ctx.lineTo(x, y + Math.sin(x * 0.015 + rnd() * TAU) * randRange(rnd, 3, 18));
+        ctx.moveTo(-50, y);
+        for (let x = 0; x <= width + 100; x += 60) {
+          ctx.lineTo(x, y + Math.sin(x * 0.012 + rnd() * TAU) * randRange(rnd, 3, 18));
         }
         ctx.stroke();
       }
     }
+
     ctx.globalAlpha = 1;
-  });
+  }, 1536, 768);
 
   const bumpMap = makeTextureFromCanvas((ctx, width, height) => {
     ctx.fillStyle = "#777";
     ctx.fillRect(0, 0, width, height);
-    for (let i = 0; i < 420; i += 1) {
-      ctx.globalAlpha = randRange(rnd, 0.035, 0.17);
-      ctx.fillStyle = rnd() > 0.5 ? "#fff" : "#111";
+
+    for (let i = 0; i < 720; i += 1) {
+      ctx.globalAlpha = randRange(rnd, 0.03, 0.17);
+      ctx.fillStyle = rnd() > 0.5 ? "#ffffff" : "#111111";
       ctx.beginPath();
-      ctx.ellipse(rnd() * width, rnd() * height, randRange(rnd, 5, 58), randRange(rnd, 2, 18), rnd() * TAU, 0, TAU);
+      ctx.ellipse(rnd() * width, rnd() * height, randRange(rnd, 4, 62), randRange(rnd, 2, 17), rnd() * TAU, 0, TAU);
       ctx.fill();
     }
+
     ctx.globalAlpha = 1;
-  });
+  }, 1024, 512);
 
   const cloudMap = makeTextureFromCanvas((ctx, width, height) => {
     ctx.clearRect(0, 0, width, height);
-    for (let i = 0; i < 210; i += 1) {
-      ctx.globalAlpha = randRange(rnd, 0.018, body.id === "khar-shian" ? 0.1 : 0.055);
-      ctx.fillStyle = body.id === "khar-shian" ? "#dffcff" : "#ffd6bd";
+
+    for (let i = 0; i < 320; i += 1) {
+      ctx.globalAlpha = randRange(rnd, 0.014, body.id === "khar-shian" ? 0.13 : 0.07);
+      ctx.fillStyle = body.id === "khar-shian" ? "#e4fdff" : "#ffd5bd";
       ctx.beginPath();
-      ctx.ellipse(rnd() * width, rnd() * height, randRange(rnd, 18, 95), randRange(rnd, 3, 18), rnd() * TAU, 0, TAU);
+      ctx.ellipse(rnd() * width, rnd() * height, randRange(rnd, 18, 118), randRange(rnd, 3, 21), rnd() * TAU, 0, TAU);
       ctx.fill();
     }
-    ctx.globalAlpha = 1;
-  });
 
-  return { map, bumpMap, cloudMap };
+    ctx.globalAlpha = 1;
+  }, 1024, 512);
+
+  const nightMap = makeTextureFromCanvas((ctx, width, height) => {
+    ctx.clearRect(0, 0, width, height);
+
+    for (let i = 0; i < 180; i += 1) {
+      ctx.globalAlpha = randRange(rnd, 0.05, 0.34);
+      ctx.fillStyle = rnd() > 0.62 ? glow : accent;
+      ctx.beginPath();
+      ctx.arc(rnd() * width, rnd() * height, randRange(rnd, 0.6, 2.2), 0, TAU);
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+  }, 1024, 512);
+
+  return { map, bumpMap, cloudMap, nightMap };
 }
 
-function makeGlowTexture() {
+function makeGlowTexture(seed = 0, inner = "rgba(255,255,255,1)", mid = "rgba(255,70,70,.42)") {
   return makeTextureFromCanvas((ctx, width, height) => {
+    const rnd = seededRandom(seed + 17);
     const gradient = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width / 2);
-    gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
-    gradient.addColorStop(0.18, "rgba(255, 210, 170, .8)");
-    gradient.addColorStop(0.46, "rgba(255, 52, 60, .32)");
+    gradient.addColorStop(0, inner);
+    gradient.addColorStop(0.19, "rgba(255, 216, 158, .74)");
+    gradient.addColorStop(0.48, mid);
     gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
-  }, 512, 512);
+
+    for (let i = 0; i < 28; i += 1) {
+      ctx.globalAlpha = randRange(rnd, 0.02, 0.08);
+      ctx.strokeStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(width / 2, height / 2, randRange(rnd, 24, width / 2), 0, TAU);
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
+  }, 768, 768);
 }
 
 function makeNebulaTexture(seed, colorA, colorB) {
   const rnd = seededRandom(seed);
   return makeTextureFromCanvas((ctx, width, height) => {
     ctx.clearRect(0, 0, width, height);
-    for (let i = 0; i < 58; i += 1) {
+
+    for (let i = 0; i < 92; i += 1) {
       const x = rnd() * width;
       const y = rnd() * height;
-      const radius = randRange(rnd, 64, 210);
+      const radius = randRange(rnd, 70, 260);
       const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-      gradient.addColorStop(0, colorWithAlpha(rnd() > 0.5 ? colorA : colorB, randRange(rnd, 0.09, 0.24)));
-      gradient.addColorStop(0.48, colorWithAlpha(rnd() > 0.5 ? colorA : colorB, randRange(rnd, 0.018, 0.07)));
+      gradient.addColorStop(0, colorWithAlpha(rnd() > 0.5 ? colorA : colorB, randRange(rnd, 0.12, 0.32)));
+      gradient.addColorStop(0.46, colorWithAlpha(rnd() > 0.5 ? colorA : colorB, randRange(rnd, 0.025, 0.09)));
       gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = gradient;
       ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
     }
+
     ctx.globalCompositeOperation = "destination-in";
-    const mask = ctx.createRadialGradient(width / 2, height / 2, width * 0.05, width / 2, height / 2, width * 0.55);
-    mask.addColorStop(0, "rgba(255, 255, 255, .9)");
-    mask.addColorStop(0.56, "rgba(255, 255, 255, .46)");
-    mask.addColorStop(0.82, "rgba(255, 255, 255, .08)");
-    mask.addColorStop(1, "rgba(255, 255, 255, 0)");
+    const mask = ctx.createRadialGradient(width / 2, height / 2, width * 0.06, width / 2, height / 2, width * 0.58);
+    mask.addColorStop(0, "rgba(255,255,255,.9)");
+    mask.addColorStop(0.52, "rgba(255,255,255,.5)");
+    mask.addColorStop(0.82, "rgba(255,255,255,.1)");
+    mask.addColorStop(1, "rgba(255,255,255,0)");
     ctx.fillStyle = mask;
     ctx.fillRect(0, 0, width, height);
     ctx.globalCompositeOperation = "source-over";
-  }, 1024, 1024);
+  }, 1536, 1536);
+}
+
+function makeDustLaneTexture(seed) {
+  const rnd = seededRandom(seed);
+  return makeTextureFromCanvas((ctx, width, height) => {
+    ctx.clearRect(0, 0, width, height);
+
+    for (let lane = 0; lane < 10; lane += 1) {
+      ctx.globalAlpha = randRange(rnd, 0.04, 0.14);
+      ctx.strokeStyle = rnd() > 0.42 ? "#100307" : "#27080b";
+      ctx.lineWidth = randRange(rnd, 16, 54);
+      ctx.beginPath();
+      const baseY = randRange(rnd, height * 0.25, height * 0.75);
+      ctx.moveTo(-80, baseY);
+      for (let x = -80; x <= width + 120; x += 58) {
+        ctx.lineTo(x, baseY + Math.sin(x * randRange(rnd, 0.006, 0.014) + lane) * randRange(rnd, 16, 80));
+      }
+      ctx.stroke();
+    }
+
+    for (let i = 0; i < 240; i += 1) {
+      ctx.globalAlpha = randRange(rnd, 0.018, 0.08);
+      ctx.fillStyle = "#050102";
+      ctx.beginPath();
+      ctx.ellipse(rnd() * width, rnd() * height, randRange(rnd, 8, 70), randRange(rnd, 2, 18), rnd() * TAU, 0, TAU);
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+  }, 1536, 768);
 }
 
 function makeGalaxyGeometry(count, seed, mode = "arm") {
@@ -183,25 +262,31 @@ function makeGalaxyGeometry(count, seed, mode = "arm") {
   const color = new THREE.Color();
 
   for (let i = 0; i < count; i += 1) {
-    const arm = i % 5;
-    const radius = Math.pow(rnd(), mode === "dust" ? 0.48 : 0.62) * 10.5 + 0.12;
-    const curl = radius * 0.58;
-    const angle = (arm / 5) * TAU + curl + randRange(rnd, -0.35, 0.35);
-    const spread = mode === "dust" ? 0.55 : 0.16 + radius * 0.028;
-    const x = Math.cos(angle) * radius * 1.18 + randRange(rnd, -spread, spread);
-    const z = Math.sin(angle) * radius * 0.82 + randRange(rnd, -spread, spread);
-    const y = randRange(rnd, -0.22, 0.22) * (mode === "dust" ? 1.7 : 1 + radius * 0.08);
+    const arm = i % 6;
+    const coreBias = mode === "core" ? 0.28 : mode === "dust" ? 0.5 : 0.62;
+    const radius = Math.pow(rnd(), coreBias) * (mode === "core" ? 3.8 : 11.8) + 0.08;
+    const curl = radius * (mode === "cluster" ? 0.82 : 0.58);
+    const angle = (arm / 6) * TAU + curl + randRange(rnd, -0.42, 0.42);
+    const spread = mode === "dust" ? 0.68 : mode === "cluster" ? 0.22 + radius * 0.04 : 0.13 + radius * 0.025;
+    const x = Math.cos(angle) * radius * 1.22 + randRange(rnd, -spread, spread);
+    const z = Math.sin(angle) * radius * 0.84 + randRange(rnd, -spread, spread);
+    const y = randRange(rnd, -0.2, 0.2) * (mode === "dust" ? 2.1 : 1 + radius * 0.08);
 
     positions[i * 3] = x;
     positions[i * 3 + 1] = y;
     positions[i * 3 + 2] = z;
 
-    const palette = rnd() > 0.9 ? "#ff463f" : rnd() > 0.65 ? "#ffd58a" : rnd() > 0.36 ? "#fff8e9" : "#8eeaff";
-    color.set(palette).lerp(new THREE.Color("#5b6dff"), rnd() > 0.92 ? 0.25 : 0);
+    const palette = mode === "dust"
+      ? (rnd() > 0.7 ? "#8a2b2c" : "#2d0a0e")
+      : rnd() > 0.93 ? "#ff463f" : rnd() > 0.72 ? "#ffd58a" : rnd() > 0.37 ? "#fff8e9" : "#8eeaff";
+
+    color.set(palette);
+    if (mode !== "dust" && rnd() > 0.91) color.lerp(new THREE.Color("#5b6dff"), 0.34);
+
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
-    sizes[i] = mode === "dust" ? randRange(rnd, 0.025, 0.085) : randRange(rnd, 0.01, 0.045);
+    sizes[i] = mode === "dust" ? randRange(rnd, 0.035, 0.11) : mode === "core" ? randRange(rnd, 0.018, 0.075) : randRange(rnd, 0.014, 0.056);
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -211,7 +296,29 @@ function makeGalaxyGeometry(count, seed, mode = "arm") {
   return geometry;
 }
 
-function makeOrbitPoints(radiusX, radiusZ, segments = 192) {
+function makeStreakGeometry(count, seed) {
+  const rnd = seededRandom(seed);
+  const positions = new Float32Array(count * 2 * 3);
+
+  for (let i = 0; i < count; i += 1) {
+    const x = randRange(rnd, -18, 18);
+    const y = randRange(rnd, -7, 7);
+    const z = randRange(rnd, -24, 8);
+    const length = randRange(rnd, 0.18, 0.78);
+    positions[i * 6] = x;
+    positions[i * 6 + 1] = y;
+    positions[i * 6 + 2] = z;
+    positions[i * 6 + 3] = x + length * 0.35;
+    positions[i * 6 + 4] = y + length * 0.08;
+    positions[i * 6 + 5] = z + length;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  return geometry;
+}
+
+function makeOrbitPoints(radiusX, radiusZ, segments = 224) {
   const points = [];
   for (let i = 0; i <= segments; i += 1) {
     const angle = (i / segments) * TAU;
@@ -220,13 +327,13 @@ function makeOrbitPoints(radiusX, radiusZ, segments = 192) {
   return points;
 }
 
-function makeRoutePoints(start, end, lift = 1.5) {
+function makeRoutePoints(start, end, lift = 1.7) {
   const curve = new THREE.QuadraticBezierCurve3(
     start,
     start.clone().lerp(end, 0.52).add(new THREE.Vector3(0, lift, 0)),
     end
   );
-  return curve.getPoints(120);
+  return curve.getPoints(160);
 }
 
 function LineGeometry({ points }) {
@@ -237,16 +344,14 @@ function LineGeometry({ points }) {
   return <primitive attach="geometry" object={geometry} />;
 }
 
-function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
+function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1, rotationSpeed = 1 }) {
   const geometry = useMemo(() => makeGalaxyGeometry(count, seed, mode), [count, seed, mode]);
   const materialRef = useRef(null);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   useFrame(({ clock }) => {
-    if (materialRef.current) {
-      materialRef.current.uniforms.uTime.value = clock.elapsedTime;
-    }
+    if (materialRef.current) materialRef.current.uniforms.uTime.value = clock.elapsedTime * rotationSpeed;
   });
 
   return (
@@ -267,12 +372,14 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
           uniform float uTime;
           uniform float uScale;
           varying vec3 vColor;
+
           void main() {
             vColor = color;
             vec3 pos = position;
-            pos.y += sin(uTime * 0.28 + position.x * 1.7 + position.z) * 0.015;
+            pos.y += sin(uTime * 0.18 + position.x * 1.28 + position.z * 0.82) * 0.018;
+            pos.xz = mat2(cos(uTime * 0.015), -sin(uTime * 0.015), sin(uTime * 0.015), cos(uTime * 0.015)) * pos.xz;
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            gl_PointSize = aSize * uScale * (360.0 / max(5.0, -mvPosition.z));
+            gl_PointSize = aSize * uScale * (520.0 / max(4.2, -mvPosition.z));
             gl_Position = projectionMatrix * mvPosition;
           }
         `}
@@ -280,13 +387,14 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
           uniform float uTime;
           uniform float uOpacity;
           varying vec3 vColor;
+
           void main() {
             vec2 uv = gl_PointCoord * 2.0 - 1.0;
             float d = length(uv);
-            float core = 1.0 - smoothstep(0.0, 0.2, d);
-            float glow = 1.0 - smoothstep(0.1, 1.0, d);
-            float twinkle = 0.78 + 0.22 * sin(uTime * 1.9 + vColor.r * 18.0);
-            gl_FragColor = vec4(vColor, (core + glow * 0.58) * uOpacity * twinkle);
+            float core = 1.0 - smoothstep(0.0, 0.18, d);
+            float glow = 1.0 - smoothstep(0.14, 1.0, d);
+            float twinkle = 0.76 + 0.24 * sin(uTime * 1.25 + vColor.r * 18.0 + vColor.g * 11.0);
+            gl_FragColor = vec4(vColor, (core + glow * 0.66) * uOpacity * twinkle);
           }
         `}
       />
@@ -294,23 +402,131 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
   );
 }
 
+function StellarDrift({ quality }) {
+  const geometry = useMemo(() => makeStreakGeometry(quality === "high" ? 180 : 82, 9162), [quality]);
+  const groupRef = useRef(null);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return;
+    groupRef.current.position.z = (clock.elapsedTime * 0.18) % 2.4;
+    groupRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.04) * 0.035;
+  });
+
+  return (
+    <lineSegments ref={groupRef} geometry={geometry}>
+      <lineBasicMaterial color="#9beeff" transparent opacity={0.18} blending={THREE.AdditiveBlending} depthWrite={false} />
+    </lineSegments>
+  );
+}
+
 function NebulaField() {
   const red = useMemo(() => makeNebulaTexture(8821, "#ff3846", "#ff9a3d"), []);
   const blue = useMemo(() => makeNebulaTexture(4429, "#76e0ef", "#5b6dff"), []);
+  const violet = useMemo(() => makeNebulaTexture(1776, "#b25cff", "#ff385c"), []);
+  const dust = useMemo(() => makeDustLaneTexture(6221), []);
 
   useEffect(() => () => {
     red.dispose();
     blue.dispose();
-  }, [red, blue]);
+    violet.dispose();
+    dust.dispose();
+  }, [red, blue, violet, dust]);
 
   return (
     <>
-      <sprite position={[-3.8, -0.26, -4.8]} scale={[11, 6.4, 1]} rotation={[0.2, 0, -0.18]}>
-        <spriteMaterial map={red} color="#ffffff" transparent opacity={0.24} depthWrite={false} blending={THREE.AdditiveBlending} />
+      <sprite position={[-4.8, -0.32, -5.4]} scale={[14, 7.6, 1]} rotation={[0.14, 0, -0.24]}>
+        <spriteMaterial map={red} color="#ffffff" transparent opacity={0.34} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
-      <sprite position={[3.8, 0.16, 2.8]} scale={[9.2, 5.8, 1]} rotation={[-0.1, 0, 0.22]}>
-        <spriteMaterial map={blue} color="#ffffff" transparent opacity={0.14} depthWrite={false} blending={THREE.AdditiveBlending} />
+      <sprite position={[4.9, 0.2, 3.6]} scale={[12.4, 7.2, 1]} rotation={[-0.12, 0, 0.24]}>
+        <spriteMaterial map={blue} color="#ffffff" transparent opacity={0.22} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
+      <sprite position={[0.2, 0.02, -0.2]} scale={[16, 8.4, 1]} rotation={[0.08, 0, 0.04]}>
+        <spriteMaterial map={violet} color="#ffffff" transparent opacity={0.16} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </sprite>
+      <sprite position={[0.1, -0.08, -0.3]} scale={[16.8, 4.2, 1]} rotation={[0.42, 0.12, -0.17]}>
+        <spriteMaterial map={dust} color="#180407" transparent opacity={0.56} depthWrite={false} />
+      </sprite>
+      <sprite position={[1.8, 0.04, 1.3]} scale={[13.6, 3.3, 1]} rotation={[0.5, -0.12, 0.22]}>
+        <spriteMaterial map={dust} color="#080102" transparent opacity={0.42} depthWrite={false} />
+      </sprite>
+    </>
+  );
+}
+
+function MicroLabel({ body, selected, hovered, onSelect, onHover }) {
+  const labelRef = useRef(null);
+  const groupRef = useRef(null);
+  const worldPosition = useMemo(() => new THREE.Vector3(), []);
+  const { camera } = useThree();
+
+  useFrame(() => {
+    if (!labelRef.current || !groupRef.current) return;
+    groupRef.current.getWorldPosition(worldPosition);
+    const distance = camera.position.distanceTo(worldPosition);
+    const opacity = selected || hovered ? 1 : THREE.MathUtils.clamp(1.7 - distance / 13.5, 0.14, 0.82);
+    const scale = selected || hovered ? 1 : THREE.MathUtils.clamp(1.18 - distance / 38, 0.76, 1);
+    labelRef.current.style.opacity = opacity.toFixed(3);
+    labelRef.current.style.transform = `scale(${scale.toFixed(3)})`;
+  });
+
+  return (
+    <Billboard ref={groupRef} position={[0, body.radius * 3, 0]}>
+      <Html center distanceFactor={8.5} transform occlude={false}>
+        <button
+          ref={labelRef}
+          type="button"
+          className={`gm-world-label${selected ? " is-selected" : ""}${hovered ? " is-hovered" : ""}`}
+          onClick={() => onSelect(body.id)}
+          onPointerEnter={() => onHover(body.id)}
+          onPointerLeave={() => onHover(null)}
+        >
+          <span>{body.shortName || body.name}</span>
+          <small>{body.grid}</small>
+        </button>
+      </Html>
+    </Billboard>
+  );
+}
+
+function PlanetReticle({ body, selected, hovered }) {
+  const outerRef = useRef(null);
+  const innerRef = useRef(null);
+  const pingRef = useRef(null);
+  const active = selected || hovered;
+
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    if (outerRef.current) {
+      outerRef.current.rotation.z = t * (selected ? 0.7 : 0.38);
+      outerRef.current.material.opacity = active ? (selected ? 0.62 : 0.44) : 0.18;
+    }
+    if (innerRef.current) {
+      innerRef.current.rotation.z = -t * (selected ? 0.55 : 0.22);
+      innerRef.current.material.opacity = active ? (selected ? 0.48 : 0.32) : 0.12;
+    }
+    if (pingRef.current) {
+      const pulse = (Math.sin(t * 4.2) + 1) * 0.5;
+      pingRef.current.scale.setScalar(1 + pulse * 0.35);
+      pingRef.current.material.opacity = active ? (0.16 + pulse * 0.28) : 0.05;
+    }
+  });
+
+  return (
+    <>
+      <line ref={outerRef} rotation={[Math.PI / 2, 0, 0]}>
+        <LineGeometry points={makeOrbitPoints(body.radius * 2.55, body.radius * 2.55, 160)} />
+        <lineBasicMaterial color={selected ? "#ffcf91" : body.colors?.glow || "#ff3b4f"} transparent opacity={0.24} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </line>
+      <line ref={innerRef} rotation={[Math.PI / 2, 0, 0.82]}>
+        <LineGeometry points={makeOrbitPoints(body.radius * 1.9, body.radius * 1.9, 128)} />
+        <lineBasicMaterial color={body.colors?.glow || "#ff3b4f"} transparent opacity={0.16} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </line>
+      <line ref={pingRef} rotation={[Math.PI / 2, 0, 0]}>
+        <LineGeometry points={makeOrbitPoints(body.radius * 2.95, body.radius * 2.95, 160)} />
+        <lineBasicMaterial color="#ffffff" transparent opacity={0.08} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </line>
     </>
   );
 }
@@ -319,8 +535,8 @@ function PlanetBody({ body, selected, hovered, onSelect, onHover }) {
   const groupRef = useRef(null);
   const planetRef = useRef(null);
   const cloudsRef = useRef(null);
-  const scanRef = useRef(null);
-  const haloTexture = useMemo(() => makeGlowTexture(), []);
+  const nightRef = useRef(null);
+  const haloTexture = useMemo(() => makeGlowTexture(body.id.length * 227, "#ffffff", colorWithAlpha(body.colors?.glow || "#ff3b4f", 0.42)), [body]);
   const textures = useMemo(() => makePlanetTextures(body), [body]);
 
   useEffect(() => () => {
@@ -328,35 +544,34 @@ function PlanetBody({ body, selected, hovered, onSelect, onHover }) {
     textures.map.dispose();
     textures.bumpMap.dispose();
     textures.cloudMap.dispose();
+    textures.nightMap.dispose();
   }, [haloTexture, textures]);
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
     if (!groupRef.current) return;
-    const targetScale = body.selectable ? (selected ? 1.72 : hovered ? 1.34 : 1) : 0.88;
+
+    const targetScale = body.selectable ? (selected ? 1.72 : hovered ? 1.31 : 1) : 0.86;
     groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
+
     if (planetRef.current) {
-      planetRef.current.rotation.y += 0.0028 + body.radius * 0.006;
-      planetRef.current.rotation.x = Math.sin(t * 0.23 + body.radius * 13) * 0.07;
+      planetRef.current.rotation.y += 0.0022 + body.radius * 0.004;
+      planetRef.current.rotation.x = Math.sin(t * 0.2 + body.radius * 12) * 0.05;
     }
-    if (cloudsRef.current) {
-      cloudsRef.current.rotation.y -= 0.0015 + body.radius * 0.004;
-    }
-    if (scanRef.current) {
-      const pulse = 0.5 + Math.sin(t * 3.2) * 0.5;
-      scanRef.current.rotation.z += selected ? 0.023 : 0.011;
-      scanRef.current.material.opacity = (selected ? 0.58 : hovered ? 0.42 : 0.2) + pulse * (selected ? 0.22 : 0.1);
-    }
+    if (cloudsRef.current) cloudsRef.current.rotation.y -= 0.0012 + body.radius * 0.003;
+    if (nightRef.current) nightRef.current.rotation.y += 0.0015;
   });
 
   const handlePointerOver = event => {
     event.stopPropagation();
     if (body.selectable) onHover(body.id);
   };
+
   const handlePointerOut = event => {
     event.stopPropagation();
     if (body.selectable) onHover(null);
   };
+
   const handleClick = event => {
     event.stopPropagation();
     if (body.selectable) onSelect(body.id);
@@ -365,77 +580,68 @@ function PlanetBody({ body, selected, hovered, onSelect, onHover }) {
   return (
     <group ref={groupRef} position={body.position} userData={{ bodyId: body.id }}>
       <mesh ref={planetRef} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut} onClick={handleClick}>
-        <sphereGeometry args={[body.radius, 96, 48]} />
+        <sphereGeometry args={[body.radius, 128, 64]} />
         <meshStandardMaterial
           map={textures.map}
           bumpMap={textures.bumpMap}
-          bumpScale={body.id === "korriban" ? 0.045 : 0.025}
-          roughness={body.id === "khar-shian" ? 0.52 : 0.86}
+          bumpScale={body.id === "korriban" ? 0.055 : 0.028}
+          roughness={body.id === "khar-shian" ? 0.48 : 0.88}
           metalness={body.id === "khar-shian" ? 0.08 : 0.02}
           emissive={body.colors?.surfaceDark || "#000000"}
-          emissiveIntensity={selected ? 0.18 : 0.065}
+          emissiveIntensity={selected ? 0.16 : hovered ? 0.1 : 0.055}
         />
       </mesh>
 
-      <mesh ref={cloudsRef} scale={1.012}>
-        <sphereGeometry args={[body.radius * 1.014, 96, 48]} />
+      <mesh ref={nightRef} scale={1.004}>
+        <sphereGeometry args={[body.radius * 1.006, 96, 48]} />
+        <meshBasicMaterial
+          map={textures.nightMap}
+          transparent
+          opacity={selected ? 0.2 : 0.11}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      <mesh ref={cloudsRef} scale={1.018}>
+        <sphereGeometry args={[body.radius * 1.018, 128, 64]} />
         <meshStandardMaterial
           map={textures.cloudMap}
           transparent
-          opacity={body.id === "khar-shian" ? 0.32 : 0.17}
+          opacity={body.id === "khar-shian" ? 0.34 : 0.18}
+          roughness={0.72}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
 
-      <mesh scale={1.15}>
-        <sphereGeometry args={[body.radius * 1.16, 96, 36]} />
+      <mesh scale={1.22}>
+        <sphereGeometry args={[body.radius * 1.22, 96, 42]} />
         <meshBasicMaterial
           color={body.colors?.glow || "#ffffff"}
           transparent
-          opacity={body.selectable ? (selected ? 0.19 : hovered ? 0.14 : 0.075) : 0.04}
+          opacity={body.selectable ? (selected ? 0.22 : hovered ? 0.16 : 0.085) : 0.045}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
           side={THREE.BackSide}
         />
       </mesh>
 
-      <sprite scale={[body.radius * (selected ? 9 : 6), body.radius * (selected ? 9 : 6), 1]}>
+      <sprite scale={[body.radius * (selected ? 10.8 : hovered ? 8.2 : 6.3), body.radius * (selected ? 10.8 : hovered ? 8.2 : 6.3), 1]}>
         <spriteMaterial
           map={haloTexture}
           color={body.colors?.glow || "#ffffff"}
           transparent
-          opacity={body.selectable ? (selected ? 0.34 : hovered ? 0.24 : 0.12) : 0.04}
+          opacity={body.selectable ? (selected ? 0.38 : hovered ? 0.27 : 0.13) : 0.06}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
       </sprite>
 
-      <line ref={scanRef} rotation={[Math.PI / 2, 0, 0]}>
-        <LineGeometry points={makeOrbitPoints(body.radius * 2.25, body.radius * 2.25, 128)} />
-        <lineBasicMaterial
-          color={selected ? "#ff9a3d" : body.colors?.glow || "#ff3b4f"}
-          transparent
-          opacity={0.26}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </line>
+      <PlanetReticle body={body} selected={selected} hovered={hovered} />
 
       {body.selectable ? (
-        <Billboard position={[0, body.radius * 2.9, 0]}>
-          <Html center distanceFactor={8} transform occlude={false}>
-            <button
-              type="button"
-              className={`gm-world-label${selected ? " is-selected" : ""}${hovered ? " is-hovered" : ""}`}
-              onClick={() => onSelect(body.id)}
-              onPointerEnter={() => onHover(body.id)}
-              onPointerLeave={() => onHover(null)}
-            >
-              {body.shortName || body.name}
-            </button>
-          </Html>
-        </Billboard>
+        <MicroLabel body={body} selected={selected} hovered={hovered} onSelect={onSelect} onHover={onHover} />
       ) : null}
     </group>
   );
@@ -446,17 +652,19 @@ function OrbitTrace({ body, parent }) {
   const parentVector = useMemo(() => makeVector(parent.position), [parent]);
   const childVector = useMemo(() => makeVector(body.position), [body]);
   const distance = parentVector.distanceTo(childVector);
-  const points = useMemo(() => makeOrbitPoints(distance, distance * 0.52, 192), [distance]);
+  const points = useMemo(() => makeOrbitPoints(distance, distance * 0.52, 224), [distance]);
 
-  useFrame(() => {
-    if (lineRef.current) lineRef.current.rotation.y += 0.0035;
+  useFrame(({ clock }) => {
+    if (!lineRef.current) return;
+    lineRef.current.rotation.y = clock.elapsedTime * 0.06;
+    lineRef.current.material.opacity = 0.22 + Math.sin(clock.elapsedTime * 1.1) * 0.05;
   });
 
   return (
     <group position={parent.position} rotation={[Math.PI * 0.16, Math.atan2(childVector.x - parentVector.x, childVector.z - parentVector.z), 0]}>
       <line ref={lineRef}>
         <LineGeometry points={points} />
-        <lineBasicMaterial color="#ff3b4f" transparent opacity={0.32} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <lineBasicMaterial color={body.colors?.glow || "#ff3b4f"} transparent opacity={0.28} blending={THREE.AdditiveBlending} depthWrite={false} />
       </line>
     </group>
   );
@@ -464,27 +672,70 @@ function OrbitTrace({ body, parent }) {
 
 function RoutePulse({ end }) {
   const pulseRef = useRef(null);
-  const points = useMemo(() => makeRoutePoints(new THREE.Vector3(0, 0.1, 0), makeVector(end), 1.85), [end]);
+  const secondPulseRef = useRef(null);
+  const points = useMemo(() => makeRoutePoints(new THREE.Vector3(0, 0.05, 0), makeVector(end), 1.9), [end]);
   const curve = useMemo(() => new THREE.CatmullRomCurve3(points), [points]);
 
   useFrame(({ clock }) => {
-    if (!pulseRef.current) return;
-    const t = (clock.elapsedTime * 0.1) % 1;
-    pulseRef.current.position.copy(curve.getPointAt(t));
-    pulseRef.current.material.opacity = 0.4 + Math.sin(t * TAU) * 0.24;
+    const t = (clock.elapsedTime * 0.065) % 1;
+    if (pulseRef.current) {
+      pulseRef.current.position.copy(curve.getPointAt(t));
+      pulseRef.current.material.opacity = 0.46 + Math.sin(t * TAU) * 0.22;
+    }
+    if (secondPulseRef.current) {
+      const t2 = (t + 0.48) % 1;
+      secondPulseRef.current.position.copy(curve.getPointAt(t2));
+      secondPulseRef.current.material.opacity = 0.26 + Math.sin(t2 * TAU) * 0.18;
+    }
   });
 
   return (
     <>
       <line>
         <LineGeometry points={points} />
-        <lineBasicMaterial color="#ff3b4f" transparent opacity={0.34} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <lineBasicMaterial color="#ff3b4f" transparent opacity={0.36} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </line>
+      <line>
+        <LineGeometry points={points} />
+        <lineBasicMaterial color="#ffcf91" transparent opacity={0.14} blending={THREE.AdditiveBlending} depthWrite={false} />
       </line>
       <mesh ref={pulseRef}>
-        <sphereGeometry args={[0.055, 18, 10]} />
-        <meshBasicMaterial color="#ffcf91" transparent opacity={0.7} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <sphereGeometry args={[0.065, 22, 12]} />
+        <meshBasicMaterial color="#ffcf91" transparent opacity={0.72} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      <mesh ref={secondPulseRef}>
+        <sphereGeometry args={[0.042, 18, 10]} />
+        <meshBasicMaterial color="#76e0ef" transparent opacity={0.48} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </>
+  );
+}
+
+function ArchiveReticle({ focus }) {
+  const groupRef = useRef(null);
+  const glowTexture = useMemo(() => makeGlowTexture(3921, "#ffffff", "rgba(255,52,70,.5)"), []);
+  const position = useMemo(() => makeVector(focus.position), [focus]);
+
+  useEffect(() => () => glowTexture.dispose(), [glowTexture]);
+
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return;
+    groupRef.current.rotation.y = clock.elapsedTime * 0.08;
+    groupRef.current.rotation.z = Math.sin(clock.elapsedTime * 0.4) * 0.14;
+  });
+
+  return (
+    <group ref={groupRef} position={position}>
+      <sprite scale={[focus.radius * 2.9, focus.radius * 2.9, 1]}>
+        <spriteMaterial map={glowTexture} color="#ff3b4f" transparent opacity={0.36} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </sprite>
+      {[0.86, 1.28, 1.78, 2.28].map((scale, index) => (
+        <line key={scale} rotation={[Math.PI / 2.35, 0, index * 0.46]}>
+          <LineGeometry points={makeOrbitPoints(focus.radius * scale, focus.radius * scale * 0.66, 224)} />
+          <lineBasicMaterial color={index === 1 ? "#ffcf91" : "#ff3b4f"} transparent opacity={index === 1 ? 0.54 : 0.24} blending={THREE.AdditiveBlending} depthWrite={false} />
+        </line>
+      ))}
+    </group>
   );
 }
 
@@ -507,40 +758,61 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
       if (controls) controls.autoRotate = false;
     } else {
       focusTravel.current = false;
-      if (controls) controls.autoRotate = true;
+      if (controls) controls.autoRotate = false;
     }
-  }, [map, selectedId, controlsRef, selectedPositionRef]);
+  }, [selectedId, controlsRef]);
 
   useEffect(() => {
     if (zoomSignalRef.current === zoomOutSignal) return;
+
     zoomSignalRef.current = zoomOutSignal;
-    targetCamera.current.copy(WIDE_CAMERA);
-    targetControl.current.copy(WIDE_TARGET);
+    const controls = controlsRef.current;
+    const orbitTarget = controls ? controls.target.clone() : WIDE_TARGET.clone();
+    const direction = camera.position.clone().sub(orbitTarget);
+
+    if (direction.lengthSq() < 1) direction.copy(WIDE_CAMERA).sub(WIDE_TARGET);
+
+    const distance = Math.max(13.2, Math.min(19.5, direction.length() * 1.85));
+    targetCamera.current.copy(orbitTarget).add(direction.normalize().multiplyScalar(distance));
+    targetCamera.current.y = Math.max(targetCamera.current.y, orbitTarget.y + 3.6);
+    targetControl.current.copy(orbitTarget);
     zoomTravel.current = true;
     focusTravel.current = false;
-  }, [zoomOutSignal]);
+
+    if (controls) {
+      controls.autoRotate = false;
+      controls.enablePan = true;
+    }
+  }, [camera, controlsRef, zoomOutSignal]);
 
   useFrame(() => {
     const controls = controlsRef.current;
     if (!controls) return;
+
     const selectedPosition = selectedIdRef.current ? selectedPositionRef.current : null;
 
     if (selectedPosition) {
       const body = bodyById(map, selectedIdRef.current);
-      const scale = body?.id === "khar-shian" ? 0.76 : 0.98;
-      const outward = selectedPosition.clone().sub(WIDE_TARGET).normalize().multiplyScalar(0.92 * scale);
-      targetCamera.current.copy(selectedPosition).add(outward).add(new THREE.Vector3(0.86 * scale, 0.74 * scale, 1.5 * scale));
+      const scale = body?.id === "khar-shian" ? 0.78 : 1;
+      const outward = selectedPosition.clone().sub(WIDE_TARGET).normalize().multiplyScalar(1.05 * scale);
+      targetCamera.current.copy(selectedPosition).add(outward).add(new THREE.Vector3(0.92 * scale, 0.78 * scale, 1.54 * scale));
       targetControl.current.copy(selectedPosition);
       controls.autoRotate = false;
     }
 
-    if (focusTravel.current || zoomTravel.current) {
-      camera.position.lerp(targetCamera.current, focusTravel.current ? 0.055 : 0.045);
-      controls.target.lerp(targetControl.current, focusTravel.current ? 0.07 : 0.055);
-      const cameraDone = camera.position.distanceTo(targetCamera.current) < 0.035;
-      const targetDone = controls.target.distanceTo(targetControl.current) < 0.02;
-      if (cameraDone && targetDone) {
+    if (focusTravel.current) {
+      camera.position.lerp(targetCamera.current, 0.058);
+      controls.target.lerp(targetControl.current, 0.075);
+
+      if (camera.position.distanceTo(targetCamera.current) < 0.035 && controls.target.distanceTo(targetControl.current) < 0.02) {
         focusTravel.current = false;
+      }
+    }
+
+    if (zoomTravel.current) {
+      camera.position.lerp(targetCamera.current, 0.045);
+
+      if (camera.position.distanceTo(targetCamera.current) < 0.055) {
         zoomTravel.current = false;
       }
     }
@@ -555,15 +827,13 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
   const controlsRef = useRef(null);
   const groupRef = useRef(null);
   const selectedPositionRef = useRef(null);
-  const focusPosition = useMemo(() => makeVector(map.focus.position), [map]);
-  const glowTexture = useMemo(() => makeGlowTexture(), []);
-  const selectable = selectedId ? bodyById(map, selectedId) : null;
-
-  useEffect(() => () => glowTexture.dispose(), [glowTexture]);
+  const selectedBody = selectedId ? bodyById(map, selectedId) : null;
 
   useFrame(({ clock }) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y = GALAXY_TILT.y + clock.elapsedTime * 0.018;
+      groupRef.current.rotation.x = GALAXY_TILT.x;
+      groupRef.current.rotation.y = GALAXY_TILT.y + clock.elapsedTime * GALAXY_SPIN_SPEED;
+      groupRef.current.rotation.z = GALAXY_TILT.z + Math.sin(clock.elapsedTime * 0.07) * 0.012;
     }
   });
 
@@ -572,6 +842,7 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
       selectedPositionRef.current = null;
       return;
     }
+
     const body = bodyById(map, selectedId);
     if (body) {
       const next = selectedPositionRef.current || new THREE.Vector3();
@@ -584,32 +855,28 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
 
   return (
     <>
-      <color attach="background" args={["#050204"]} />
-      <fogExp2 attach="fog" args={["#080205", 0.018]} />
-      <ambientLight intensity={0.22} color="#4d1b20" />
-      <directionalLight position={[5, 7, 4]} intensity={3.2} color="#ffd8a8" />
-      <pointLight position={[7.2, 1.7, -1.7]} intensity={68} distance={18} color="#ff3b4f" />
-      <pointLight position={[3.4, 2.4, 2.8]} intensity={18} distance={20} color="#76e0ef" />
+      <color attach="background" args={["#020103"]} />
+      <fogExp2 attach="fog" args={["#050106", 0.012]} />
+      <ambientLight intensity={0.18} color="#5a1a20" />
+      <hemisphereLight intensity={0.36} color="#ffb878" groundColor="#120206" />
+      <directionalLight position={[5.4, 7.2, 4.2]} intensity={3.7} color="#ffd8a8" />
+      <pointLight position={[7.2, 1.7, -1.7]} intensity={84} distance={19} color="#ff3b4f" />
+      <pointLight position={[3.4, 2.4, 2.8]} intensity={24} distance={22} color="#76e0ef" />
+      <pointLight position={[-4.5, 1.3, -4.8]} intensity={18} distance={18} color="#b25cff" />
 
-      <Stars radius={52} depth={28} count={quality === "high" ? 3600 : 1900} factor={4.5} saturation={0.45} fade speed={0.28} />
-      <Sparkles count={quality === "high" ? 130 : 64} scale={[18, 4, 13]} size={1.1} speed={0.35} color="#ff9a3d" opacity={0.55} />
+      <Stars radius={68} depth={36} count={quality === "high" ? 5600 : 2600} factor={5.3} saturation={0.5} fade speed={0.1} />
+      <StellarDrift quality={quality} />
+      <Sparkles count={quality === "high" ? 210 : 92} scale={[21, 5.5, 15]} size={1.25} speed={0.16} color="#ff9a3d" opacity={0.62} />
 
       <group ref={groupRef} rotation={GALAXY_TILT}>
         <NebulaField />
-        <GalaxyParticles mode="arm" count={quality === "high" ? 11800 : 6200} seed={4321} opacity={0.58} sizeScale={1.05} />
-        <GalaxyParticles mode="dust" count={quality === "high" ? 4200 : 2200} seed={8827} opacity={0.13} sizeScale={1.8} />
+        <GalaxyParticles mode="core" count={quality === "high" ? 4200 : 1900} seed={9211} opacity={0.76} sizeScale={1.36} rotationSpeed={0.5} />
+        <GalaxyParticles mode="arm" count={quality === "high" ? 17800 : 8400} seed={4321} opacity={0.68} sizeScale={1.16} rotationSpeed={0.42} />
+        <GalaxyParticles mode="cluster" count={quality === "high" ? 7600 : 3300} seed={7721} opacity={0.52} sizeScale={1.34} rotationSpeed={0.36} />
+        <GalaxyParticles mode="dust" count={quality === "high" ? 6200 : 2700} seed={8827} opacity={0.19} sizeScale={2.05} rotationSpeed={0.3} />
+
         <RoutePulse end={map.focus.position} />
-
-        <sprite position={map.focus.position} scale={[2.8, 2.8, 1]}>
-          <spriteMaterial map={glowTexture} color="#ff3b4f" transparent opacity={0.34} blending={THREE.AdditiveBlending} depthWrite={false} />
-        </sprite>
-
-        {[map.focus.radius * 0.85, map.focus.radius * 1.36, map.focus.radius * 1.86].map((radius, index) => (
-          <line key={radius} position={map.focus.position} rotation={[Math.PI / 2.35, 0, index * 0.34]}>
-            <LineGeometry points={makeOrbitPoints(radius, radius * 0.66, 192)} />
-            <lineBasicMaterial color={index === 1 ? "#ff9a3d" : "#ff3b4f"} transparent opacity={index === 1 ? 0.46 : 0.24} blending={THREE.AdditiveBlending} depthWrite={false} />
-          </line>
-        ))}
+        <ArchiveReticle focus={map.focus} />
 
         {(map.bodies || []).map(body => (
           <PlanetBody
@@ -636,24 +903,33 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
         controlsRef={controlsRef}
         selectedPositionRef={selectedPositionRef}
       />
+
       <OrbitControls
         ref={controlsRef}
         makeDefault
         enableDamping
-        dampingFactor={0.07}
-        enablePan={false}
-        minDistance={2.4}
-        maxDistance={24}
-        autoRotate={!selectable}
-        autoRotateSpeed={0.32}
+        dampingFactor={0.075}
+        enablePan
+        enableRotate
+        enableZoom
+        screenSpacePanning={false}
+        panSpeed={0.84}
+        rotateSpeed={0.54}
+        zoomSpeed={0.72}
+        minDistance={1.45}
+        maxDistance={28}
+        autoRotate={false}
         target={WIDE_TARGET}
       />
-      <EffectComposer multisampling={0}>
-        <Bloom intensity={quality === "high" ? 0.74 : 0.46} luminanceThreshold={0.18} luminanceSmoothing={0.62} mipmapBlur />
-        <DepthOfField focusDistance={selectable ? 0.018 : 0.032} focalLength={selectable ? 0.075 : 0.045} bokehScale={quality === "high" ? 2.2 : 1.2} />
-        <ChromaticAberration offset={quality === "high" ? [0.0009, 0.00045] : [0.00045, 0.0002]} />
-        <Noise opacity={0.035} />
-        <Vignette eskil={false} offset={0.24} darkness={0.62} />
+
+      <EffectComposer multisampling={quality === "high" ? 4 : 0}>
+        <Bloom intensity={quality === "high" ? 0.92 : 0.58} luminanceThreshold={0.12} luminanceSmoothing={0.58} mipmapBlur />
+        {selectedBody ? (
+          <DepthOfField focusDistance={0.022} focalLength={0.032} bokehScale={quality === "high" ? 0.38 : 0.22} />
+        ) : null}
+        <ChromaticAberration offset={quality === "high" ? [0.00055, 0.00025] : [0.00028, 0.00014]} />
+        <Noise opacity={0.026} premultiply />
+        <Vignette eskil={false} offset={0.18} darkness={0.52} />
       </EffectComposer>
     </>
   );
@@ -691,16 +967,26 @@ export function GalaxyMapExperience({ map }) {
 
   return (
     <section className={`gm-root${ready ? " gm-root--ready" : ""}`} aria-label="Hidden Archives Galaxy Map">
-      <div className="gm-stage" aria-hidden="true">
+      <div className="gm-stage">
         <Canvas
-          camera={{ position: WIDE_CAMERA.toArray(), fov: 48, near: 0.04, far: 130 }}
-          dpr={quality === "high" ? [1, 2] : [1, 1.35]}
-          gl={{ antialias: true, powerPreference: "high-performance", stencil: false }}
+          camera={{ position: WIDE_CAMERA.toArray(), fov: 47, near: 0.035, far: 160 }}
+          dpr={quality === "high" ? [1.35, 2.75] : [1, 1.65]}
+          gl={{
+            antialias: true,
+            alpha: false,
+            powerPreference: "high-performance",
+            stencil: false,
+            depth: true
+          }}
           onCreated={({ gl }) => {
             gl.toneMapping = THREE.ACESFilmicToneMapping;
-            gl.toneMappingExposure = 0.82;
+            gl.toneMappingExposure = 0.96;
             gl.outputColorSpace = THREE.SRGBColorSpace;
             setReady(true);
+          }}
+          onPointerMissed={() => {
+            setSelectedId(null);
+            setHoveredId(null);
           }}
         >
           <GalaxyScene
@@ -717,9 +1003,10 @@ export function GalaxyMapExperience({ map }) {
 
       <div className="gm-scan" aria-hidden="true" />
       <div className="gm-vignette" aria-hidden="true" />
+      <div className="gm-holo-sweep" aria-hidden="true" />
 
       <header className="gm-topbar">
-        <button className="gm-back" type="button" aria-label="Zoom out to galaxy view" onClick={zoomOut}>
+        <button className="gm-back" type="button" aria-label="Zoom out to free camera galaxy view" onClick={zoomOut}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 12h16" />
             <path d="m8 8-4 4 4 4" />
@@ -733,7 +1020,7 @@ export function GalaxyMapExperience({ map }) {
       </header>
 
       <aside className="gm-panel" aria-live="polite">
-        <div className="gm-panel-title">Galaxy Map</div>
+        <div className="gm-panel-title">Galactic Archive</div>
         <div className="gm-kicker">{panelBody.grid} / {panelBody.region}</div>
         <h1>{panelBody.name}</h1>
         <div className="gm-kind">{panelBody.kind || panelBody.name}</div>
@@ -751,6 +1038,7 @@ export function GalaxyMapExperience({ map }) {
             >
               <span className="gm-selector-dot" style={{ "--body-color": body.colors?.glow || "#ffffff" }} />
               <span>{body.shortName || body.name}</span>
+              <small>{body.grid}</small>
             </button>
           ))}
         </div>
@@ -758,6 +1046,7 @@ export function GalaxyMapExperience({ map }) {
 
       <div className="gm-hint" aria-hidden="true">
         <span>DRAG TO ORBIT</span>
+        <span>RIGHT DRAG TO PAN</span>
         <span>SCROLL TO RANGE</span>
         <span>{quality.toUpperCase()} RENDER</span>
       </div>
@@ -765,7 +1054,7 @@ export function GalaxyMapExperience({ map }) {
       {!ready ? (
         <div className="gm-loading">
           <span />
-          <strong>CALIBRATING ARCHIVE MAP</strong>
+          <strong>CALIBRATING GALAXY</strong>
         </div>
       ) : null}
 
@@ -777,15 +1066,16 @@ export function GalaxyMapExperience({ map }) {
 const STYLES = `
   html:has(.gm-root),
   body:has(.gm-root) {
-    background: var(--theme-bg, #050204);
+    background: #020103;
     overflow: hidden;
   }
 
   .gm-root {
-    --gm-panel: color-mix(in srgb, var(--theme-panel, rgba(22, 7, 12, .84)) 82%, transparent);
+    --gm-panel: color-mix(in srgb, var(--theme-panel, rgba(22, 7, 12, .86)) 78%, transparent);
     background:
-      radial-gradient(ellipse 60% 48% at 50% 46%, var(--theme-body-glow-a, rgba(160, 0, 22, .08)), transparent 66%),
-      linear-gradient(180deg, var(--theme-bg, #050204) 0%, #050204 58%, #000000 100%);
+      radial-gradient(ellipse 62% 50% at 50% 45%, rgba(255, 45, 70, .1), transparent 66%),
+      radial-gradient(ellipse 40% 34% at 62% 62%, rgba(90, 126, 255, .06), transparent 70%),
+      linear-gradient(180deg, #080206 0%, #030103 62%, #000000 100%);
     color: var(--text, #ffffff);
     font-family: 'Share Tech Mono', monospace;
     height: 100dvh;
@@ -807,7 +1097,8 @@ const STYLES = `
   .gm-stage,
   .gm-stage canvas,
   .gm-scan,
-  .gm-vignette {
+  .gm-vignette,
+  .gm-holo-sweep {
     inset: 0;
     position: absolute;
   }
@@ -820,6 +1111,7 @@ const STYLES = `
     cursor: grab;
     display: block;
     height: 100% !important;
+    image-rendering: auto;
     outline: none;
     width: 100% !important;
   }
@@ -830,20 +1122,30 @@ const STYLES = `
 
   .gm-scan {
     background:
-      repeating-linear-gradient(0deg, transparent 0, transparent 2px, var(--scanline, rgba(255, 210, 210, .018)) 2px, var(--scanline, rgba(255, 210, 210, .018)) 4px),
-      linear-gradient(90deg, var(--theme-wash, rgba(192, 0, 26, .025)), transparent 18%, transparent 82%, var(--theme-wash, rgba(192, 0, 26, .025)));
+      repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(255, 210, 210, .016) 2px, rgba(255, 210, 210, .016) 4px),
+      linear-gradient(90deg, rgba(192, 0, 26, .03), transparent 18%, transparent 82%, rgba(192, 0, 26, .03));
     mix-blend-mode: screen;
-    opacity: .78;
+    opacity: .66;
     pointer-events: none;
     z-index: 3;
   }
 
   .gm-vignette {
     background:
-      radial-gradient(circle at 54% 45%, transparent 0%, transparent 45%, rgba(0, 0, 0, .72) 100%),
-      linear-gradient(90deg, rgba(0, 0, 0, .72), transparent 24%, transparent 76%, rgba(0, 0, 0, .78));
+      radial-gradient(circle at 54% 45%, transparent 0%, transparent 51%, rgba(0, 0, 0, .66) 100%),
+      linear-gradient(90deg, rgba(0, 0, 0, .66), transparent 24%, transparent 76%, rgba(0, 0, 0, .74));
     pointer-events: none;
     z-index: 4;
+  }
+
+  .gm-holo-sweep {
+    background: linear-gradient(115deg, transparent 0%, transparent 43%, rgba(255, 80, 96, .08) 49%, rgba(255, 216, 160, .08) 50%, transparent 57%, transparent 100%);
+    mix-blend-mode: screen;
+    opacity: .58;
+    pointer-events: none;
+    transform: translateX(-120%);
+    animation: gm-sweep 8.8s ease-in-out infinite;
+    z-index: 5;
   }
 
   .gm-topbar {
@@ -861,10 +1163,10 @@ const STYLES = `
     align-items: center;
     appearance: none;
     background:
-      linear-gradient(90deg, var(--theme-wash, rgba(192, 0, 26, .025)), transparent 62%),
+      linear-gradient(90deg, rgba(255, 52, 70, .08), transparent 64%),
       var(--gm-panel);
     border: 1px solid var(--theme-accent-dim, #7a1a28);
-    box-shadow: 0 0 28px var(--theme-accent-glow, rgba(255, 59, 79, .26)), inset 0 0 24px rgba(255, 255, 255, .025);
+    box-shadow: 0 0 28px rgba(255, 59, 79, .28), inset 0 0 24px rgba(255, 255, 255, .025);
     clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
     color: var(--theme-accent, #ff3b4f);
     cursor: crosshair;
@@ -889,8 +1191,8 @@ const STYLES = `
   .gm-back:hover,
   .gm-back:focus-visible {
     border-color: var(--theme-accent, #ff3b4f);
-    box-shadow: 0 0 34px var(--theme-accent-glow, rgba(255, 59, 79, .32)), inset 0 0 28px rgba(255, 255, 255, .04);
-    color: var(--theme-accent-soft, #d1243a);
+    box-shadow: 0 0 36px rgba(255, 59, 79, .38), inset 0 0 28px rgba(255, 255, 255, .04);
+    color: #ffcf91;
     outline: none;
     transform: translateY(-1px);
   }
@@ -900,11 +1202,12 @@ const STYLES = `
   .gm-loading,
   .gm-hint {
     background:
-      linear-gradient(135deg, var(--theme-wash, rgba(192, 0, 26, .025)), transparent 62%),
+      linear-gradient(135deg, rgba(255, 52, 70, .07), transparent 62%),
       var(--gm-panel);
     border: 1px solid var(--theme-accent-dim, #7a1a28);
-    box-shadow: 0 0 30px var(--theme-accent-glow, rgba(255, 59, 79, .18)), inset 0 0 34px rgba(255, 255, 255, .02);
+    box-shadow: 0 0 30px rgba(255, 59, 79, .2), inset 0 0 34px rgba(255, 255, 255, .02);
     clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
+    backdrop-filter: blur(14px);
   }
 
   .gm-lockup {
@@ -917,7 +1220,8 @@ const STYLES = `
   .gm-lockup span,
   .gm-kicker,
   .gm-kind,
-  .gm-hint {
+  .gm-hint,
+  .gm-selector small {
     color: var(--text-dim, #ffffff);
     font-size: .66rem;
     text-transform: uppercase;
@@ -930,12 +1234,12 @@ const STYLES = `
     font-size: .78rem;
     font-weight: 700;
     text-transform: uppercase;
-    text-shadow: 0 0 12px var(--theme-accent-glow, rgba(255, 59, 79, .32));
+    text-shadow: 0 0 14px rgba(255, 59, 79, .38);
   }
 
   .gm-panel {
     bottom: clamp(18px, 3vw, 32px);
-    max-width: 380px;
+    max-width: 392px;
     padding: 18px;
     position: absolute;
     right: clamp(18px, 3vw, 32px);
@@ -957,11 +1261,11 @@ const STYLES = `
   .gm-panel h1 {
     color: var(--text, #ffffff);
     font-family: Cinzel, serif;
-    font-size: 1.72rem;
-    line-height: 1.1;
+    font-size: 1.82rem;
+    line-height: 1.08;
     margin: 8px 0 7px;
     text-transform: uppercase;
-    text-shadow: 0 0 22px var(--theme-accent-glow, rgba(255, 59, 79, .24));
+    text-shadow: 0 0 24px rgba(255, 59, 79, .28);
   }
 
   .gm-panel p {
@@ -980,46 +1284,55 @@ const STYLES = `
   .gm-selector {
     align-items: center;
     appearance: none;
-    background: color-mix(in srgb, var(--theme-bg, #050204) 58%, transparent);
+    background:
+      linear-gradient(90deg, rgba(255, 52, 70, .04), transparent 76%),
+      rgba(10, 2, 5, .68);
     border: 1px solid var(--theme-accent-dim, #7a1a28);
     color: var(--text-dim, #ffffff);
     cursor: crosshair;
-    display: flex;
+    display: grid;
     font: inherit;
     font-size: .82rem;
-    gap: 10px;
-    min-height: 39px;
+    gap: 4px 10px;
+    grid-template-columns: auto 1fr auto;
+    min-height: 41px;
     padding: 9px 11px;
     text-align: left;
     text-transform: uppercase;
-    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease;
+    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease;
     width: 100%;
   }
 
   .gm-selector-dot {
     background: var(--body-color);
     border-radius: 999px;
-    box-shadow: 0 0 16px var(--body-color);
+    box-shadow: 0 0 16px var(--body-color), 0 0 28px var(--body-color);
     flex: 0 0 auto;
+    grid-row: 1 / span 1;
     height: 9px;
     width: 9px;
+  }
+
+  .gm-selector small {
+    opacity: .72;
   }
 
   .gm-selector:hover,
   .gm-selector:focus-visible,
   .gm-selector.is-hovered {
     border-color: var(--theme-accent, #ff3b4f);
-    box-shadow: 0 0 22px var(--theme-accent-glow, rgba(255, 59, 79, .22));
+    box-shadow: 0 0 24px rgba(255, 59, 79, .28);
     color: var(--text, #ffffff);
     outline: none;
+    transform: translateX(-2px);
   }
 
   .gm-selector.is-active {
     background:
-      linear-gradient(90deg, var(--theme-wash, rgba(192, 0, 26, .025)), transparent 78%),
-      color-mix(in srgb, var(--theme-accent, #ff3b4f) 9%, var(--theme-bg, #050204));
+      linear-gradient(90deg, rgba(255, 52, 70, .16), transparent 78%),
+      color-mix(in srgb, var(--theme-accent, #ff3b4f) 11%, #050204);
     border-color: var(--theme-accent, #ff3b4f);
-    box-shadow: inset 0 0 24px rgba(255, 255, 255, .025), 0 0 26px var(--theme-accent-glow, rgba(255, 59, 79, .24));
+    box-shadow: inset 0 0 24px rgba(255, 255, 255, .025), 0 0 30px rgba(255, 59, 79, .3);
     color: var(--text, #ffffff);
   }
 
@@ -1040,16 +1353,28 @@ const STYLES = `
 
   .gm-world-label {
     appearance: none;
-    background: rgba(10, 2, 5, .76);
+    background: rgba(8, 1, 4, .72);
     border: 1px solid var(--theme-accent-dim, #7a1a28);
-    box-shadow: 0 0 16px var(--theme-accent-glow, rgba(255, 59, 79, .22));
+    box-shadow: 0 0 18px rgba(255, 59, 79, .24), inset 0 0 18px rgba(255, 255, 255, .025);
     color: var(--text-dim, #ffffff);
     cursor: crosshair;
+    display: grid;
     font-family: 'Share Tech Mono', monospace;
     font-size: 10px;
+    gap: 1px;
+    min-width: 70px;
     padding: 5px 8px;
     text-transform: uppercase;
+    transform-origin: center;
+    transition: border-color .18s ease, box-shadow .18s ease, color .18s ease;
     white-space: nowrap;
+  }
+
+  .gm-world-label small {
+    color: #ffcf91;
+    font-size: 8px;
+    letter-spacing: .08em;
+    opacity: .74;
   }
 
   .gm-world-label.is-selected,
@@ -1057,6 +1382,7 @@ const STYLES = `
   .gm-world-label:hover,
   .gm-world-label:focus-visible {
     border-color: var(--theme-accent, #ff3b4f);
+    box-shadow: 0 0 22px rgba(255, 59, 79, .34), inset 0 0 20px rgba(255, 255, 255, .04);
     color: var(--text, #ffffff);
     outline: none;
   }
@@ -1091,6 +1417,11 @@ const STYLES = `
 
   @keyframes gm-spin {
     to { transform: rotate(360deg); }
+  }
+
+  @keyframes gm-sweep {
+    0%, 52% { transform: translateX(-120%); }
+    68%, 100% { transform: translateX(120%); }
   }
 
   @media (max-width: 760px) {

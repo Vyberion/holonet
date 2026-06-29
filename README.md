@@ -1,6 +1,6 @@
 # Holonet
 
-Next.js app for the Holonet web interface and companion Discord bot.
+Next.js app for Holonet site and Discord bot.
 
 ## Commands
 
@@ -8,17 +8,7 @@ Next.js app for the Holonet web interface and companion Discord bot.
 npm run dev
 npm run build
 npm run start
-```
-
-Bot commands live under `bot/`.
-
-## OCI migration
-
-The `migration` branch contains the OCI-ready web deployment setup.
-
-```bash
-cp .env.oci.example .env.local
 npm run deploy
 ```
 
-Full instructions are in `docs/OCI_MIGRATION.md`.
+Bot commands live under `bot/`.

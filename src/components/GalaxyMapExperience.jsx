@@ -1,16 +1,16 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Billboard, OrbitControls, Sparkles, Stars } from "@react-three/drei";
+import { Billboard, Html, OrbitControls, Sparkles, Stars } from "@react-three/drei";
 import { Bloom, ChromaticAberration, DepthOfField, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 const TAU = Math.PI * 2;
-const WIDE_CAMERA = new THREE.Vector3(0.35, 5.7, 15.8);
-const WIDE_TARGET = new THREE.Vector3(1.45, 0.04, -0.62);
-const GALAXY_TILT = new THREE.Euler(-0.1, -0.2, 0.02);
-const GALAXY_SPIN_SPEED = 0.0032;
+const WIDE_CAMERA = new THREE.Vector3(0, 17.4, 15.6);
+const WIDE_TARGET = new THREE.Vector3(0.2, 0, -0.4);
+const GALAXY_RADIUS = 11.4;
+const CORE_RADIUS = 1.08;
 
 function seededRandom(seed) {
   let state = seed >>> 0;
@@ -31,8 +31,17 @@ function bodyById(map, id) {
   return (map.bodies || []).find(body => body.id === id) || null;
 }
 
-function makeVector(value) {
-  return new THREE.Vector3(value?.[0] || 0, value?.[1] || 0, value?.[2] || 0);
+function vec3(value, fallback = [0, 0, 0]) {
+  const next = value || fallback;
+  return new THREE.Vector3(next[0], next[1], next[2]);
+}
+
+function bodyLocalPosition(body) {
+  return vec3(body.localPosition || body.position || body.mapPosition);
+}
+
+function focusMapPosition(map) {
+  return vec3(map.focus?.mapPosition || map.focus?.position);
 }
 
 function colorWithAlpha(hex, alpha) {
@@ -40,52 +49,58 @@ function colorWithAlpha(hex, alpha) {
   return `rgba(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)}, ${alpha})`;
 }
 
-function layoutGalaxyMap(map) {
-  return {
-    ...map,
-    bodies: (map.bodies || []).map(body => {
-      if (body.id === "korriban") {
-        return { ...body, position: [5.7, 0.08, -5.4] };
-      }
-
-      if (body.id === "khar-delba") {
-        return { ...body, position: [7.72, -0.06, -0.52] };
-      }
-
-      if (body.id === "khar-shian") {
-        return { ...body, position: [8.38, 0.14, -0.26] };
-      }
-
-      return body;
-    })
-  };
-}
-
-function makeFallbackTexture() {
-  const data = new Uint8Array([255, 255, 255, 255]);
-  const texture = new THREE.DataTexture(data, 1, 1);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.needsUpdate = true;
-  return texture;
-}
-
 function makeTextureFromCanvas(draw, width = 1024, height = 512) {
-  if (typeof document === "undefined") return makeFallbackTexture();
-
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  const ctx = canvas.getContext("2d", { alpha: true });
+  const ctx = canvas.getContext("2d");
   draw(ctx, width, height);
-
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
-  texture.anisotropy = 16;
-  texture.generateMipmaps = true;
+  texture.anisotropy = 8;
   texture.needsUpdate = true;
   return texture;
+}
+
+function makeGlowTexture(inner = "rgba(255,255,255,1)", mid = "rgba(255,61,68,.42)") {
+  return makeTextureFromCanvas((ctx, width, height) => {
+    const gradient = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width / 2);
+    gradient.addColorStop(0, inner);
+    gradient.addColorStop(0.22, "rgba(255, 210, 154, .76)");
+    gradient.addColorStop(0.48, mid);
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+  }, 512, 512);
+}
+
+function makeNebulaTexture(seed, colorA, colorB) {
+  const rnd = seededRandom(seed);
+  return makeTextureFromCanvas((ctx, width, height) => {
+    ctx.clearRect(0, 0, width, height);
+    for (let i = 0; i < 72; i += 1) {
+      const x = rnd() * width;
+      const y = rnd() * height;
+      const radius = randRange(rnd, 60, 220);
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+      gradient.addColorStop(0, colorWithAlpha(rnd() > 0.52 ? colorA : colorB, randRange(rnd, 0.08, 0.22)));
+      gradient.addColorStop(0.55, colorWithAlpha(rnd() > 0.52 ? colorA : colorB, randRange(rnd, 0.018, 0.07)));
+      gradient.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+    }
+    ctx.globalCompositeOperation = "destination-in";
+    const mask = ctx.createRadialGradient(width / 2, height / 2, width * 0.06, width / 2, height / 2, width * 0.56);
+    mask.addColorStop(0, "rgba(255,255,255,.88)");
+    mask.addColorStop(0.56, "rgba(255,255,255,.48)");
+    mask.addColorStop(0.82, "rgba(255,255,255,.08)");
+    mask.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = mask;
+    ctx.fillRect(0, 0, width, height);
+    ctx.globalCompositeOperation = "source-over";
+  }, 1024, 1024);
 }
 
 function makePlanetTextures(body) {
@@ -93,188 +108,175 @@ function makePlanetTextures(body) {
   const rnd = seededRandom(seed + 1447);
   const base = body.colors?.surface || "#777777";
   const dark = body.colors?.surfaceDark || "#111111";
-  const glow = body.colors?.glow || "#ffffff";
   const accent = body.colors?.accent || "#ffffff";
-  const isRock = body.id === "korriban";
 
   const map = makeTextureFromCanvas((ctx, width, height) => {
     const gradient = ctx.createLinearGradient(0, 0, width, height);
     gradient.addColorStop(0, dark);
-    gradient.addColorStop(0.2, base);
-    gradient.addColorStop(0.43, "#120405");
-    gradient.addColorStop(0.62, base);
-    gradient.addColorStop(0.82, dark);
+    gradient.addColorStop(0.26, base);
+    gradient.addColorStop(0.54, dark);
+    gradient.addColorStop(0.78, base);
     gradient.addColorStop(1, accent);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    for (let i = 0; i < 460; i += 1) {
-      const y = rnd() * height;
-      const h = randRange(rnd, 1, isRock ? 18 : 9);
-      ctx.globalAlpha = randRange(rnd, 0.035, 0.18);
-      ctx.fillStyle = rnd() > 0.55 ? accent : dark;
-      ctx.fillRect(0, y, width, h);
+    for (let i = 0; i < 300; i += 1) {
+      ctx.globalAlpha = randRange(rnd, 0.045, 0.2);
+      ctx.fillStyle = rnd() > 0.56 ? accent : dark;
+      ctx.fillRect(0, rnd() * height, width, randRange(rnd, 1, body.id === "korriban" ? 22 : 11));
     }
 
-    for (let i = 0; i < 360; i += 1) {
-      const x = rnd() * width;
-      const y = rnd() * height;
-      const rx = randRange(rnd, isRock ? 7 : 4, isRock ? 78 : 42);
-      const ry = randRange(rnd, 2, isRock ? 18 : 10);
-      ctx.globalAlpha = randRange(rnd, 0.035, 0.22);
-      ctx.fillStyle = rnd() > 0.52 ? colorWithAlpha(accent, 1) : colorWithAlpha(dark, 1);
+    for (let i = 0; i < 240; i += 1) {
+      ctx.globalAlpha = randRange(rnd, 0.04, 0.22);
+      ctx.fillStyle = rnd() > 0.5 ? colorWithAlpha(accent, 1) : colorWithAlpha(dark, 1);
       ctx.beginPath();
-      ctx.ellipse(x, y, rx, ry, rnd() * TAU, 0, TAU);
+      ctx.ellipse(
+        rnd() * width,
+        rnd() * height,
+        randRange(rnd, body.id === "korriban" ? 8 : 4, body.id === "korriban" ? 82 : 38),
+        randRange(rnd, 2, body.id === "korriban" ? 24 : 13),
+        rnd() * TAU,
+        0,
+        TAU
+      );
       ctx.fill();
     }
 
-    if (isRock) {
-      for (let i = 0; i < 92; i += 1) {
-        ctx.globalAlpha = randRange(rnd, 0.06, 0.18);
-        ctx.strokeStyle = colorWithAlpha("#ffbb82", 1);
-        ctx.lineWidth = randRange(rnd, 0.8, 3.4);
+    if (body.id === "korriban") {
+      for (let i = 0; i < 70; i += 1) {
+        ctx.globalAlpha = randRange(rnd, 0.07, 0.18);
+        ctx.strokeStyle = colorWithAlpha("#ffd0a0", 1);
+        ctx.lineWidth = randRange(rnd, 1, 4);
         ctx.beginPath();
         const y = rnd() * height;
-        ctx.moveTo(-50, y);
-        for (let x = 0; x <= width + 100; x += 60) {
-          ctx.lineTo(x, y + Math.sin(x * 0.012 + rnd() * TAU) * randRange(rnd, 3, 18));
+        ctx.moveTo(-40, y);
+        for (let x = 0; x <= width + 80; x += 80) {
+          ctx.lineTo(x, y + Math.sin(x * 0.015 + rnd() * TAU) * randRange(rnd, 3, 18));
         }
         ctx.stroke();
       }
     }
-
     ctx.globalAlpha = 1;
-  }, 1536, 768);
+  });
 
   const bumpMap = makeTextureFromCanvas((ctx, width, height) => {
     ctx.fillStyle = "#777";
     ctx.fillRect(0, 0, width, height);
-
-    for (let i = 0; i < 720; i += 1) {
-      ctx.globalAlpha = randRange(rnd, 0.03, 0.17);
-      ctx.fillStyle = rnd() > 0.5 ? "#ffffff" : "#111111";
+    for (let i = 0; i < 520; i += 1) {
+      ctx.globalAlpha = randRange(rnd, 0.035, 0.18);
+      ctx.fillStyle = rnd() > 0.5 ? "#fff" : "#111";
       ctx.beginPath();
-      ctx.ellipse(rnd() * width, rnd() * height, randRange(rnd, 4, 62), randRange(rnd, 2, 17), rnd() * TAU, 0, TAU);
+      ctx.ellipse(rnd() * width, rnd() * height, randRange(rnd, 4, 64), randRange(rnd, 2, 20), rnd() * TAU, 0, TAU);
       ctx.fill();
     }
-
     ctx.globalAlpha = 1;
-  }, 1024, 512);
+  });
 
   const cloudMap = makeTextureFromCanvas((ctx, width, height) => {
     ctx.clearRect(0, 0, width, height);
-
-    for (let i = 0; i < 320; i += 1) {
-      ctx.globalAlpha = randRange(rnd, 0.014, body.id === "khar-shian" ? 0.13 : 0.07);
-      ctx.fillStyle = body.id === "khar-shian" ? "#e4fdff" : "#ffd5bd";
+    for (let i = 0; i < 260; i += 1) {
+      ctx.globalAlpha = randRange(rnd, 0.016, body.id === "khar-shian" ? 0.12 : 0.065);
+      ctx.fillStyle = body.id === "khar-shian" ? "#e5fbff" : "#ffd9bf";
       ctx.beginPath();
-      ctx.ellipse(rnd() * width, rnd() * height, randRange(rnd, 18, 118), randRange(rnd, 3, 21), rnd() * TAU, 0, TAU);
+      ctx.ellipse(rnd() * width, rnd() * height, randRange(rnd, 18, 110), randRange(rnd, 3, 20), rnd() * TAU, 0, TAU);
       ctx.fill();
     }
-
     ctx.globalAlpha = 1;
-  }, 1024, 512);
+  });
 
-  const nightMap = makeTextureFromCanvas((ctx, width, height) => {
-    ctx.clearRect(0, 0, width, height);
-
-    for (let i = 0; i < 180; i += 1) {
-      ctx.globalAlpha = randRange(rnd, 0.05, 0.34);
-      ctx.fillStyle = rnd() > 0.62 ? glow : accent;
-      ctx.beginPath();
-      ctx.arc(rnd() * width, rnd() * height, randRange(rnd, 0.6, 2.2), 0, TAU);
-      ctx.fill();
-    }
-
-    ctx.globalAlpha = 1;
-  }, 1024, 512);
-
-  return { map, bumpMap, cloudMap, nightMap };
+  return { map, bumpMap, cloudMap };
 }
 
-function makeGlowTexture(seed = 0, inner = "rgba(255,255,255,1)", mid = "rgba(255,70,70,.42)") {
-  return makeTextureFromCanvas((ctx, width, height) => {
-    const rnd = seededRandom(seed + 17);
-    const gradient = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width / 2);
-    gradient.addColorStop(0, inner);
-    gradient.addColorStop(0.19, "rgba(255, 216, 158, .74)");
-    gradient.addColorStop(0.48, mid);
-    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-
-    for (let i = 0; i < 28; i += 1) {
-      ctx.globalAlpha = randRange(rnd, 0.02, 0.08);
-      ctx.strokeStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(width / 2, height / 2, randRange(rnd, 24, width / 2), 0, TAU);
-      ctx.stroke();
-    }
-
-    ctx.globalAlpha = 1;
-  }, 768, 768);
+function makeLineGeometry(points) {
+  return new THREE.BufferGeometry().setFromPoints(points);
 }
 
-function makeNebulaTexture(seed, colorA, colorB) {
-  const rnd = seededRandom(seed);
-  return makeTextureFromCanvas((ctx, width, height) => {
-    ctx.clearRect(0, 0, width, height);
-
-    for (let i = 0; i < 92; i += 1) {
-      const x = rnd() * width;
-      const y = rnd() * height;
-      const radius = randRange(rnd, 70, 260);
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-      gradient.addColorStop(0, colorWithAlpha(rnd() > 0.5 ? colorA : colorB, randRange(rnd, 0.12, 0.32)));
-      gradient.addColorStop(0.46, colorWithAlpha(rnd() > 0.5 ? colorA : colorB, randRange(rnd, 0.025, 0.09)));
-      gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-    }
-
-    ctx.globalCompositeOperation = "destination-in";
-    const mask = ctx.createRadialGradient(width / 2, height / 2, width * 0.06, width / 2, height / 2, width * 0.58);
-    mask.addColorStop(0, "rgba(255,255,255,.9)");
-    mask.addColorStop(0.52, "rgba(255,255,255,.5)");
-    mask.addColorStop(0.82, "rgba(255,255,255,.1)");
-    mask.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = mask;
-    ctx.fillRect(0, 0, width, height);
-    ctx.globalCompositeOperation = "source-over";
-  }, 1536, 1536);
+function makeEllipsePoints(radiusX, radiusZ, segments = 240, start = 0, end = TAU) {
+  const points = [];
+  for (let i = 0; i <= segments; i += 1) {
+    const angle = start + ((end - start) * i) / segments;
+    points.push(new THREE.Vector3(Math.cos(angle) * radiusX, 0, Math.sin(angle) * radiusZ));
+  }
+  return points;
 }
 
-function makeDustLaneTexture(seed) {
-  const rnd = seededRandom(seed);
-  return makeTextureFromCanvas((ctx, width, height) => {
-    ctx.clearRect(0, 0, width, height);
-
-    for (let lane = 0; lane < 10; lane += 1) {
-      ctx.globalAlpha = randRange(rnd, 0.04, 0.14);
-      ctx.strokeStyle = rnd() > 0.42 ? "#100307" : "#27080b";
-      ctx.lineWidth = randRange(rnd, 16, 54);
-      ctx.beginPath();
-      const baseY = randRange(rnd, height * 0.25, height * 0.75);
-      ctx.moveTo(-80, baseY);
-      for (let x = -80; x <= width + 120; x += 58) {
-        ctx.lineTo(x, baseY + Math.sin(x * randRange(rnd, 0.006, 0.014) + lane) * randRange(rnd, 16, 80));
-      }
-      ctx.stroke();
-    }
-
-    for (let i = 0; i < 240; i += 1) {
-      ctx.globalAlpha = randRange(rnd, 0.018, 0.08);
-      ctx.fillStyle = "#050102";
-      ctx.beginPath();
-      ctx.ellipse(rnd() * width, rnd() * height, randRange(rnd, 8, 70), randRange(rnd, 2, 18), rnd() * TAU, 0, TAU);
-      ctx.fill();
-    }
-
-    ctx.globalAlpha = 1;
-  }, 1536, 768);
+function makeRoutePoints(start, end, lift = 1.8) {
+  const curve = new THREE.QuadraticBezierCurve3(
+    start,
+    start.clone().lerp(end, 0.54).add(new THREE.Vector3(0, lift, 0)),
+    end
+  );
+  return curve.getPoints(140);
 }
 
-function makeGalaxyGeometry(count, seed, mode = "arm") {
+function LineGeometry({ points }) {
+  const geometry = useMemo(() => makeLineGeometry(points), [points]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return <primitive attach="geometry" object={geometry} />;
+}
+
+function TubeGeometry({ points, radius = 0.026 }) {
+  const geometry = useMemo(() => {
+    const curve = new THREE.CatmullRomCurve3(points);
+    return new THREE.TubeGeometry(curve, Math.max(64, points.length * 2), radius, 8, false);
+  }, [points, radius]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  return <primitive attach="geometry" object={geometry} />;
+}
+
+function makeSpiralArmPoints(arm, radiusStart = 1.1, radiusEnd = GALAXY_RADIUS, segments = 96, offset = 0) {
+  const points = [];
+  for (let i = 0; i <= segments; i += 1) {
+    const t = i / segments;
+    const radius = radiusStart + (radiusEnd - radiusStart) * t;
+    const angle = (arm / 5) * TAU + radius * 0.7 + offset;
+    const widthWave = Math.sin(t * Math.PI) * 0.18;
+    points.push(new THREE.Vector3(
+      Math.cos(angle) * (radius + widthWave),
+      0.032 + Math.sin(t * TAU + arm) * 0.018,
+      Math.sin(angle) * (radius + widthWave) * 0.78
+    ));
+  }
+  return points;
+}
+
+function SpiralArmRibbons() {
+  const arms = useMemo(() => {
+    const rows = [];
+    for (let arm = 0; arm < 5; arm += 1) {
+      rows.push({
+        key: `glow-${arm}`,
+        points: makeSpiralArmPoints(arm, 1.16, 10.95, 110, 0),
+        color: arm % 2 ? "#ff3b4f" : "#ffd08c",
+        opacity: arm % 2 ? 0.16 : 0.12,
+        radius: arm % 2 ? 0.026 : 0.022
+      });
+      rows.push({
+        key: `dust-${arm}`,
+        points: makeSpiralArmPoints(arm, 1.6, 10.55, 92, -0.18),
+        color: "#7c1020",
+        opacity: 0.11,
+        radius: 0.018
+      });
+    }
+    return rows;
+  }, []);
+
+  return (
+    <group>
+      {arms.map(arm => (
+        <mesh key={arm.key}>
+          <TubeGeometry points={arm.points} radius={arm.radius} />
+          <meshBasicMaterial color={arm.color} transparent opacity={arm.opacity} blending={THREE.AdditiveBlending} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
   const rnd = seededRandom(seed);
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
@@ -282,29 +284,37 @@ function makeGalaxyGeometry(count, seed, mode = "arm") {
   const color = new THREE.Color();
 
   for (let i = 0; i < count; i += 1) {
+    const isCore = mode === "core" || rnd() < 0.11;
     const arm = i % 5;
-    const radius = Math.pow(rnd(), mode === "dust" ? 0.5 : mode === "core" ? 0.3 : 0.62) * (mode === "core" ? 3.8 : 11.2) + 0.12;
-    const curl = radius * (mode === "cluster" ? 0.76 : 0.58);
-    const angle = (arm / 5) * TAU + curl + randRange(rnd, -0.38, 0.38);
-    const spread = mode === "dust" ? 0.62 : mode === "cluster" ? 0.22 + radius * 0.035 : 0.16 + radius * 0.028;
-    const x = Math.cos(angle) * radius * 1.18 + randRange(rnd, -spread, spread);
-    const z = Math.sin(angle) * radius * 0.82 + randRange(rnd, -spread, spread);
-    const y = randRange(rnd, -0.22, 0.22) * (mode === "dust" ? 1.8 : 1 + radius * 0.08);
+    const radius = isCore
+      ? Math.pow(rnd(), 1.9) * CORE_RADIUS
+      : Math.pow(rnd(), mode === "dust" ? 0.72 : 0.54) * (GALAXY_RADIUS - CORE_RADIUS) + CORE_RADIUS;
+    const sweep = radius * 0.7;
+    const armAngle = (arm / 5) * TAU + sweep;
+    const jitter = isCore ? randRange(rnd, -TAU, TAU) : randRange(rnd, -0.22 - radius * 0.012, 0.22 + radius * 0.012);
+    const angle = isCore ? rnd() * TAU : armAngle + jitter;
+    const flatten = 0.78;
+    const spread = mode === "dust" ? 0.34 + radius * 0.035 : 0.08 + radius * 0.014;
+    const x = Math.cos(angle) * radius + randRange(rnd, -spread, spread);
+    const z = Math.sin(angle) * radius * flatten + randRange(rnd, -spread, spread);
+    const y = randRange(rnd, -0.08, 0.08) * (1 + radius * 0.08);
+    const rimFade = Math.min(1, radius / GALAXY_RADIUS);
 
     positions[i * 3] = x;
     positions[i * 3 + 1] = y;
     positions[i * 3 + 2] = z;
 
-    const palette = mode === "dust"
-      ? (rnd() > 0.68 ? "#8a2b2c" : "#2d0a0e")
-      : rnd() > 0.92 ? "#ff463f" : rnd() > 0.68 ? "#ffd58a" : rnd() > 0.36 ? "#fff8e9" : "#8eeaff";
+    const palette = isCore
+      ? (rnd() > 0.28 ? "#ffe2a0" : "#ff563f")
+      : rnd() > 0.9 ? "#ff3b4f" : rnd() > 0.62 ? "#ffd58a" : rnd() > 0.32 ? "#f9fbff" : "#9feeff";
     color.set(palette);
-    if (mode !== "dust" && rnd() > 0.92) color.lerp(new THREE.Color("#5b6dff"), 0.28);
-
+    if (!isCore && rnd() > 0.88) color.lerp(new THREE.Color("#526cff"), 0.22);
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
-    sizes[i] = mode === "dust" ? randRange(rnd, 0.03, 0.095) : mode === "core" ? randRange(rnd, 0.018, 0.072) : randRange(rnd, 0.014, 0.052);
+    sizes[i] = mode === "dust"
+      ? randRange(rnd, 0.035, 0.12) * (1.2 - rimFade * 0.22)
+      : randRange(rnd, 0.014, 0.075) * (isCore ? 1.8 : 1);
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -314,40 +324,14 @@ function makeGalaxyGeometry(count, seed, mode = "arm") {
   return geometry;
 }
 
-function makeOrbitPoints(radiusX, radiusZ, segments = 192) {
-  const points = [];
-  for (let i = 0; i <= segments; i += 1) {
-    const angle = (i / segments) * TAU;
-    points.push(new THREE.Vector3(Math.cos(angle) * radiusX, 0, Math.sin(angle) * radiusZ));
-  }
-  return points;
-}
-
-function makeRoutePoints(start, end, lift = 1.5) {
-  const curve = new THREE.QuadraticBezierCurve3(
-    start,
-    start.clone().lerp(end, 0.52).add(new THREE.Vector3(0, lift, 0)),
-    end
-  );
-  return curve.getPoints(120);
-}
-
-function LineGeometry({ points }) {
-  const geometry = useMemo(() => new THREE.BufferGeometry().setFromPoints(points), [points]);
-
-  useEffect(() => () => geometry.dispose(), [geometry]);
-
-  return <primitive attach="geometry" object={geometry} />;
-}
-
-function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1, driftScale = 1 }) {
-  const geometry = useMemo(() => makeGalaxyGeometry(count, seed, mode), [count, seed, mode]);
+function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
+  const geometry = useMemo(() => makeSpiralGalaxyGeometry(count, seed, mode), [count, seed, mode]);
   const materialRef = useRef(null);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   useFrame(({ clock }) => {
-    if (materialRef.current) materialRef.current.uniforms.uTime.value = clock.elapsedTime * driftScale;
+    if (materialRef.current) materialRef.current.uniforms.uTime.value = clock.elapsedTime;
   });
 
   return (
@@ -368,13 +352,13 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1, driftScale
           uniform float uTime;
           uniform float uScale;
           varying vec3 vColor;
-
           void main() {
             vColor = color;
             vec3 pos = position;
-            pos.y += sin(uTime * 0.22 + position.x * 1.4 + position.z * 0.9) * 0.016;
+            float breath = sin(uTime * 0.24 + position.x * 1.8 + position.z * 1.3) * 0.018;
+            pos.y += breath;
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            gl_PointSize = aSize * uScale * (470.0 / max(4.8, -mvPosition.z));
+            gl_PointSize = aSize * uScale * (440.0 / max(6.0, -mvPosition.z));
             gl_Position = projectionMatrix * mvPosition;
           }
         `}
@@ -382,14 +366,13 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1, driftScale
           uniform float uTime;
           uniform float uOpacity;
           varying vec3 vColor;
-
           void main() {
             vec2 uv = gl_PointCoord * 2.0 - 1.0;
             float d = length(uv);
             float core = 1.0 - smoothstep(0.0, 0.18, d);
             float glow = 1.0 - smoothstep(0.12, 1.0, d);
-            float twinkle = 0.76 + 0.24 * sin(uTime * 1.4 + vColor.r * 18.0 + vColor.g * 11.0);
-            gl_FragColor = vec4(vColor, (core + glow * 0.64) * uOpacity * twinkle);
+            float twinkle = 0.75 + 0.25 * sin(uTime * 1.8 + vColor.r * 17.0);
+            gl_FragColor = vec4(vColor, (core + glow * 0.62) * uOpacity * twinkle);
           }
         `}
       />
@@ -400,276 +383,294 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1, driftScale
 function NebulaField() {
   const red = useMemo(() => makeNebulaTexture(8821, "#ff3846", "#ff9a3d"), []);
   const blue = useMemo(() => makeNebulaTexture(4429, "#76e0ef", "#5b6dff"), []);
-  const violet = useMemo(() => makeNebulaTexture(1776, "#b25cff", "#ff385c"), []);
-  const dust = useMemo(() => makeDustLaneTexture(6221), []);
 
   useEffect(() => () => {
     red.dispose();
     blue.dispose();
-    violet.dispose();
-    dust.dispose();
-  }, [red, blue, violet, dust]);
+  }, [red, blue]);
 
   return (
     <>
-      <sprite position={[-4.6, -0.3, -5.2]} scale={[13, 7, 1]} rotation={[0.14, 0, -0.24]}>
-        <spriteMaterial map={red} color="#ffffff" transparent opacity={0.3} depthWrite={false} blending={THREE.AdditiveBlending} />
+      <sprite position={[-3.8, -0.18, -2.9]} scale={[8.6, 5.4, 1]}>
+        <spriteMaterial map={red} color="#ffffff" transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
-      <sprite position={[4.6, 0.18, 3.3]} scale={[11, 6.6, 1]} rotation={[-0.12, 0, 0.24]}>
-        <spriteMaterial map={blue} color="#ffffff" transparent opacity={0.18} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </sprite>
-      <sprite position={[0.2, 0.02, -0.2]} scale={[15, 7.8, 1]} rotation={[0.08, 0, 0.04]}>
-        <spriteMaterial map={violet} color="#ffffff" transparent opacity={0.13} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </sprite>
-      <sprite position={[0.1, -0.08, -0.3]} scale={[16, 4.1, 1]} rotation={[0.42, 0.12, -0.17]}>
-        <spriteMaterial map={dust} color="#170407" transparent opacity={0.48} depthWrite={false} />
+      <sprite position={[3.7, -0.12, 2.2]} scale={[7.6, 4.8, 1]}>
+        <spriteMaterial map={blue} color="#ffffff" transparent opacity={0.13} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
     </>
   );
 }
 
-function PlanetReticle({ body, selected, hovered }) {
-  const outerRef = useRef(null);
-  const innerRef = useRef(null);
-  const pingRef = useRef(null);
-  const active = selected || hovered;
-
-  useFrame(({ clock }) => {
-    const t = clock.elapsedTime;
-    if (outerRef.current) {
-      outerRef.current.rotation.z = t * (selected ? 0.7 : 0.34);
-      outerRef.current.material.opacity = active ? (selected ? 0.58 : 0.42) : 0.18;
-    }
-    if (innerRef.current) {
-      innerRef.current.rotation.z = -t * (selected ? 0.52 : 0.2);
-      innerRef.current.material.opacity = active ? (selected ? 0.42 : 0.3) : 0.12;
-    }
-    if (pingRef.current) {
-      const pulse = (Math.sin(t * 4.2) + 1) * 0.5;
-      pingRef.current.scale.setScalar(1 + pulse * 0.35);
-      pingRef.current.material.opacity = active ? (0.16 + pulse * 0.26) : 0.04;
-    }
-  });
+function GalacticCore() {
+  const glow = useMemo(() => makeGlowTexture("rgba(255,255,255,1)", "rgba(255,83,45,.58)"), []);
+  useEffect(() => () => glow.dispose(), [glow]);
 
   return (
-    <>
-      <line ref={outerRef} rotation={[Math.PI / 2, 0, 0]}>
-        <LineGeometry points={makeOrbitPoints(body.radius * 2.55, body.radius * 2.55, 160)} />
-        <lineBasicMaterial color={selected ? "#ffcf91" : body.colors?.glow || "#ff3b4f"} transparent opacity={0.24} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </line>
-      <line ref={innerRef} rotation={[Math.PI / 2, 0, 0.82]}>
-        <LineGeometry points={makeOrbitPoints(body.radius * 1.9, body.radius * 1.9, 128)} />
-        <lineBasicMaterial color={body.colors?.glow || "#ff3b4f"} transparent opacity={0.16} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </line>
-      <line ref={pingRef} rotation={[Math.PI / 2, 0, 0]}>
-        <LineGeometry points={makeOrbitPoints(body.radius * 2.95, body.radius * 2.95, 160)} />
-        <lineBasicMaterial color="#ffffff" transparent opacity={0.08} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </line>
-    </>
-  );
-}
-
-function PlanetLabel({ body, selected, hovered }) {
-  const opacity = selected ? 0.95 : hovered ? 0.82 : 0.44;
-
-  return (
-    <Billboard position={[0, body.radius * 3.15, 0]}>
-      <mesh>
-        <planeGeometry args={[body.radius * 4.2, body.radius * 0.66]} />
-        <meshBasicMaterial color={body.colors?.glow || "#ff3b4f"} transparent opacity={opacity * 0.16} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-    </Billboard>
-  );
-}
-
-function PlanetBody({ body, selected, hovered, onSelect, onHover }) {
-  const groupRef = useRef(null);
-  const planetRef = useRef(null);
-  const cloudsRef = useRef(null);
-  const nightRef = useRef(null);
-  const haloTexture = useMemo(() => makeGlowTexture(body.id.length * 227, "#ffffff", colorWithAlpha(body.colors?.glow || "#ff3b4f", 0.42)), [body]);
-  const textures = useMemo(() => makePlanetTextures(body), [body]);
-
-  useEffect(() => () => {
-    haloTexture.dispose();
-    textures.map.dispose();
-    textures.bumpMap.dispose();
-    textures.cloudMap.dispose();
-    textures.nightMap.dispose();
-  }, [haloTexture, textures]);
-
-  useFrame(({ clock }) => {
-    const t = clock.elapsedTime;
-    if (!groupRef.current) return;
-
-    const targetScale = body.selectable ? (selected ? 1.68 : hovered ? 1.26 : 1) : 0.86;
-    groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
-
-    if (planetRef.current) {
-      planetRef.current.rotation.y += 0.0022 + body.radius * 0.004;
-      planetRef.current.rotation.x = Math.sin(t * 0.2 + body.radius * 12) * 0.05;
-    }
-    if (cloudsRef.current) cloudsRef.current.rotation.y -= 0.0012 + body.radius * 0.003;
-    if (nightRef.current) nightRef.current.rotation.y += 0.0015;
-  });
-
-  const handlePointerOver = event => {
-    event.stopPropagation();
-    if (body.selectable) onHover(body.id);
-  };
-
-  const handlePointerOut = event => {
-    event.stopPropagation();
-    if (body.selectable) onHover(null);
-  };
-
-  const handleClick = event => {
-    event.stopPropagation();
-    if (body.selectable) onSelect(body.id);
-  };
-
-  return (
-    <group ref={groupRef} position={body.position} userData={{ bodyId: body.id }}>
-      <mesh ref={planetRef} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut} onClick={handleClick}>
-        <sphereGeometry args={[body.radius, 128, 64]} />
-        <meshStandardMaterial
-          map={textures.map}
-          bumpMap={textures.bumpMap}
-          bumpScale={body.id === "korriban" ? 0.055 : 0.028}
-          roughness={body.id === "khar-shian" ? 0.48 : 0.88}
-          metalness={body.id === "khar-shian" ? 0.08 : 0.02}
-          emissive={body.colors?.surfaceDark || "#000000"}
-          emissiveIntensity={selected ? 0.16 : hovered ? 0.1 : 0.055}
-        />
-      </mesh>
-
-      <mesh ref={nightRef} scale={1.004}>
-        <sphereGeometry args={[body.radius * 1.006, 96, 48]} />
-        <meshBasicMaterial map={textures.nightMap} transparent opacity={selected ? 0.2 : 0.11} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-
-      <mesh ref={cloudsRef} scale={1.018}>
-        <sphereGeometry args={[body.radius * 1.018, 128, 64]} />
-        <meshStandardMaterial map={textures.cloudMap} transparent opacity={body.id === "khar-shian" ? 0.34 : 0.18} roughness={0.72} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
-
-      <mesh scale={1.22}>
-        <sphereGeometry args={[body.radius * 1.22, 96, 42]} />
-        <meshBasicMaterial
-          color={body.colors?.glow || "#ffffff"}
-          transparent
-          opacity={body.selectable ? (selected ? 0.22 : hovered ? 0.16 : 0.085) : 0.045}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          side={THREE.BackSide}
-        />
-      </mesh>
-
-      <sprite scale={[body.radius * (selected ? 10.4 : hovered ? 8 : 6.1), body.radius * (selected ? 10.4 : hovered ? 8 : 6.1), 1]}>
-        <spriteMaterial
-          map={haloTexture}
-          color={body.colors?.glow || "#ffffff"}
-          transparent
-          opacity={body.selectable ? (selected ? 0.36 : hovered ? 0.25 : 0.12) : 0.06}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
+    <group>
+      <sprite position={[0, 0.06, 0]} scale={[4.2, 4.2, 1]}>
+        <spriteMaterial map={glow} color="#ffcf91" transparent opacity={0.72} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
-
-      <PlanetReticle body={body} selected={selected} hovered={hovered} />
-      {body.selectable ? <PlanetLabel body={body} selected={selected} hovered={hovered} /> : null}
+      <mesh position={[0, 0.05, 0]}>
+        <sphereGeometry args={[0.34, 48, 24]} />
+        <meshBasicMaterial color="#ffe1a0" transparent opacity={0.94} blending={THREE.AdditiveBlending} />
+      </mesh>
+      <Sparkles count={90} scale={[2.4, 0.9, 2.4]} size={3.6} speed={0.35} color="#ffd38a" opacity={0.84} />
     </group>
   );
 }
 
-function OrbitTrace({ body, parent }) {
-  const lineRef = useRef(null);
-  const parentVector = useMemo(() => makeVector(parent.position), [parent]);
-  const childVector = useMemo(() => makeVector(body.position), [body]);
-  const distance = parentVector.distanceTo(childVector);
-  const points = useMemo(() => makeOrbitPoints(distance, distance * 0.52, 192), [distance]);
+function SectorGrid({ focus }) {
+  const radialLines = useMemo(() => {
+    const lines = [];
+    for (let i = 0; i < 24; i += 1) {
+      const angle = (i / 24) * TAU;
+      lines.push([
+        new THREE.Vector3(Math.cos(angle) * CORE_RADIUS, 0.018, Math.sin(angle) * CORE_RADIUS * 0.78),
+        new THREE.Vector3(Math.cos(angle) * GALAXY_RADIUS, 0.018, Math.sin(angle) * GALAXY_RADIUS * 0.78)
+      ]);
+    }
+    return lines;
+  }, []);
+  const focusPosition = useMemo(() => focusMapPosition({ focus }), [focus]);
+  const wedgeAngle = Math.atan2(focusPosition.z / 0.78, focusPosition.x);
+  const wedge = useMemo(() => makeEllipsePoints(GALAXY_RADIUS, GALAXY_RADIUS * 0.78, 42, wedgeAngle - 0.13, wedgeAngle + 0.13), [wedgeAngle]);
+
+  return (
+    <group>
+      {[2.4, 4.5, 6.8, 9.2, 11.25].map((radius, index) => (
+        <line key={radius} position={[0, 0.02 + index * 0.002, 0]}>
+          <LineGeometry points={makeEllipsePoints(radius, radius * 0.78, 260)} />
+          <lineBasicMaterial color={index === 4 ? "#ff3b4f" : "#7a1a28"} transparent opacity={index === 4 ? 0.26 : 0.12} blending={THREE.AdditiveBlending} depthWrite={false} />
+        </line>
+      ))}
+      {radialLines.map((points, index) => (
+        <line key={index}>
+          <LineGeometry points={points} />
+          <lineBasicMaterial color={index % 3 === 0 ? "#ff3b4f" : "#5f1b25"} transparent opacity={index % 3 === 0 ? 0.16 : 0.075} blending={THREE.AdditiveBlending} depthWrite={false} />
+        </line>
+      ))}
+      <line position={[0, 0.04, 0]}>
+        <LineGeometry points={wedge} />
+        <lineBasicMaterial color="#ff9a3d" transparent opacity={0.72} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </line>
+    </group>
+  );
+}
+
+function R5Reticle({ map, selectedId, onSelect }) {
+  const focus = focusMapPosition(map);
+  const ringRef = useRef(null);
+  const pingRef = useRef(null);
+  const glow = useMemo(() => makeGlowTexture("rgba(255,255,255,1)", "rgba(255,59,79,.5)"), []);
+
+  useEffect(() => () => glow.dispose(), [glow]);
 
   useFrame(({ clock }) => {
-    if (!lineRef.current) return;
-    lineRef.current.rotation.y = clock.elapsedTime * 0.06;
-    lineRef.current.material.opacity = 0.24 + Math.sin(clock.elapsedTime * 1.1) * 0.05;
+    const t = clock.elapsedTime;
+    if (ringRef.current) {
+      ringRef.current.rotation.y += 0.004;
+      ringRef.current.rotation.z = Math.sin(t * 0.8) * 0.045;
+    }
+    if (pingRef.current) {
+      const pulse = 0.5 + Math.sin(t * 2.6) * 0.5;
+      pingRef.current.scale.setScalar(1 + pulse * 0.26);
+      pingRef.current.material.opacity = 0.18 + pulse * 0.24;
+    }
   });
 
   return (
-    <group position={parent.position} rotation={[Math.PI * 0.16, Math.atan2(childVector.x - parentVector.x, childVector.z - parentVector.z), 0]}>
-      <line ref={lineRef}>
-        <LineGeometry points={points} />
-        <lineBasicMaterial color={body.colors?.glow || "#ff3b4f"} transparent opacity={0.28} blending={THREE.AdditiveBlending} depthWrite={false} />
+    <group position={focus.toArray()}>
+      <sprite scale={[2.7, 2.7, 1]}>
+        <spriteMaterial map={glow} color="#ff3b4f" transparent opacity={selectedId ? 0.08 : 0.46} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </sprite>
+      <line ref={ringRef} rotation={[Math.PI / 2.18, 0, 0]}>
+        <LineGeometry points={makeEllipsePoints(map.focus.sectorRadius || 1.7, (map.focus.sectorRadius || 1.7) * 0.58, 220)} />
+        <lineBasicMaterial color="#ff3b4f" transparent opacity={selectedId ? 0.16 : 0.74} blending={THREE.AdditiveBlending} depthWrite={false} />
       </line>
+      <line ref={pingRef} rotation={[Math.PI / 2.18, 0, Math.PI * 0.18]}>
+        <LineGeometry points={makeEllipsePoints((map.focus.sectorRadius || 1.7) * 0.72, (map.focus.sectorRadius || 1.7) * 0.38, 180)} />
+        <lineBasicMaterial color="#ff9a3d" transparent opacity={selectedId ? 0.08 : 0.35} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </line>
+      {!selectedId ? (
+        <Billboard position={[0, 0.64, 0]}>
+          <Html center distanceFactor={18} transform occlude={false}>
+            <button className="gm-sector-label" type="button" onClick={() => onSelect("korriban")}>
+              R-5 / Sith Worlds
+            </button>
+          </Html>
+        </Billboard>
+      ) : null}
     </group>
   );
 }
 
 function RoutePulse({ end }) {
   const pulseRef = useRef(null);
-  const secondPulseRef = useRef(null);
-  const points = useMemo(() => makeRoutePoints(new THREE.Vector3(0, 0.05, 0), makeVector(end), 1.9), [end]);
-  const curve = useMemo(() => new THREE.CatmullRomCurve3(points), [points]);
+  const route = useMemo(() => makeRoutePoints(new THREE.Vector3(0, 0.1, 0), end, 2.4), [end]);
+  const curve = useMemo(() => new THREE.CatmullRomCurve3(route), [route]);
 
   useFrame(({ clock }) => {
-    const t = (clock.elapsedTime * 0.065) % 1;
-    if (pulseRef.current) {
-      pulseRef.current.position.copy(curve.getPointAt(t));
-      pulseRef.current.material.opacity = 0.46 + Math.sin(t * TAU) * 0.22;
-    }
-    if (secondPulseRef.current) {
-      const t2 = (t + 0.48) % 1;
-      secondPulseRef.current.position.copy(curve.getPointAt(t2));
-      secondPulseRef.current.material.opacity = 0.26 + Math.sin(t2 * TAU) * 0.18;
-    }
+    if (!pulseRef.current) return;
+    const t = (clock.elapsedTime * 0.12) % 1;
+    pulseRef.current.position.copy(curve.getPointAt(t));
+    pulseRef.current.material.opacity = 0.46 + Math.sin(t * TAU) * 0.24;
   });
 
   return (
     <>
       <line>
-        <LineGeometry points={points} />
-        <lineBasicMaterial color="#ff3b4f" transparent opacity={0.36} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <LineGeometry points={route} />
+        <lineBasicMaterial color="#ff3b4f" transparent opacity={0.5} blending={THREE.AdditiveBlending} depthWrite={false} />
       </line>
       <line>
-        <LineGeometry points={points} />
-        <lineBasicMaterial color="#ffcf91" transparent opacity={0.14} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <LineGeometry points={route.slice(0, Math.floor(route.length * 0.62))} />
+        <lineBasicMaterial color="#ffb168" transparent opacity={0.2} blending={THREE.AdditiveBlending} depthWrite={false} />
       </line>
       <mesh ref={pulseRef}>
-        <sphereGeometry args={[0.065, 22, 12]} />
-        <meshBasicMaterial color="#ffcf91" transparent opacity={0.72} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-      <mesh ref={secondPulseRef}>
-        <sphereGeometry args={[0.042, 18, 10]} />
-        <meshBasicMaterial color="#76e0ef" transparent opacity={0.48} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <sphereGeometry args={[0.075, 18, 10]} />
+        <meshBasicMaterial color="#ffcf91" transparent opacity={0.76} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </>
   );
 }
 
-function ArchiveReticle({ focus }) {
+function PlanetBody({ body, selected, hovered, onSelect, onHover, focusMode }) {
   const groupRef = useRef(null);
-  const glowTexture = useMemo(() => makeGlowTexture(3921, "#ffffff", "rgba(255,52,70,.5)"), []);
-  const position = useMemo(() => makeVector(focus.position), [focus]);
+  const planetRef = useRef(null);
+  const cloudsRef = useRef(null);
+  const scanRef = useRef(null);
+  const haloTexture = useMemo(() => makeGlowTexture("rgba(255,255,255,1)", colorWithAlpha(body.colors?.glow || "#ff3b4f", 0.52)), [body]);
+  const textures = useMemo(() => makePlanetTextures(body), [body]);
+  const localPosition = useMemo(() => bodyLocalPosition(body), [body]);
 
-  useEffect(() => () => glowTexture.dispose(), [glowTexture]);
+  useEffect(() => () => {
+    haloTexture.dispose();
+    textures.map.dispose();
+    textures.bumpMap.dispose();
+    textures.cloudMap.dispose();
+  }, [haloTexture, textures]);
 
   useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
     if (!groupRef.current) return;
-    groupRef.current.rotation.y = clock.elapsedTime * 0.08;
-    groupRef.current.rotation.z = Math.sin(clock.elapsedTime * 0.4) * 0.14;
+    const overviewScale = body.selectable ? 0.78 : 0.58;
+    const targetScale = focusMode ? (selected ? 2.25 : hovered ? 1.52 : 1.14) : overviewScale;
+    groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.09);
+    if (planetRef.current) {
+      planetRef.current.rotation.y += 0.0038 + body.radius * 0.004;
+      planetRef.current.rotation.x = Math.sin(t * 0.23 + body.radius * 13) * 0.07;
+    }
+    if (cloudsRef.current) cloudsRef.current.rotation.y -= 0.0018 + body.radius * 0.004;
+    if (scanRef.current) {
+      const pulse = 0.5 + Math.sin(t * 3.2) * 0.5;
+      scanRef.current.rotation.z += selected ? 0.026 : 0.012;
+      scanRef.current.material.opacity = (selected ? 0.62 : hovered ? 0.42 : focusMode ? 0.18 : 0.09) + pulse * (selected ? 0.2 : 0.08);
+    }
+  });
+
+  const handlePointerOver = event => {
+    event.stopPropagation();
+    if (body.selectable) onHover(body.id);
+  };
+  const handlePointerOut = event => {
+    event.stopPropagation();
+    if (body.selectable) onHover(null);
+  };
+  const handleClick = event => {
+    event.stopPropagation();
+    if (body.selectable) onSelect(body.id);
+  };
+
+  return (
+    <group ref={groupRef} position={localPosition.toArray()} userData={{ bodyId: body.id }}>
+      <mesh ref={planetRef} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut} onClick={handleClick}>
+        <sphereGeometry args={[body.radius, 96, 48]} />
+        <meshStandardMaterial
+          map={textures.map}
+          bumpMap={textures.bumpMap}
+          bumpScale={body.id === "korriban" ? 0.065 : 0.035}
+          roughness={body.id === "khar-shian" ? 0.48 : 0.84}
+          metalness={body.id === "khar-shian" ? 0.08 : 0.02}
+          emissive={body.colors?.surfaceDark || "#000000"}
+          emissiveIntensity={selected ? 0.2 : 0.06}
+        />
+      </mesh>
+      <mesh ref={cloudsRef} scale={1.018}>
+        <sphereGeometry args={[body.radius * 1.018, 96, 48]} />
+        <meshStandardMaterial map={textures.cloudMap} transparent opacity={body.id === "khar-shian" ? 0.34 : 0.18} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+      <mesh scale={1.18}>
+        <sphereGeometry args={[body.radius * 1.16, 96, 36]} />
+        <meshBasicMaterial color={body.colors?.glow || "#ffffff"} transparent opacity={body.selectable ? (selected ? 0.22 : hovered ? 0.15 : 0.07) : 0.035} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.BackSide} />
+      </mesh>
+      <sprite scale={[body.radius * (selected ? 11 : focusMode ? 7 : 4.8), body.radius * (selected ? 11 : focusMode ? 7 : 4.8), 1]}>
+        <spriteMaterial map={haloTexture} color={body.colors?.glow || "#ffffff"} transparent opacity={body.selectable ? (selected ? 0.38 : hovered ? 0.25 : 0.11) : 0.04} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </sprite>
+      <line ref={scanRef} rotation={[Math.PI / 2, 0, 0]}>
+        <LineGeometry points={makeEllipsePoints(body.radius * 2.45, body.radius * 2.45, 150)} />
+        <lineBasicMaterial color={selected ? "#ff9a3d" : body.colors?.glow || "#ff3b4f"} transparent opacity={0.24} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </line>
+      {body.selectable && !focusMode ? (
+        <Billboard position={[0, body.radius * (focusMode ? 3.15 : 2.7), 0]}>
+          <Html center distanceFactor={focusMode ? 34 : 18} transform occlude={false}>
+            <button
+              type="button"
+              className={`gm-world-label${selected ? " is-selected" : ""}${hovered ? " is-hovered" : ""}${focusMode ? " is-focus" : ""}${focusMode && !selected && !hovered ? " is-muted" : ""}`}
+              onClick={() => onSelect(body.id)}
+              onPointerEnter={() => onHover(body.id)}
+              onPointerLeave={() => onHover(null)}
+            >
+              {body.shortName || body.name}
+            </button>
+          </Html>
+        </Billboard>
+      ) : null}
+    </group>
+  );
+}
+
+function OrbitTrace({ body, parent, focusMode }) {
+  const lineRef = useRef(null);
+  const parentVector = useMemo(() => bodyLocalPosition(parent), [parent]);
+  const childVector = useMemo(() => bodyLocalPosition(body), [body]);
+  const distance = parentVector.distanceTo(childVector);
+  const points = useMemo(() => makeEllipsePoints(distance, distance * 0.52, 220), [distance]);
+
+  useFrame(() => {
+    if (lineRef.current) lineRef.current.rotation.y += focusMode ? 0.004 : 0.0018;
   });
 
   return (
-    <group ref={groupRef} position={position}>
-      <sprite scale={[focus.radius * 2.9, focus.radius * 2.9, 1]}>
-        <spriteMaterial map={glowTexture} color="#ff3b4f" transparent opacity={0.34} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </sprite>
-      {[0.86, 1.28, 1.78, 2.28].map((scale, index) => (
-        <line key={scale} rotation={[Math.PI / 2.35, 0, index * 0.46]}>
-          <LineGeometry points={makeOrbitPoints(focus.radius * scale, focus.radius * scale * 0.66, 192)} />
-          <lineBasicMaterial color={index === 1 ? "#ffcf91" : "#ff3b4f"} transparent opacity={index === 1 ? 0.5 : 0.22} blending={THREE.AdditiveBlending} depthWrite={false} />
-        </line>
+    <group position={parentVector.toArray()} rotation={[Math.PI * 0.16, Math.atan2(childVector.x - parentVector.x, childVector.z - parentVector.z), 0]}>
+      <line ref={lineRef}>
+        <LineGeometry points={points} />
+        <lineBasicMaterial color="#76e0ef" transparent opacity={focusMode ? 0.36 : 0.18} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </line>
+    </group>
+  );
+}
+
+function LocalSystem({ map, selectedId, hoveredId, onSelect, onHover }) {
+  const focusMode = Boolean(selectedId);
+
+  return (
+    <group>
+      {(map.bodies || []).map(body => (
+        <PlanetBody
+          key={body.id}
+          body={body}
+          selected={selectedId === body.id}
+          hovered={hoveredId === body.id}
+          onSelect={onSelect}
+          onHover={onHover}
+          focusMode={focusMode}
+        />
       ))}
+      {(map.bodies || []).map(body => {
+        if (!body.parentId) return null;
+        const parent = bodyById(map, body.parentId);
+        return parent ? <OrbitTrace key={`${body.id}-orbit`} body={body} parent={parent} focusMode={focusMode} /> : null;
+      })}
     </group>
   );
 }
@@ -685,57 +686,46 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
+    const controls = controlsRef.current;
     if (selectedId) {
       focusTravel.current = true;
       zoomTravel.current = false;
+      if (controls) controls.autoRotate = false;
+    } else if (controls) {
+      controls.autoRotate = true;
     }
-  }, [selectedId]);
+  }, [selectedId, controlsRef]);
 
   useEffect(() => {
     if (zoomSignalRef.current === zoomOutSignal) return;
-
     zoomSignalRef.current = zoomOutSignal;
-    const controls = controlsRef.current;
-    const orbitTarget = controls ? controls.target.clone() : WIDE_TARGET.clone();
-    const direction = camera.position.clone().sub(orbitTarget);
-
-    if (direction.lengthSq() < 1) direction.copy(WIDE_CAMERA).sub(WIDE_TARGET);
-
-    const distance = Math.max(13.2, Math.min(19.5, direction.length() * 1.85));
-    targetCamera.current.copy(orbitTarget).add(direction.normalize().multiplyScalar(distance));
-    targetCamera.current.y = Math.max(targetCamera.current.y, orbitTarget.y + 3.6);
-    targetControl.current.copy(orbitTarget);
+    targetCamera.current.copy(WIDE_CAMERA);
+    targetControl.current.copy(WIDE_TARGET);
     zoomTravel.current = true;
     focusTravel.current = false;
-  }, [camera, controlsRef, zoomOutSignal]);
+  }, [zoomOutSignal]);
 
   useFrame(() => {
     const controls = controlsRef.current;
     if (!controls) return;
-
     const selectedPosition = selectedIdRef.current ? selectedPositionRef.current : null;
 
     if (selectedPosition) {
       const body = bodyById(map, selectedIdRef.current);
       const scale = body?.id === "khar-shian" ? 0.78 : 1;
       const outward = selectedPosition.clone().sub(WIDE_TARGET).normalize().multiplyScalar(1.05 * scale);
-      targetCamera.current.copy(selectedPosition).add(outward).add(new THREE.Vector3(0.92 * scale, 0.78 * scale, 1.54 * scale));
+      targetCamera.current.copy(selectedPosition).add(outward).add(new THREE.Vector3(1.15 * scale, 0.92 * scale, 1.72 * scale));
       targetControl.current.copy(selectedPosition);
+      controls.autoRotate = false;
     }
 
-    if (focusTravel.current) {
-      camera.position.lerp(targetCamera.current, 0.058);
-      controls.target.lerp(targetControl.current, 0.075);
-
-      if (camera.position.distanceTo(targetCamera.current) < 0.035 && controls.target.distanceTo(targetControl.current) < 0.02) {
+    if (focusTravel.current || zoomTravel.current) {
+      camera.position.lerp(targetCamera.current, focusTravel.current ? 0.055 : 0.045);
+      controls.target.lerp(targetControl.current, focusTravel.current ? 0.07 : 0.055);
+      const cameraDone = camera.position.distanceTo(targetCamera.current) < 0.035;
+      const targetDone = controls.target.distanceTo(targetControl.current) < 0.02;
+      if (cameraDone && targetDone) {
         focusTravel.current = false;
-      }
-    }
-
-    if (zoomTravel.current) {
-      camera.position.lerp(targetCamera.current, 0.045);
-
-      if (camera.position.distanceTo(targetCamera.current) < 0.055) {
         zoomTravel.current = false;
       }
     }
@@ -748,118 +738,99 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
 
 function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSignal, quality }) {
   const controlsRef = useRef(null);
-  const groupRef = useRef(null);
+  const localRef = useRef(null);
   const selectedPositionRef = useRef(null);
-  const selectedBody = selectedId ? bodyById(map, selectedId) : null;
+  const focus = useMemo(() => focusMapPosition(map), [map]);
+  const selectable = selectedId ? bodyById(map, selectedId) : null;
 
   useFrame(({ clock }) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.x = GALAXY_TILT.x;
-      groupRef.current.rotation.y = GALAXY_TILT.y + clock.elapsedTime * GALAXY_SPIN_SPEED;
-      groupRef.current.rotation.z = GALAXY_TILT.z + Math.sin(clock.elapsedTime * 0.07) * 0.01;
+    if (localRef.current) {
+      localRef.current.rotation.y = selectedId ? Math.sin(clock.elapsedTime * 0.15) * 0.04 : clock.elapsedTime * 0.026;
     }
   });
 
   useFrame(() => {
-    if (!selectedId || !groupRef.current) {
+    if (!selectedId || !localRef.current) {
       selectedPositionRef.current = null;
       return;
     }
-
     const body = bodyById(map, selectedId);
-    if (body) {
-      const next = selectedPositionRef.current || new THREE.Vector3();
-      next.copy(makeVector(body.position));
-      groupRef.current.updateMatrixWorld();
-      next.applyMatrix4(groupRef.current.matrixWorld);
-      selectedPositionRef.current = next;
-    }
+    if (!body) return;
+    const next = selectedPositionRef.current || new THREE.Vector3();
+    next.copy(bodyLocalPosition(body));
+    localRef.current.updateMatrixWorld();
+    next.applyMatrix4(localRef.current.matrixWorld);
+    selectedPositionRef.current = next;
   });
 
   return (
     <>
-      <color attach="background" args={["#020103"]} />
-      <fogExp2 attach="fog" args={["#050106", 0.012]} />
-      <ambientLight intensity={0.18} color="#5a1a20" />
-      <hemisphereLight intensity={0.36} color="#ffb878" groundColor="#120206" />
-      <directionalLight position={[5.4, 7.2, 4.2]} intensity={3.7} color="#ffd8a8" />
-      <pointLight position={[7.2, 1.7, -1.7]} intensity={84} distance={19} color="#ff3b4f" />
-      <pointLight position={[3.4, 2.4, 2.8]} intensity={24} distance={22} color="#76e0ef" />
-      <pointLight position={[-4.5, 1.3, -4.8]} intensity={18} distance={18} color="#b25cff" />
+      <color attach="background" args={["#050204"]} />
+      <fogExp2 attach="fog" args={["#090204", 0.012]} />
+      <ambientLight intensity={0.2} color="#4d1b20" />
+      <directionalLight position={[4.8, 8.2, 5.4]} intensity={3.4} color="#ffd8a8" />
+      <pointLight position={[0, 1.4, 0]} intensity={92} distance={19} color="#ffb168" />
+      <pointLight position={focus.clone().add(new THREE.Vector3(0, 1.2, 0.8)).toArray()} intensity={72} distance={12} color="#ff3b4f" />
+      <pointLight position={[5.2, 3, 4]} intensity={22} distance={22} color="#76e0ef" />
 
-      <Stars radius={68} depth={36} count={quality === "high" ? 5200 : 2500} factor={5.1} saturation={0.5} fade speed={0.1} />
-      <Sparkles count={quality === "high" ? 180 : 86} scale={[21, 5.5, 15]} size={1.2} speed={0.16} color="#ff9a3d" opacity={0.58} />
+      <Stars radius={70} depth={34} count={quality === "high" ? 4200 : 2200} factor={4.8} saturation={0.45} fade speed={0.22} />
+      <Sparkles count={quality === "high" ? 180 : 82} scale={[22, 5, 17]} size={1.2} speed={0.32} color="#ff9a3d" opacity={0.54} />
 
-      <group ref={groupRef} rotation={GALAXY_TILT}>
+      <group rotation={[-0.045, -0.32, 0.02]}>
         <NebulaField />
-        <GalaxyParticles mode="core" count={quality === "high" ? 3600 : 1800} seed={9211} opacity={0.7} sizeScale={1.28} driftScale={0.5} />
-        <GalaxyParticles mode="arm" count={quality === "high" ? 14600 : 7600} seed={4321} opacity={0.62} sizeScale={1.12} driftScale={0.42} />
-        <GalaxyParticles mode="cluster" count={quality === "high" ? 5600 : 2800} seed={7721} opacity={0.46} sizeScale={1.28} driftScale={0.36} />
-        <GalaxyParticles mode="dust" count={quality === "high" ? 5000 : 2400} seed={8827} opacity={0.17} sizeScale={1.95} driftScale={0.3} />
-
-        <RoutePulse end={map.focus.position} />
-        <ArchiveReticle focus={map.focus} />
-
-        {(map.bodies || []).map(body => (
-          <PlanetBody
-            key={body.id}
-            body={body}
-            selected={selectedId === body.id}
-            hovered={hoveredId === body.id}
-            onSelect={onSelect}
-            onHover={onHover}
-          />
-        ))}
-
-        {(map.bodies || []).map(body => {
-          if (!body.parentId) return null;
-          const parent = bodyById(map, body.parentId);
-          return parent ? <OrbitTrace key={`${body.id}-orbit`} body={body} parent={parent} /> : null;
-        })}
+        <SectorGrid focus={map.focus} />
+        <SpiralArmRibbons />
+        <GalaxyParticles mode="stars" count={quality === "high" ? 18500 : 9800} seed={4321} opacity={0.7} sizeScale={1.05} />
+        <GalaxyParticles mode="dust" count={quality === "high" ? 6200 : 3000} seed={8827} opacity={0.15} sizeScale={1.85} />
+        <GalacticCore />
+        <RoutePulse end={focus} />
+        <R5Reticle map={map} selectedId={selectedId} onSelect={onSelect} />
       </group>
 
-      <CameraRig map={map} selectedId={selectedId} zoomOutSignal={zoomOutSignal} controlsRef={controlsRef} selectedPositionRef={selectedPositionRef} />
+      <group ref={localRef} rotation={[0, -0.32, 0]}>
+        <LocalSystem map={map} selectedId={selectedId} hoveredId={hoveredId} onSelect={onSelect} onHover={onHover} />
+      </group>
 
+      <CameraRig
+        map={map}
+        selectedId={selectedId}
+        zoomOutSignal={zoomOutSignal}
+        controlsRef={controlsRef}
+        selectedPositionRef={selectedPositionRef}
+      />
       <OrbitControls
         ref={controlsRef}
         makeDefault
         enableDamping
-        dampingFactor={0.075}
-        enablePan
-        enableRotate
-        enableZoom
-        screenSpacePanning={false}
-        panSpeed={0.84}
-        rotateSpeed={0.54}
-        zoomSpeed={0.72}
-        minDistance={1.45}
-        maxDistance={28}
-        autoRotate={false}
+        dampingFactor={0.07}
+        enablePan={false}
+        minDistance={4.2}
+        maxDistance={34}
+        autoRotate={!selectable}
+        autoRotateSpeed={0.22}
         target={WIDE_TARGET}
       />
-
-      <EffectComposer multisampling={quality === "high" ? 4 : 0}>
-        <Bloom intensity={quality === "high" ? 0.86 : 0.54} luminanceThreshold={0.12} luminanceSmoothing={0.58} mipmapBlur />
-        {selectedBody ? <DepthOfField focusDistance={0.022} focalLength={0.032} bokehScale={quality === "high" ? 0.34 : 0.18} /> : null}
-        <ChromaticAberration offset={quality === "high" ? [0.0005, 0.00022] : [0.00025, 0.00012]} />
-        <Noise opacity={0.024} premultiply />
-        <Vignette eskil={false} offset={0.18} darkness={0.5} />
+      <EffectComposer multisampling={0}>
+        <Bloom intensity={quality === "high" ? 0.96 : 0.58} luminanceThreshold={0.14} luminanceSmoothing={0.56} mipmapBlur />
+        <DepthOfField focusDistance={selectable ? 0.018 : 0.042} focalLength={selectable ? 0.09 : 0.035} bokehScale={quality === "high" ? 2.8 : 1.4} />
+        <ChromaticAberration offset={quality === "high" ? [0.0008, 0.0004] : [0.00035, 0.00018]} />
+        <Noise opacity={0.032} />
+        <Vignette eskil={false} offset={0.2} darkness={0.58} />
       </EffectComposer>
     </>
   );
 }
 
 export function GalaxyMapExperience({ map }) {
-  const renderedMap = useMemo(() => layoutGalaxyMap(map), [map]);
   const [ready, setReady] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [hoveredId, setHoveredId] = useState(null);
   const [zoomOutSignal, setZoomOutSignal] = useState(0);
   const [quality, setQuality] = useState("high");
 
-  const selectableBodies = useMemo(() => (renderedMap.bodies || []).filter(body => body.selectable), [renderedMap]);
-  const selectedBody = bodyById(renderedMap, selectedId);
-  const panelBody = selectedBody || renderedMap.focus;
+  const selectableBodies = useMemo(() => (map.bodies || []).filter(body => body.selectable), [map]);
+  const selectedBody = bodyById(map, selectedId);
+  const panelBody = selectedBody || map.focus;
 
   useEffect(() => {
     const isReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -869,10 +840,10 @@ export function GalaxyMapExperience({ map }) {
   }, []);
 
   const selectBody = useCallback(id => {
-    const body = bodyById(renderedMap, id);
+    const body = bodyById(map, id);
     if (!body?.selectable) return;
     setSelectedId(id);
-  }, [renderedMap]);
+  }, [map]);
 
   const zoomOut = useCallback(() => {
     setSelectedId(null);
@@ -882,20 +853,20 @@ export function GalaxyMapExperience({ map }) {
 
   return (
     <section className={`gm-root${ready ? " gm-root--ready" : ""}`} aria-label="Hidden Archives Galaxy Map">
-      <div className="gm-stage">
+      <div className="gm-stage" aria-hidden="true">
         <Canvas
-          camera={{ position: WIDE_CAMERA.toArray(), fov: 47, near: 0.035, far: 160 }}
-          dpr={quality === "high" ? [1.35, 2.5] : [1, 1.55]}
-          gl={{ antialias: true, alpha: false, powerPreference: "high-performance", stencil: false, depth: true }}
+          camera={{ position: WIDE_CAMERA.toArray(), fov: 45, near: 0.04, far: 160 }}
+          dpr={quality === "high" ? [1, 2] : [1, 1.35]}
+          gl={{ antialias: true, powerPreference: "high-performance", stencil: false }}
           onCreated={({ gl }) => {
             gl.toneMapping = THREE.ACESFilmicToneMapping;
-            gl.toneMappingExposure = 0.96;
+            gl.toneMappingExposure = 0.9;
             gl.outputColorSpace = THREE.SRGBColorSpace;
             setReady(true);
           }}
         >
           <GalaxyScene
-            map={renderedMap}
+            map={map}
             selectedId={selectedId}
             hoveredId={hoveredId}
             onSelect={selectBody}
@@ -908,10 +879,9 @@ export function GalaxyMapExperience({ map }) {
 
       <div className="gm-scan" aria-hidden="true" />
       <div className="gm-vignette" aria-hidden="true" />
-      <div className="gm-holo-sweep" aria-hidden="true" />
 
       <header className="gm-topbar">
-        <button className="gm-back" type="button" aria-label="Zoom out to free camera galaxy view" onClick={zoomOut}>
+        <button className="gm-back" type="button" aria-label="Zoom out to galaxy view" onClick={zoomOut}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 12h16" />
             <path d="m8 8-4 4 4 4" />
@@ -924,8 +894,8 @@ export function GalaxyMapExperience({ map }) {
         </div>
       </header>
 
-      <aside className="gm-panel" aria-live="polite">
-        <div className="gm-panel-title">Galactic Archive</div>
+      <aside className={`gm-panel${selectedId ? " is-focused" : ""}`} aria-live="polite">
+        <div className="gm-panel-title">Galaxy Map</div>
         <div className="gm-kicker">{panelBody.grid} / {panelBody.region}</div>
         <h1>{panelBody.name}</h1>
         <div className="gm-kind">{panelBody.kind || panelBody.name}</div>
@@ -943,16 +913,21 @@ export function GalaxyMapExperience({ map }) {
             >
               <span className="gm-selector-dot" style={{ "--body-color": body.colors?.glow || "#ffffff" }} />
               <span>{body.shortName || body.name}</span>
-              <small>{body.grid}</small>
             </button>
           ))}
         </div>
       </aside>
 
+      <div className="gm-hint" aria-hidden="true">
+        <span>FULL GALAXY OVERVIEW</span>
+        <span>R-5 OUTER RIM LOCK</span>
+        <span>{quality.toUpperCase()} RENDER</span>
+      </div>
+
       {!ready ? (
         <div className="gm-loading">
           <span />
-          <strong>CALIBRATING GALAXY</strong>
+          <strong>CALIBRATING ARCHIVE MAP</strong>
         </div>
       ) : null}
 
@@ -964,16 +939,15 @@ export function GalaxyMapExperience({ map }) {
 const STYLES = `
   html:has(.gm-root),
   body:has(.gm-root) {
-    background: #020103;
+    background: var(--theme-bg, #050204);
     overflow: hidden;
   }
 
   .gm-root {
-    --gm-panel: color-mix(in srgb, var(--theme-panel, rgba(22, 7, 12, .86)) 78%, transparent);
+    --gm-panel: color-mix(in srgb, var(--theme-panel, rgba(22, 7, 12, .84)) 76%, transparent);
     background:
-      radial-gradient(ellipse 62% 50% at 50% 45%, rgba(255, 45, 70, .1), transparent 66%),
-      radial-gradient(ellipse 40% 34% at 62% 62%, rgba(90, 126, 255, .06), transparent 70%),
-      linear-gradient(180deg, #080206 0%, #030103 62%, #000000 100%);
+      radial-gradient(ellipse 56% 46% at 50% 46%, var(--theme-body-glow-a, rgba(160, 0, 22, .08)), transparent 66%),
+      linear-gradient(180deg, var(--theme-bg, #050204) 0%, #050204 58%, #000000 100%);
     color: var(--text, #ffffff);
     font-family: 'Share Tech Mono', monospace;
     height: 100dvh;
@@ -995,8 +969,7 @@ const STYLES = `
   .gm-stage,
   .gm-stage canvas,
   .gm-scan,
-  .gm-vignette,
-  .gm-holo-sweep {
+  .gm-vignette {
     inset: 0;
     position: absolute;
   }
@@ -1009,7 +982,6 @@ const STYLES = `
     cursor: grab;
     display: block;
     height: 100% !important;
-    image-rendering: auto;
     outline: none;
     width: 100% !important;
   }
@@ -1020,30 +992,20 @@ const STYLES = `
 
   .gm-scan {
     background:
-      repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(255, 210, 210, .016) 2px, rgba(255, 210, 210, .016) 4px),
-      linear-gradient(90deg, rgba(192, 0, 26, .03), transparent 18%, transparent 82%, rgba(192, 0, 26, .03));
+      repeating-linear-gradient(0deg, transparent 0, transparent 2px, var(--scanline, rgba(255, 210, 210, .018)) 2px, var(--scanline, rgba(255, 210, 210, .018)) 4px),
+      linear-gradient(90deg, var(--theme-wash, rgba(192, 0, 26, .025)), transparent 18%, transparent 82%, var(--theme-wash, rgba(192, 0, 26, .025)));
     mix-blend-mode: screen;
-    opacity: .66;
+    opacity: .68;
     pointer-events: none;
     z-index: 3;
   }
 
   .gm-vignette {
     background:
-      radial-gradient(circle at 54% 45%, transparent 0%, transparent 51%, rgba(0, 0, 0, .66) 100%),
-      linear-gradient(90deg, rgba(0, 0, 0, .66), transparent 24%, transparent 76%, rgba(0, 0, 0, .74));
+      radial-gradient(circle at 52% 48%, transparent 0%, transparent 54%, rgba(0, 0, 0, .76) 100%),
+      linear-gradient(90deg, rgba(0, 0, 0, .72), transparent 24%, transparent 76%, rgba(0, 0, 0, .78));
     pointer-events: none;
     z-index: 4;
-  }
-
-  .gm-holo-sweep {
-    animation: gm-sweep 8.8s ease-in-out infinite;
-    background: linear-gradient(115deg, transparent 0%, transparent 43%, rgba(255, 80, 96, .08) 49%, rgba(255, 216, 160, .08) 50%, transparent 57%, transparent 100%);
-    mix-blend-mode: screen;
-    opacity: .58;
-    pointer-events: none;
-    transform: translateX(-120%);
-    z-index: 5;
   }
 
   .gm-topbar {
@@ -1061,10 +1023,10 @@ const STYLES = `
     align-items: center;
     appearance: none;
     background:
-      linear-gradient(90deg, rgba(255, 52, 70, .08), transparent 64%),
+      linear-gradient(90deg, var(--theme-wash, rgba(192, 0, 26, .025)), transparent 62%),
       var(--gm-panel);
     border: 1px solid var(--theme-accent-dim, #7a1a28);
-    box-shadow: 0 0 28px rgba(255, 59, 79, .28), inset 0 0 24px rgba(255, 255, 255, .025);
+    box-shadow: 0 0 28px var(--theme-accent-glow, rgba(255, 59, 79, .26)), inset 0 0 24px rgba(255, 255, 255, .025);
     clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
     color: var(--theme-accent, #ff3b4f);
     cursor: crosshair;
@@ -1089,21 +1051,21 @@ const STYLES = `
   .gm-back:hover,
   .gm-back:focus-visible {
     border-color: var(--theme-accent, #ff3b4f);
-    box-shadow: 0 0 36px rgba(255, 59, 79, .38), inset 0 0 28px rgba(255, 255, 255, .04);
-    color: #ffcf91;
+    box-shadow: 0 0 34px var(--theme-accent-glow, rgba(255, 59, 79, .32)), inset 0 0 28px rgba(255, 255, 255, .04);
+    color: var(--theme-accent-soft, #d1243a);
     outline: none;
     transform: translateY(-1px);
   }
 
   .gm-lockup,
   .gm-panel,
-  .gm-loading {
-    backdrop-filter: blur(14px);
+  .gm-loading,
+  .gm-hint {
     background:
-      linear-gradient(135deg, rgba(255, 52, 70, .07), transparent 62%),
+      linear-gradient(135deg, var(--theme-wash, rgba(192, 0, 26, .025)), transparent 62%),
       var(--gm-panel);
     border: 1px solid var(--theme-accent-dim, #7a1a28);
-    box-shadow: 0 0 30px rgba(255, 59, 79, .2), inset 0 0 34px rgba(255, 255, 255, .02);
+    box-shadow: 0 0 30px var(--theme-accent-glow, rgba(255, 59, 79, .18)), inset 0 0 34px rgba(255, 255, 255, .02);
     clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
   }
 
@@ -1117,7 +1079,7 @@ const STYLES = `
   .gm-lockup span,
   .gm-kicker,
   .gm-kind,
-  .gm-selector small {
+  .gm-hint {
     color: var(--text-dim, #ffffff);
     font-size: .66rem;
     text-transform: uppercase;
@@ -1129,24 +1091,28 @@ const STYLES = `
     font-family: Orbitron, monospace;
     font-size: .78rem;
     font-weight: 700;
-    text-shadow: 0 0 14px rgba(255, 59, 79, .38);
     text-transform: uppercase;
+    text-shadow: 0 0 12px var(--theme-accent-glow, rgba(255, 59, 79, .32));
   }
 
   .gm-panel {
     bottom: clamp(18px, 3vw, 32px);
-    max-width: 392px;
-    padding: 18px;
+    max-width: 330px;
+    padding: 15px;
     position: absolute;
     right: clamp(18px, 3vw, 32px);
     width: calc(100vw - 36px);
     z-index: 8;
   }
 
+  .gm-panel.is-focused {
+    max-width: 370px;
+  }
+
   .gm-panel-title {
     border-bottom: 1px solid var(--theme-accent-dim, #7a1a28);
-    margin-bottom: 13px;
-    padding-bottom: 10px;
+    margin-bottom: 11px;
+    padding-bottom: 9px;
   }
 
   .gm-kicker,
@@ -1157,77 +1123,125 @@ const STYLES = `
   .gm-panel h1 {
     color: var(--text, #ffffff);
     font-family: Cinzel, serif;
-    font-size: 1.82rem;
-    line-height: 1.08;
-    margin: 8px 0 7px;
-    text-shadow: 0 0 24px rgba(255, 59, 79, .28);
+    font-size: 1.42rem;
+    line-height: 1.1;
+    margin: 7px 0 6px;
     text-transform: uppercase;
+    text-shadow: 0 0 22px var(--theme-accent-glow, rgba(255, 59, 79, .24));
   }
 
   .gm-panel p {
     color: var(--text-dim, #ffffff);
-    font-size: .9rem;
-    line-height: 1.58;
-    margin: 14px 0 0;
+    font-size: .82rem;
+    line-height: 1.5;
+    margin: 12px 0 0;
   }
 
   .gm-selectors {
     display: grid;
-    gap: 8px;
-    margin-top: 17px;
+    gap: 7px;
+    margin-top: 14px;
   }
 
   .gm-selector {
     align-items: center;
     appearance: none;
-    background:
-      linear-gradient(90deg, rgba(255, 52, 70, .04), transparent 76%),
-      rgba(10, 2, 5, .68);
+    background: color-mix(in srgb, var(--theme-bg, #050204) 58%, transparent);
     border: 1px solid var(--theme-accent-dim, #7a1a28);
     color: var(--text-dim, #ffffff);
     cursor: crosshair;
-    display: grid;
+    display: flex;
     font: inherit;
-    font-size: .82rem;
-    gap: 4px 10px;
-    grid-template-columns: auto 1fr auto;
-    min-height: 41px;
-    padding: 9px 11px;
+    font-size: .78rem;
+    gap: 10px;
+    min-height: 36px;
+    padding: 8px 10px;
     text-align: left;
     text-transform: uppercase;
-    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease;
+    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease;
     width: 100%;
   }
 
   .gm-selector-dot {
     background: var(--body-color);
     border-radius: 999px;
-    box-shadow: 0 0 16px var(--body-color), 0 0 28px var(--body-color);
+    box-shadow: 0 0 16px var(--body-color);
+    flex: 0 0 auto;
     height: 9px;
     width: 9px;
-  }
-
-  .gm-selector small {
-    opacity: .72;
   }
 
   .gm-selector:hover,
   .gm-selector:focus-visible,
   .gm-selector.is-hovered {
     border-color: var(--theme-accent, #ff3b4f);
-    box-shadow: 0 0 24px rgba(255, 59, 79, .28);
+    box-shadow: 0 0 22px var(--theme-accent-glow, rgba(255, 59, 79, .22));
     color: var(--text, #ffffff);
     outline: none;
-    transform: translateX(-2px);
   }
 
   .gm-selector.is-active {
     background:
-      linear-gradient(90deg, rgba(255, 52, 70, .16), transparent 78%),
-      color-mix(in srgb, var(--theme-accent, #ff3b4f) 11%, #050204);
+      linear-gradient(90deg, var(--theme-wash, rgba(192, 0, 26, .025)), transparent 78%),
+      color-mix(in srgb, var(--theme-accent, #ff3b4f) 9%, var(--theme-bg, #050204));
     border-color: var(--theme-accent, #ff3b4f);
-    box-shadow: inset 0 0 24px rgba(255, 255, 255, .025), 0 0 30px rgba(255, 59, 79, .3);
+    box-shadow: inset 0 0 24px rgba(255, 255, 255, .025), 0 0 26px var(--theme-accent-glow, rgba(255, 59, 79, .24));
     color: var(--text, #ffffff);
+  }
+
+  .gm-hint {
+    bottom: clamp(18px, 3vw, 32px);
+    color: var(--text-faint, #ffffff);
+    display: flex;
+    gap: 14px;
+    left: clamp(18px, 3vw, 32px);
+    padding: 10px 13px;
+    position: absolute;
+    z-index: 8;
+  }
+
+  .gm-hint span {
+    white-space: nowrap;
+  }
+
+  .gm-sector-label,
+  .gm-world-label {
+    appearance: none;
+    background: rgba(10, 2, 5, .76);
+    border: 1px solid var(--theme-accent-dim, #7a1a28);
+    box-shadow: 0 0 16px var(--theme-accent-glow, rgba(255, 59, 79, .22));
+    color: var(--text-dim, #ffffff);
+    cursor: crosshair;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 5px 8px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .gm-sector-label {
+    border-color: var(--theme-accent, #ff3b4f);
+    color: var(--theme-accent, #ff3b4f);
+    font-size: 11px;
+  }
+
+  .gm-world-label.is-focus {
+    font-size: 11px;
+  }
+
+  .gm-world-label.is-muted {
+    opacity: .34;
+  }
+
+  .gm-world-label.is-selected,
+  .gm-world-label.is-hovered,
+  .gm-world-label:hover,
+  .gm-world-label:focus-visible,
+  .gm-sector-label:hover,
+  .gm-sector-label:focus-visible {
+    border-color: var(--theme-accent, #ff3b4f);
+    color: var(--text, #ffffff);
+    outline: none;
   }
 
   .gm-loading {
@@ -1246,8 +1260,8 @@ const STYLES = `
   .gm-loading span {
     animation: gm-spin 1.1s linear infinite;
     border: 2px solid var(--theme-accent-dim, #7a1a28);
-    border-radius: 999px;
     border-top-color: var(--theme-accent, #ff3b4f);
+    border-radius: 999px;
     height: 18px;
     width: 18px;
   }
@@ -1260,11 +1274,6 @@ const STYLES = `
 
   @keyframes gm-spin {
     to { transform: rotate(360deg); }
-  }
-
-  @keyframes gm-sweep {
-    0%, 52% { transform: translateX(-120%); }
-    68%, 100% { transform: translateX(120%); }
   }
 
   @media (max-width: 760px) {
@@ -1290,25 +1299,29 @@ const STYLES = `
     }
 
     .gm-panel h1 {
-      font-size: 1.25rem;
+      font-size: 1.14rem;
       margin: 6px 0;
     }
 
     .gm-panel p {
-      font-size: .8rem;
-      line-height: 1.45;
-      margin-top: 10px;
+      font-size: .78rem;
+      line-height: 1.42;
+      margin-top: 9px;
     }
 
     .gm-selectors {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      margin-top: 12px;
+      margin-top: 11px;
     }
 
     .gm-selector {
-      font-size: .72rem;
-      min-height: 36px;
+      font-size: .7rem;
+      min-height: 34px;
       padding: 8px;
+    }
+
+    .gm-hint {
+      display: none;
     }
   }
 
@@ -1325,7 +1338,7 @@ const STYLES = `
     }
 
     .gm-panel h1 {
-      font-size: 1.08rem;
+      font-size: 1.02rem;
     }
 
     .gm-selectors {

@@ -27,7 +27,7 @@ export const commands = [
       .addStringOption(option => addReportScopeChoices(option.setName("scope").setDescription("Report scope").setRequired(true)))),
   new SlashCommandBuilder()
     .setName("reset")
-    .setDescription("Dangerously reset clock time for a report scope")
+    .setDescription("Reset clock time for a report scope")
     .addStringOption(option => addReportScopeChoices(option.setName("scope").setDescription("Scope to reset").setRequired(true)))
     .addUserOption(option => option.setName("user").setDescription("Optional user to wipe instead of the whole scope"))
     .addUserOption(option => option.setName("user2").setDescription("Optional second user to wipe"))
@@ -551,7 +551,7 @@ async function handleResetCommand(interaction) {
 
   if (users.length) {
     await interaction.reply(ephemeral({
-      embeds: [embed("Dangerous Reset Confirmation", `Are you sure you want to wipe **${users.map(user => `<@${user.id}>`).join(", ")}** time in **${scopeLabel(scope)}**? This is a dangerous command.`)],
+      embeds: [embed("Reset Confirmation", `Are you sure you want to wipe **${users.map(user => `<@${user.id}>`).join(", ")}** time in **${scopeLabel(scope)}**? This is a dangerous command.`)],
       components: confirmButtons(`rptreset:users:${scope}:${users.map(user => user.id).join(",")}`, true)
     }));
     return;

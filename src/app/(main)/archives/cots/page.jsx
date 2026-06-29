@@ -64,7 +64,7 @@ export default function CotsPage() {
     <HolonetFrame
       title="CHAMPION OF THE SITH"
       subtitle="TOURNAMENT RECORD"
-      node="KOR-7"
+      node="KOR-7 / HORUSET SYSTEM"
       signalLabel="LIVE"
       signalValue="|||||||||."
       signalPercent="91%"

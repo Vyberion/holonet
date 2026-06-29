@@ -104,11 +104,6 @@ export function HierarchyDetail({ item, guarded = false, rankNav = null }) {
           {classified ? (
             <div className="hierarchy-detail-hero hierarchy-detail-hero--classified" aria-hidden="true">
               <span>CLASSIFIED</span>
-              <div className="hierarchy-classified-bars">
-                <i />
-                <i />
-                <i />
-              </div>
             </div>
           ) : (
             <div className="hierarchy-detail-hero" aria-hidden="true">

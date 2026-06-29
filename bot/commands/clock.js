@@ -111,18 +111,18 @@ function scopeLeaderboardLabel(scope) {
 
 function eligibleRanks(ranks, keys) {
   return keys
-    .flatMap(key => (ranks?.[key] || []).map(rank => `${key.toUpperCase()} ${rank}`))
+    .flatMap(key => (ranks?.[key] || []).map(rank => `${key.toUpperCase()} [${rank}]`))
     .join(", ");
 }
 
 function scopeEligibilityLines() {
   return [
-    `Reavers: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.reavers.ranks, ["1ic", "co", "nco", "member"])}`,
-    `DHG: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.dhg.ranks, ["1ic", "2ic", "co", "nco", "member"])}`,
-    `Inquisitors: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.inquisitors.ranks, ["1ic", "co", "nco", "member"])}`,
-    `Dread Masters: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.dreadmasters.ranks, ["1ic", "2ic", "member"])}`,
-    `High Ranks: ${eligibleRanks(ROBLOX_GROUPS.HIGH_RANKS.ranks, ["upper", "lower"])}`,
-    `Dark Council: ${eligibleRanks(ROBLOX_GROUPS.DARK_COUNCIL.ranks, Object.keys(ROBLOX_GROUPS.DARK_COUNCIL.ranks))}`
+    `- Reavers: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.reavers.ranks, ["1ic", "co", "nco", "member"])}`,
+    `- DHG: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.dhg.ranks, ["1ic", "2ic", "co", "nco", "member"])}`,
+    `- Inquisitors: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.inquisitors.ranks, ["1ic", "co", "nco", "member"])}`,
+    `- Dread Masters: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.dreadmasters.ranks, ["1ic", "2ic", "member"])}`,
+    `- High Ranks: ${eligibleRanks(ROBLOX_GROUPS.HIGH_RANKS.ranks, ["upper", "lower"])}`,
+    `- Dark Council: ${eligibleRanks(ROBLOX_GROUPS.DARK_COUNCIL.ranks, Object.keys(ROBLOX_GROUPS.DARK_COUNCIL.ranks))}`
   ];
 }
 
@@ -176,12 +176,12 @@ async function loadScopeLeaderboard(scope) {
 function leaderboardRow(scope, page, totalPages) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId(`viewtime:${scope}:${Math.max(0, page - 1)}`)
+      .setCustomId(`viewtime:${scope}:prev:${Math.max(0, page - 1)}`)
       .setLabel("Previous")
       .setStyle(ButtonStyle.Danger)
       .setDisabled(page <= 0),
     new ButtonBuilder()
-      .setCustomId(`viewtime:${scope}:${Math.min(totalPages - 1, page + 1)}`)
+      .setCustomId(`viewtime:${scope}:next:${Math.min(totalPages - 1, page + 1)}`)
       .setLabel("Next")
       .setStyle(ButtonStyle.Success)
       .setDisabled(page >= totalPages - 1)
@@ -397,7 +397,7 @@ export async function handleCommand(interaction) {
 
 export async function handleButton(interaction) {
   if (interaction.customId.startsWith("viewtime:")) {
-    const [, scope, page] = interaction.customId.split(":");
+    const [, scope, , page] = interaction.customId.split(":");
     await replyScopeLeaderboard(interaction, scope, Number(page) || 0, true);
     return true;
   }

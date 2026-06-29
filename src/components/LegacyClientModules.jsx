@@ -16,7 +16,11 @@ const moduleLoaders = {
     await import("../../modules/client/library-regulations.js");
     return import("../../modules/client/library-view.js");
   },
-  "/modules/client/nexus.js": () => import("../../modules/client/nexus.js"),
+  "/modules/client/nexus.js": async () => {
+    await import("../../modules/client/nexus.js");
+    return import("../../modules/client/report-cycle.js");
+  },
+  "/modules/client/report-cycle.js": () => import("../../modules/client/report-cycle.js"),
   "/modules/client/pdf-tabs.js": async () => {
     await import("../../modules/client/pdf-slot-tabs.js");
     await import("../../modules/client/pdf-viewer-controls.js");
@@ -39,6 +43,7 @@ function runModuleInit(modulePath) {
   const initializers = {
     "/modules/client/library-view.js": () => window.initHolonetLibraryView?.(),
     "/modules/client/nexus.js": () => window.initHolonetNexus?.(),
+    "/modules/client/report-cycle.js": () => window.initHolonetReportCycle?.(),
     "/modules/client/account.js": () => window.initHolonetAccount?.(),
     "/modules/client/admin.js": () => window.initHolonetAdmin?.(),
     "/modules/client/archive-map.js": () => window.initHolonetArchiveMap?.(),
@@ -59,9 +64,31 @@ function runModuleInit(modulePath) {
   initializers[modulePath]?.();
 }
 
+function guardEditorOverlayDismissal() {
+  if (typeof window === "undefined" || window.__holonetEditorOverlayDismissalGuard) return;
+  window.__holonetEditorOverlayDismissalGuard = true;
+
+  const editorOverlaySelector = [
+    "#resource-editor-overlay",
+    "#library-editor-overlay",
+    "#inspection-editor-overlay",
+    "#council-editor-overlay",
+    "#timeline-editor-overlay"
+  ].join(", ");
+
+  document.addEventListener("click", event => {
+    const target = event.target;
+    if (!(target instanceof Element) || !target.matches(editorOverlaySelector)) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
+}
+
 export function LegacyClientModules({ modules = [], guarded = false }) {
   useEffect(() => {
     let cancelled = false;
+    guardEditorOverlayDismissal();
 
     async function loadModules() {
       const queue = guarded

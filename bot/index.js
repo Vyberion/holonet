@@ -2,6 +2,7 @@ import { ActivityType, Client, GatewayIntentBits, Partials } from "discord.js";
 import { requireEnv } from "./config/index.js";
 import { routeInteraction } from "./commands/index.js";
 import { ephemeral, errorEmbed } from "./services/discord-ui.js";
+import { syncClockPanels } from "./services/clock-panels.js";
 import { syncVerifiedRoleForLinkedUsers } from "./services/roles.js";
 
 const client = new Client({
@@ -18,10 +19,20 @@ async function syncLinkedVerifiedRole() {
   }
 }
 
+async function syncStoredClockPanels() {
+  try {
+    const result = await syncClockPanels(client);
+    console.log(`Clock panel sync checked ${result.checked} panel(s), updated ${result.updated}, failed ${result.failed}.`);
+  } catch (error) {
+    console.error("Clock panel sync failed", error);
+  }
+}
+
 client.once("clientReady", () => {
   console.log(`Holonet bot online as ${client.user.tag}`);
   client.user.setActivity("Torreto do his Hell Jacks", { type: ActivityType.Watching });
   syncLinkedVerifiedRole();
+  syncStoredClockPanels();
   setInterval(syncLinkedVerifiedRole, 5 * 60 * 1000);
 });
 

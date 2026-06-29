@@ -1,9 +1,23 @@
+import * as lookup from "./lookup.js";
+import * as getroles from "./getroles.js";
 import * as verification from "./verification.js";
+import * as reports from "./reports.js";
 import * as clock from "./clock.js";
 
-export const modules = [verification, clock];
+export const modules = [lookup, getroles, verification, reports, clock];
 
-export const commandData = modules.flatMap(module => module.commands || []).map(command => command.toJSON());
+export const commandData = (() => {
+  const commandsByName = new Map();
+
+  modules.flatMap(module => module.commands || []).forEach(command => {
+    const data = command.toJSON();
+    if (!commandsByName.has(data.name)) {
+      commandsByName.set(data.name, data);
+    }
+  });
+
+  return [...commandsByName.values()];
+})();
 
 export async function routeInteraction(interaction) {
   const method = interaction.isChatInputCommand()

@@ -72,13 +72,13 @@ export default function HomePage() {
           <div className="card-corners" aria-hidden="true" />
           <div className="card-vline" aria-hidden="true" />
           <div className="card-scan" aria-hidden="true" />
-          <div className="card-bg-glyph" aria-hidden="true">IV</div>
-          <div className="card-hex" aria-hidden="true">0x4D&nbsp;&nbsp;SECT.04</div>
+          <div className="card-bg-glyph" aria-hidden="true">II.I</div>
+          <div className="card-hex" aria-hidden="true">0x4D&nbsp;&nbsp;SECT.02.1</div>
           <div className="card-data" aria-hidden="true">
             CLEARANCE: UNCLASSIFIED<br />
             DESIGNATION: LEVEL 1<br />
           </div>
-          <span className="card-category">Section 04 &mdash; Tournament</span>
+          <span className="card-category">Section 02.1 &mdash; Tournament</span>
           <h2 className="card-title">Champion of The Sith</h2>
           <p className="card-desc">CoTS records.</p>
           <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>

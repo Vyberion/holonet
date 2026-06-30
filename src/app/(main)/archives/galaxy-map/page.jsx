@@ -3,8 +3,8 @@ import { holonetMetadata } from "../../../../lib/metadata.js";
 import { GALAXY_MAP } from "../../../../../modules/data/galaxy-map.js";
 
 export const metadata = holonetMetadata({
-  title: "Archives Galaxy Map",
-  description: "Hidden interactive galaxy map of the Sith Worlds."
+  title: "Galactic Map",
+  description: "Interactive galaxy map.."
 });
 
 export default function ArchivesGalaxyMapPage() {

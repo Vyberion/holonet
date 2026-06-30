@@ -1,5 +1,21 @@
 export const GALAXY_MAP = {
   title: "Galactic Map",
+  sectors: [
+    {
+      id: "esstran",
+      name: "Esstran Sector",
+      region: "Sith Worlds",
+      grid: "R-5",
+      startAngleDeg: -52.5,
+      endAngleDeg: -37.5,
+      control: {
+        republic: 8,
+        empire: 92
+      },
+      contestedPlanets: ["Korriban"],
+      summary: "Ancient Sith territory under heavy Imperial control. Republic presence is limited to scouting pressure and contested outer approaches."
+    }
+  ],
   focus: {
     id: "sith-worlds",
     name: "Sith Worlds",
@@ -26,8 +42,13 @@ export const GALAXY_MAP = {
       localAngleDeg: -95,
       localDistance: 2.55,
       radius: 0.46,
+      sectorId: "esstran",
       selectable: true,
       robloxPlaceId: 1177256329,
+      robloxLaunchUrl: "roblox://experiences/start?placeId=1177256329",
+      control: "Sith Empire",
+      contested: false,
+      resources: ["Sith Temple", "Academy approaches", "Tomb access routes"],
       colors: {
         surface: "#8f2f22",
         surfaceDark: "#2a0806",
@@ -49,8 +70,12 @@ export const GALAXY_MAP = {
       localAngleDeg: 85,
       localDistance: 2.7,
       radius: 0.34,
+      sectorId: "esstran",
       selectable: false,
       hidden: true,
+      control: "Sith Empire",
+      contested: false,
+      resources: ["Khar Shian orbital anchor"],
       colors: {
         surface: "#52333c",
         surfaceDark: "#0e070b",
@@ -71,6 +96,7 @@ export const GALAXY_MAP = {
       position: [5.77, 0.22, -0.43],
       localPosition: [5.77, 0.22, -0.43],
       radius: 0.2,
+      sectorId: "esstran",
       selectable: false,
       hidden: true,
       colors: {
@@ -85,7 +111,7 @@ export const GALAXY_MAP = {
 };
 
 export function visibleGalaxyBodies(map = GALAXY_MAP) {
-  return (map.bodies || []).filter(body => !body.hidden);
+  return (map.bodies || []).filter(body => !body.hidden && body.visible !== false);
 }
 
 export function selectableGalaxyBodies(map = GALAXY_MAP) {

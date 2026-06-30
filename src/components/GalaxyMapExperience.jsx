@@ -40,6 +40,14 @@ function bodyById(map, id) {
   return (map.bodies || []).find(body => body.id === id) || null;
 }
 
+function visibleBodies(map) {
+  return (map.bodies || []).filter(body => !body.hidden && body.visible !== false);
+}
+
+function sectorById(map, id) {
+  return (map.sectors || []).find(sector => sector.id === id) || null;
+}
+
 function vec3(value, fallback = [0, 0, 0]) {
   const next = value || fallback;
   return new THREE.Vector3(next[0], next[1], next[2]);
@@ -188,6 +196,25 @@ function makeEllipsePoints(radiusX, radiusZ, segments = 240, start = 0, end = TA
   return points;
 }
 
+function makeSectorGeometry(sector, innerRadius = CORE_RADIUS, outerRadius = GALAXY_RADIUS) {
+  const start = THREE.MathUtils.degToRad(sector.startAngleDeg);
+  const end = THREE.MathUtils.degToRad(sector.endAngleDeg);
+  const shape = new THREE.Shape();
+  shape.moveTo(Math.cos(start) * innerRadius, Math.sin(start) * innerRadius);
+  shape.lineTo(Math.cos(start) * outerRadius, Math.sin(start) * outerRadius);
+  for (let i = 1; i <= 36; i += 1) {
+    const angle = start + ((end - start) * i) / 36;
+    shape.lineTo(Math.cos(angle) * outerRadius, Math.sin(angle) * outerRadius);
+  }
+  shape.lineTo(Math.cos(end) * innerRadius, Math.sin(end) * innerRadius);
+  for (let i = 35; i >= 0; i -= 1) {
+    const angle = start + ((end - start) * i) / 36;
+    shape.lineTo(Math.cos(angle) * innerRadius, Math.sin(angle) * innerRadius);
+  }
+  shape.closePath();
+  return new THREE.ShapeGeometry(shape);
+}
+
 function LineGeometry({ points }) {
   const geometry = useMemo(() => makeLineGeometry(points), [points]);
   useEffect(() => () => geometry.dispose(), [geometry]);
@@ -215,7 +242,7 @@ function makeSpiralArmPoints(arm, radiusStart = 1.1, radiusEnd = GALAXY_RADIUS, 
     points.push(new THREE.Vector3(
       Math.cos(angle) * (radius + widthWave),
       0.032 + Math.sin(t * TAU + arm) * 0.018,
-      Math.sin(angle) * (radius + widthWave) * 0.78
+      Math.sin(angle) * (radius + widthWave)
     ));
   }
   return points;
@@ -272,10 +299,9 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
     const armAngle = (arm / 5) * TAU + sweep;
     const jitter = isCore ? randRange(rnd, -TAU, TAU) : randRange(rnd, -0.22 - radius * 0.012, 0.22 + radius * 0.012);
     const angle = isCore ? rnd() * TAU : armAngle + jitter;
-    const flatten = 0.78;
     const spread = mode === "dust" ? 0.34 + radius * 0.035 : 0.08 + radius * 0.014;
     const x = Math.cos(angle) * radius + randRange(rnd, -spread, spread);
-    const z = Math.sin(angle) * radius * flatten + randRange(rnd, -spread, spread);
+    const z = Math.sin(angle) * radius + randRange(rnd, -spread, spread);
     const y = randRange(rnd, -0.08, 0.08) * (1 + radius * 0.08);
     const rimFade = Math.min(1, radius / GALAXY_RADIUS);
 
@@ -377,24 +403,90 @@ function GalacticCore() {
   );
 }
 
-function SectorGrid() {
+function SectorWedge({ sector, active, onSelect }) {
+  const geometry = useMemo(() => makeSectorGeometry(sector), [sector]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  return (
+    <mesh
+      geometry={geometry}
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, 0.055, 0]}
+      onClick={event => {
+        event.stopPropagation();
+        onSelect(sector.id);
+      }}
+      onPointerOver={event => {
+        event.stopPropagation();
+        document.body.style.cursor = "crosshair";
+      }}
+      onPointerOut={event => {
+        event.stopPropagation();
+        document.body.style.cursor = "";
+      }}
+    >
+      <meshBasicMaterial
+        color={active ? "#ff3b4f" : "#7a1a28"}
+        transparent
+        opacity={active ? 0.24 : 0.055}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+function SectorMask({ sector }) {
+  const geometry = useMemo(() => makeSectorGeometry(sector, 0, GALAXY_RADIUS + 0.22), [sector]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  return (
+    <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.072, 0]}>
+      <meshBasicMaterial color="#020001" transparent opacity={0.68} depthWrite={false} side={THREE.DoubleSide} />
+    </mesh>
+  );
+}
+
+function SectorGrid({ sectors = [], selectedSectorId, onSelectSector }) {
   const radialLines = useMemo(() => {
     const lines = [];
     for (let i = 0; i < 24; i += 1) {
       const angle = (i / 24) * TAU;
       lines.push([
-        new THREE.Vector3(Math.cos(angle) * CORE_RADIUS, 0.018, Math.sin(angle) * CORE_RADIUS * 0.78),
-        new THREE.Vector3(Math.cos(angle) * GALAXY_RADIUS, 0.018, Math.sin(angle) * GALAXY_RADIUS * 0.78)
+        new THREE.Vector3(Math.cos(angle) * CORE_RADIUS, 0.018, Math.sin(angle) * CORE_RADIUS),
+        new THREE.Vector3(Math.cos(angle) * GALAXY_RADIUS, 0.018, Math.sin(angle) * GALAXY_RADIUS)
       ]);
     }
     return lines;
   }, []);
 
+  const selectedSector = sectors.find(sector => sector.id === selectedSectorId);
+  const masks = useMemo(() => {
+    if (!selectedSector) return [];
+    return Array.from({ length: 24 }, (_, index) => ({
+      id: `mask-${index}`,
+      startAngleDeg: -180 + index * 15,
+      endAngleDeg: -180 + (index + 1) * 15
+    })).filter(mask => mask.endAngleDeg <= selectedSector.startAngleDeg || mask.startAngleDeg >= selectedSector.endAngleDeg);
+  }, [selectedSector]);
+
   return (
     <group>
+      {masks.map(mask => <SectorMask sector={mask} key={mask.id} />)}
+      {sectors.map(sector => (
+        <SectorWedge
+          active={selectedSectorId === sector.id}
+          key={sector.id}
+          sector={sector}
+          onSelect={onSelectSector}
+        />
+      ))}
       {[2.4, 4.5, 6.8, 9.2, 11.25].map((radius, index) => (
         <line key={radius} position={[0, 0.02 + index * 0.002, 0]}>
-          <LineGeometry points={makeEllipsePoints(radius, radius * 0.78, 260)} />
+          <LineGeometry points={makeEllipsePoints(radius, radius, 260)} />
           <lineBasicMaterial color={index === 4 ? "#ff3b4f" : "#7a1a28"} transparent opacity={index === 4 ? 0.26 : 0.12} blending={THREE.AdditiveBlending} depthWrite={false} />
         </line>
       ))}
@@ -529,12 +621,16 @@ function OrbitTrace({ body, parent, map, focusMode }) {
   );
 }
 
-function LocalSystem({ map, selectedId, hoveredId, onSelect, onHover }) {
+function LocalSystem({ map, selectedId, hoveredId, selectedSectorId, onSelect, onHover }) {
   const focusMode = Boolean(selectedId);
+  const bodies = useMemo(
+    () => visibleBodies(map).filter(body => !selectedSectorId || body.sectorId === selectedSectorId),
+    [map, selectedSectorId]
+  );
 
   return (
     <group>
-      {(map.bodies || []).map(body => (
+      {bodies.map(body => (
         <PlanetBody
           key={body.id}
           body={body}
@@ -546,18 +642,19 @@ function LocalSystem({ map, selectedId, hoveredId, onSelect, onHover }) {
           focusMode={focusMode}
         />
       ))}
-      {(map.bodies || []).map(body => {
+      {bodies.map(body => {
         if (!body.parentId) return null;
         const parent = bodyById(map, body.parentId);
-        return parent ? <OrbitTrace key={`${body.id}-orbit`} body={body} parent={parent} map={map} focusMode={focusMode} /> : null;
+        return parent && parent.visible !== false ? <OrbitTrace key={`${body.id}-orbit`} body={body} parent={parent} map={map} focusMode={focusMode} /> : null;
       })}
     </group>
   );
 }
 
-function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositionRef, controlInterruptRef }) {
+function CameraRig({ map, selectedId, selectedSectorId, zoomOutSignal, controlsRef, selectedPositionRef, controlInterruptRef }) {
   const { camera } = useThree();
   const selectedIdRef = useRef(selectedId);
+  const selectedSectorIdRef = useRef(selectedSectorId);
   const lastControlInterrupt = useRef(0);
   const zoomSignalRef = useRef(zoomOutSignal);
   const focusTravel = useRef(false);
@@ -569,8 +666,9 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
+    selectedSectorIdRef.current = selectedSectorId;
     const controls = controlsRef.current;
-    if (selectedId) {
+    if (selectedId || selectedSectorId) {
       focusTravel.current = true;
       focusTargetLatched.current = false;
       selectedTrackTarget.current = null;
@@ -583,7 +681,7 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
       if (!zoomTravel.current) controls.enabled = true;
       controls.autoRotate = !zoomTravel.current;
     }
-  }, [selectedId, controlsRef]);
+  }, [selectedId, selectedSectorId, controlsRef]);
 
   useEffect(() => {
     if (zoomSignalRef.current === zoomOutSignal) return;
@@ -614,11 +712,16 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
         controls.autoRotate = false;
       }
     }
-    const selectedPosition = selectedIdRef.current ? selectedPositionRef.current : null;
+    const selectedPosition = selectedIdRef.current
+      ? selectedPositionRef.current
+      : selectedSectorIdRef.current
+        ? focusMapPosition(map)
+        : null;
 
     if (selectedPosition && focusTravel.current && !focusTargetLatched.current) {
       const body = bodyById(map, selectedIdRef.current);
-      const scale = body?.id === "khar-shian" ? 0.78 : 1;
+      const sectorScale = selectedSectorIdRef.current && !selectedIdRef.current ? 2.75 : 1;
+      const scale = body?.id === "khar-shian" ? 0.78 : sectorScale;
       const outward = selectedPosition.clone().sub(WIDE_TARGET).normalize().multiplyScalar(1.05 * scale);
       targetCamera.current.copy(selectedPosition).add(outward).add(new THREE.Vector3(1.15 * scale, 0.92 * scale, 1.72 * scale));
       targetControl.current.copy(selectedPosition);
@@ -640,11 +743,11 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
         selectedTrackTarget.current = null;
         zoomTravel.current = false;
         controls.enabled = true;
-        controls.autoRotate = wasZooming && !selectedIdRef.current;
+        controls.autoRotate = wasZooming && !selectedIdRef.current && !selectedSectorIdRef.current;
       }
     } else {
       controls.enabled = true;
-      controls.autoRotate = !selectedIdRef.current;
+      controls.autoRotate = !selectedIdRef.current && !selectedSectorIdRef.current;
     }
 
     if (selectedPosition && !focusTravel.current && !zoomTravel.current) {
@@ -668,7 +771,7 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
   return null;
 }
 
-function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSignal, quality }) {
+function GalaxyScene({ map, selectedId, hoveredId, selectedSectorId, onSelect, onHover, onSelectSector, zoomOutSignal, quality }) {
   const controlsRef = useRef(null);
   const controlInterruptRef = useRef(0);
   const galaxyRef = useRef(null);
@@ -676,6 +779,7 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
   const selectedPositionRef = useRef(null);
   const focus = useMemo(() => focusMapPosition(map), [map]);
   const selectable = selectedId ? bodyById(map, selectedId) : null;
+  const selectedSector = selectedSectorId ? sectorById(map, selectedSectorId) : null;
 
   useFrame(({ clock }) => {
     const rotationY = GALAXY_BASE_ROTATION_Y + clock.elapsedTime * GALAXY_SPIN_SPEED;
@@ -711,20 +815,30 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
       <Sparkles count={quality === "high" ? 340 : 150} scale={[24, 5.4, 18]} size={1.55} speed={0.44} color="#ff9a3d" opacity={0.72} />
 
       <group ref={galaxyRef} rotation={[-0.045, GALAXY_BASE_ROTATION_Y, 0.02]}>
-        <SectorGrid />
+        <SectorGrid sectors={map.sectors || []} selectedSectorId={selectedSectorId} onSelectSector={onSelectSector} />
         <SpiralArmRibbons />
-        <GalaxyParticles mode="stars" count={quality === "high" ? 24500 : 12800} seed={4321} opacity={0.88} sizeScale={0.92} />
-        <GalaxyParticles mode="dust" count={quality === "high" ? 3600 : 1800} seed={8827} opacity={0.055} sizeScale={1.05} />
+        <GalaxyParticles mode="stars" count={quality === "high" ? 24500 : 12800} seed={4321} opacity={selectedSector ? 0.36 : 0.88} sizeScale={0.92} />
+        <GalaxyParticles mode="dust" count={quality === "high" ? 3600 : 1800} seed={8827} opacity={selectedSector ? 0.022 : 0.055} sizeScale={1.05} />
         <GalacticCore />
       </group>
 
       <group ref={localRef} rotation={[0, GALAXY_BASE_ROTATION_Y, 0]}>
-        <LocalSystem map={map} selectedId={selectedId} hoveredId={hoveredId} onSelect={onSelect} onHover={onHover} />
+        {selectedSectorId ? (
+          <LocalSystem
+            map={map}
+            selectedId={selectedId}
+            hoveredId={hoveredId}
+            selectedSectorId={selectedSectorId}
+            onSelect={onSelect}
+            onHover={onHover}
+          />
+        ) : null}
       </group>
 
       <CameraRig
         map={map}
         selectedId={selectedId}
+        selectedSectorId={selectedSectorId}
         zoomOutSignal={zoomOutSignal}
         controlsRef={controlsRef}
         selectedPositionRef={selectedPositionRef}
@@ -736,9 +850,9 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
         enableDamping
         dampingFactor={0.07}
         enablePan={false}
-        minDistance={selectable ? 1.25 : 4.2}
-        maxDistance={selectable ? 9.5 : 34}
-        autoRotate={!selectable}
+        minDistance={selectable ? 1.25 : selectedSector ? 3.2 : 4.2}
+        maxDistance={selectable ? 9.5 : selectedSector ? 15 : 34}
+        autoRotate={!selectable && !selectedSector}
         autoRotateSpeed={0.22}
         onStart={() => {
           controlInterruptRef.current += 1;
@@ -763,14 +877,21 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
 
 export function GalaxyMapExperience({ map }) {
   const [ready, setReady] = useState(false);
+  const [booted, setBooted] = useState(false);
+  const [selectedSectorId, setSelectedSectorId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [hoveredId, setHoveredId] = useState(null);
   const [zoomOutSignal, setZoomOutSignal] = useState(0);
   const [quality, setQuality] = useState("high");
 
-  const selectableBodies = useMemo(() => (map.bodies || []).filter(body => body.selectable), [map]);
-  const selectedBody = bodyById(map, selectedId);
-  const panelBody = selectedBody || map.focus;
+  const selectedSector = sectorById(map, selectedSectorId);
+  const selectableBodies = useMemo(
+    () => visibleBodies(map).filter(body => body.selectable && (!selectedSectorId || body.sectorId === selectedSectorId)),
+    [map, selectedSectorId]
+  );
+  const selectedBodyRaw = bodyById(map, selectedId);
+  const selectedBody = selectedBodyRaw?.hidden || selectedBodyRaw?.visible === false ? null : selectedBodyRaw;
+  const panelBody = selectedBody || selectedSector;
 
   useEffect(() => {
     const isReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -781,89 +902,152 @@ export function GalaxyMapExperience({ map }) {
 
   const selectBody = useCallback(id => {
     const body = bodyById(map, id);
-    if (!body?.selectable) return;
+    if (!body?.selectable || body.hidden || body.visible === false || !selectedSectorId || body.sectorId !== selectedSectorId) return;
     setSelectedId(id);
+  }, [map, selectedSectorId]);
+
+  const selectSector = useCallback(id => {
+    if (!sectorById(map, id)) return;
+    setSelectedId(null);
+    setHoveredId(null);
+    setSelectedSectorId(id);
   }, [map]);
 
   const zoomOut = useCallback(() => {
     setSelectedId(null);
+    setSelectedSectorId(null);
     setHoveredId(null);
     setZoomOutSignal(value => value + 1);
   }, []);
 
   return (
     <section className={`gm-root${ready ? " gm-root--ready" : ""}`} aria-label="Hidden Archives Galaxy Map">
-      <div className="gm-stage" aria-hidden="true">
-        <Canvas
-          camera={{ position: WIDE_CAMERA.toArray(), fov: 45, near: 0.04, far: 160 }}
-          dpr={quality === "high" ? [1, 2] : [1, 1.35]}
-          gl={{ antialias: true, powerPreference: "high-performance", stencil: false }}
-          onCreated={({ gl }) => {
-            gl.toneMapping = THREE.ACESFilmicToneMapping;
-            gl.toneMappingExposure = 0.9;
-            gl.outputColorSpace = THREE.SRGBColorSpace;
-            setReady(true);
-          }}
-        >
-          <GalaxyScene
-            map={map}
-            selectedId={selectedId}
-            hoveredId={hoveredId}
-            onSelect={selectBody}
-            onHover={setHoveredId}
-            zoomOutSignal={zoomOutSignal}
-            quality={quality}
-          />
-        </Canvas>
+      <div className="gm-terminal">
+        {!booted ? (
+          <div className="gm-gate">
+            <div className="gm-gate-panel">
+              <span className="gm-gate-kicker">ARCHIVES / CARTOGRAPHY NODE</span>
+              <h1>GALAXY MAP</h1>
+              <button className="gm-power" type="button" onClick={() => setBooted(true)}>
+                POWER ON
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="gm-stage" aria-hidden="true">
+              <Canvas
+                camera={{ position: WIDE_CAMERA.toArray(), fov: 45, near: 0.04, far: 160 }}
+                dpr={quality === "high" ? [1, 2] : [1, 1.35]}
+                gl={{ antialias: true, powerPreference: "high-performance", stencil: false }}
+                onCreated={({ gl }) => {
+                  gl.toneMapping = THREE.ACESFilmicToneMapping;
+                  gl.toneMappingExposure = 0.9;
+                  gl.outputColorSpace = THREE.SRGBColorSpace;
+                  setReady(true);
+                }}
+              >
+                <GalaxyScene
+                  map={map}
+                  selectedId={selectedId}
+                  selectedSectorId={selectedSectorId}
+                  hoveredId={hoveredId}
+                  onSelect={selectBody}
+                  onSelectSector={selectSector}
+                  onHover={setHoveredId}
+                  zoomOutSignal={zoomOutSignal}
+                  quality={quality}
+                />
+              </Canvas>
+            </div>
+
+            <div className="gm-scan" aria-hidden="true" />
+            <div className="gm-vignette" aria-hidden="true" />
+
+            <header className="gm-topbar">
+              <button className="gm-back" type="button" aria-label="Zoom out to galaxy view" onClick={zoomOut}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 12h16" />
+                  <path d="m8 8-4 4 4 4" />
+                  <path d="m16 8 4 4-4 4" />
+                </svg>
+              </button>
+              <div className="gm-lockup">
+                <span>{selectedSector ? "SECTOR NODE ACTIVE" : "SELECT A SECTOR"}</span>
+                <strong>GALAXY MAP</strong>
+              </div>
+            </header>
+
+            {panelBody ? (
+              <aside className={`gm-panel${selectedId ? " is-focused" : ""}`} aria-live="polite">
+                <div className="gm-panel-title">{selectedBody ? "Planet Information" : "Sector Information"}</div>
+                <div className="gm-kicker">{panelBody.region}</div>
+                <h1>{panelBody.name}</h1>
+                <div className="gm-kind">{selectedBody ? panelBody.kind : panelBody.grid}</div>
+                <p>{panelBody.summary}</p>
+                {selectedBody ? (
+                  <>
+                    <div className="gm-intel-grid">
+                      <span>Control</span>
+                      <strong>{panelBody.control || "Unknown"}</strong>
+                      <span>Contested</span>
+                      <strong>{panelBody.contested ? "Yes" : "No"}</strong>
+                    </div>
+                    {panelBody.resources?.length ? (
+                      <ul className="gm-resource-list">
+                        {panelBody.resources.map(resource => <li key={resource}>{resource}</li>)}
+                      </ul>
+                    ) : null}
+                    {panelBody.robloxLaunchUrl ? (
+                      <a className="gm-play" href={panelBody.robloxLaunchUrl}>
+                        CONNECT
+                      </a>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <div className="gm-control-bars" aria-label="Faction control">
+                      <span>Republic {panelBody.control?.republic ?? 0}%</span>
+                      <div><i style={{ width: `${panelBody.control?.republic ?? 0}%` }} /></div>
+                      <span>Sith Empire {panelBody.control?.empire ?? 0}%</span>
+                      <div><i className="is-empire" style={{ width: `${panelBody.control?.empire ?? 0}%` }} /></div>
+                    </div>
+                    <div className="gm-contested">
+                      Contended planets: {(panelBody.contestedPlanets || []).join(", ") || "None"}
+                    </div>
+                  </>
+                )}
+                {selectedSectorId ? (
+                  <div className="gm-selectors" aria-label="Galaxy bodies">
+                    {selectableBodies.map(body => (
+                      <button
+                        className={`gm-selector${selectedId === body.id ? " is-active" : ""}${hoveredId === body.id ? " is-hovered" : ""}`}
+                        type="button"
+                        aria-pressed={selectedId === body.id}
+                        key={body.id}
+                        onClick={() => selectBody(body.id)}
+                        onPointerEnter={() => setHoveredId(body.id)}
+                        onPointerLeave={() => setHoveredId(null)}
+                      >
+                        <span className="gm-selector-dot" style={{ "--body-color": body.colors?.glow || "#ffffff" }} />
+                        <span>{body.shortName || body.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </aside>
+            ) : null}
+
+            {!ready ? (
+              <div className="gm-loading">
+                <span />
+                <strong>CALIBRATING ARCHIVE MAP</strong>
+              </div>
+            ) : null}
+          </>
+        )}
+        <div className="gm-terminal-frame" aria-hidden="true" />
       </div>
-
-      <div className="gm-scan" aria-hidden="true" />
-      <div className="gm-vignette" aria-hidden="true" />
-
-      <header className="gm-topbar">
-        <button className="gm-back" type="button" aria-label="Zoom out to galaxy view" onClick={zoomOut}>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 12h16" />
-            <path d="m8 8-4 4 4 4" />
-            <path d="m16 8 4 4-4 4" />
-          </svg>
-        </button>
-        <div className="gm-lockup">
-          <span>ARCHIVES / DIRECT NODE</span>
-          <strong>GALAXY MAP</strong>
-        </div>
-      </header>
-
-      <aside className={`gm-panel${selectedId ? " is-focused" : ""}`} aria-live="polite">
-        <div className="gm-panel-title">Galaxy Map</div>
-        <div className="gm-kicker">{panelBody.region}</div>
-        <h1>{panelBody.name}</h1>
-        <div className="gm-kind">{panelBody.kind || panelBody.name}</div>
-        <p>{panelBody.summary}</p>
-        <div className="gm-selectors" aria-label="Galaxy bodies">
-          {selectableBodies.map(body => (
-            <button
-              className={`gm-selector${selectedId === body.id ? " is-active" : ""}${hoveredId === body.id ? " is-hovered" : ""}`}
-              type="button"
-              aria-pressed={selectedId === body.id}
-              key={body.id}
-              onClick={() => selectBody(body.id)}
-              onPointerEnter={() => setHoveredId(body.id)}
-              onPointerLeave={() => setHoveredId(null)}
-            >
-              <span className="gm-selector-dot" style={{ "--body-color": body.colors?.glow || "#ffffff" }} />
-              <span>{body.shortName || body.name}</span>
-            </button>
-          ))}
-        </div>
-      </aside>
-
-      {!ready ? (
-        <div className="gm-loading">
-          <span />
-          <strong>CALIBRATING ARCHIVE MAP</strong>
-        </div>
-      ) : null}
 
       <style>{STYLES}</style>
     </section>
@@ -874,23 +1058,112 @@ const STYLES = `
   html:has(.gm-root),
   body:has(.gm-root) {
     background: var(--theme-bg, #050204);
-    overflow: hidden;
   }
 
   .gm-root {
     --gm-panel: color-mix(in srgb, var(--theme-panel, rgba(22, 7, 12, .84)) 76%, transparent);
+    align-items: center;
     background:
       radial-gradient(ellipse 56% 46% at 50% 46%, var(--theme-body-glow-a, rgba(160, 0, 22, .08)), transparent 66%),
       linear-gradient(180deg, var(--theme-bg, #050204) 0%, #050204 58%, #000000 100%);
     color: var(--text, #ffffff);
+    display: flex;
     font-family: 'Share Tech Mono', monospace;
-    height: 100dvh;
-    inset: 0;
     isolation: isolate;
+    justify-content: center;
+    min-height: 100dvh;
     overflow: hidden;
-    position: fixed;
-    width: 100vw;
+    padding: clamp(18px, 3vw, 42px);
+    position: relative;
+    width: 100%;
     z-index: 0;
+  }
+
+  .gm-terminal {
+    background:
+      linear-gradient(135deg, var(--theme-wash, rgba(192, 0, 26, .025)), transparent 62%),
+      rgba(4, 1, 3, .92);
+    border: 1px solid var(--theme-accent-dim, #7a1a28);
+    box-shadow: 0 0 48px var(--theme-accent-glow, rgba(255, 59, 79, .24)), inset 0 0 48px rgba(255, 255, 255, .026);
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+    height: min(860px, calc(100dvh - clamp(36px, 6vw, 84px)));
+    max-width: 1480px;
+    min-height: 560px;
+    overflow: hidden;
+    position: relative;
+    width: min(100%, 1480px);
+  }
+
+  .gm-terminal-frame {
+    border: 1px solid rgba(255, 59, 79, .22);
+    inset: 10px;
+    pointer-events: none;
+    position: absolute;
+    z-index: 20;
+  }
+
+  .gm-gate {
+    align-items: center;
+    background:
+      repeating-linear-gradient(0deg, transparent 0, transparent 2px, var(--scanline, rgba(255, 210, 210, .018)) 2px, var(--scanline, rgba(255, 210, 210, .018)) 4px),
+      radial-gradient(circle at 50% 42%, rgba(255, 59, 79, .11), transparent 46%),
+      #050204;
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    position: absolute;
+    z-index: 10;
+  }
+
+  .gm-gate-panel {
+    border: 1px solid var(--theme-accent-dim, #7a1a28);
+    box-shadow: 0 0 32px var(--theme-accent-glow, rgba(255, 59, 79, .24)), inset 0 0 34px rgba(255, 255, 255, .025);
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    display: grid;
+    gap: 22px;
+    padding: clamp(26px, 5vw, 56px);
+    text-align: center;
+    width: min(520px, calc(100% - 44px));
+  }
+
+  .gm-gate-kicker {
+    color: var(--text-dim, #ffffff);
+    font-family: Orbitron, monospace;
+    font-size: .7rem;
+    text-transform: uppercase;
+  }
+
+  .gm-gate h1 {
+    color: var(--theme-accent, #ff3b4f);
+    font-family: Cinzel, serif;
+    font-size: clamp(2.2rem, 8vw, 5.5rem);
+    line-height: 1;
+    text-shadow: 0 0 28px var(--theme-accent-glow, rgba(255, 59, 79, .42));
+  }
+
+  .gm-power,
+  .gm-play {
+    appearance: none;
+    background:
+      linear-gradient(90deg, var(--theme-wash, rgba(192, 0, 26, .025)), transparent 75%),
+      rgba(255, 59, 79, .1);
+    border: 1px solid var(--theme-accent, #ff3b4f);
+    color: var(--text, #ffffff);
+    cursor: crosshair;
+    font: inherit;
+    letter-spacing: .2em;
+    min-height: 42px;
+    padding: 12px 16px;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .gm-power:hover,
+  .gm-power:focus-visible,
+  .gm-play:hover,
+  .gm-play:focus-visible {
+    box-shadow: 0 0 24px var(--theme-accent-glow, rgba(255, 59, 79, .34));
+    outline: none;
   }
 
   .gm-root *,
@@ -1071,6 +1344,82 @@ const STYLES = `
     margin: 12px 0 0;
   }
 
+  .gm-intel-grid {
+    border-top: 1px solid var(--theme-accent-dim, #7a1a28);
+    display: grid;
+    gap: 7px 12px;
+    grid-template-columns: auto 1fr;
+    margin-top: 13px;
+    padding-top: 12px;
+  }
+
+  .gm-intel-grid span,
+  .gm-control-bars span,
+  .gm-contested {
+    color: var(--text-dim, #ffffff);
+    font-size: .66rem;
+    text-transform: uppercase;
+  }
+
+  .gm-intel-grid strong {
+    color: var(--text, #ffffff);
+    font-size: .72rem;
+    text-align: right;
+    text-transform: uppercase;
+  }
+
+  .gm-resource-list {
+    display: grid;
+    gap: 5px;
+    list-style: none;
+    margin: 12px 0 0;
+  }
+
+  .gm-resource-list li {
+    border-left: 1px solid var(--theme-accent, #ff3b4f);
+    color: var(--text-dim, #ffffff);
+    font-size: .72rem;
+    line-height: 1.35;
+    padding-left: 9px;
+  }
+
+  .gm-play {
+    display: flex;
+    justify-content: center;
+    margin-top: 14px;
+  }
+
+  .gm-control-bars {
+    display: grid;
+    gap: 7px;
+    margin-top: 13px;
+  }
+
+  .gm-control-bars div {
+    background: rgba(255, 255, 255, .055);
+    border: 1px solid var(--theme-accent-dim, #7a1a28);
+    height: 9px;
+    overflow: hidden;
+  }
+
+  .gm-control-bars i {
+    background: #6bb7ff;
+    box-shadow: 0 0 16px rgba(107, 183, 255, .45);
+    display: block;
+    height: 100%;
+  }
+
+  .gm-control-bars i.is-empire {
+    background: var(--theme-accent, #ff3b4f);
+    box-shadow: 0 0 16px var(--theme-accent-glow, rgba(255, 59, 79, .45));
+  }
+
+  .gm-contested {
+    border-top: 1px solid var(--theme-accent-dim, #7a1a28);
+    margin-top: 12px;
+    padding-top: 10px;
+  }
+
   .gm-selectors {
     display: grid;
     gap: 7px;
@@ -1171,6 +1520,17 @@ const STYLES = `
   }
 
   @media (max-width: 760px) {
+    .gm-root {
+      padding: 0;
+    }
+
+    .gm-terminal {
+      clip-path: none;
+      height: 100dvh;
+      min-height: 100dvh;
+      width: 100%;
+    }
+
     .gm-topbar {
       left: 14px;
       right: 14px;

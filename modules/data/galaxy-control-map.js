@@ -50,13 +50,8 @@ export const GALAXY_CONTROL_MAP = {
   ],
   guide: {
     radius: 6.74,
-    unknownRegion: {
-      startAngleDeg: 132,
-      endAngleDeg: 224,
-      label: "Unknown Regions"
-    },
-    knownSpaceSpokes: [-120, -94, -68, -42, -16, 12, 38, 64, 90, 116, 246, 272, 298, 324],
-    sparseSpokes: [146, 180, 214]
+    spokeStepDeg: 15,
+    spokeOffsetDeg: 0
   },
   sectors: [
     {
@@ -66,18 +61,18 @@ export const GALAXY_CONTROL_MAP = {
       grid: "R-5",
       factionId: "sith-empire",
       placementConfidence: "Canonical broad placement: Sith Worlds / Esstran sector / Outer Rim",
-      innerRadius: 4.92,
-      outerRadius: 6.34,
-      startAngleDeg: -58,
+      innerRadius: 4.86,
+      outerRadius: 6.24,
+      startAngleDeg: -60,
       endAngleDeg: -30,
       objectives: ["Secure Korriban temple approaches", "Deny Republic reconnaissance through Sith Worlds"],
       activeWars: [],
       surveyStars: [
-        { id: "esstran-a", position: [3.82, -4.44], size: 0.045 },
-        { id: "esstran-b", position: [4.52, -4.05], size: 0.035 },
-        { id: "esstran-c", position: [4.9, -5.5], size: 0.032 },
-        { id: "esstran-d", position: [5.62, -4.08], size: 0.04 },
-        { id: "esstran-e", position: [5.85, -5.32], size: 0.034 }
+        { id: "esstran-a", position: [3.46, -4.22], size: 0.045 },
+        { id: "esstran-b", position: [4.15, -3.62], size: 0.035 },
+        { id: "esstran-c", position: [4.26, -4.16], size: 0.032 },
+        { id: "esstran-d", position: [5.24, -3.26], size: 0.04 },
+        { id: "esstran-e", position: [4.62, -3.72], size: 0.034 }
       ]
     }
   ],
@@ -90,7 +85,7 @@ export const GALAXY_CONTROL_MAP = {
       regionId: "outer-rim",
       factionId: "sith-empire",
       grid: "R-5",
-      position: [4.92, -4.7],
+      position: [3.96, -3.96],
       radius: 0.2,
       placementConfidence: "Canonical broad placement: Sith Worlds, Esstran sector, Outer Rim",
       contested: false,

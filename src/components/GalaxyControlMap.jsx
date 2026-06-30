@@ -92,28 +92,42 @@ function makePlanetTexture(planet) {
   canvas.height = 256;
   const ctx = canvas.getContext("2d");
   const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-  gradient.addColorStop(0, "#3b0608");
-  gradient.addColorStop(0.35, "#8f271a");
-  gradient.addColorStop(0.62, "#1b0405");
-  gradient.addColorStop(1, "#d16435");
+  gradient.addColorStop(0, "#2a1209");
+  gradient.addColorStop(0.22, "#8b3f22");
+  gradient.addColorStop(0.48, "#c98545");
+  gradient.addColorStop(0.68, "#4a1c12");
+  gradient.addColorStop(1, "#e0aa68");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  for (let index = 0; index < 80; index += 1) {
-    const y = (index * 37) % canvas.height;
-    ctx.globalAlpha = 0.08 + ((index * 13) % 9) * 0.008;
-    ctx.fillStyle = index % 2 ? "#ffad66" : "#1a0203";
-    ctx.fillRect(0, y, canvas.width, 2 + (index % 7));
+  for (let index = 0; index < 120; index += 1) {
+    const y = (index * 29) % canvas.height;
+    ctx.globalAlpha = 0.055 + ((index * 11) % 8) * 0.007;
+    ctx.fillStyle = index % 2 ? "#f1c084" : "#160806";
+    ctx.fillRect(0, y, canvas.width, 1 + (index % 8));
   }
 
-  for (let index = 0; index < 58; index += 1) {
-    const x = (index * 89) % canvas.width;
-    const y = (index * 53) % canvas.height;
-    ctx.globalAlpha = 0.11;
-    ctx.fillStyle = index % 3 ? "#f05d32" : "#120203";
+  for (let index = 0; index < 90; index += 1) {
+    const x = (index * 83) % canvas.width;
+    const y = (index * 47) % canvas.height;
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = index % 4 ? "#a84b29" : "#ead09b";
     ctx.beginPath();
-    ctx.ellipse(x, y, 18 + (index % 28), 4 + (index % 9), (index * 0.4) % TAU, 0, TAU);
+    ctx.ellipse(x, y, 14 + (index % 34), 3 + (index % 12), (index * 0.37) % TAU, 0, TAU);
     ctx.fill();
+  }
+
+  for (let index = 0; index < 42; index += 1) {
+    ctx.globalAlpha = 0.16;
+    ctx.strokeStyle = index % 2 ? "#5b2116" : "#f0a15f";
+    ctx.lineWidth = 1 + (index % 3);
+    const y = (index * 61) % canvas.height;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    for (let x = 0; x <= canvas.width; x += 48) {
+      ctx.lineTo(x, y + Math.sin(x * 0.025 + index) * (4 + (index % 9)));
+    }
+    ctx.stroke();
   }
 
   ctx.globalAlpha = 1;
@@ -134,7 +148,7 @@ function SectorPlate({ map, sector, selected, entered, onSelect }) {
   const meshRef = useRef(null);
   const borderRef = useRef(null);
   const geometry = useMemo(() => {
-    const next = new THREE.ExtrudeGeometry(makeSectorShape(sector, 0.012), {
+    const next = new THREE.ExtrudeGeometry(makeSectorShape(sector, 0), {
       depth: PLATE_HEIGHT,
       bevelEnabled: true,
       bevelSize: 0.018,
@@ -145,7 +159,7 @@ function SectorPlate({ map, sector, selected, entered, onSelect }) {
     next.translate(0, PLATE_HEIGHT * 0.5, 0);
     return next;
   }, [sector]);
-  const borderGeometry = useMemo(() => makeLineGeometry(makeSectorBoundaryPoints(sector, PLATE_HEIGHT + 0.034, 0.018)), [sector]);
+  const borderGeometry = useMemo(() => makeLineGeometry(makeSectorBoundaryPoints(sector, PLATE_HEIGHT + 0.034, 0)), [sector]);
 
   useEffect(() => () => {
     geometry.dispose();
@@ -161,7 +175,7 @@ function SectorPlate({ map, sector, selected, entered, onSelect }) {
     }
   });
 
-  const fillOpacity = selected ? 0.08 : entered ? 0.02 : 0.5;
+  const fillOpacity = selected ? 0.1 : entered ? 0.02 : 0.48;
 
   return (
     <group>
@@ -193,6 +207,9 @@ function SectorPlate({ map, sector, selected, entered, onSelect }) {
       </mesh>
       <line ref={borderRef} geometry={borderGeometry}>
         <lineBasicMaterial color={useMaterialColor(faction?.glow, "#ff2438")} transparent opacity={0.62} blending={THREE.AdditiveBlending} />
+      </line>
+      <line geometry={borderGeometry}>
+        <lineBasicMaterial color="#ffd7dc" transparent opacity={selected ? 0.28 : entered ? 0.06 : 0.13} blending={THREE.AdditiveBlending} />
       </line>
       <SectorHatching sector={sector} selected={selected} entered={entered} color={useMaterialColor(faction?.glow, "#ff2438")} />
       {!entered ? (
@@ -234,54 +251,38 @@ function GuideGrid({ map, entered }) {
   const ringGeometries = useMemo(() => (map.regions || []).map(region => ({
     id: region.id,
     geometry: makeLineGeometry(makeRingPoints(region.radius[1], 0, 360, 0.01, 260)),
-    unknown: region.id === "wild-space"
   })), [map]);
   const spokeGeometries = useMemo(() => {
-    const known = (map.guide?.knownSpaceSpokes || []).map(angle => ({
-      id: `known-${angle}`,
-      geometry: makeLineGeometry([polar(CORE_RADIUS, angle, 0.016), polar(map.guide.radius, angle, 0.016)]),
-      opacity: 0.26
-    }));
-    const sparse = (map.guide?.sparseSpokes || []).map(angle => ({
-      id: `sparse-${angle}`,
-      geometry: makeLineGeometry([polar(2.7, angle, 0.014), polar(map.guide.radius, angle, 0.014)]),
-      opacity: 0.11
-    }));
-    return [...known, ...sparse];
+    const step = map.guide?.spokeStepDeg || 15;
+    const offset = map.guide?.spokeOffsetDeg || 0;
+    const count = Math.round(360 / step);
+    return Array.from({ length: count }, (_, index) => {
+      const angle = offset + index * step;
+      return {
+        id: `spoke-${angle}`,
+        boundary: angle === 300 || angle === 330,
+        geometry: makeLineGeometry([polar(CORE_RADIUS, angle, 0.016), polar(map.guide.radius, angle, 0.016)])
+      };
+    });
   }, [map]);
-  const unknownShape = useMemo(() => makeSectorShape({
-    innerRadius: 2.8,
-    outerRadius: map.guide.radius,
-    startAngleDeg: map.guide.unknownRegion.startAngleDeg,
-    endAngleDeg: map.guide.unknownRegion.endAngleDeg
-  }), [map]);
-  const unknownGeometry = useMemo(() => {
-    const next = new THREE.ShapeGeometry(unknownShape);
-    next.rotateX(Math.PI / 2);
-    return next;
-  }, [unknownShape]);
 
   useEffect(() => () => {
     ringGeometries.forEach(item => item.geometry.dispose());
     spokeGeometries.forEach(item => item.geometry.dispose());
-    unknownGeometry.dispose();
-  }, [ringGeometries, spokeGeometries, unknownGeometry]);
+  }, [ringGeometries, spokeGeometries]);
 
   const opacityScale = entered ? 0.18 : 1;
 
   return (
     <group>
-      <mesh geometry={unknownGeometry} position={[0, -0.01, 0]}>
-        <meshBasicMaterial color="#1a1a1a" transparent opacity={0.38 * opacityScale} side={THREE.DoubleSide} />
-      </mesh>
       {ringGeometries.map(item => (
         <line key={item.id} geometry={item.geometry}>
-          <lineBasicMaterial color={item.unknown ? "#777777" : "#9a3338"} transparent opacity={(item.unknown ? 0.12 : 0.23) * opacityScale} />
+          <lineBasicMaterial color="#8b252b" transparent opacity={0.2 * opacityScale} />
         </line>
       ))}
       {spokeGeometries.map(item => (
         <line key={item.id} geometry={item.geometry}>
-          <lineBasicMaterial color="#b63a41" transparent opacity={item.opacity * opacityScale} />
+          <lineBasicMaterial color={item.boundary ? "#ff4050" : "#a62d35"} transparent opacity={(item.boundary ? 0.34 : 0.16) * opacityScale} />
         </line>
       ))}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -0.025, 0]}>
@@ -300,7 +301,7 @@ function GuideGrid({ map, entered }) {
   );
 }
 
-function SectorSurveyStars({ sector, visible }) {
+function SectorSurveyStars({ sector, entered, selected }) {
   const geometry = useMemo(() => {
     const positions = new Float32Array((sector.surveyStars || []).length * 3);
     (sector.surveyStars || []).forEach((star, index) => {
@@ -315,11 +316,9 @@ function SectorSurveyStars({ sector, visible }) {
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
-  if (!visible) return null;
-
   return (
     <points geometry={geometry}>
-      <pointsMaterial color="#ffd8cf" size={0.075} transparent opacity={0.82} sizeAttenuation />
+      <pointsMaterial color="#ffd8cf" size={0.068} transparent opacity={selected ? 0.78 : entered ? 0.3 : 0.56} sizeAttenuation />
     </points>
   );
 }
@@ -412,41 +411,27 @@ function PlanetNode({ map, planet, selected, onSelect }) {
 function CameraRig({ selectedSector, selectedPlanet }) {
   const { camera } = useThree();
   const controlsRef = useRef(null);
-  const desiredTarget = useRef(HOME_TARGET.clone());
-  const desiredCamera = useRef(HOME_CAMERA.clone());
-  const travelling = useRef(true);
   const selectedKey = selectedPlanet?.id || selectedSector?.id || "home";
 
   useEffect(() => {
-    if (selectedPlanet) {
-      const target = planetVector(selectedPlanet, PLATE_HEIGHT + 0.2);
-      desiredTarget.current.copy(target);
-      desiredCamera.current.copy(target).add(new THREE.Vector3(0.85, 1.65, 1.2));
-    } else if (selectedSector) {
-      const target = sectorCenter(selectedSector, PLATE_HEIGHT + 0.08);
-      desiredTarget.current.copy(target);
-      desiredCamera.current.copy(target).add(new THREE.Vector3(0.28, 3.1, 2.8));
-    } else {
-      desiredTarget.current.copy(HOME_TARGET);
-      desiredCamera.current.copy(HOME_CAMERA);
-    }
-    travelling.current = true;
-  }, [selectedKey, selectedSector, selectedPlanet]);
-
-  useFrame(() => {
     const controls = controlsRef.current;
     if (!controls) return;
-    if (travelling.current) {
-      camera.position.lerp(desiredCamera.current, 0.075);
-      controls.target.lerp(desiredTarget.current, 0.09);
-      if (camera.position.distanceTo(desiredCamera.current) < 0.045 && controls.target.distanceTo(desiredTarget.current) < 0.035) {
-        camera.position.copy(desiredCamera.current);
-        controls.target.copy(desiredTarget.current);
-        travelling.current = false;
-      }
+
+    let target = HOME_TARGET.clone();
+    let nextCamera = HOME_CAMERA.clone();
+
+    if (selectedPlanet) {
+      target = planetVector(selectedPlanet, PLATE_HEIGHT + 0.2);
+      nextCamera = target.clone().add(new THREE.Vector3(0.85, 1.65, 1.2));
+    } else if (selectedSector) {
+      target = sectorCenter(selectedSector, PLATE_HEIGHT + 0.08);
+      nextCamera = target.clone().add(new THREE.Vector3(0.28, 3.1, 2.8));
     }
+
+    camera.position.copy(nextCamera);
+    controls.target.copy(target);
     controls.update();
-  });
+  }, [camera, selectedKey, selectedSector, selectedPlanet]);
 
   const focused = Boolean(selectedSector || selectedPlanet);
 
@@ -462,7 +447,6 @@ function CameraRig({ selectedSector, selectedPlanet }) {
       minDistance={focused ? 1.15 : 4.6}
       maxDistance={selectedPlanet ? 3.8 : selectedSector ? 6.2 : 12.5}
       rotateSpeed={0.72}
-      target={HOME_TARGET}
     />
   );
 }
@@ -494,7 +478,7 @@ function GalaxyScene({ map, selectedSectorId, selectedPlanetId, onSelectSector, 
         />
       ))}
       {(map.sectors || []).map(sector => (
-        <SectorSurveyStars key={`${sector.id}-survey`} sector={sector} visible={selectedSector?.id === sector.id} />
+        <SectorSurveyStars entered={entered} key={`${sector.id}-survey`} sector={sector} selected={selectedSector?.id === sector.id} />
       ))}
       {visiblePlanets.map(planet => (
         <PlanetNode
@@ -533,7 +517,7 @@ function ControlBars({ map, sector }) {
   );
 }
 
-function IntelPanel({ map, selectedSector, selectedPlanet, onZoomOut }) {
+function IntelPanel({ map, selectedSector, selectedPlanet }) {
   if (!selectedSector && !selectedPlanet) return null;
   const planetFaction = selectedPlanet ? factionById(map, selectedPlanet.factionId) : null;
   const sectorFaction = selectedSector ? factionById(map, selectedSector.factionId) : null;
@@ -541,7 +525,6 @@ function IntelPanel({ map, selectedSector, selectedPlanet, onZoomOut }) {
 
   return (
     <aside className="gc-panel" aria-live="polite">
-      <button className="gc-zoom" type="button" onClick={onZoomOut}>ZOOM OUT</button>
       <span className="gc-kicker">{selectedPlanet ? "Planet Intel" : "Sector Intel"}</span>
       <h1>{selectedPlanet?.name || selectedSector.name}</h1>
       <div className="gc-meta">
@@ -564,7 +547,7 @@ function IntelPanel({ map, selectedSector, selectedPlanet, onZoomOut }) {
             <span>Locations</span>
             {(selectedPlanet.locations || []).map(item => <p key={item}>{item}</p>)}
           </div>
-          {selectedPlanet.robloxLaunchUrl ? <a className="gc-play" href={selectedPlanet.robloxLaunchUrl}>PLAY</a> : null}
+          {selectedPlanet.robloxLaunchUrl ? <a className="gc-play" href={selectedPlanet.robloxLaunchUrl}>CONNECT</a> : null}
         </>
       ) : (
         <>
@@ -610,7 +593,16 @@ export function GalaxyControlMap({ map }) {
   return (
     <section className="gc-root" aria-label="Galaxy control map">
       <div className="gc-stage">
-        <Canvas camera={{ position: HOME_CAMERA.toArray(), fov: 47, near: 0.04, far: 80 }} dpr={[1, 1.65]} gl={{ antialias: true, powerPreference: "high-performance" }}>
+        <Canvas
+          camera={{ position: HOME_CAMERA.toArray(), fov: 47, near: 0.04, far: 80 }}
+          dpr={[1, 1.65]}
+          gl={{ alpha: false, antialias: true, powerPreference: "high-performance" }}
+          onCreated={({ camera, gl }) => {
+            gl.setClearColor("#070102", 1);
+            camera.lookAt(HOME_TARGET);
+          }}
+          style={{ background: "#070102" }}
+        >
           <GalaxyScene
             map={map}
             onSelectPlanet={selectPlanet}
@@ -625,7 +617,10 @@ export function GalaxyControlMap({ map }) {
         <span>DIRECT NODE / HIDDEN</span>
         <strong>GALAXY</strong>
       </header>
-      <IntelPanel map={map} onZoomOut={zoomOut} selectedPlanet={selectedPlanet} selectedSector={selectedSector} />
+      {(selectedSector || selectedPlanet) ? (
+        <button aria-label="Zoom out" className="gc-map-reset" type="button" onClick={zoomOut}>&#8596;</button>
+      ) : null}
+      <IntelPanel map={map} selectedPlanet={selectedPlanet} selectedSector={selectedSector} />
       <style>{STYLES}</style>
     </section>
   );
@@ -660,6 +655,7 @@ const STYLES = `
 
   .gc-stage canvas {
     cursor: grab;
+    filter: blur(.36px) saturate(1.05) contrast(1.03);
     height: 100% !important;
     touch-action: none;
     width: 100% !important;
@@ -686,7 +682,7 @@ const STYLES = `
     clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
     display: grid;
     gap: 3px;
-    left: clamp(16px, 2.6vw, 34px);
+    left: clamp(68px, 7vw, 96px);
     padding: 12px 15px;
     position: absolute;
     top: clamp(16px, 2.6vw, 34px);
@@ -794,7 +790,7 @@ const STYLES = `
     height: 100%;
   }
 
-  .gc-zoom,
+  .gc-map-reset,
   .gc-play {
     background: rgba(255, 36, 56, .08);
     border: 1px solid rgba(255, 36, 56, .48);
@@ -808,17 +804,30 @@ const STYLES = `
     text-transform: uppercase;
   }
 
-  .gc-zoom {
-    justify-self: end;
+  .gc-map-reset {
+    align-items: center;
+    display: flex;
+    font-family: Orbitron, monospace;
+    font-size: 1rem;
+    height: 44px;
+    justify-content: center;
+    left: clamp(16px, 2.6vw, 34px);
+    padding: 0;
+    position: absolute;
+    top: clamp(16px, 2.6vw, 34px);
+    width: 44px;
+    z-index: 7;
   }
 
   .gc-play {
     background: rgba(255, 36, 56, .17);
     border-color: rgba(255, 36, 56, .88);
+    display: block;
+    width: 100%;
   }
 
-  .gc-zoom:hover,
-  .gc-zoom:focus-visible,
+  .gc-map-reset:hover,
+  .gc-map-reset:focus-visible,
   .gc-play:hover,
   .gc-play:focus-visible {
     box-shadow: 0 0 20px rgba(255, 36, 56, .32);
@@ -827,8 +836,13 @@ const STYLES = `
 
   @media (max-width: 760px) {
     .gc-header {
-      left: 12px;
+      left: 64px;
       right: 12px;
+      top: 12px;
+    }
+
+    .gc-map-reset {
+      left: 12px;
       top: 12px;
     }
 

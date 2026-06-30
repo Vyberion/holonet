@@ -7,57 +7,145 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { controlForSector, factionById, planetsForSector } from "../../modules/data/galaxy-control-map.js";
 
-const CAMERA_HOME = new THREE.Vector3(0, 10.4, 9.2);
-const TARGET_HOME = new THREE.Vector3(0, 0, 0);
-const PLATE_HEIGHT = 0.16;
-const MAP_SCALE = 0.92;
+const TAU = Math.PI * 2;
+const MAP_SCALE = 0.96;
+const PLATE_HEIGHT = 0.12;
+const HOME_TARGET = new THREE.Vector3(0, 0, 0);
+const HOME_CAMERA = new THREE.Vector3(0, 8.4, 8.2);
+const CORE_RADIUS = 0.55;
 
-function makeShape(points) {
+function degToRad(deg) {
+  return THREE.MathUtils.degToRad(deg);
+}
+
+function polar(radius, angleDeg, y = 0) {
+  const angle = degToRad(angleDeg);
+  return new THREE.Vector3(Math.cos(angle) * radius * MAP_SCALE, y, Math.sin(angle) * radius * MAP_SCALE);
+}
+
+function sectorCenter(sector, y = 0) {
+  return polar((sector.innerRadius + sector.outerRadius) * 0.5, (sector.startAngleDeg + sector.endAngleDeg) * 0.5, y);
+}
+
+function planetVector(planet, y = 0) {
+  return new THREE.Vector3(planet.position[0] * MAP_SCALE, y, planet.position[1] * MAP_SCALE);
+}
+
+function makeSectorShape(sector, inset = 0) {
+  const innerRadius = Math.max(0.05, sector.innerRadius + inset);
+  const outerRadius = Math.max(innerRadius + 0.05, sector.outerRadius - inset);
+  const start = sector.startAngleDeg + inset * 1.7;
+  const end = sector.endAngleDeg - inset * 1.7;
+  const steps = 34;
   const shape = new THREE.Shape();
-  points.forEach(([x, z], index) => {
-    if (index === 0) shape.moveTo(x * MAP_SCALE, z * MAP_SCALE);
-    else shape.lineTo(x * MAP_SCALE, z * MAP_SCALE);
-  });
+
+  for (let index = 0; index <= steps; index += 1) {
+    const angle = start + ((end - start) * index) / steps;
+    const point = polar(outerRadius, angle);
+    if (index === 0) shape.moveTo(point.x, point.z);
+    else shape.lineTo(point.x, point.z);
+  }
+
+  for (let index = steps; index >= 0; index -= 1) {
+    const angle = start + ((end - start) * index) / steps;
+    const point = polar(innerRadius, angle);
+    shape.lineTo(point.x, point.z);
+  }
+
   shape.closePath();
   return shape;
 }
 
-function centroid(points) {
-  const total = points.reduce((acc, [x, z]) => {
-    acc.x += x * MAP_SCALE;
-    acc.z += z * MAP_SCALE;
-    return acc;
-  }, { x: 0, z: 0 });
-  return new THREE.Vector3(total.x / points.length, 0, total.z / points.length);
+function makeSectorBoundaryPoints(sector, y = PLATE_HEIGHT + 0.018, inset = 0) {
+  const innerRadius = Math.max(0.05, sector.innerRadius + inset);
+  const outerRadius = Math.max(innerRadius + 0.05, sector.outerRadius - inset);
+  const start = sector.startAngleDeg + inset * 1.7;
+  const end = sector.endAngleDeg - inset * 1.7;
+  const steps = 42;
+  const points = [];
+
+  for (let index = 0; index <= steps; index += 1) {
+    points.push(polar(outerRadius, start + ((end - start) * index) / steps, y));
+  }
+  for (let index = steps; index >= 0; index -= 1) {
+    points.push(polar(innerRadius, start + ((end - start) * index) / steps, y));
+  }
+  points.push(points[0].clone());
+  return points;
 }
 
-function boundsRadius(points, center) {
-  return Math.max(...points.map(([x, z]) => center.distanceTo(new THREE.Vector3(x * MAP_SCALE, 0, z * MAP_SCALE))));
+function makeLineGeometry(points) {
+  return new THREE.BufferGeometry().setFromPoints(points);
 }
 
-function linePoints(points, y = PLATE_HEIGHT + 0.018) {
-  return [...points, points[0]].map(([x, z]) => new THREE.Vector3(x * MAP_SCALE, y, z * MAP_SCALE));
+function makeRingPoints(radius, startDeg = 0, endDeg = 360, y = 0.002, steps = 220) {
+  const points = [];
+  for (let index = 0; index <= steps; index += 1) {
+    points.push(polar(radius, startDeg + ((endDeg - startDeg) * index) / steps, y));
+  }
+  return points;
 }
 
-function ExtrudedSector({ map, sector, selected, dimmed, onSelect }) {
+function makePlanetTexture(planet) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  gradient.addColorStop(0, "#3b0608");
+  gradient.addColorStop(0.35, "#8f271a");
+  gradient.addColorStop(0.62, "#1b0405");
+  gradient.addColorStop(1, "#d16435");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (let index = 0; index < 80; index += 1) {
+    const y = (index * 37) % canvas.height;
+    ctx.globalAlpha = 0.08 + ((index * 13) % 9) * 0.008;
+    ctx.fillStyle = index % 2 ? "#ffad66" : "#1a0203";
+    ctx.fillRect(0, y, canvas.width, 2 + (index % 7));
+  }
+
+  for (let index = 0; index < 58; index += 1) {
+    const x = (index * 89) % canvas.width;
+    const y = (index * 53) % canvas.height;
+    ctx.globalAlpha = 0.11;
+    ctx.fillStyle = index % 3 ? "#f05d32" : "#120203";
+    ctx.beginPath();
+    ctx.ellipse(x, y, 18 + (index % 28), 4 + (index % 9), (index * 0.4) % TAU, 0, TAU);
+    ctx.fill();
+  }
+
+  ctx.globalAlpha = 1;
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function useMaterialColor(hex, fallback = "#ffffff") {
+  return hex || fallback;
+}
+
+function SectorPlate({ map, sector, selected, entered, onSelect }) {
   const faction = factionById(map, sector.factionId);
   const meshRef = useRef(null);
   const borderRef = useRef(null);
-  const center = useMemo(() => centroid(sector.points), [sector.points]);
-  const radius = useMemo(() => boundsRadius(sector.points, center), [sector.points, center]);
   const geometry = useMemo(() => {
-    const next = new THREE.ExtrudeGeometry(makeShape(sector.points), {
+    const next = new THREE.ExtrudeGeometry(makeSectorShape(sector, 0.012), {
       depth: PLATE_HEIGHT,
       bevelEnabled: true,
-      bevelSize: 0.025,
-      bevelThickness: 0.025,
+      bevelSize: 0.018,
+      bevelThickness: 0.018,
       bevelSegments: 2
     });
     next.rotateX(Math.PI / 2);
     next.translate(0, PLATE_HEIGHT * 0.5, 0);
     return next;
-  }, [sector.points]);
-  const borderGeometry = useMemo(() => new THREE.BufferGeometry().setFromPoints(linePoints(sector.points)), [sector.points]);
+  }, [sector]);
+  const borderGeometry = useMemo(() => makeLineGeometry(makeSectorBoundaryPoints(sector, PLATE_HEIGHT + 0.034, 0.018)), [sector]);
 
   useEffect(() => () => {
     geometry.dispose();
@@ -66,13 +154,14 @@ function ExtrudedSector({ map, sector, selected, dimmed, onSelect }) {
 
   useFrame(({ clock }) => {
     if (meshRef.current) {
-      const pulse = selected ? 0.05 + Math.sin(clock.elapsedTime * 2.2) * 0.025 : 0;
-      meshRef.current.position.y = selected ? 0.08 + pulse : 0;
+      meshRef.current.position.y = selected ? 0.08 + Math.sin(clock.elapsedTime * 2.4) * 0.018 : 0;
     }
     if (borderRef.current) {
-      borderRef.current.material.opacity = selected ? 0.95 : dimmed ? 0.2 : 0.52;
+      borderRef.current.material.opacity = selected ? 0.96 : entered ? 0.18 : 0.62;
     }
   });
+
+  const fillOpacity = selected ? 0.08 : entered ? 0.02 : 0.5;
 
   return (
     <group>
@@ -93,49 +182,197 @@ function ExtrudedSector({ map, sector, selected, dimmed, onSelect }) {
         }}
       >
         <meshStandardMaterial
-          color={faction?.color || "#777777"}
-          emissive={faction?.glow || "#777777"}
-          emissiveIntensity={selected ? 0.35 : 0.12}
+          color={useMaterialColor(faction?.fill, "#7d0611")}
+          emissive={useMaterialColor(faction?.glow, "#ff2438")}
+          emissiveIntensity={selected ? 0.36 : 0.16}
+          metalness={0.08}
+          opacity={fillOpacity}
+          roughness={0.42}
           transparent
-          opacity={selected ? 0.72 : dimmed ? 0.14 : 0.42}
-          roughness={0.34}
-          metalness={0.12}
         />
       </mesh>
       <line ref={borderRef} geometry={borderGeometry}>
-        <lineBasicMaterial color={faction?.glow || "#ffffff"} transparent opacity={0.52} blending={THREE.AdditiveBlending} />
+        <lineBasicMaterial color={useMaterialColor(faction?.glow, "#ff2438")} transparent opacity={0.62} blending={THREE.AdditiveBlending} />
       </line>
-      <Billboard position={[center.x, 0.32, center.z]}>
-        <Text
-          color={selected ? "#ffffff" : faction?.glow || "#ffffff"}
-          fontSize={selected ? 0.19 : 0.13}
-          maxWidth={radius * 1.35}
-          outlineColor="#050204"
-          outlineWidth={0.008}
-          textAlign="center"
-        >
-          {sector.name}
-        </Text>
-      </Billboard>
+      <SectorHatching sector={sector} selected={selected} entered={entered} color={useMaterialColor(faction?.glow, "#ff2438")} />
+      {!entered ? (
+        <Billboard position={sectorCenter(sector, 0.34)}>
+          <Text color="#ffb7bc" fontSize={0.13} outlineColor="#070102" outlineWidth={0.008} textAlign="center">
+            {sector.name}
+          </Text>
+        </Billboard>
+      ) : null}
     </group>
+  );
+}
+
+function SectorHatching({ sector, selected, entered, color }) {
+  const geometry = useMemo(() => {
+    const positions = [];
+    const lines = 28;
+    for (let index = 0; index <= lines; index += 1) {
+      const angle = sector.startAngleDeg + ((sector.endAngleDeg - sector.startAngleDeg) * index) / lines;
+      const inner = polar(sector.innerRadius + 0.08, angle, PLATE_HEIGHT + 0.045);
+      const outer = polar(sector.outerRadius - 0.08, angle, PLATE_HEIGHT + 0.045);
+      positions.push(inner.x, inner.y, inner.z, outer.x, outer.y, outer.z);
+    }
+    const next = new THREE.BufferGeometry();
+    next.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    return next;
+  }, [sector]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  return (
+    <lineSegments geometry={geometry}>
+      <lineBasicMaterial color={color} transparent opacity={selected ? 0.5 : entered ? 0.1 : 0.26} blending={THREE.AdditiveBlending} />
+    </lineSegments>
+  );
+}
+
+function GuideGrid({ map, entered }) {
+  const ringGeometries = useMemo(() => (map.regions || []).map(region => ({
+    id: region.id,
+    geometry: makeLineGeometry(makeRingPoints(region.radius[1], 0, 360, 0.01, 260)),
+    unknown: region.id === "wild-space"
+  })), [map]);
+  const spokeGeometries = useMemo(() => {
+    const known = (map.guide?.knownSpaceSpokes || []).map(angle => ({
+      id: `known-${angle}`,
+      geometry: makeLineGeometry([polar(CORE_RADIUS, angle, 0.016), polar(map.guide.radius, angle, 0.016)]),
+      opacity: 0.26
+    }));
+    const sparse = (map.guide?.sparseSpokes || []).map(angle => ({
+      id: `sparse-${angle}`,
+      geometry: makeLineGeometry([polar(2.7, angle, 0.014), polar(map.guide.radius, angle, 0.014)]),
+      opacity: 0.11
+    }));
+    return [...known, ...sparse];
+  }, [map]);
+  const unknownShape = useMemo(() => makeSectorShape({
+    innerRadius: 2.8,
+    outerRadius: map.guide.radius,
+    startAngleDeg: map.guide.unknownRegion.startAngleDeg,
+    endAngleDeg: map.guide.unknownRegion.endAngleDeg
+  }), [map]);
+  const unknownGeometry = useMemo(() => {
+    const next = new THREE.ShapeGeometry(unknownShape);
+    next.rotateX(Math.PI / 2);
+    return next;
+  }, [unknownShape]);
+
+  useEffect(() => () => {
+    ringGeometries.forEach(item => item.geometry.dispose());
+    spokeGeometries.forEach(item => item.geometry.dispose());
+    unknownGeometry.dispose();
+  }, [ringGeometries, spokeGeometries, unknownGeometry]);
+
+  const opacityScale = entered ? 0.18 : 1;
+
+  return (
+    <group>
+      <mesh geometry={unknownGeometry} position={[0, -0.01, 0]}>
+        <meshBasicMaterial color="#1a1a1a" transparent opacity={0.38 * opacityScale} side={THREE.DoubleSide} />
+      </mesh>
+      {ringGeometries.map(item => (
+        <line key={item.id} geometry={item.geometry}>
+          <lineBasicMaterial color={item.unknown ? "#777777" : "#9a3338"} transparent opacity={(item.unknown ? 0.12 : 0.23) * opacityScale} />
+        </line>
+      ))}
+      {spokeGeometries.map(item => (
+        <line key={item.id} geometry={item.geometry}>
+          <lineBasicMaterial color="#b63a41" transparent opacity={item.opacity * opacityScale} />
+        </line>
+      ))}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -0.025, 0]}>
+        <circleGeometry args={[map.guide.radius * MAP_SCALE, 192]} />
+        <meshBasicMaterial color="#110205" transparent opacity={entered ? 0.08 : 0.22} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh position={[0, 0.05, 0]}>
+        <sphereGeometry args={[0.22, 32, 16]} />
+        <meshBasicMaterial color="#fff4d8" transparent opacity={0.9} />
+      </mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0.052, 0]}>
+        <ringGeometry args={[0.33, 0.39, 72]} />
+        <meshBasicMaterial color="#d9a52d" transparent opacity={0.7} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+function SectorSurveyStars({ sector, visible }) {
+  const geometry = useMemo(() => {
+    const positions = new Float32Array((sector.surveyStars || []).length * 3);
+    (sector.surveyStars || []).forEach((star, index) => {
+      positions[index * 3] = star.position[0] * MAP_SCALE;
+      positions[index * 3 + 1] = PLATE_HEIGHT + 0.1;
+      positions[index * 3 + 2] = star.position[1] * MAP_SCALE;
+    });
+    const next = new THREE.BufferGeometry();
+    next.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    return next;
+  }, [sector]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  if (!visible) return null;
+
+  return (
+    <points geometry={geometry}>
+      <pointsMaterial color="#ffd8cf" size={0.075} transparent opacity={0.82} sizeAttenuation />
+    </points>
+  );
+}
+
+function BackdropStars({ entered }) {
+  const geometry = useMemo(() => {
+    let state = 7357;
+    const rnd = () => {
+      state = (state * 1664525 + 1013904223) >>> 0;
+      return state / 4294967296;
+    };
+    const count = 140;
+    const positions = new Float32Array(count * 3);
+    for (let index = 0; index < count; index += 1) {
+      const radius = 7.4 + rnd() * 9.5;
+      const angle = rnd() * TAU;
+      positions[index * 3] = Math.cos(angle) * radius;
+      positions[index * 3 + 1] = -0.4 + rnd() * 4.2;
+      positions[index * 3 + 2] = Math.sin(angle) * radius;
+    }
+    const next = new THREE.BufferGeometry();
+    next.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    return next;
+  }, []);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  return (
+    <points geometry={geometry}>
+      <pointsMaterial color="#fff1f2" size={0.025} transparent opacity={entered ? 0.12 : 0.34} sizeAttenuation />
+    </points>
   );
 }
 
 function PlanetNode({ map, planet, selected, onSelect }) {
   const faction = factionById(map, planet.factionId);
   const groupRef = useRef(null);
-  const [x, z] = planet.position;
+  const texture = useMemo(() => makePlanetTexture(planet), [planet]);
+  const position = useMemo(() => planetVector(planet, PLATE_HEIGHT + 0.28), [planet]);
+
+  useEffect(() => () => texture.dispose(), [texture]);
 
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
-    const pulse = 1 + Math.sin(clock.elapsedTime * 3.2) * 0.08;
-    groupRef.current.scale.setScalar(selected ? 1.35 * pulse : pulse);
+    groupRef.current.rotation.y += 0.006;
+    const scale = selected ? 1.38 : 1;
+    const pulse = 1 + Math.sin(clock.elapsedTime * 2.8) * 0.035;
+    groupRef.current.scale.setScalar(scale * pulse);
   });
 
   return (
     <group
-      ref={groupRef}
-      position={[x * MAP_SCALE, 0.42, z * MAP_SCALE]}
+      position={position.toArray()}
       onClick={event => {
         event.stopPropagation();
         onSelect(planet.id);
@@ -149,16 +386,22 @@ function PlanetNode({ map, planet, selected, onSelect }) {
         document.body.style.cursor = "";
       }}
     >
-      <mesh>
-        <sphereGeometry args={[0.12, 32, 16]} />
-        <meshStandardMaterial color={faction?.color || "#ffffff"} emissive={faction?.glow || "#ffffff"} emissiveIntensity={0.55} />
-      </mesh>
+      <group ref={groupRef}>
+        <mesh>
+          <sphereGeometry args={[planet.radius || 0.2, 64, 32]} />
+          <meshStandardMaterial map={texture} roughness={0.78} emissive="#240204" emissiveIntensity={0.12} />
+        </mesh>
+        <mesh scale={1.08}>
+          <sphereGeometry args={[(planet.radius || 0.2) * 1.02, 48, 24]} />
+          <meshBasicMaterial color={faction?.glow || "#ff2438"} transparent opacity={selected ? 0.2 : 0.11} blending={THREE.AdditiveBlending} side={THREE.BackSide} />
+        </mesh>
+      </group>
       <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.22, 0.24, 48]} />
-        <meshBasicMaterial color={faction?.glow || "#ffffff"} transparent opacity={0.68} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
+        <ringGeometry args={[0.32, 0.34, 72]} />
+        <meshBasicMaterial color={faction?.glow || "#ff2438"} transparent opacity={selected ? 0.74 : 0.46} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
       </mesh>
-      <Billboard position={[0, 0.35, 0]}>
-        <Text color="#ffffff" fontSize={0.13} outlineColor="#050204" outlineWidth={0.008}>
+      <Billboard position={[0, 0.48, 0]}>
+        <Text color="#ffffff" fontSize={0.13} outlineColor="#080102" outlineWidth={0.008} textAlign="center">
           {planet.shortName || planet.name}
         </Text>
       </Billboard>
@@ -166,110 +409,92 @@ function PlanetNode({ map, planet, selected, onSelect }) {
   );
 }
 
-function RegionRings({ map }) {
-  const rings = useMemo(() => (map.regions || [])
-    .filter(region => region.radius?.[1])
-    .map(region => ({
-      ...region,
-      radius: region.radius[1] * MAP_SCALE
-    })), [map]);
-
-  return (
-    <group>
-      {rings.map(region => (
-        <group key={region.id}>
-          <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -0.018, 0]}>
-            <ringGeometry args={[Math.max(0.02, region.radius - 0.008), region.radius + 0.008, 192]} />
-            <meshBasicMaterial color={region.id === "unknown-regions" ? "#777777" : "#b9f8ff"} transparent opacity={region.id === "unknown-regions" ? 0.09 : 0.18} side={THREE.DoubleSide} />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  );
-}
-
-function Starfield() {
-  const geometry = useMemo(() => {
-    const count = 850;
-    const positions = new Float32Array(count * 3);
-    for (let i = 0; i < count; i += 1) {
-      const radius = 7 + Math.random() * 12;
-      const angle = Math.random() * Math.PI * 2;
-      positions[i * 3] = Math.cos(angle) * radius;
-      positions[i * 3 + 1] = -0.6 + Math.random() * 5.6;
-      positions[i * 3 + 2] = Math.sin(angle) * radius;
-    }
-    const next = new THREE.BufferGeometry();
-    next.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    return next;
-  }, []);
-
-  useEffect(() => () => geometry.dispose(), [geometry]);
-
-  return (
-    <points geometry={geometry}>
-      <pointsMaterial color="#dff9ff" size={0.026} transparent opacity={0.58} sizeAttenuation />
-    </points>
-  );
-}
-
-function CameraRig({ map, selectedSector, selectedPlanet }) {
+function CameraRig({ selectedSector, selectedPlanet }) {
   const { camera } = useThree();
-  const targetRef = useRef(TARGET_HOME.clone());
-  const cameraRef = useRef(CAMERA_HOME.clone());
+  const controlsRef = useRef(null);
+  const desiredTarget = useRef(HOME_TARGET.clone());
+  const desiredCamera = useRef(HOME_CAMERA.clone());
+  const travelling = useRef(true);
+  const selectedKey = selectedPlanet?.id || selectedSector?.id || "home";
 
   useEffect(() => {
     if (selectedPlanet) {
-      const [x, z] = selectedPlanet.position;
-      const target = new THREE.Vector3(x * MAP_SCALE, 0.28, z * MAP_SCALE);
-      targetRef.current.copy(target);
-      cameraRef.current.copy(target).add(new THREE.Vector3(0.85, 2.0, 1.35));
-      return;
+      const target = planetVector(selectedPlanet, PLATE_HEIGHT + 0.2);
+      desiredTarget.current.copy(target);
+      desiredCamera.current.copy(target).add(new THREE.Vector3(0.85, 1.65, 1.2));
+    } else if (selectedSector) {
+      const target = sectorCenter(selectedSector, PLATE_HEIGHT + 0.08);
+      desiredTarget.current.copy(target);
+      desiredCamera.current.copy(target).add(new THREE.Vector3(0.28, 3.1, 2.8));
+    } else {
+      desiredTarget.current.copy(HOME_TARGET);
+      desiredCamera.current.copy(HOME_CAMERA);
     }
-    if (selectedSector) {
-      const target = centroid(selectedSector.points);
-      targetRef.current.copy(target);
-      cameraRef.current.copy(target).add(new THREE.Vector3(0.2, 4.4, 3.9));
-      return;
-    }
-    targetRef.current.copy(TARGET_HOME);
-    cameraRef.current.copy(CAMERA_HOME);
-  }, [selectedSector, selectedPlanet]);
+    travelling.current = true;
+  }, [selectedKey, selectedSector, selectedPlanet]);
 
   useFrame(() => {
-    camera.position.lerp(cameraRef.current, 0.055);
+    const controls = controlsRef.current;
+    if (!controls) return;
+    if (travelling.current) {
+      camera.position.lerp(desiredCamera.current, 0.075);
+      controls.target.lerp(desiredTarget.current, 0.09);
+      if (camera.position.distanceTo(desiredCamera.current) < 0.045 && controls.target.distanceTo(desiredTarget.current) < 0.035) {
+        camera.position.copy(desiredCamera.current);
+        controls.target.copy(desiredTarget.current);
+        travelling.current = false;
+      }
+    }
+    controls.update();
   });
 
-  return <OrbitControls makeDefault enableDamping dampingFactor={0.08} enablePan={false} minDistance={2.2} maxDistance={13.5} target={targetRef.current} />;
+  const focused = Boolean(selectedSector || selectedPlanet);
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      makeDefault
+      enableDamping
+      enablePan={false}
+      enableRotate
+      enableZoom
+      dampingFactor={0.08}
+      minDistance={focused ? 1.15 : 4.6}
+      maxDistance={selectedPlanet ? 3.8 : selectedSector ? 6.2 : 12.5}
+      rotateSpeed={0.72}
+      target={HOME_TARGET}
+    />
+  );
 }
 
 function GalaxyScene({ map, selectedSectorId, selectedPlanetId, onSelectSector, onSelectPlanet }) {
   const selectedSector = (map.sectors || []).find(sector => sector.id === selectedSectorId) || null;
   const selectedPlanet = (map.planets || []).find(planet => planet.id === selectedPlanetId) || null;
+  const entered = Boolean(selectedSector);
   const visiblePlanets = selectedSector ? planetsForSector(map, selectedSector.id) : [];
 
   return (
     <>
-      <color attach="background" args={["#020407"]} />
-      <fogExp2 attach="fog" args={["#041018", 0.018]} />
-      <ambientLight intensity={0.36} color="#78eaff" />
-      <directionalLight position={[4, 7, 5]} intensity={1.8} color="#ffffff" />
-      <pointLight position={[0, 2.8, 0]} intensity={34} distance={12} color="#62f7ff" />
-      <Starfield />
-      <RegionRings map={map} />
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
-        <circleGeometry args={[7.45 * MAP_SCALE, 160]} />
-        <meshBasicMaterial color="#0a2733" transparent opacity={0.18} side={THREE.DoubleSide} />
-      </mesh>
+      <color attach="background" args={["#070102"]} />
+      <fogExp2 attach="fog" args={["#080102", 0.012]} />
+      <ambientLight intensity={0.32} color="#ffb0b8" />
+      <directionalLight position={[4.2, 6.4, 5.2]} intensity={1.35} color="#fff1e6" />
+      <pointLight position={[0, 1.8, 0]} intensity={22} distance={12} color="#ffb22e" />
+      <pointLight position={selectedSector ? sectorCenter(selectedSector, 1.1).toArray() : [4.5, 1.1, -4.2]} intensity={selectedSector ? 34 : 18} distance={8} color="#ff2438" />
+      <BackdropStars entered={entered} />
+      <GuideGrid map={map} entered={entered} />
       {(map.sectors || []).map(sector => (
-        <ExtrudedSector
-          dimmed={Boolean(selectedSector && selectedSector.id !== sector.id)}
+        <SectorPlate
+          entered={entered}
           key={sector.id}
           map={map}
           onSelect={onSelectSector}
           selected={selectedSector?.id === sector.id}
           sector={sector}
         />
+      ))}
+      {(map.sectors || []).map(sector => (
+        <SectorSurveyStars key={`${sector.id}-survey`} sector={sector} visible={selectedSector?.id === sector.id} />
       ))}
       {visiblePlanets.map(planet => (
         <PlanetNode
@@ -280,13 +505,13 @@ function GalaxyScene({ map, selectedSectorId, selectedPlanetId, onSelectSector, 
           selected={selectedPlanet?.id === planet.id}
         />
       ))}
-      <CameraRig map={map} selectedSector={selectedSector} selectedPlanet={selectedPlanet} />
+      <CameraRig selectedPlanet={selectedPlanet} selectedSector={selectedSector} />
       <EffectComposer multisampling={0}>
-        <Bloom intensity={0.52} luminanceThreshold={0.18} luminanceSmoothing={0.28} />
-        <DepthOfField focusDistance={0.02} focalLength={0.012} bokehScale={0.22} height={420} />
-        <ChromaticAberration offset={[0.0005, 0.00025]} />
-        <Noise opacity={0.028} />
-        <Vignette eskil={false} offset={0.18} darkness={0.52} />
+        <Bloom intensity={0.44} luminanceThreshold={0.18} luminanceSmoothing={0.34} />
+        <DepthOfField focusDistance={0.018} focalLength={0.01} bokehScale={0.18} height={420} />
+        <ChromaticAberration offset={[0.00035, 0.00018]} />
+        <Noise opacity={0.024} />
+        <Vignette eskil={false} offset={0.2} darkness={0.5} />
       </EffectComposer>
     </>
   );
@@ -316,9 +541,7 @@ function IntelPanel({ map, selectedSector, selectedPlanet, onZoomOut }) {
 
   return (
     <aside className="gc-panel" aria-live="polite">
-      <button className="gc-zoom" type="button" onClick={onZoomOut}>
-        ZOOM OUT
-      </button>
+      <button className="gc-zoom" type="button" onClick={onZoomOut}>ZOOM OUT</button>
       <span className="gc-kicker">{selectedPlanet ? "Planet Intel" : "Sector Intel"}</span>
       <h1>{selectedPlanet?.name || selectedSector.name}</h1>
       <div className="gc-meta">
@@ -341,11 +564,7 @@ function IntelPanel({ map, selectedSector, selectedPlanet, onZoomOut }) {
             <span>Locations</span>
             {(selectedPlanet.locations || []).map(item => <p key={item}>{item}</p>)}
           </div>
-          {selectedPlanet.robloxLaunchUrl ? (
-            <a className="gc-play" href={selectedPlanet.robloxLaunchUrl}>
-              PLAY
-            </a>
-          ) : null}
+          {selectedPlanet.robloxLaunchUrl ? <a className="gc-play" href={selectedPlanet.robloxLaunchUrl}>PLAY</a> : null}
         </>
       ) : (
         <>
@@ -391,7 +610,7 @@ export function GalaxyControlMap({ map }) {
   return (
     <section className="gc-root" aria-label="Galaxy control map">
       <div className="gc-stage">
-        <Canvas camera={{ position: CAMERA_HOME.toArray(), fov: 48, near: 0.05, far: 80 }} dpr={[1, 1.65]} gl={{ antialias: true, powerPreference: "high-performance" }}>
+        <Canvas camera={{ position: HOME_CAMERA.toArray(), fov: 47, near: 0.04, far: 80 }} dpr={[1, 1.65]} gl={{ antialias: true, powerPreference: "high-performance" }}>
           <GalaxyScene
             map={map}
             onSelectPlanet={selectPlanet}
@@ -415,14 +634,14 @@ export function GalaxyControlMap({ map }) {
 const STYLES = `
   html:has(.gc-root),
   body:has(.gc-root) {
-    background: #020407;
+    background: #070102;
     overflow: hidden;
   }
 
   .gc-root {
     background:
-      radial-gradient(circle at 50% 46%, rgba(41, 228, 255, .08), transparent 46%),
-      linear-gradient(180deg, #06101a 0%, #020407 70%);
+      radial-gradient(circle at 50% 46%, rgba(255, 36, 56, .09), transparent 42%),
+      linear-gradient(180deg, #130306 0%, #070102 72%);
     color: #fff;
     font-family: 'Share Tech Mono', monospace;
     height: 100dvh;
@@ -442,6 +661,7 @@ const STYLES = `
   .gc-stage canvas {
     cursor: grab;
     height: 100% !important;
+    touch-action: none;
     width: 100% !important;
   }
 
@@ -451,18 +671,18 @@ const STYLES = `
 
   .gc-scan {
     background:
-      repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(116, 245, 255, .035) 3px, rgba(116, 245, 255, .035) 5px),
-      radial-gradient(circle at 50% 50%, transparent 0%, transparent 58%, rgba(0, 0, 0, .72) 100%);
+      repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(255, 165, 170, .026) 3px, rgba(255, 165, 170, .026) 5px),
+      radial-gradient(circle at 50% 50%, transparent 0%, transparent 58%, rgba(0, 0, 0, .74) 100%);
     mix-blend-mode: screen;
-    opacity: .8;
+    opacity: .74;
     pointer-events: none;
     z-index: 3;
   }
 
   .gc-header {
-    background: rgba(3, 14, 20, .72);
-    border: 1px solid rgba(93, 245, 255, .36);
-    box-shadow: 0 0 24px rgba(93, 245, 255, .18), inset 0 0 24px rgba(93, 245, 255, .04);
+    background: rgba(18, 2, 5, .76);
+    border: 1px solid rgba(255, 36, 56, .46);
+    box-shadow: 0 0 24px rgba(255, 36, 56, .22), inset 0 0 24px rgba(255, 255, 255, .025);
     clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
     display: grid;
     gap: 3px;
@@ -478,27 +698,27 @@ const STYLES = `
   .gc-meta,
   .gc-stat-grid span,
   .gc-list span {
-    color: rgba(227, 254, 255, .78);
+    color: rgba(255, 220, 222, .78);
     font-size: .64rem;
     text-transform: uppercase;
   }
 
   .gc-header strong {
-    color: #74f5ff;
+    color: #ff5263;
     font-family: Orbitron, monospace;
     font-size: .92rem;
-    text-shadow: 0 0 16px rgba(116, 245, 255, .45);
+    text-shadow: 0 0 16px rgba(255, 36, 56, .48);
   }
 
   .gc-panel {
-    background: rgba(3, 12, 18, .82);
-    border: 1px solid rgba(93, 245, 255, .34);
+    background: rgba(16, 2, 5, .84);
+    border: 1px solid rgba(255, 36, 56, .42);
     bottom: clamp(16px, 2.6vw, 34px);
-    box-shadow: 0 0 34px rgba(93, 245, 255, .18), inset 0 0 26px rgba(255, 255, 255, .035);
+    box-shadow: 0 0 34px rgba(255, 36, 56, .22), inset 0 0 26px rgba(255, 255, 255, .026);
     clip-path: polygon(0 0, calc(100% - 13px) 0, 100% 13px, 100% 100%, 13px 100%, 0 calc(100% - 13px));
     display: grid;
     gap: 12px;
-    max-width: 380px;
+    max-width: 390px;
     padding: 18px;
     position: absolute;
     right: clamp(16px, 2.6vw, 34px);
@@ -509,13 +729,13 @@ const STYLES = `
   .gc-panel h1 {
     color: #fff;
     font-family: Cinzel, serif;
-    font-size: 1.45rem;
+    font-size: 1.42rem;
     line-height: 1.05;
     text-transform: uppercase;
   }
 
   .gc-panel p {
-    color: rgba(255, 255, 255, .82);
+    color: rgba(255, 235, 236, .82);
     font-size: .8rem;
     line-height: 1.45;
   }
@@ -527,8 +747,9 @@ const STYLES = `
     grid-template-columns: 1fr auto;
   }
 
-  .gc-stat-grid {
-    border-top: 1px solid rgba(93, 245, 255, .22);
+  .gc-stat-grid,
+  .gc-list {
+    border-top: 1px solid rgba(255, 36, 56, .24);
     padding-top: 10px;
   }
 
@@ -549,19 +770,19 @@ const STYLES = `
     align-items: center;
     display: grid;
     gap: 8px;
-    grid-template-columns: 78px 1fr 38px;
+    grid-template-columns: 76px 1fr 38px;
   }
 
   .gc-control-row span,
   .gc-control-row strong {
-    color: rgba(255, 255, 255, .86);
+    color: rgba(255, 236, 238, .86);
     font-size: .66rem;
     text-transform: uppercase;
   }
 
   .gc-control-row div {
-    background: rgba(255, 255, 255, .08);
-    border: 1px solid rgba(255, 255, 255, .12);
+    background: rgba(255, 255, 255, .075);
+    border: 1px solid rgba(255, 255, 255, .1);
     height: 8px;
     overflow: hidden;
   }
@@ -573,15 +794,10 @@ const STYLES = `
     height: 100%;
   }
 
-  .gc-list {
-    border-top: 1px solid rgba(93, 245, 255, .22);
-    padding-top: 10px;
-  }
-
   .gc-zoom,
   .gc-play {
-    background: rgba(93, 245, 255, .08);
-    border: 1px solid rgba(93, 245, 255, .44);
+    background: rgba(255, 36, 56, .08);
+    border: 1px solid rgba(255, 36, 56, .48);
     color: #fff;
     cursor: crosshair;
     font: inherit;
@@ -597,15 +813,15 @@ const STYLES = `
   }
 
   .gc-play {
-    background: rgba(255, 52, 72, .16);
-    border-color: rgba(255, 52, 72, .82);
+    background: rgba(255, 36, 56, .17);
+    border-color: rgba(255, 36, 56, .88);
   }
 
   .gc-zoom:hover,
   .gc-zoom:focus-visible,
   .gc-play:hover,
   .gc-play:focus-visible {
-    box-shadow: 0 0 20px rgba(93, 245, 255, .28);
+    box-shadow: 0 0 20px rgba(255, 36, 56, .32);
     outline: none;
   }
 

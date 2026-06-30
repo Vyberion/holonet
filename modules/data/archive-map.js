@@ -14,7 +14,7 @@ export const ARCHIVE_MAP = {
       y: 420,
       width: 460,
       height: 500,
-      summary: "The enlarged central hall of the temple, opening into the gateway and connecting the podium, training path, Sith room, and western halls.",
+      summary: "",
       connections: ["Gateway", "Podium Room", "Training Hall", "Sith Room", "Council Approach", "Upper Western Hall"]
     },
     {
@@ -27,7 +27,7 @@ export const ARCHIVE_MAP = {
       y: 120,
       width: 460,
       height: 260,
-      summary: "A taller ceremonial room with a central combat mat and podium at the far end.",
+      summary: "",
       connections: ["Main Hall"]
     },
     {
@@ -40,7 +40,7 @@ export const ARCHIVE_MAP = {
       y: 500,
       width: 520,
       height: 85,
-      summary: "The upper western hallway, closer to the podium and leading toward the council chambers and adjoining rooms.",
+      summary: "",
       connections: ["Main Hall", "Sith Room", "Cantina", "High Ranks Room", "Inquisitor Room", "Council Chambers"]
     },
     {
@@ -49,11 +49,11 @@ export const ARCHIVE_MAP = {
       label: "Upper Hall",
       zone: "Western Access",
       shape: "rect",
-      x: 350,
-      y: 780,
-      width: 430,
+      x: 260,
+      y: 790,
+      width: 520,
       height: 85,
-      summary: "The lower western passage linking the main hall to Sith, Reaver, and guard spaces.",
+      summary: "",
       connections: ["Main Hall", "Sith Room", "Reaver Room", "Guard Room"]
     },
     {
@@ -63,10 +63,10 @@ export const ARCHIVE_MAP = {
       zone: "Spawn Chamber",
       shape: "rect",
       x: 520,
-      y: 640,
+      y: 620,
       width: 260,
-      height: 140,
-      summary: "The Sith spawn room with a direct opening into the main hall and links into the western hallway network.",
+      height: 150,
+      summary: "",
       connections: ["Main Hall", "Council Approach", "Upper Western Hall", "Guard Room"]
     },
     {
@@ -75,11 +75,11 @@ export const ARCHIVE_MAP = {
       label: "Reavers",
       zone: "Division Room",
       shape: "rect",
-      x: 120,
-      y: 735,
-      width: 230,
+      x: 60,
+      y: 760,
+      width: 200,
       height: 130,
-      summary: "Division room reached from the end of the upper western hall.",
+      summary: "",
       connections: ["Upper Western Hall"]
     },
     {
@@ -88,11 +88,11 @@ export const ARCHIVE_MAP = {
       label: "Guard",
       zone: "Division Room",
       shape: "rect",
-      x: 350,
-      y: 640,
-      width: 170,
-      height: 140,
-      summary: "Guard room connected beside the Sith room and above the upper western hall.",
+      x: 330,
+      y: 900,
+      width: 190,
+      height: 120,
+      summary: "",
       connections: ["Upper Western Hall", "Sith Room"]
     },
     {
@@ -101,11 +101,11 @@ export const ARCHIVE_MAP = {
       label: "Cantina",
       zone: "Utility Room",
       shape: "rect",
-      x: 290,
-      y: 615,
+      x: 300,
+      y: 365,
       width: 145,
       height: 105,
-      summary: "First lower room off the council approach.",
+      summary: "",
       connections: ["Council Approach"]
     },
     {
@@ -114,11 +114,11 @@ export const ARCHIVE_MAP = {
       label: "High Ranks",
       zone: "Command Room",
       shape: "rect",
-      x: 465,
-      y: 615,
+      x: 475,
+      y: 365,
       width: 155,
       height: 105,
-      summary: "High ranks room along the lower side of the council approach.",
+      summary: "",
       connections: ["Council Approach"]
     },
     {
@@ -127,11 +127,11 @@ export const ARCHIVE_MAP = {
       label: "Inquisitors",
       zone: "Division Room",
       shape: "rect",
-      x: 650,
-      y: 615,
-      width: 130,
+      x: 660,
+      y: 365,
+      width: 120,
       height: 105,
-      summary: "Inquisitor room at the final lower doorway before the main hall side of the approach.",
+      summary: "",
       connections: ["Council Approach"]
     },
     {
@@ -140,11 +140,11 @@ export const ARCHIVE_MAP = {
       label: "Council",
       zone: "Dark Council",
       shape: "rect",
-      x: 60,
-      y: 395,
-      width: 200,
-      height: 290,
-      summary: "Council chamber with Dark Council thrones on either side and the Emperor's throne at the end.",
+      x: 50,
+      y: 390,
+      width: 210,
+      height: 250,
+      summary: "",
       connections: ["Council Approach"]
     },
     {
@@ -157,7 +157,7 @@ export const ARCHIVE_MAP = {
       y: 980,
       width: 460,
       height: 400,
-      summary: "Longer training hall with side mats and a horizontal mat near the far end.",
+      summary: "",
       connections: ["Main Hall", "Library"]
     },
     {
@@ -170,7 +170,7 @@ export const ARCHIVE_MAP = {
       y: 1440,
       width: 380,
       height: 190,
-      summary: "Smaller library with a central walkway and rows of bookshelves on either side.",
+      summary: "",
       connections: ["Training Hall", "Dread Master Room"]
     },
     {
@@ -183,7 +183,7 @@ export const ARCHIVE_MAP = {
       cy: 1730,
       r: 120,
       sides: 12,
-      summary: "A twelve-sided sanctum with straight faces and lava surrounding the central platform.",
+      summary: "",
       connections: ["Library"]
     }
   ]

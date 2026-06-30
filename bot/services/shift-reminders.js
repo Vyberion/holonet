@@ -1,8 +1,10 @@
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { embed } from "./discord-ui.js";
 import { supabase } from "./supabase.js";
 
 const CHECK_INTERVAL_MS = 60 * 1000;
 const HOUR_SECONDS = 60 * 60;
+const REMINDER_PREFERENCES_TABLE = "shift_reminder_preferences";
 
 const remindedHoursByShiftId = new Map();
 
@@ -32,6 +34,15 @@ function activeShiftSeconds(shift, now = Date.now()) {
   return Math.max(0, liveSeconds + Number(shift.adjustment_seconds || 0));
 }
 
+function reminderControls(discordUserId) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`shiftreminder:disable:${discordUserId}`)
+      .setLabel("Disable Reminders")
+      .setStyle(ButtonStyle.Danger)
+  );
+}
+
 async function loadActiveShifts() {
   const { data, error } = await supabase
     .from("clock_shifts")
@@ -41,6 +52,38 @@ async function loadActiveShifts() {
 
   if (error) throw error;
   return data || [];
+}
+
+async function loadDisabledReminderUserIds(discordUserIds) {
+  const ids = [...new Set(discordUserIds.map(String).filter(Boolean))];
+  if (!ids.length) return new Set();
+
+  const { data, error } = await supabase
+    .from(REMINDER_PREFERENCES_TABLE)
+    .select("discord_user_id")
+    .in("discord_user_id", ids)
+    .eq("enabled", false);
+
+  if (error) throw error;
+  return new Set((data || []).map(row => String(row.discord_user_id)));
+}
+
+export async function setShiftRemindersEnabled(discordUserId, enabled) {
+  const userId = String(discordUserId || "").trim();
+  if (!userId) throw new Error("DISCORD_USER_REQUIRED");
+
+  const { data, error } = await supabase
+    .from(REMINDER_PREFERENCES_TABLE)
+    .upsert({
+      discord_user_id: userId,
+      enabled: Boolean(enabled),
+      updated_at: new Date().toISOString()
+    }, { onConflict: "discord_user_id" })
+    .select("enabled")
+    .single();
+
+  if (error) throw error;
+  return data;
 }
 
 async function sendShiftReminder(client, shift, hours) {
@@ -57,7 +100,8 @@ async function sendShiftReminder(client, shift, hours) {
       "Are you still ingame, or did you forget to clock out?",
       "",
       `Scope: ${scopeLabel(shift.scope)}`
-    ].join("\n"))]
+    ].join("\n"))],
+    components: [reminderControls(discordUserId)]
   });
 
   return true;
@@ -71,13 +115,20 @@ export async function checkShiftReminders(client, options = {}) {
     const now = Date.now();
     const activeShifts = await loadActiveShifts();
     const activeIds = new Set(activeShifts.map(shift => String(shift.id)));
+    const disabledReminderUserIds = await loadDisabledReminderUserIds(activeShifts.map(shift => shift.discord_user_id));
     let sent = 0;
     let skipped = 0;
     let failed = 0;
 
     for (const shift of activeShifts) {
       const shiftId = String(shift.id || "");
-      if (!shiftId) {
+      const discordUserId = String(shift.discord_user_id || "");
+      if (!shiftId || !discordUserId) {
+        skipped += 1;
+        continue;
+      }
+
+      if (disabledReminderUserIds.has(discordUserId)) {
         skipped += 1;
         continue;
       }

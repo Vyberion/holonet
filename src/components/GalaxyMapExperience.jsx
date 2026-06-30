@@ -828,11 +828,6 @@ export function GalaxyMapExperience({ map }) {
             <path d="m16 8 4 4-4 4" />
           </svg>
         </button>
-        <div className="gm-lockup">
-          <span>ARCHIVES / DIRECT NODE</span>
-          <strong>GALAXY MAP</strong>
-        </div>
-      </header>
 
       <aside className={`gm-panel${selectedId ? " is-focused" : ""}`} aria-live="polite">
         <div className="gm-panel-title">Galaxy Map</div>

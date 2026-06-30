@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Billboard, Html, OrbitControls, Sparkles, Stars } from "@react-three/drei";
-import { Bloom, ChromaticAberration, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
+import { Bloom, ChromaticAberration, DepthOfField, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
@@ -36,7 +36,13 @@ function vec3(value, fallback = [0, 0, 0]) {
   return new THREE.Vector3(next[0], next[1], next[2]);
 }
 
-function bodyLocalPosition(body) {
+function bodyLocalPosition(body, map) {
+  if (map && Number.isFinite(body.localAngleDeg) && Number.isFinite(body.localDistance)) {
+    const angle = THREE.MathUtils.degToRad(body.localAngleDeg);
+    const origin = focusMapPosition(map);
+    const y = body.localPosition?.[1] ?? body.position?.[1] ?? body.mapPosition?.[1] ?? 0;
+    return origin.add(new THREE.Vector3(Math.cos(angle) * body.localDistance, y - origin.y, Math.sin(angle) * body.localDistance));
+  }
   return vec3(body.localPosition || body.position || body.mapPosition);
 }
 
@@ -438,14 +444,14 @@ function SectorGrid() {
   );
 }
 
-function PlanetBody({ body, selected, hovered, onSelect, onHover, focusMode }) {
+function PlanetBody({ body, map, selected, hovered, onSelect, onHover, focusMode }) {
   const groupRef = useRef(null);
   const planetRef = useRef(null);
   const cloudsRef = useRef(null);
   const scanRef = useRef(null);
   const haloTexture = useMemo(() => makeGlowTexture("rgba(255,255,255,1)", colorWithAlpha(body.colors?.glow || "#ff3b4f", 0.52)), [body]);
   const textures = useMemo(() => makePlanetTextures(body), [body]);
-  const localPosition = useMemo(() => bodyLocalPosition(body), [body]);
+  const localPosition = useMemo(() => bodyLocalPosition(body, map), [body, map]);
 
   useEffect(() => () => {
     haloTexture.dispose();
@@ -533,10 +539,10 @@ function PlanetBody({ body, selected, hovered, onSelect, onHover, focusMode }) {
   );
 }
 
-function OrbitTrace({ body, parent, focusMode }) {
+function OrbitTrace({ body, parent, map, focusMode }) {
   const lineRef = useRef(null);
-  const parentVector = useMemo(() => bodyLocalPosition(parent), [parent]);
-  const childVector = useMemo(() => bodyLocalPosition(body), [body]);
+  const parentVector = useMemo(() => bodyLocalPosition(parent, map), [parent, map]);
+  const childVector = useMemo(() => bodyLocalPosition(body, map), [body, map]);
   const distance = parentVector.distanceTo(childVector);
   const points = useMemo(() => makeEllipsePoints(distance, distance * 0.52, 220), [distance]);
 
@@ -563,6 +569,7 @@ function LocalSystem({ map, selectedId, hoveredId, onSelect, onHover }) {
         <PlanetBody
           key={body.id}
           body={body}
+          map={map}
           selected={selectedId === body.id}
           hovered={hoveredId === body.id}
           onSelect={onSelect}
@@ -573,7 +580,7 @@ function LocalSystem({ map, selectedId, hoveredId, onSelect, onHover }) {
       {(map.bodies || []).map(body => {
         if (!body.parentId) return null;
         const parent = bodyById(map, body.parentId);
-        return parent ? <OrbitTrace key={`${body.id}-orbit`} body={body} parent={parent} focusMode={focusMode} /> : null;
+        return parent ? <OrbitTrace key={`${body.id}-orbit`} body={body} parent={parent} map={map} focusMode={focusMode} /> : null;
       })}
     </group>
   );
@@ -661,7 +668,7 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
     const body = bodyById(map, selectedId);
     if (!body) return;
     const next = selectedPositionRef.current || new THREE.Vector3();
-    next.copy(bodyLocalPosition(body));
+    next.copy(bodyLocalPosition(body, map));
     localRef.current.updateMatrixWorld();
     next.applyMatrix4(localRef.current.matrixWorld);
     selectedPositionRef.current = next;
@@ -714,6 +721,11 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
       />
       <EffectComposer multisampling={0}>
         <Bloom intensity={quality === "high" ? 0.72 : 0.46} luminanceThreshold={0.24} luminanceSmoothing={0.22} />
+        <DepthOfField
+          focusDistance={selectable ? 0.022 : 0.052}
+          focalLength={selectable ? 0.045 : 0.018}
+          bokehScale={quality === "high" ? 1.05 : 0.52}
+        />
         <ChromaticAberration offset={quality === "high" ? [0.0008, 0.0004] : [0.00035, 0.00018]} />
         <Noise opacity={0.032} />
         <Vignette eskil={false} offset={0.2} darkness={0.58} />

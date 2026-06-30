@@ -785,12 +785,6 @@ export function GalaxyMapExperience({ map }) {
         </div>
       </aside>
 
-      <div className="gm-hint" aria-hidden="true">
-        <span>FULL GALAXY OVERVIEW</span>
-        <span>DIRECT ARCHIVE NODE</span>
-        <span>{quality.toUpperCase()} RENDER</span>
-      </div>
-
       {!ready ? (
         <div className="gm-loading">
           <span />

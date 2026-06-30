@@ -33,7 +33,7 @@ export const GALAXY_MAP = {
         glow: "#ff4e36",
         accent: "#ffb05f"
       },
-      summary: "The ancient Sith homeworld, marked in later records as Moraband, burning at the edge of the old imperial charts."
+      summary: "The ancient Sith homeworld, marked in later records as Moraband, housing the primary Sith Temple."
     },
     {
       id: "khar-delba",
@@ -76,7 +76,7 @@ export const GALAXY_MAP = {
         glow: "#76e0ef",
         accent: "#f2c66d"
       },
-      summary: "A moon of Khar Delba, represented as a close secondary body in the local focus view."
+      summary: "A moon of Khar Delba, Naga Sadow's place of exile and the location of an ancient Sith Sanctum."
     }
   ]
 };

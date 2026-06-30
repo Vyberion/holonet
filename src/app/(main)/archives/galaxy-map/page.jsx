@@ -4,7 +4,7 @@ import { GALAXY_MAP } from "../../../../../modules/data/galaxy-map.js";
 
 export const metadata = holonetMetadata({
   title: "Galactic Map",
-  description: "Interactive galaxy map.."
+  description: "Interactive galaxy map."
 });
 
 export default function ArchivesGalaxyMapPage() {

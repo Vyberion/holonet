@@ -15,6 +15,11 @@ const GALAXY_BASE_ROTATION_Y = -0.32;
 const GALAXY_SPIN_SPEED = 0.026;
 const PLANET_SIZE_SCALE = 0.82;
 const BODY_Y_OFFSET = -0.3;
+const DOF_FOCUS_DISTANCE = 0;
+const DOF_FOCAL_LENGTH = 0.018;
+const DOF_BOKEH_SCALE_HIGH = 0.42;
+const DOF_BOKEH_SCALE_BALANCED = 0.24;
+const DOF_HEIGHT = 480;
 
 function seededRandom(seed) {
   let state = seed >>> 0;
@@ -557,6 +562,7 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
   const zoomSignalRef = useRef(zoomOutSignal);
   const focusTravel = useRef(false);
   const focusTargetLatched = useRef(false);
+  const selectedTrackTarget = useRef(null);
   const zoomTravel = useRef(false);
   const targetCamera = useRef(WIDE_CAMERA.clone());
   const targetControl = useRef(WIDE_TARGET.clone());
@@ -567,6 +573,7 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
     if (selectedId) {
       focusTravel.current = true;
       focusTargetLatched.current = false;
+      selectedTrackTarget.current = null;
       zoomTravel.current = false;
       if (controls) {
         controls.autoRotate = false;
@@ -586,6 +593,7 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
     zoomTravel.current = true;
     focusTravel.current = false;
     focusTargetLatched.current = false;
+    selectedTrackTarget.current = null;
     const controls = controlsRef.current;
     if (controls) {
       controls.enabled = false;
@@ -601,6 +609,7 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
       if (selectedIdRef.current) {
         focusTravel.current = false;
         focusTargetLatched.current = false;
+        selectedTrackTarget.current = null;
         controls.enabled = true;
         controls.autoRotate = false;
       }
@@ -628,6 +637,7 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
         const wasZooming = zoomTravel.current;
         focusTravel.current = false;
         focusTargetLatched.current = false;
+        selectedTrackTarget.current = null;
         zoomTravel.current = false;
         controls.enabled = true;
         controls.autoRotate = wasZooming && !selectedIdRef.current;
@@ -635,6 +645,21 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
     } else {
       controls.enabled = true;
       controls.autoRotate = !selectedIdRef.current;
+    }
+
+    if (selectedPosition && !focusTravel.current && !zoomTravel.current) {
+      const lastTarget = selectedTrackTarget.current || controls.target.clone();
+      const delta = selectedPosition.clone().sub(lastTarget);
+      if (delta.lengthSq() > 0.0000001) {
+        camera.position.add(delta);
+        controls.target.add(delta);
+      }
+      controls.target.copy(selectedPosition);
+      targetControl.current.copy(selectedPosition);
+      targetCamera.current.copy(camera.position);
+      selectedTrackTarget.current = selectedPosition.clone();
+    } else if (!selectedPosition) {
+      selectedTrackTarget.current = null;
     }
 
     controls.update();
@@ -710,9 +735,9 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
         makeDefault
         enableDamping
         dampingFactor={0.07}
-        enablePan={Boolean(selectable)}
-        minDistance={4.2}
-        maxDistance={34}
+        enablePan={false}
+        minDistance={selectable ? 1.25 : 4.2}
+        maxDistance={selectable ? 9.5 : 34}
         autoRotate={!selectable}
         autoRotateSpeed={0.22}
         onStart={() => {
@@ -722,7 +747,12 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
       />
       <EffectComposer multisampling={0}>
         <Bloom intensity={quality === "high" ? 0.72 : 0.46} luminanceThreshold={0.24} luminanceSmoothing={0.22} />
-        <DepthOfField focusDistance={0} focalLength={0.032} bokehScale={quality === "high" ? 1.05 : 0.58} height={480} />
+        <DepthOfField
+          focusDistance={DOF_FOCUS_DISTANCE}
+          focalLength={DOF_FOCAL_LENGTH}
+          bokehScale={quality === "high" ? DOF_BOKEH_SCALE_HIGH : DOF_BOKEH_SCALE_BALANCED}
+          height={DOF_HEIGHT}
+        />
         <ChromaticAberration offset={quality === "high" ? [0.0008, 0.0004] : [0.00035, 0.00018]} />
         <Noise opacity={0.032} />
         <Vignette eskil={false} offset={0.2} darkness={0.58} />

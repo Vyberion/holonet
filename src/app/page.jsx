@@ -84,22 +84,6 @@ export default function HomePage() {
           <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
         </a>
 
-        <a href="/archives/galaxy-map" className="nav-card nav-card--home-short" aria-label="Enter Galaxy Map">
-          <div className="card-inner-border" aria-hidden="true" />
-          <div className="card-corners" aria-hidden="true" />
-          <div className="card-vline" aria-hidden="true" />
-          <div className="card-scan" aria-hidden="true" />
-          <div className="card-bg-glyph" aria-hidden="true">II.II</div>
-          <div className="card-hex" aria-hidden="true">0x5E&nbsp;&nbsp;SECT.02.2</div>
-          <div className="card-data" aria-hidden="true">
-            CLEARANCE: UNCLASSIFIED<br />
-            DESIGNATION: LEVEL 1<br />
-          </div>
-          <span className="card-category">Section 02.2 &mdash; Cartography</span>
-          <h2 className="card-title">Galaxy</h2>
-          <p className="card-desc">Interactive map.</p>
-          <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
-        </a>
       </nav>
 
       <div className="marquee-wrap" aria-hidden="true">
@@ -107,16 +91,8 @@ export default function HomePage() {
       </div>
 
       <style>{`
-        .nav-grid--home {
-          grid-template-columns: repeat(6, 1fr);
-        }
-
-        .nav-grid--home .nav-card {
-          grid-column: span 2;
-        }
-
         .nav-grid--home .nav-card--home-short {
-          grid-column: span 3;
+          grid-column: 1 / -1;
           height: clamp(190px, 19vh, 270px);
           min-height: 190px;
         }

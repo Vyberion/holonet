@@ -131,8 +131,7 @@ export function HolonetNav() {
       prefix: "02",
       label: "Archives",
       dropdown: [
-        { href: "/archives/cots", page: "archives-cots", label: "CoTS" },
-        { href: "/archives/galaxy-map", page: "archives-galaxy-map", label: "Galaxy" }
+        { href: "/archives/cots", page: "archives-cots", label: "CoTS" }
       ]
     },
     { href: "/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },

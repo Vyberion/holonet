@@ -8,20 +8,10 @@ export const metadata = holonetMetadata({
   description: "Interactive galaxy map."
 });
 
-const KORRIBAN_SELECTED_RADIUS = 0.34;
-
-function galaxyMapBodies() {
-  return visibleGalaxyBodies(GALAXY_MAP).map(body => (
-    body.id === "korriban"
-      ? { ...body, radius: KORRIBAN_SELECTED_RADIUS }
-      : body
-  ));
-}
-
 export default function ArchivesGalaxyMapPage() {
   const visibleMap = {
     ...GALAXY_MAP,
-    bodies: galaxyMapBodies()
+    bodies: visibleGalaxyBodies(GALAXY_MAP)
   };
 
   return (

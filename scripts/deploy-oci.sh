@@ -18,11 +18,6 @@ git fetch origin "$BRANCH"
 git checkout "$BRANCH"
 git pull --ff-only origin "$BRANCH"
 
-if command -v corepack >/dev/null 2>&1; then
-  corepack enable >/dev/null 2>&1 || true
-fi
-
-npm ci
 npm run build
 
 pm2 startOrReload ecosystem.config.cjs --only "$APP_NAME" --update-env

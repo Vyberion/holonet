@@ -1,6 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from "discord.js";
 import { canViewDivisionReports, canWriteDivisionReport } from "../../modules/auth/permissions.js";
 import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
+import { postActivityLog } from "../services/activity-log.js";
 import { embed, ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
 import { loadRobloxUser } from "../services/roblox.js";
 import { divisionTierWeight, getVerifiedProfile } from "../services/roles.js";
@@ -567,6 +568,7 @@ async function confirmWriteReport(interaction, scope) {
   await interaction.deferUpdate();
   try {
     const report = await saveWeeklyReportForScope(interaction, scope);
+    const totals = reportTotals(report.members);
     await interaction.editReply({
       embeds: [reportPreviewEmbed({
         title: `${scopeLabel(scope)} Weekly Report Saved`,
@@ -576,6 +578,16 @@ async function confirmWriteReport(interaction, scope) {
         members: report.members
       })],
       components: []
+    });
+    await postActivityLog(interaction.client, {
+      title: "Report Written",
+      description: `<@${interaction.user.id}> wrote the **${scopeLabel(scope)}** weekly report and reset that scope's clock time.`,
+      fields: [
+        { name: "Week Start", value: report.weekStart || "Unknown", inline: true },
+        { name: "Author", value: report.authorName || "Unknown", inline: true },
+        { name: "Total Time", value: formatHoursMinutesFromMinutes(totals.minutes), inline: true },
+        { name: "Members", value: String(report.members?.length || 0), inline: true }
+      ]
     });
   } catch (error) {
     await interaction.editReply({ embeds: [errorEmbed(reportErrorMessage(error))], components: [] });
@@ -592,12 +604,29 @@ async function confirmReset(interaction, parts) {
     if (mode === "scope") {
       await resetClockShiftsForScope(scope, resetAt);
       await interaction.editReply({ embeds: [successEmbed("Scope Reset", `${scopeLabel(scope)} time has been reset.`)], components: [] });
+      await postActivityLog(interaction.client, {
+        title: "Time Reset",
+        description: `<@${interaction.user.id}> reset clock time for **${scopeLabel(scope)}**.`,
+        fields: [
+          { name: "Scope", value: scopeLabel(scope), inline: true },
+          { name: "Reset At", value: `<t:${Math.floor(new Date(resetAt).getTime() / 1000)}:F>`, inline: true }
+        ]
+      });
       return;
     }
 
     const discordIds = userList.split(",").map(value => value.trim()).filter(Boolean);
     await resetClockShiftsForUsers(scope, discordIds, resetAt);
     await interaction.editReply({ embeds: [successEmbed("User Time Reset", `${discordIds.map(id => `<@${id}>`).join(", ")} time has been reset in ${scopeLabel(scope)}.`)], components: [] });
+    await postActivityLog(interaction.client, {
+      title: "Time Reset",
+      description: `<@${interaction.user.id}> reset user clock time in **${scopeLabel(scope)}**.`,
+      fields: [
+        { name: "Scope", value: scopeLabel(scope), inline: true },
+        { name: "Users", value: discordIds.map(id => `<@${id}>`).join(", ") || "None", inline: false },
+        { name: "Reset At", value: `<t:${Math.floor(new Date(resetAt).getTime() / 1000)}:F>`, inline: true }
+      ]
+    });
   } catch (error) {
     await interaction.editReply({ embeds: [errorEmbed(reportErrorMessage(error))], components: [] });
   }

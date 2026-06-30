@@ -1,5 +1,11 @@
 import { notFound, redirect } from "next/navigation";
-import { getDivisionByRouteSlug } from "../../../../lib/divisions.js";
+import {
+  divisionLockedHref,
+  divisionPublicInfoPath,
+  getDivisionByRouteSlug,
+  isPublicInfoDivision
+} from "../../../../lib/divisions.js";
+import DivisionSectionPage from "./[section]/page.jsx";
 
 export default async function DivisionRedirectPage({ params }) {
   const routeParams = await params;
@@ -8,5 +14,14 @@ export default async function DivisionRedirectPage({ params }) {
 
   if (!division) notFound();
 
-  redirect(`/${divisionSlug}/home`);
+  if (isPublicInfoDivision(division.id)) {
+    const canonicalInfoPath = divisionPublicInfoPath(division.id);
+    if (canonicalInfoPath && `/${divisionSlug.toLowerCase()}` !== canonicalInfoPath) {
+      redirect(canonicalInfoPath);
+    }
+
+    return DivisionSectionPage({ params: { division: divisionSlug, section: "info" } });
+  }
+
+  redirect(divisionLockedHref(division.id));
 }

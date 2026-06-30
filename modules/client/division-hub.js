@@ -1,4 +1,4 @@
-import { getDivision } from "../data/divisions/index.js";
+import { divisionLockedHref, getDivision } from "../data/divisions/index.js";
 import { fetchDivisionResources } from "./resources.js";
 
 const reportViewCache = new Map();
@@ -99,7 +99,7 @@ function renderFeed(items, emptyText) {
 }
 
 function divisionBasePath(division) {
-  return (division.href || `/${division.id}/home`).replace(/\/home(?:\.html)?$/, "");
+  return divisionLockedHref(division.id).replace(/\/+$/, "");
 }
 
 function resourceLink(item, kind, division) {
@@ -195,7 +195,7 @@ function renderCouncilFloorCard(division) {
         <div>
           <h3 class="hub-panel-title">Council Floor</h3>
         </div>
-        <a class="hub-inline-link" href="/dark-council/council-floor">OPEN FLOOR</a>
+        <a class="hub-inline-link" href="${escapeHtml(divisionLockedHref("darkCouncil", "council-floor"))}">OPEN FLOOR</a>
       </div>
       <p class="hub-summary">Propose legislation, motions and councillor elections. Votes are subject to veto.</p>
     </section>

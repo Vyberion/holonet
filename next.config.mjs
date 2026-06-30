@@ -52,10 +52,14 @@ const nextConfig = {
     return [
       { source: "/index.html", destination: "/" },
       { source: "/reavers/:section.html", destination: "/reavers/:section" },
+      { source: "/guards/:section.html", destination: "/guards/:section" },
       { source: "/dark-honor-guards/:section.html", destination: "/dark-honor-guards/:section" },
       { source: "/inquisitors/:section.html", destination: "/inquisitors/:section" },
+      { source: "/dreads/:section.html", destination: "/dreads/:section" },
       { source: "/dread-masters/:section.html", destination: "/dread-masters/:section" },
+      { source: "/instructors/:section.html", destination: "/instructors/:section" },
       { source: "/highranks/:section.html", destination: "/highranks/:section" },
+      { source: "/council/:section.html", destination: "/council/:section" },
       { source: "/dark-council/:section.html", destination: "/dark-council/:section" },
       { source: "/:path*.html", destination: "/:path*" }
     ];

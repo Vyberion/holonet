@@ -28,6 +28,12 @@ const DIVISION_ROUTES = {
     title: 'Reavers Handbooks',
     summary: 'Reaver handbook and guide archive.'
   },
+  '/guards': {
+    node: 'DHG-02',
+    shortName: 'DHG',
+    title: 'DHG Handbooks',
+    summary: 'Dark Honor Guard handbook and guide archive.'
+  },
   '/dark-honor-guards': {
     node: 'DHG-02',
     shortName: 'DHG',
@@ -40,11 +46,23 @@ const DIVISION_ROUTES = {
     title: 'Inquisitor Handbooks',
     summary: 'Inquisitor handbook and guide archive.'
   },
+  '/dreads': {
+    node: 'DM-04',
+    shortName: 'Dread Masters',
+    title: 'Dread Master Handbooks',
+    summary: 'Dread Master handbook and guide archive.'
+  },
   '/dread-masters': {
     node: 'DM-04',
     shortName: 'Dread Masters',
     title: 'Dread Master Handbooks',
     summary: 'Dread Master handbook and guide archive.'
+  },
+  '/instructors': {
+    node: 'HR-05',
+    shortName: 'High Ranks',
+    title: 'High Rank Handbooks',
+    summary: 'High Rank handbook and guide archive.'
   },
   '/highranks': {
     node: 'HR-05',
@@ -52,12 +70,27 @@ const DIVISION_ROUTES = {
     title: 'High Rank Handbooks',
     summary: 'High Rank handbook and guide archive.'
   },
+  '/council': {
+    node: 'DC-06',
+    shortName: 'Dark Council',
+    title: 'Dark Council Handbooks',
+    summary: 'Dark Council handbook and guide archive.'
+  },
   '/dark-council': {
     node: 'DC-06',
     shortName: 'Dark Council',
     title: 'Dark Council Handbooks',
     summary: 'Dark Council handbook and guide archive.'
   },
+};
+
+const DIVISION_SUBDOMAIN_ROUTES = {
+  reavers: DIVISION_ROUTES['/reavers'],
+  guards: DIVISION_ROUTES['/guards'],
+  inquisitors: DIVISION_ROUTES['/inquisitors'],
+  dreads: DIVISION_ROUTES['/dreads'],
+  instructors: DIVISION_ROUTES['/instructors'],
+  council: DIVISION_ROUTES['/council']
 };
 
 function buildMarquee() {
@@ -149,6 +182,9 @@ function initCardCorruption() {
 }
 
 function currentDivisionRoute() {
+  const hostLabel = window.location.hostname.split('.')[0]?.toLowerCase() || '';
+  if (DIVISION_SUBDOMAIN_ROUTES[hostLabel]) return DIVISION_SUBDOMAIN_ROUTES[hostLabel];
+
   const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
 
   return Object.entries(DIVISION_ROUTES).find(([route]) => (

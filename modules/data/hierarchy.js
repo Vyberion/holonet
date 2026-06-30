@@ -228,28 +228,28 @@ const HIERARCHY_GROUPS = [
     items: [
       {
         slug: "dark-honor-guards",
-        href: "/dark-honor-guards/info",
+        href: "/guards",
         name: "Dark Honor Guard",
         body: "The Dark Honor Guards are an elite set of individuals who are tasked with upholding and maintaining law and order within the Temple. These individuals are tasked with neutralizing hostile threats, safeguarding members of high importance, and serving as the primary law enforcement force on Korriban.\n\nGuard members undergo harsh training and are well equipped to handle any situation that may arise. They are granted specialized tools, which include:\n\nSaber Pike - A weapon with extended range compared to standard Lightsabers.\nDivisional Force - Used to manage rule-breakers and aid in line of work.\nCuffs - Used to detain and jail rule-breakers within the Sanctum.\n\nJoining Requirements:\nProspective members must have a solid understanding of the Sith Codex as well as the rules of Korriban. A high level of discipline, professionalism, and commitment to the Guard's code is expected at all times. Members must also be ranked Academy Student or higher to attend a tryout.\n\nDivision Type: Law Enforcement",
         category: "Division"
       },
       {
         slug: "reavers",
-        href: "/reavers/info",
+        href: "/reavers",
         name: "Reavers",
         body: "The Reavers are the Emperor's Elite Assassins, they are entrusted with eliminating any hostile threat and protecting the Temple from external threats at all costs. Operating in secrecy, they carry out secret missions designed to maintain order, and security amongst the Sith Order.\n\nAs a special operations division, Reavers are equipped with specialized tools and abilities that aid in their missions, such as:\n\nDual Saber - A weapon with faster swing speeds than regular sabers.\nDivisional Force - Useful for pursuing and neutralizing fleeing hostiles.\nEmulate - Allows members to disguise themselves during operations.\n\nJoining Requirements:\nSith looking to join must possess a strong understanding of the Sith Codex and be highly proficient in Lightsaber combat. Professionalism, discipline, and discretion are also highly important for anyone seeking to become a Reaver. Members must also be ranked Academy Student or higher to attend a tryout.\n\nDivision Type: Special Operations",
         category: "Division"
       },
       {
         slug: "dread-masters",
-        href: "/dread-masters/info",
+        href: "/dreads",
         name: "Dread Masters",
         body: "The Dread Masters are a group of powerful and influential beings within the Order who are tasked with teaching Ancient Knowledge to the next generation of Sith. Through engaging lore trainings, they ensure the preservation and understanding of the Order's history and philosophies are kept.\n\nSpecializing in Sith lore, Dread Masters possess deep knowledge of ancient teachings and wield the tools needed to both educate and enforce the Order's philosophies:\n\nDread Pike - Has greater range than regular sabers. And is yellow.\nDivisional Force - Used for swift mobility across the temple and training grounds.\nAdministrator on Korriban - Enables them to host and manage lore sessions effectively.\n\nJoining Requirements:\nAspiring Sith must demonstrate strong proficiency in Sith Lore as well as in the Sith Codex. A deep understanding of the teachings of the Order, and a high level of professionalism are essential for those seeking to join the Dread Council. Members must also be ranked Academy Student or higher to attend a tryout.\n\nDivision Type: Ancient Knowledge",
         category: "Division"
       },
       {
         slug: "inquisitors",
-        href: "/inquisitors/info",
+        href: "/inquisitors",
         name: "Inquisitorius",
         body: "Division information can be filled in here.",
         category: "Division"

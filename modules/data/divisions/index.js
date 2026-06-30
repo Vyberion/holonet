@@ -1,3 +1,136 @@
+const DIVISION_ROUTE_META = {
+  reavers: {
+    publicSlug: "reavers",
+    subdomain: "reavers",
+    aliases: ["reavers"]
+  },
+  dhg: {
+    publicSlug: "guards",
+    subdomain: "guards",
+    aliases: ["guards", "dark-honor-guards", "darkhonorguards", "dhg"]
+  },
+  inquisitors: {
+    publicSlug: "inquisitors",
+    subdomain: "inquisitors",
+    aliases: ["inquisitors"]
+  },
+  dreadmasters: {
+    publicSlug: "dreads",
+    subdomain: "dreads",
+    aliases: ["dreads", "dread-masters", "dreadmasters"]
+  },
+  highranks: {
+    publicSlug: "instructors",
+    subdomain: "instructors",
+    aliases: ["instructors", "highranks", "high-ranks"]
+  },
+  darkCouncil: {
+    publicSlug: "council",
+    subdomain: "council",
+    aliases: ["council", "dark-council", "darkcouncil"]
+  }
+};
+
+const PUBLIC_INFO_DIVISION_IDS = new Set(["reavers", "dhg", "inquisitors", "dreadmasters"]);
+
+const ROUTE_ALIAS_TO_ID = Object.fromEntries(
+  Object.entries(DIVISION_ROUTE_META).flatMap(([id, meta]) => (
+    [meta.publicSlug, meta.subdomain, ...(meta.aliases || [])]
+      .filter(Boolean)
+      .map(alias => [String(alias).toLowerCase(), id])
+  ))
+);
+
+const SUBDOMAIN_TO_ID = Object.fromEntries(
+  Object.entries(DIVISION_ROUTE_META).map(([id, meta]) => [meta.subdomain, id])
+);
+
+function configuredRootOrigin() {
+  const env = typeof process !== "undefined" ? process.env || {} : {};
+  const value =
+    env.NEXT_PUBLIC_SITE_URL ||
+    env.NEXT_PUBLIC_ROOT_URL ||
+    env.HOLONET_BASE_URL ||
+    env.VERCEL_PROJECT_PRODUCTION_URL ||
+    env.VERCEL_BRANCH_URL ||
+    env.VERCEL_URL ||
+    "https://holonet.vercel.app";
+
+  const normalized = String(value || "").trim();
+  if (!normalized) return "https://holonet.vercel.app";
+  return (normalized.startsWith("http") ? normalized : `https://${normalized}`).replace(/\/+$/, "");
+}
+
+function normalizeOrigin(value) {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "";
+  return (normalized.startsWith("http") ? normalized : `https://${normalized}`).replace(/\/+$/, "");
+}
+
+function rootHostname(hostname = "") {
+  const labels = String(hostname || "").toLowerCase().split(".").filter(Boolean);
+  if (labels.length > 2 && SUBDOMAIN_TO_ID[labels[0]]) return labels.slice(1).join(".");
+  if (labels.length > 2 && labels[0] === "www") return labels.slice(1).join(".");
+  return labels.join(".");
+}
+
+export function holonetRootOrigin() {
+  if (typeof window !== "undefined" && window.location?.hostname) {
+    const url = new URL(window.location.origin);
+    url.hostname = rootHostname(url.hostname);
+    return url.origin.replace(/\/+$/, "");
+  }
+
+  const url = new URL(configuredRootOrigin());
+  url.hostname = rootHostname(url.hostname);
+  return url.origin.replace(/\/+$/, "");
+}
+
+export function divisionIdFromRouteSlug(slug) {
+  return ROUTE_ALIAS_TO_ID[String(slug || "").toLowerCase()] || "";
+}
+
+export function divisionIdFromSubdomain(subdomain) {
+  return SUBDOMAIN_TO_ID[String(subdomain || "").toLowerCase()] || "";
+}
+
+export function divisionSubdomainForId(id) {
+  return DIVISION_ROUTE_META[id]?.subdomain || "";
+}
+
+export function divisionPublicSlug(id) {
+  return DIVISION_ROUTE_META[id]?.publicSlug || "";
+}
+
+export function isPublicInfoDivision(id) {
+  return PUBLIC_INFO_DIVISION_IDS.has(id);
+}
+
+export function divisionPublicInfoPath(id) {
+  const slug = divisionPublicSlug(id);
+  return slug ? `/${slug}` : "";
+}
+
+export function divisionLockedPath(section = "home") {
+  const normalized = String(section || "home").toLowerCase().replace(/^\/+|\/+$/g, "");
+  const route = normalized === "trackers" ? "activity" : normalized;
+  return !route || route === "home" ? "/" : `/${route}`;
+}
+
+export function divisionSubdomainOrigin(id, rootOrigin = "") {
+  const subdomain = divisionSubdomainForId(id);
+  const origin = normalizeOrigin(rootOrigin) || holonetRootOrigin();
+  if (!subdomain) return origin;
+
+  const url = new URL(origin);
+  url.hostname = `${subdomain}.${rootHostname(url.hostname)}`;
+  return url.origin.replace(/\/+$/, "");
+}
+
+export function divisionLockedHref(id, section = "home", rootOrigin = "") {
+  return `${divisionSubdomainOrigin(id, rootOrigin)}${divisionLockedPath(section)}`;
+}
+
 const DIVISIONS = {
   reavers: {
     id: "reavers",
@@ -6,7 +139,7 @@ const DIVISIONS = {
     subtitle: "The Emperor's assassins",
     node: "RVR-01",
     theme: "theme-reavers",
-    href: "/reavers/home",
+    href: divisionLockedHref("reavers"),
     status: "restricted",
     description: "Elite assassins entrusted with eliminating hostile threats and protecting the Temple from external threats.",
     access: {
@@ -22,10 +155,10 @@ const DIVISIONS = {
     reports: [],
     trackers: [],
     actions: [
-      { label: "Open Handbooks", href: "/reavers/handbooks", minimumTier: "member" },
-      { label: "Open Transmissions", href: "/reavers/transmissions", minimumTier: "member" },
-      { label: "Open Reports", href: "/reavers/reports", minimumTier: "member" },
-      { label: "Open Activity", href: "/reavers/trackers", minimumTier: "member" }
+      { label: "Open Handbooks", href: divisionLockedHref("reavers", "handbooks"), minimumTier: "member" },
+      { label: "Open Transmissions", href: divisionLockedHref("reavers", "transmissions"), minimumTier: "member" },
+      { label: "Open Reports", href: divisionLockedHref("reavers", "reports"), minimumTier: "member" },
+      { label: "Open Activity", href: divisionLockedHref("reavers", "activity"), minimumTier: "member" }
     ]
   },
 
@@ -36,7 +169,7 @@ const DIVISIONS = {
     subtitle: "Temple law and order",
     node: "DHG-02",
     theme: "theme-dhg",
-    href: "/dark-honor-guards/home",
+    href: divisionLockedHref("dhg"),
     status: "restricted",
     description: "Elite guards tasked with maintaining law and order within the Temple.",
     access: {
@@ -52,10 +185,10 @@ const DIVISIONS = {
     reports: [],
     trackers: [],
     actions: [
-      { label: "Open Handbooks", href: "/dark-honor-guards/handbooks", minimumTier: "member" },
-      { label: "Open Transmissions", href: "/dark-honor-guards/transmissions", minimumTier: "member" },
-      { label: "Open Reports", href: "/dark-honor-guards/reports", minimumTier: "member" },
-      { label: "Open Activity", href: "/dark-honor-guards/trackers", minimumTier: "member" }
+      { label: "Open Handbooks", href: divisionLockedHref("dhg", "handbooks"), minimumTier: "member" },
+      { label: "Open Transmissions", href: divisionLockedHref("dhg", "transmissions"), minimumTier: "member" },
+      { label: "Open Reports", href: divisionLockedHref("dhg", "reports"), minimumTier: "member" },
+      { label: "Open Activity", href: divisionLockedHref("dhg", "activity"), minimumTier: "member" }
     ]
   },
 
@@ -66,7 +199,7 @@ const DIVISIONS = {
     subtitle: "Internal investigation and enforcement",
     node: "IQ-03",
     theme: "theme-inquisitors",
-    href: "/inquisitors/home",
+    href: divisionLockedHref("inquisitors"),
     status: "restricted",
     description: "Intelligence and background oversight of the group to ensure high standards.",
     access: {
@@ -82,10 +215,10 @@ const DIVISIONS = {
     reports: [],
     trackers: [],
     actions: [
-      { label: "Open Handbooks", href: "/inquisitors/handbooks", minimumTier: "member" },
-      { label: "Open Transmissions", href: "/inquisitors/transmissions", minimumTier: "member" },
-      { label: "Open Reports", href: "/inquisitors/reports", minimumTier: "member" },
-      { label: "Open Activity", href: "/inquisitors/trackers", minimumTier: "member" }
+      { label: "Open Handbooks", href: divisionLockedHref("inquisitors", "handbooks"), minimumTier: "member" },
+      { label: "Open Transmissions", href: divisionLockedHref("inquisitors", "transmissions"), minimumTier: "member" },
+      { label: "Open Reports", href: divisionLockedHref("inquisitors", "reports"), minimumTier: "member" },
+      { label: "Open Activity", href: divisionLockedHref("inquisitors", "activity"), minimumTier: "member" }
     ]
   },
 
@@ -96,7 +229,7 @@ const DIVISIONS = {
     subtitle: "Ancient knowledge instructors",
     node: "DM-04",
     theme: "theme-dreadmasters",
-    href: "/dread-masters/home",
+    href: divisionLockedHref("dreadmasters"),
     status: "restricted",
     description: "Powerful and influential beings who are tasked with teaching Ancient Knowledge.",
     access: {
@@ -112,10 +245,10 @@ const DIVISIONS = {
     reports: [],
     trackers: [],
     actions: [
-      { label: "Open Handbooks", href: "/dread-masters/handbooks", minimumTier: "member" },
-      { label: "Open Transmissions", href: "/dread-masters/transmissions", minimumTier: "member" },
-      { label: "Open Reports", href: "/dread-masters/reports", minimumTier: "member" },
-      { label: "Open Activity", href: "/dread-masters/trackers", minimumTier: "member" }
+      { label: "Open Handbooks", href: divisionLockedHref("dreadmasters", "handbooks"), minimumTier: "member" },
+      { label: "Open Transmissions", href: divisionLockedHref("dreadmasters", "transmissions"), minimumTier: "member" },
+      { label: "Open Reports", href: divisionLockedHref("dreadmasters", "reports"), minimumTier: "member" },
+      { label: "Open Activity", href: divisionLockedHref("dreadmasters", "activity"), minimumTier: "member" }
     ]
   },
 
@@ -126,7 +259,7 @@ const DIVISIONS = {
     subtitle: "Sith instructors and event hosts",
     node: "HR-05",
     theme: "theme-highranks",
-    href: "/highranks/home",
+    href: divisionLockedHref("highranks"),
     status: "restricted",
     description: "Experienced Sith who are entrusted with hosting events and training the lower ranks.",
     access: {
@@ -142,10 +275,10 @@ const DIVISIONS = {
     reports: [],
     trackers: [],
     actions: [
-      { label: "Open Handbooks", href: "/highranks/handbooks", minimumTier: "lower" },
-      { label: "Open Transmissions", href: "/highranks/transmissions", minimumTier: "lower" },
-      { label: "Open Reports", href: "/highranks/reports", minimumTier: "lower" },
-      { label: "Open Activity", href: "/highranks/trackers", minimumTier: "lower" }
+      { label: "Open Handbooks", href: divisionLockedHref("highranks", "handbooks"), minimumTier: "lower" },
+      { label: "Open Transmissions", href: divisionLockedHref("highranks", "transmissions"), minimumTier: "lower" },
+      { label: "Open Reports", href: divisionLockedHref("highranks", "reports"), minimumTier: "lower" },
+      { label: "Open Activity", href: divisionLockedHref("highranks", "activity"), minimumTier: "lower" }
     ]
   },
 
@@ -156,7 +289,7 @@ const DIVISIONS = {
     subtitle: "Internal oversight authority",
     node: "DC-06",
     theme: "theme-dark-council",
-    href: "/dark-council/home",
+    href: divisionLockedHref("darkCouncil"),
     status: "restricted",
     description: "Senior Sith entrusted with overseeing the Order and making decisions on legislation, policy and internal oversight.",
     access: {
@@ -172,11 +305,11 @@ const DIVISIONS = {
     reports: [],
     trackers: [],
     actions: [
-      { label: "Open Council Floor", href: "/dark-council/council-floor", minimumTier: "council" },
-      { label: "Open Handbooks", href: "/dark-council/handbooks", minimumTier: "powerbase" },
-      { label: "Open Transmissions", href: "/dark-council/transmissions", minimumTier: "powerbase" },
-      { label: "Open Reports", href: "/dark-council/reports", minimumTier: "powerbase" },
-      { label: "Open Activity", href: "/dark-council/trackers", minimumTier: "powerbase" }
+      { label: "Open Council Floor", href: divisionLockedHref("darkCouncil", "council-floor"), minimumTier: "council" },
+      { label: "Open Handbooks", href: divisionLockedHref("darkCouncil", "handbooks"), minimumTier: "powerbase" },
+      { label: "Open Transmissions", href: divisionLockedHref("darkCouncil", "transmissions"), minimumTier: "powerbase" },
+      { label: "Open Reports", href: divisionLockedHref("darkCouncil", "reports"), minimumTier: "powerbase" },
+      { label: "Open Activity", href: divisionLockedHref("darkCouncil", "activity"), minimumTier: "powerbase" }
     ]
   }
 };

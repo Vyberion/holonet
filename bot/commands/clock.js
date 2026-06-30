@@ -1,6 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from "discord.js";
 import { activeShift, adjustShiftTime, clockIn, clockOut, formatDuration, saveClockPanel, shiftTotals } from "../services/clock.js";
 import { config } from "../config/index.js";
+import { postActivityLog } from "../services/activity-log.js";
 import { embed, ephemeral, errorEmbed, successEmbed, textModal } from "../services/discord-ui.js";
 import { canAdjustTime, canManageBot, getVerifiedProfile, inferScope } from "../services/roles.js";
 import { supabase } from "../services/supabase.js";
@@ -158,12 +159,30 @@ async function requireManager(interaction) {
 async function doClockIn(interaction, options = {}) {
   const shift = await clockIn(interaction.user.id, options);
   await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked In", `Scope: ${shift.scope}${shift.late ? `\nLate: ${shift.late_minutes || 0} minutes` : ""}`)] }));
+  await postActivityLog(interaction.client, {
+    title: "Clock In",
+    description: `<@${interaction.user.id}> clocked in${shift.late ? " late" : ""}.`,
+    fields: [
+      { name: "Scope", value: scopeLabel(shift.scope), inline: true },
+      shift.late ? { name: "Late", value: `${shift.late_minutes || 0} minute(s)`, inline: true } : null,
+      { name: "Started", value: `<t:${Math.floor(new Date(shift.started_at).getTime() / 1000)}:F>`, inline: false }
+    ].filter(Boolean)
+  });
 }
 
 async function doClockOut(interaction, options = {}) {
   const shift = await clockOut(interaction.user.id, options);
   const total = Number(shift.duration_seconds || 0) + Number(shift.adjustment_seconds || 0);
   await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked Out", `Duration: ${formatDuration(total)}${shift.adjustment_seconds ? `\nAdjustment: ${formatDuration(Math.abs(shift.adjustment_seconds))} ${shift.adjustment_seconds > 0 ? "added" : "removed"}` : ""}${shift.clockout_late ? `\nLate clock-out: ${shift.clockout_late_minutes || 0} minutes` : ""}`)] }));
+  await postActivityLog(interaction.client, {
+    title: "Clock Out",
+    description: `<@${interaction.user.id}> clocked out${shift.clockout_late ? " late" : ""}.`,
+    fields: [
+      { name: "Scope", value: scopeLabel(shift.scope), inline: true },
+      { name: "Duration", value: formatDuration(total), inline: true },
+      shift.clockout_late ? { name: "Late Clock-Out", value: `${shift.clockout_late_minutes || 0} minute(s)`, inline: true } : null
+    ].filter(Boolean)
+  });
 }
 
 async function replyClockError(interaction, error) {
@@ -311,6 +330,17 @@ export async function handleModal(interaction) {
       const shift = await adjustShiftTime(targetId, action === "add" ? minutes : -minutes);
       const shiftTotal = Math.max(0, Number(shift.duration_seconds || 0) + Number(shift.adjustment_seconds || 0));
       await interaction.reply(ephemeral({ embeds: [successEmbed("Time Adjusted", `${action === "add" ? "Added" : "Removed"} ${minutes} minute(s) ${targetId === interaction.user.id ? "from your shift" : `for <@${targetId}>`}.\nShift total: ${formatDuration(shiftTotal)}.`)] }));
+      if (minutes > 0) {
+        await postActivityLog(interaction.client, {
+          title: action === "add" ? "Time Added" : "Time Removed",
+          description: `<@${interaction.user.id}> ${action === "add" ? "added time to" : "removed time from"} ${targetId === interaction.user.id ? "their own shift" : `<@${targetId}>'s shift`}.`,
+          fields: [
+            { name: "Scope", value: scopeLabel(shift.scope), inline: true },
+            { name: "Amount", value: formatDuration(minutes * 60), inline: true },
+            { name: "Shift Total", value: formatDuration(shiftTotal), inline: true }
+          ]
+        });
+      }
     } catch (error) {
       await replyClockError(interaction, error);
     }

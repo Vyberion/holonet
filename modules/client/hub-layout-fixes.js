@@ -331,7 +331,7 @@
   }
 
   function renameActivitySurface(mount) {
-    if (mount.dataset.divisionSection !== "trackers") return;
+    if (!["trackers", "activity"].includes(mount.dataset.divisionSection)) return;
 
     document.querySelectorAll("[data-section-title]").forEach(node => {
       node.textContent = node.textContent.replace(/Tracking/g, "Activity");
@@ -351,7 +351,7 @@
   }
 
   function statusCountForSection(mount, section) {
-    if (section === "trackers") {
+    if (section === "trackers" || section === "activity") {
       const rows = mount.querySelectorAll(".tracking-table tbody tr");
       return rows.length ? `${rows.length} MEMBERS` : "LOADING";
     }
@@ -364,7 +364,7 @@
     if (!mount) return;
 
     const section = mount.dataset.divisionSection;
-    if (!["transmissions", "reports", "trackers"].includes(section)) return;
+    if (!["transmissions", "reports", "trackers", "activity"].includes(section)) return;
 
     renameActivitySurface(mount);
     const hero = mount.querySelector(".hub-hero");
@@ -380,7 +380,7 @@
       hero.insertAdjacentElement("afterend", grid);
     }
 
-    const label = section === "trackers" ? "Activity" : section;
+    const label = section === "trackers" || section === "activity" ? "Activity" : section;
     const count = statusCountForSection(mount, section);
     const signature = `${label}:${count}`;
     if (grid.dataset.signature === signature) return;

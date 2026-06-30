@@ -12,6 +12,7 @@ export default {
     successColor: 0x35c46f
   },
   channels: {
+    activityLog: "1455303713701757138",
     announcements: {
       holonet: "CHANNEL_ID",
       reavers: "CHANNEL_ID",

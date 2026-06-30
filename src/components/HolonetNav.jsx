@@ -2,6 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import {
+  divisionIdFromRouteSlug,
+  divisionIdFromSubdomain,
+  divisionLockedHref,
+  isPublicInfoDivision
+} from "../../modules/data/divisions/index.js";
 import { preloadHierarchyImages } from "../lib/preload-images.js";
 
 function readCachedAccess() {
@@ -38,22 +44,36 @@ function currentPageKey(pathname = "/") {
 }
 
 const DIVISION_ROUTES = {
-  reavers: { base: "/reavers", theme: "theme-reavers" },
-  "dark-honor-guards": { base: "/dark-honor-guards", theme: "theme-dhg" },
-  inquisitors: { base: "/inquisitors", theme: "theme-inquisitors" },
-  "dread-masters": { base: "/dread-masters", theme: "theme-dreadmasters" },
-  highranks: { base: "/highranks", theme: "theme-highranks" },
-  "dark-council": { base: "/dark-council", theme: "theme-dark-council" }
+  reavers: { id: "reavers", theme: "theme-reavers" },
+  dhg: { id: "dhg", theme: "theme-dhg" },
+  inquisitors: { id: "inquisitors", theme: "theme-inquisitors" },
+  dreadmasters: { id: "dreadmasters", theme: "theme-dreadmasters" },
+  highranks: { id: "highranks", theme: "theme-highranks" },
+  darkCouncil: { id: "darkCouncil", theme: "theme-dark-council" }
 };
 
-function currentDivisionContext(pathname = "/") {
+function currentDivisionContext(pathname = "/", hostname = "") {
   const segments = String(pathname || "/").split("/").filter(Boolean);
-  const route = DIVISION_ROUTES[segments[0]];
+  const subdomain = String(hostname || "").split(".")[0] || "";
+  const subdomainDivisionId = divisionIdFromSubdomain(subdomain);
+
+  if (subdomainDivisionId) {
+    const route = DIVISION_ROUTES[subdomainDivisionId];
+    return route ? {
+      ...route,
+      base: divisionLockedHref(subdomainDivisionId),
+      section: segments[0] || "home"
+    } : null;
+  }
+
+  const routeDivisionId = divisionIdFromRouteSlug(segments[0]);
+  const route = DIVISION_ROUTES[routeDivisionId];
   if (!route) return null;
 
   return {
     ...route,
-    section: segments[1] || "home"
+    base: divisionLockedHref(route.id),
+    section: segments[1] || (isPublicInfoDivision(route.id) ? "info" : "home")
   };
 }
 
@@ -118,9 +138,10 @@ export function HolonetNav() {
   const [open, setOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [access, setAccess] = useState(readInitialAccess);
+  const [hostname, setHostname] = useState("");
   const pathname = usePathname();
   const activePage = currentPageKey(pathname);
-  const divisionContext = currentDivisionContext(pathname);
+  const divisionContext = currentDivisionContext(pathname, hostname);
   const showDivisionReturn = divisionContext && !["home", "info"].includes(divisionContext.section);
   const centerLinks = [
     { href: "/", page: "home", prefix: "00", label: "Home" },
@@ -141,6 +162,8 @@ export function HolonetNav() {
   ];
 
   useEffect(() => {
+    setHostname(window.location.hostname);
+
     let cancelled = false;
 
     function applyPayload(payload) {

@@ -33,7 +33,7 @@ import { tierAtLeast } from "../../modules/auth/profile.js";
 import { ARCHIVE_SEED } from "../../modules/data/archive-seed.js";
 import { LIBRARY_SEED } from "../../modules/data/library-seed.js";
 import { getHandbookSlot, getHandbookSlots } from "../../modules/data/handbook-slots.js";
-import { getDivision, listDivisions } from "../../modules/data/divisions/index.js";
+import { divisionLockedHref, getDivision, listDivisions } from "../../modules/data/divisions/index.js";
 import { extractGoogleFileId, extractGoogleTabId, googleWorkspaceKindFromUrl } from "./google-drive.js";
 
 function getQueryParam(req, name) {
@@ -312,6 +312,13 @@ function publicImageUrl(path) {
   if (value.startsWith("public/")) return `/${value.slice("public/".length)}`;
   if (value.startsWith("assets/")) return `/${value}`;
   return "";
+}
+
+function requestRootOrigin(req) {
+  const forwardedProto = String(req?.headers?.["x-forwarded-proto"] || "").split(",")[0].trim();
+  const protocol = forwardedProto || (String(req?.headers?.host || "").includes("localhost") ? "http" : "https");
+  const host = String(req?.headers?.host || "").trim();
+  return host ? `${protocol}://${host}` : "";
 }
 
 function encodeInList(values) {
@@ -912,7 +919,7 @@ async function loadBoardTransmissions() {
     }));
 }
 
-async function loadNexusOverview(profile) {
+async function loadNexusOverview(profile, rootOrigin = "") {
   const divisions = listDivisions().filter(division => ["reavers", "dhg", "inquisitors", "dreadmasters"].includes(division.id));
   const rows = await Promise.all(divisions.map(async division => {
     if (division.id === "inquisitors" && !canViewInquisitorOverview(profile)) {
@@ -920,7 +927,7 @@ async function loadNexusOverview(profile) {
         id: division.id,
         name: division.shortName || division.name,
         node: division.node,
-        href: division.href,
+        href: divisionLockedHref(division.id, "home", rootOrigin),
         theme: division.theme,
         status: "classified",
         classified: true,
@@ -966,14 +973,14 @@ async function loadNexusOverview(profile) {
       id: division.id,
       name: division.shortName || division.name,
       node: division.node,
-      href: division.href,
+      href: divisionLockedHref(division.id, "home", rootOrigin),
       theme: division.theme,
       status: reportAgeDays === null ? "missing" : reportAgeDays > 14 ? "overdue" : "current",
       canWriteReport: canWriteDivisionWeeklyReport(profile, division.id),
       latestReport: latestReport ? {
         title: `Weekly Report`,
         updatedAt: latestReportAt,
-        href: `${division.href.replace(/\/home$/, "")}/reports`,
+        href: divisionLockedHref(division.id, "reports", rootOrigin),
         totals: latestReport.totals,
         authorName: latestReport.authorName,
         members: latestReport.members
@@ -983,12 +990,12 @@ async function loadNexusOverview(profile) {
       latestDocument: latestDocument ? {
         title: latestDocument.title,
         updatedAt: latestDocument.updated_at || latestDocument.created_at,
-        href: `${division.href.replace(/\/home$/, "")}/handbooks`
+        href: divisionLockedHref(division.id, "handbooks", rootOrigin)
       } : null,
       latestTransmission: latestTransmission ? {
         title: latestTransmission.title,
         updatedAt: latestTransmission.updated_at || latestTransmission.created_at,
-        href: `${division.href.replace(/\/home$/, "")}/transmissions`
+        href: divisionLockedHref(division.id, "transmissions", rootOrigin)
       } : null,
       counts: {
         reports: weeklyReports.length,
@@ -998,9 +1005,9 @@ async function loadNexusOverview(profile) {
         transmissions: transmissions.length
       },
       links: {
-        reports: `${division.href.replace(/\/home$/, "")}/reports`,
-        trackers: `${division.href.replace(/\/home$/, "")}/trackers`,
-        transmissions: `${division.href.replace(/\/home$/, "")}/transmissions`
+        reports: divisionLockedHref(division.id, "reports", rootOrigin),
+        trackers: divisionLockedHref(division.id, "activity", rootOrigin),
+        transmissions: divisionLockedHref(division.id, "transmissions", rootOrigin)
       }
     };
   }));
@@ -2857,7 +2864,7 @@ export const LEGACY_API_HANDLERS = {
         ok: true,
         authorized: true,
         canInspect: hasHighCommandAccess(auth.profile),
-        divisions: await loadNexusOverview(auth.profile)
+        divisions: await loadNexusOverview(auth.profile, requestRootOrigin(req))
       });
     } catch (error) {
       if (isMissingSchemaError(error)) {

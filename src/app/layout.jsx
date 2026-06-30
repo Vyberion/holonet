@@ -629,7 +629,7 @@ const HOLONET_GLOBAL_POLISH_JS = `
 
   async function syncInquisitoriusDescription() {
     const path = window.location.pathname.replace(/\\/+$/, "") || "/";
-    if (path !== "/inquisitors/info") return;
+    if (path !== "/inquisitors" && path !== "/inquisitors/info") return;
 
     const targets = Array.from(document.querySelectorAll(".reg-text, .hub-summary"));
     const target = targets.find(element => /Division information can be filled in here|REDACTED|Intelligence and background oversight/i.test(element.textContent));

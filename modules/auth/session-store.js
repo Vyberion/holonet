@@ -52,11 +52,34 @@ function parseCookies(req) {
   }, {});
 }
 
+function normalizeCookieDomain(value = "") {
+  const domain = String(value || "").trim().replace(/^https?:\/\//i, "").split("/")[0].split(":")[0].replace(/^www\./i, "");
+  if (!domain || domain === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(domain) || domain.endsWith(".vercel.app")) return "";
+  return domain.startsWith(".") ? domain : `.${domain}`;
+}
+
+function defaultCookieDomain() {
+  const explicit = process.env.HOLONET_COOKIE_DOMAIN || process.env.COOKIE_DOMAIN || "";
+  if (explicit) return normalizeCookieDomain(explicit);
+
+  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.HOLONET_BASE_URL || "";
+  if (!configuredUrl) return "";
+
+  try {
+    const url = new URL(configuredUrl.startsWith("http") ? configuredUrl : `https://${configuredUrl}`);
+    return normalizeCookieDomain(url.hostname);
+  } catch {
+    return normalizeCookieDomain(configuredUrl);
+  }
+}
+
 export function serializeCookie(name, value, options = {}) {
   const segments = [`${name}=${encodeURIComponent(value)}`];
 
   if (options.maxAge !== undefined) segments.push(`Max-Age=${options.maxAge}`);
   if (options.expires) segments.push(`Expires=${options.expires.toUTCString()}`);
+  const domain = options.domain === undefined ? defaultCookieDomain() : normalizeCookieDomain(options.domain);
+  if (domain) segments.push(`Domain=${domain}`);
   segments.push(`Path=${options.path || "/"}`);
   if (options.httpOnly !== false) segments.push("HttpOnly");
   if (options.secure !== false) segments.push("Secure");
@@ -65,8 +88,9 @@ export function serializeCookie(name, value, options = {}) {
   return segments.join("; ");
 }
 
-export function clearCookie(name) {
+export function clearCookie(name, options = {}) {
   return serializeCookie(name, "", {
+    ...options,
     maxAge: 0,
     expires: new Date(0)
   });

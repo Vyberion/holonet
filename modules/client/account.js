@@ -63,9 +63,12 @@
   async function confirmDiscordLink(token) {
     const status = document.getElementById("discord-link-status");
     const button = document.getElementById("discord-link-btn");
-    if (!token || !button) return;
+    if (!token) return;
 
-    button.disabled = true;
+    if (button) {
+      button.disabled = true;
+      button.hidden = true;
+    }
     if (status) status.textContent = "Linking Discord identity...";
 
     try {
@@ -82,10 +85,10 @@
 
       sessionStorage.removeItem("holonet:discord-link-token");
       if (status) status.textContent = `Discord linked to @${payload.robloxUsername}. Return to Discord and run /update-roles.`;
-      button.textContent = "LINKED";
+      if (button) button.textContent = "LINKED";
     } catch (error) {
       if (status) status.textContent = error.message.replace(/_/g, " ");
-      button.disabled = false;
+      if (button) button.disabled = false;
     }
   }
 
@@ -148,20 +151,19 @@
 
     await fetchSessionStatus();
 
-    if (discordLink && discordBox && discordButton) {
+    if (discordLink && discordBox) {
       discordBox.hidden = false;
+      if (discordButton) {
+        discordButton.hidden = true;
+        discordButton.disabled = true;
+      }
+
       const loggedIn = localStorage.getItem("sith_roblox_id");
       if (!loggedIn) {
         const statusNode = document.getElementById("discord-link-status");
-        if (statusNode) statusNode.textContent = "Log in to the website with Roblox first, then link Discord.";
-        discordButton.textContent = "LOG IN FIRST";
-        discordButton.onclick = () => {
-          window.HolonetSite?.clearAccessPayload?.();
-          window.location.href = "/api/auth/login";
-        };
+        if (statusNode) statusNode.textContent = "Log in to the website with Roblox first. Discord will link automatically after login.";
       } else {
-        discordButton.textContent = "LINK DISCORD";
-        discordButton.onclick = () => confirmDiscordLink(discordLink);
+        await confirmDiscordLink(discordLink);
       }
     }
   }

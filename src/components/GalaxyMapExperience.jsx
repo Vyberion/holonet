@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Billboard, Html, OrbitControls, Sparkles, Stars } from "@react-three/drei";
-import { Bloom, ChromaticAberration, DepthOfField, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
+import { Bloom, ChromaticAberration, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
@@ -74,33 +74,6 @@ function makeGlowTexture(inner = "rgba(255,255,255,1)", mid = "rgba(255,61,68,.4
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
   }, 512, 512);
-}
-
-function makeNebulaTexture(seed, colorA, colorB) {
-  const rnd = seededRandom(seed);
-  return makeTextureFromCanvas((ctx, width, height) => {
-    ctx.clearRect(0, 0, width, height);
-    for (let i = 0; i < 72; i += 1) {
-      const x = rnd() * width;
-      const y = rnd() * height;
-      const radius = randRange(rnd, 60, 220);
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-      gradient.addColorStop(0, colorWithAlpha(rnd() > 0.52 ? colorA : colorB, randRange(rnd, 0.08, 0.22)));
-      gradient.addColorStop(0.55, colorWithAlpha(rnd() > 0.52 ? colorA : colorB, randRange(rnd, 0.018, 0.07)));
-      gradient.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-    }
-    ctx.globalCompositeOperation = "destination-in";
-    const mask = ctx.createRadialGradient(width / 2, height / 2, width * 0.06, width / 2, height / 2, width * 0.56);
-    mask.addColorStop(0, "rgba(255,255,255,.88)");
-    mask.addColorStop(0.56, "rgba(255,255,255,.48)");
-    mask.addColorStop(0.82, "rgba(255,255,255,.08)");
-    mask.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = mask;
-    ctx.fillRect(0, 0, width, height);
-    ctx.globalCompositeOperation = "source-over";
-  }, 1024, 1024);
 }
 
 function makePlanetTextures(body) {
@@ -198,15 +171,6 @@ function makeEllipsePoints(radiusX, radiusZ, segments = 240, start = 0, end = TA
     points.push(new THREE.Vector3(Math.cos(angle) * radiusX, 0, Math.sin(angle) * radiusZ));
   }
   return points;
-}
-
-function makeRoutePoints(start, end, lift = 1.8) {
-  const curve = new THREE.QuadraticBezierCurve3(
-    start,
-    start.clone().lerp(end, 0.54).add(new THREE.Vector3(0, lift, 0)),
-    end
-  );
-  return curve.getPoints(140);
 }
 
 function LineGeometry({ points }) {
@@ -380,24 +344,48 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
   );
 }
 
-function NebulaField() {
-  const red = useMemo(() => makeNebulaTexture(8821, "#ff3846", "#ff9a3d"), []);
-  const blue = useMemo(() => makeNebulaTexture(4429, "#76e0ef", "#5b6dff"), []);
+function HyperspaceStreaks({ count = 54 }) {
+  const streaks = useMemo(() => {
+    const rnd = seededRandom(7091);
+    return Array.from({ length: count }, (_, index) => {
+      const angle = randRange(rnd, 0, TAU);
+      const radius = randRange(rnd, 2.2, GALAXY_RADIUS * 1.06);
+      const center = new THREE.Vector3(Math.cos(angle) * radius, randRange(rnd, 0.08, 0.32), Math.sin(angle) * radius * 0.78);
+      const tangent = new THREE.Vector3(-Math.sin(angle), 0, Math.cos(angle)).normalize();
+      const length = randRange(rnd, 0.34, 1.15);
+      return {
+        key: index,
+        phase: randRange(rnd, 0, TAU),
+        speed: randRange(rnd, 1.4, 3.2),
+        points: [
+          center.clone().add(tangent.clone().multiplyScalar(-length * 0.5)),
+          center,
+          center.clone().add(tangent.clone().multiplyScalar(length * 0.5))
+        ],
+        color: rnd() > 0.62 ? "#76e0ef" : rnd() > 0.34 ? "#ffd08c" : "#ff3b4f",
+        opacity: randRange(rnd, 0.24, 0.58)
+      };
+    });
+  }, [count]);
+  const groupRef = useRef(null);
 
-  useEffect(() => () => {
-    red.dispose();
-    blue.dispose();
-  }, [red, blue]);
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return;
+    groupRef.current.children.forEach((child, index) => {
+      const streak = streaks[index];
+      child.material.opacity = streak.opacity * (0.45 + Math.sin(clock.elapsedTime * streak.speed + streak.phase) * 0.35 + 0.35);
+    });
+  });
 
   return (
-    <>
-      <sprite position={[-3.8, -0.18, -2.9]} scale={[8.6, 5.4, 1]}>
-        <spriteMaterial map={red} color="#ffffff" transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </sprite>
-      <sprite position={[3.7, -0.12, 2.2]} scale={[7.6, 4.8, 1]}>
-        <spriteMaterial map={blue} color="#ffffff" transparent opacity={0.13} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </sprite>
-    </>
+    <group ref={groupRef}>
+      {streaks.map(streak => (
+        <line key={streak.key}>
+          <LineGeometry points={streak.points} />
+          <lineBasicMaterial color={streak.color} transparent opacity={streak.opacity} blending={THREE.AdditiveBlending} depthWrite={false} />
+        </line>
+      ))}
+    </group>
   );
 }
 
@@ -419,7 +407,7 @@ function GalacticCore() {
   );
 }
 
-function SectorGrid({ focus }) {
+function SectorGrid() {
   const radialLines = useMemo(() => {
     const lines = [];
     for (let i = 0; i < 24; i += 1) {
@@ -431,9 +419,6 @@ function SectorGrid({ focus }) {
     }
     return lines;
   }, []);
-  const focusPosition = useMemo(() => focusMapPosition({ focus }), [focus]);
-  const wedgeAngle = Math.atan2(focusPosition.z / 0.78, focusPosition.x);
-  const wedge = useMemo(() => makeEllipsePoints(GALAXY_RADIUS, GALAXY_RADIUS * 0.78, 42, wedgeAngle - 0.13, wedgeAngle + 0.13), [wedgeAngle]);
 
   return (
     <group>
@@ -449,88 +434,7 @@ function SectorGrid({ focus }) {
           <lineBasicMaterial color={index % 3 === 0 ? "#ff3b4f" : "#5f1b25"} transparent opacity={index % 3 === 0 ? 0.16 : 0.075} blending={THREE.AdditiveBlending} depthWrite={false} />
         </line>
       ))}
-      <line position={[0, 0.04, 0]}>
-        <LineGeometry points={wedge} />
-        <lineBasicMaterial color="#ff9a3d" transparent opacity={0.72} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </line>
     </group>
-  );
-}
-
-function R5Reticle({ map, selectedId, onSelect }) {
-  const focus = focusMapPosition(map);
-  const ringRef = useRef(null);
-  const pingRef = useRef(null);
-  const glow = useMemo(() => makeGlowTexture("rgba(255,255,255,1)", "rgba(255,59,79,.5)"), []);
-
-  useEffect(() => () => glow.dispose(), [glow]);
-
-  useFrame(({ clock }) => {
-    const t = clock.elapsedTime;
-    if (ringRef.current) {
-      ringRef.current.rotation.y += 0.004;
-      ringRef.current.rotation.z = Math.sin(t * 0.8) * 0.045;
-    }
-    if (pingRef.current) {
-      const pulse = 0.5 + Math.sin(t * 2.6) * 0.5;
-      pingRef.current.scale.setScalar(1 + pulse * 0.26);
-      pingRef.current.material.opacity = 0.18 + pulse * 0.24;
-    }
-  });
-
-  return (
-    <group position={focus.toArray()}>
-      <sprite scale={[2.7, 2.7, 1]}>
-        <spriteMaterial map={glow} color="#ff3b4f" transparent opacity={selectedId ? 0.08 : 0.46} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </sprite>
-      <line ref={ringRef} rotation={[Math.PI / 2.18, 0, 0]}>
-        <LineGeometry points={makeEllipsePoints(map.focus.sectorRadius || 1.7, (map.focus.sectorRadius || 1.7) * 0.58, 220)} />
-        <lineBasicMaterial color="#ff3b4f" transparent opacity={selectedId ? 0.16 : 0.74} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </line>
-      <line ref={pingRef} rotation={[Math.PI / 2.18, 0, Math.PI * 0.18]}>
-        <LineGeometry points={makeEllipsePoints((map.focus.sectorRadius || 1.7) * 0.72, (map.focus.sectorRadius || 1.7) * 0.38, 180)} />
-        <lineBasicMaterial color="#ff9a3d" transparent opacity={selectedId ? 0.08 : 0.35} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </line>
-      {!selectedId ? (
-        <Billboard position={[0, 0.64, 0]}>
-          <Html center distanceFactor={18} transform occlude={false}>
-            <button className="gm-sector-label" type="button" onClick={() => onSelect("korriban")}>
-              R-5 / Sith Worlds
-            </button>
-          </Html>
-        </Billboard>
-      ) : null}
-    </group>
-  );
-}
-
-function RoutePulse({ end }) {
-  const pulseRef = useRef(null);
-  const route = useMemo(() => makeRoutePoints(new THREE.Vector3(0, 0.1, 0), end, 2.4), [end]);
-  const curve = useMemo(() => new THREE.CatmullRomCurve3(route), [route]);
-
-  useFrame(({ clock }) => {
-    if (!pulseRef.current) return;
-    const t = (clock.elapsedTime * 0.12) % 1;
-    pulseRef.current.position.copy(curve.getPointAt(t));
-    pulseRef.current.material.opacity = 0.46 + Math.sin(t * TAU) * 0.24;
-  });
-
-  return (
-    <>
-      <line>
-        <LineGeometry points={route} />
-        <lineBasicMaterial color="#ff3b4f" transparent opacity={0.5} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </line>
-      <line>
-        <LineGeometry points={route.slice(0, Math.floor(route.length * 0.62))} />
-        <lineBasicMaterial color="#ffb168" transparent opacity={0.2} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </line>
-      <mesh ref={pulseRef}>
-        <sphereGeometry args={[0.075, 18, 10]} />
-        <meshBasicMaterial color="#ffcf91" transparent opacity={0.76} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-    </>
   );
 }
 
@@ -766,25 +670,23 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
   return (
     <>
       <color attach="background" args={["#050204"]} />
-      <fogExp2 attach="fog" args={["#090204", 0.012]} />
+      <fogExp2 attach="fog" args={["#090204", 0.0035]} />
       <ambientLight intensity={0.2} color="#4d1b20" />
       <directionalLight position={[4.8, 8.2, 5.4]} intensity={3.4} color="#ffd8a8" />
       <pointLight position={[0, 1.4, 0]} intensity={92} distance={19} color="#ffb168" />
       <pointLight position={focus.clone().add(new THREE.Vector3(0, 1.2, 0.8)).toArray()} intensity={72} distance={12} color="#ff3b4f" />
       <pointLight position={[5.2, 3, 4]} intensity={22} distance={22} color="#76e0ef" />
 
-      <Stars radius={70} depth={34} count={quality === "high" ? 4200 : 2200} factor={4.8} saturation={0.45} fade speed={0.22} />
-      <Sparkles count={quality === "high" ? 180 : 82} scale={[22, 5, 17]} size={1.2} speed={0.32} color="#ff9a3d" opacity={0.54} />
+      <Stars radius={82} depth={42} count={quality === "high" ? 7200 : 3400} factor={5.6} saturation={0.62} fade speed={0.26} />
+      <Sparkles count={quality === "high" ? 340 : 150} scale={[24, 5.4, 18]} size={1.55} speed={0.44} color="#ff9a3d" opacity={0.72} />
 
       <group rotation={[-0.045, -0.32, 0.02]}>
-        <NebulaField />
-        <SectorGrid focus={map.focus} />
+        <SectorGrid />
         <SpiralArmRibbons />
-        <GalaxyParticles mode="stars" count={quality === "high" ? 18500 : 9800} seed={4321} opacity={0.7} sizeScale={1.05} />
-        <GalaxyParticles mode="dust" count={quality === "high" ? 6200 : 3000} seed={8827} opacity={0.15} sizeScale={1.85} />
+        <GalaxyParticles mode="stars" count={quality === "high" ? 24500 : 12800} seed={4321} opacity={0.88} sizeScale={0.92} />
+        <GalaxyParticles mode="dust" count={quality === "high" ? 3600 : 1800} seed={8827} opacity={0.055} sizeScale={1.05} />
+        <HyperspaceStreaks count={quality === "high" ? 72 : 34} />
         <GalacticCore />
-        <RoutePulse end={focus} />
-        <R5Reticle map={map} selectedId={selectedId} onSelect={onSelect} />
       </group>
 
       <group ref={localRef} rotation={[0, -0.32, 0]}>
@@ -811,8 +713,7 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
         target={WIDE_TARGET}
       />
       <EffectComposer multisampling={0}>
-        <Bloom intensity={quality === "high" ? 0.96 : 0.58} luminanceThreshold={0.14} luminanceSmoothing={0.56} mipmapBlur />
-        <DepthOfField focusDistance={selectable ? 0.018 : 0.042} focalLength={selectable ? 0.09 : 0.035} bokehScale={quality === "high" ? 2.8 : 1.4} />
+        <Bloom intensity={quality === "high" ? 0.72 : 0.46} luminanceThreshold={0.24} luminanceSmoothing={0.22} />
         <ChromaticAberration offset={quality === "high" ? [0.0008, 0.0004] : [0.00035, 0.00018]} />
         <Noise opacity={0.032} />
         <Vignette eskil={false} offset={0.2} darkness={0.58} />
@@ -890,13 +791,13 @@ export function GalaxyMapExperience({ map }) {
         </button>
         <div className="gm-lockup">
           <span>ARCHIVES / DIRECT NODE</span>
-          <strong>R-5 SITH WORLDS</strong>
+          <strong>GALAXY MAP</strong>
         </div>
       </header>
 
       <aside className={`gm-panel${selectedId ? " is-focused" : ""}`} aria-live="polite">
         <div className="gm-panel-title">Galaxy Map</div>
-        <div className="gm-kicker">{panelBody.grid} / {panelBody.region}</div>
+        <div className="gm-kicker">{panelBody.region}</div>
         <h1>{panelBody.name}</h1>
         <div className="gm-kind">{panelBody.kind || panelBody.name}</div>
         <p>{panelBody.summary}</p>
@@ -920,7 +821,7 @@ export function GalaxyMapExperience({ map }) {
 
       <div className="gm-hint" aria-hidden="true">
         <span>FULL GALAXY OVERVIEW</span>
-        <span>R-5 OUTER RIM LOCK</span>
+        <span>DIRECT ARCHIVE NODE</span>
         <span>{quality.toUpperCase()} RENDER</span>
       </div>
 
@@ -1204,7 +1105,6 @@ const STYLES = `
     white-space: nowrap;
   }
 
-  .gm-sector-label,
   .gm-world-label {
     appearance: none;
     background: rgba(10, 2, 5, .76);
@@ -1219,12 +1119,6 @@ const STYLES = `
     white-space: nowrap;
   }
 
-  .gm-sector-label {
-    border-color: var(--theme-accent, #ff3b4f);
-    color: var(--theme-accent, #ff3b4f);
-    font-size: 11px;
-  }
-
   .gm-world-label.is-focus {
     font-size: 11px;
   }
@@ -1236,9 +1130,7 @@ const STYLES = `
   .gm-world-label.is-selected,
   .gm-world-label.is-hovered,
   .gm-world-label:hover,
-  .gm-world-label:focus-visible,
-  .gm-sector-label:hover,
-  .gm-sector-label:focus-visible {
+  .gm-world-label:focus-visible {
     border-color: var(--theme-accent, #ff3b4f);
     color: var(--text, #ffffff);
     outline: none;

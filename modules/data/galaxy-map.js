@@ -10,7 +10,7 @@ export const GALAXY_MAP = {
     localPosition: [9.1, 0.16, -5.1],
     radius: 1.12,
     sectorRadius: 1.76,
-    summary: "A remote Outer Rim cluster tied to ancient Sith worlds and forgotten imperial records."
+    summary: "A remote archive projection tied to ancient Sith worlds and forgotten imperial records."
   },
   bodies: [
     {
@@ -21,8 +21,8 @@ export const GALAXY_MAP = {
       region: "Sith Worlds, Esstran sector",
       grid: "R-5",
       mapPosition: [8.86, 0.18, -5.42],
-      position: [9.42, 0.18, -5.24],
-      localPosition: [9.42, 0.18, -5.24],
+      position: [9.93, 0.18, -5.1],
+      localPosition: [9.93, 0.18, -5.1],
       radius: 0.46,
       selectable: true,
       colors: {
@@ -31,7 +31,7 @@ export const GALAXY_MAP = {
         glow: "#ff4e36",
         accent: "#ffb05f"
       },
-      summary: "The ancient Sith homeworld, marked in later records as Moraband, placed in the R-5 Sith Worlds cluster."
+      summary: "The ancient Sith homeworld, marked in later records as Moraband, burning at the edge of the old imperial charts."
     },
     {
       id: "khar-delba",
@@ -41,8 +41,8 @@ export const GALAXY_MAP = {
       region: "Sith Worlds, Esstran sector",
       grid: "R-5",
       mapPosition: [8.68, 0.08, -5.15],
-      position: [8.74, 0.08, -4.62],
-      localPosition: [8.74, 0.08, -4.62],
+      position: [8.88, 0.08, -4.3],
+      localPosition: [8.88, 0.08, -4.3],
       radius: 0.34,
       selectable: false,
       colors: {
@@ -62,8 +62,8 @@ export const GALAXY_MAP = {
       grid: "R-5",
       parentId: "khar-delba",
       mapPosition: [8.56, 0.15, -5.24],
-      position: [8.2, 0.22, -4.78],
-      localPosition: [8.2, 0.22, -4.78],
+      position: [8.38, 0.22, -4.42],
+      localPosition: [8.38, 0.22, -4.42],
       radius: 0.2,
       selectable: true,
       colors: {
@@ -72,7 +72,7 @@ export const GALAXY_MAP = {
         glow: "#76e0ef",
         accent: "#f2c66d"
       },
-      summary: "A moon of Khar Delba, represented as a close secondary body inside the same R-5 Sith Worlds focus."
+      summary: "A moon of Khar Delba, represented as a close secondary body in the local focus view."
     }
   ]
 };

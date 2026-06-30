@@ -161,10 +161,13 @@ export default function ArchiveMapPage() {
                 <rect x="940" y="380" width="140" height="40" />
                 <rect x="940" y="920" width="140" height="60" />
                 <rect x="960" y="1380" width="100" height="60" />
-                <rect x="980" y="1630" width="60" height="44" />
-                <rect x="320" y="615" width="80" height="25" />
-                <rect x="505" y="615" width="80" height="25" />
-                <rect x="675" y="615" width="80" height="25" />
+                <rect x="985" y="1630" width="50" height="28" />
+                <rect x="360" y="470" width="45" height="30" />
+                <rect x="530" y="470" width="45" height="30" />
+                <rect x="700" y="470" width="45" height="30" />
+                <rect x="650" y="585" width="45" height="35" />
+                <rect x="650" y="770" width="50" height="20" />
+                <rect x="405" y="875" width="40" height="25" />
               </g>
 
               <g className="archive-map-decor" aria-hidden="true">

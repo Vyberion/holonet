@@ -350,51 +350,6 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
   );
 }
 
-function HyperspaceStreaks({ count = 54 }) {
-  const streaks = useMemo(() => {
-    const rnd = seededRandom(7091);
-    return Array.from({ length: count }, (_, index) => {
-      const angle = randRange(rnd, 0, TAU);
-      const radius = randRange(rnd, 2.2, GALAXY_RADIUS * 1.06);
-      const center = new THREE.Vector3(Math.cos(angle) * radius, randRange(rnd, 0.08, 0.32), Math.sin(angle) * radius * 0.78);
-      const tangent = new THREE.Vector3(-Math.sin(angle), 0, Math.cos(angle)).normalize();
-      const length = randRange(rnd, 0.34, 1.15);
-      return {
-        key: index,
-        phase: randRange(rnd, 0, TAU),
-        speed: randRange(rnd, 1.4, 3.2),
-        points: [
-          center.clone().add(tangent.clone().multiplyScalar(-length * 0.5)),
-          center,
-          center.clone().add(tangent.clone().multiplyScalar(length * 0.5))
-        ],
-        color: rnd() > 0.62 ? "#76e0ef" : rnd() > 0.34 ? "#ffd08c" : "#ff3b4f",
-        opacity: randRange(rnd, 0.24, 0.58)
-      };
-    });
-  }, [count]);
-  const groupRef = useRef(null);
-
-  useFrame(({ clock }) => {
-    if (!groupRef.current) return;
-    groupRef.current.children.forEach((child, index) => {
-      const streak = streaks[index];
-      child.material.opacity = streak.opacity * (0.45 + Math.sin(clock.elapsedTime * streak.speed + streak.phase) * 0.35 + 0.35);
-    });
-  });
-
-  return (
-    <group ref={groupRef}>
-      {streaks.map(streak => (
-        <line key={streak.key}>
-          <LineGeometry points={streak.points} />
-          <lineBasicMaterial color={streak.color} transparent opacity={streak.opacity} blending={THREE.AdditiveBlending} depthWrite={false} />
-        </line>
-      ))}
-    </group>
-  );
-}
-
 function GalacticCore() {
   const glow = useMemo(() => makeGlowTexture("rgba(255,255,255,1)", "rgba(255,83,45,.58)"), []);
   useEffect(() => () => glow.dispose(), [glow]);
@@ -692,7 +647,6 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
         <SpiralArmRibbons />
         <GalaxyParticles mode="stars" count={quality === "high" ? 24500 : 12800} seed={4321} opacity={0.88} sizeScale={0.92} />
         <GalaxyParticles mode="dust" count={quality === "high" ? 3600 : 1800} seed={8827} opacity={0.055} sizeScale={1.05} />
-        <HyperspaceStreaks count={quality === "high" ? 72 : 34} />
         <GalacticCore />
       </group>
 

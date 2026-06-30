@@ -99,25 +99,14 @@ const STYLES = `
   }
 
   html:has(.gm-root) .gm-stage {
-    --gm-flat-blur: .72px;
+    --gm-flat-blur: .36px;
   }
 
   html:has(.gm-root) .gm-stage canvas {
-    filter: blur(var(--gm-flat-blur)) saturate(1.04);
-    transform: scale(1.002);
+    filter: blur(var(--gm-flat-blur)) saturate(1.02);
+    transform: scale(1.001);
     transform-origin: center;
     touch-action: none;
-  }
-
-  html:has(.gm-root) .gm-stage::after {
-    background: rgba(255, 255, 255, .001);
-    backdrop-filter: blur(var(--gm-flat-blur));
-    -webkit-backdrop-filter: blur(var(--gm-flat-blur));
-    content: "";
-    inset: 0;
-    pointer-events: none;
-    position: absolute;
-    z-index: 2;
   }
 
   html:has(.gm-root) .gm-topbar {
@@ -135,11 +124,11 @@ const STYLES = `
   .gm-connect {
     align-items: center;
     background:
-      linear-gradient(90deg, rgba(255, 78, 54, .18), transparent 72%),
-      color-mix(in srgb, var(--theme-accent, #ff3b4f) 12%, var(--theme-bg, #050204));
+      linear-gradient(90deg, rgba(255, 78, 54, .12), transparent 72%),
+      color-mix(in srgb, var(--theme-accent, #ff3b4f) 9%, var(--theme-bg, #050204));
     border: 1px solid var(--theme-accent, #ff3b4f);
     bottom: 14px;
-    box-shadow: 0 0 26px rgba(255, 78, 54, .34), inset 0 0 20px rgba(255, 255, 255, .035);
+    box-shadow: 0 0 18px rgba(255, 78, 54, .24), inset 0 0 16px rgba(255, 255, 255, .025);
     clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
     color: var(--text, #ffffff);
     display: inline-flex;
@@ -161,7 +150,7 @@ const STYLES = `
   .gm-connect:hover,
   .gm-connect:focus-visible {
     border-color: #ffb05f;
-    box-shadow: 0 0 34px rgba(255, 176, 95, .4), inset 0 0 24px rgba(255, 255, 255, .05);
+    box-shadow: 0 0 24px rgba(255, 176, 95, .3), inset 0 0 18px rgba(255, 255, 255, .035);
     outline: none;
     transform: translateY(-1px);
   }

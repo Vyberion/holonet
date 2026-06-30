@@ -11,6 +11,8 @@ const WIDE_CAMERA = new THREE.Vector3(0, 17.4, 15.6);
 const WIDE_TARGET = new THREE.Vector3(0.2, 0, -0.4);
 const GALAXY_RADIUS = 11.4;
 const CORE_RADIUS = 1.08;
+const GALAXY_BASE_ROTATION_Y = -0.32;
+const GALAXY_SPIN_SPEED = 0.026;
 
 function seededRandom(seed) {
   let state = seed >>> 0;
@@ -556,7 +558,10 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
     if (selectedId) {
       focusTravel.current = true;
       zoomTravel.current = false;
-      if (controls) controls.autoRotate = false;
+      if (controls) {
+        controls.autoRotate = false;
+        controls.enabled = false;
+      }
     } else if (controls) {
       controls.autoRotate = true;
     }
@@ -569,12 +574,18 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
     targetControl.current.copy(WIDE_TARGET);
     zoomTravel.current = true;
     focusTravel.current = false;
+    const controls = controlsRef.current;
+    if (controls) {
+      controls.enabled = false;
+      controls.autoRotate = false;
+    }
   }, [zoomOutSignal]);
 
   useFrame(() => {
     const controls = controlsRef.current;
     if (!controls) return;
     const selectedPosition = selectedIdRef.current ? selectedPositionRef.current : null;
+    const isFocusLocked = Boolean(selectedIdRef.current);
 
     if (selectedPosition) {
       const body = bodyById(map, selectedIdRef.current);
@@ -582,18 +593,27 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
       const outward = selectedPosition.clone().sub(WIDE_TARGET).normalize().multiplyScalar(1.05 * scale);
       targetCamera.current.copy(selectedPosition).add(outward).add(new THREE.Vector3(1.15 * scale, 0.92 * scale, 1.72 * scale));
       targetControl.current.copy(selectedPosition);
+      controls.enabled = false;
       controls.autoRotate = false;
     }
 
-    if (focusTravel.current || zoomTravel.current) {
-      camera.position.lerp(targetCamera.current, focusTravel.current ? 0.055 : 0.045);
-      controls.target.lerp(targetControl.current, focusTravel.current ? 0.07 : 0.055);
+    if (isFocusLocked || focusTravel.current || zoomTravel.current) {
+      controls.enabled = false;
+      camera.position.lerp(targetCamera.current, isFocusLocked ? 0.18 : 0.045);
+      controls.target.lerp(targetControl.current, isFocusLocked ? 0.22 : 0.055);
       const cameraDone = camera.position.distanceTo(targetCamera.current) < 0.035;
       const targetDone = controls.target.distanceTo(targetControl.current) < 0.02;
       if (cameraDone && targetDone) {
         focusTravel.current = false;
         zoomTravel.current = false;
+        if (!isFocusLocked) {
+          controls.enabled = true;
+          controls.autoRotate = true;
+        }
       }
+    } else {
+      controls.enabled = true;
+      controls.autoRotate = true;
     }
 
     controls.update();
@@ -604,15 +624,16 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
 
 function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSignal, quality }) {
   const controlsRef = useRef(null);
+  const galaxyRef = useRef(null);
   const localRef = useRef(null);
   const selectedPositionRef = useRef(null);
   const focus = useMemo(() => focusMapPosition(map), [map]);
   const selectable = selectedId ? bodyById(map, selectedId) : null;
 
   useFrame(({ clock }) => {
-    if (localRef.current) {
-      localRef.current.rotation.y = selectedId ? Math.sin(clock.elapsedTime * 0.15) * 0.04 : clock.elapsedTime * 0.026;
-    }
+    const rotationY = GALAXY_BASE_ROTATION_Y + clock.elapsedTime * GALAXY_SPIN_SPEED;
+    if (galaxyRef.current) galaxyRef.current.rotation.y = rotationY;
+    if (localRef.current) localRef.current.rotation.y = rotationY;
   });
 
   useFrame(() => {
@@ -642,7 +663,7 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
       <Stars radius={82} depth={42} count={quality === "high" ? 7200 : 3400} factor={5.6} saturation={0.62} fade speed={0.26} />
       <Sparkles count={quality === "high" ? 340 : 150} scale={[24, 5.4, 18]} size={1.55} speed={0.44} color="#ff9a3d" opacity={0.72} />
 
-      <group rotation={[-0.045, -0.32, 0.02]}>
+      <group ref={galaxyRef} rotation={[-0.045, GALAXY_BASE_ROTATION_Y, 0.02]}>
         <SectorGrid />
         <SpiralArmRibbons />
         <GalaxyParticles mode="stars" count={quality === "high" ? 24500 : 12800} seed={4321} opacity={0.88} sizeScale={0.92} />
@@ -650,7 +671,7 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
         <GalacticCore />
       </group>
 
-      <group ref={localRef} rotation={[0, -0.32, 0]}>
+      <group ref={localRef} rotation={[0, GALAXY_BASE_ROTATION_Y, 0]}>
         <LocalSystem map={map} selectedId={selectedId} hoveredId={hoveredId} onSelect={onSelect} onHover={onHover} />
       </group>
 
@@ -709,6 +730,7 @@ export function GalaxyMapExperience({ map }) {
   const selectBody = useCallback(id => {
     const body = bodyById(map, id);
     if (!body?.selectable) return;
+    setHoveredId(id);
     setSelectedId(id);
   }, [map]);
 

@@ -1,8 +1,10 @@
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { embed } from "./discord-ui.js";
 import { supabase } from "./supabase.js";
 
 const CHECK_INTERVAL_MS = 60 * 1000;
 const HOUR_SECONDS = 60 * 60;
+const REMINDER_PREFERENCES_TABLE = "shift_reminder_preferences";
 
 const remindedHoursByShiftId = new Map();
 
@@ -32,6 +34,15 @@ function activeShiftSeconds(shift, now = Date.now()) {
   return Math.max(0, liveSeconds + Number(shift.adjustment_seconds || 0));
 }
 
+function reminderControls(discordUserId) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`shiftreminder:disable:${discordUserId}`)
+      .setLabel("Disable Reminders")
+      .setStyle(ButtonStyle.Danger)
+  );
+}
+
 async function loadActiveShifts() {
   const { data, error } = await supabase
     .from("clock_shifts")
@@ -43,40 +54,54 @@ async function loadActiveShifts() {
   return data || [];
 }
 
-async function loadReminderChannelsByScope() {
+async function loadDisabledReminderUserIds(discordUserIds) {
+  const ids = [...new Set(discordUserIds.map(String).filter(Boolean))];
+  if (!ids.length) return new Set();
+
   const { data, error } = await supabase
-    .from("clock_panels")
-    .select("scope,channel_id,updated_at")
-    .order("updated_at", { ascending: false });
+    .from(REMINDER_PREFERENCES_TABLE)
+    .select("discord_user_id")
+    .in("discord_user_id", ids)
+    .eq("enabled", false);
 
   if (error) throw error;
-
-  const channels = new Map();
-  for (const panel of data || []) {
-    const scope = String(panel.scope || "").trim();
-    const channelId = String(panel.channel_id || "").trim();
-    if (scope && channelId && !channels.has(scope)) channels.set(scope, channelId);
-  }
-  return channels;
+  return new Set((data || []).map(row => String(row.discord_user_id)));
 }
 
-async function sendShiftReminder(client, shift, hours, channelId) {
+export async function setShiftRemindersEnabled(discordUserId, enabled) {
+  const userId = String(discordUserId || "").trim();
+  if (!userId) throw new Error("DISCORD_USER_REQUIRED");
+
+  const { data, error } = await supabase
+    .from(REMINDER_PREFERENCES_TABLE)
+    .upsert({
+      discord_user_id: userId,
+      enabled: Boolean(enabled),
+      updated_at: new Date().toISOString()
+    }, { onConflict: "discord_user_id" })
+    .select("enabled")
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+async function sendShiftReminder(client, shift, hours) {
   const discordUserId = String(shift.discord_user_id || "");
-  if (!discordUserId || !channelId) return false;
+  if (!discordUserId) return false;
 
-  const channel = await client.channels.fetch(channelId);
-  if (!channel?.isTextBased?.() || typeof channel.send !== "function") throw new Error("SHIFT_REMINDER_CHANNEL_UNAVAILABLE");
+  const user = await client.users.fetch(discordUserId);
+  if (!user || typeof user.send !== "function") throw new Error("SHIFT_REMINDER_USER_UNAVAILABLE");
 
-  await channel.send({
-    content: `<@${discordUserId}>`,
-    allowedMentions: { users: [discordUserId] },
+  await user.send({
     embeds: [embed("Shift Check-In", [
       `Your shift is **${formatHours(hours)}** long.`,
       "Make sure to take a break.",
       "Are you still ingame, or did you forget to clock out?",
       "",
       `Scope: ${scopeLabel(shift.scope)}`
-    ].join("\n"))]
+    ].join("\n"))],
+    components: [reminderControls(discordUserId)]
   });
 
   return true;
@@ -90,14 +115,20 @@ export async function checkShiftReminders(client, options = {}) {
     const now = Date.now();
     const activeShifts = await loadActiveShifts();
     const activeIds = new Set(activeShifts.map(shift => String(shift.id)));
-    const reminderChannelsByScope = await loadReminderChannelsByScope();
+    const disabledReminderUserIds = await loadDisabledReminderUserIds(activeShifts.map(shift => shift.discord_user_id));
     let sent = 0;
     let skipped = 0;
     let failed = 0;
 
     for (const shift of activeShifts) {
       const shiftId = String(shift.id || "");
-      if (!shiftId) {
+      const discordUserId = String(shift.discord_user_id || "");
+      if (!shiftId || !discordUserId) {
+        skipped += 1;
+        continue;
+      }
+
+      if (disabledReminderUserIds.has(discordUserId)) {
         skipped += 1;
         continue;
       }
@@ -117,15 +148,8 @@ export async function checkShiftReminders(client, options = {}) {
         continue;
       }
 
-      const channelId = reminderChannelsByScope.get(String(shift.scope || ""));
-      if (!channelId) {
-        skipped += 1;
-        console.warn("Shift reminder skipped: no clock panel channel for scope", { shiftId, scope: shift.scope });
-        continue;
-      }
-
       try {
-        await sendShiftReminder(client, shift, hours, channelId);
+        await sendShiftReminder(client, shift, hours);
         remindedHoursByShiftId.set(shiftId, hours);
         sent += 1;
       } catch (error) {

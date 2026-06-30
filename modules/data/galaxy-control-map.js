@@ -65,6 +65,12 @@ export const GALAXY_CONTROL_MAP = {
       outerRadius: 6.24,
       startAngleDeg: -60,
       endAngleDeg: -30,
+      localView: {
+        innerRadius: 0.94,
+        outerRadius: 6.24,
+        startAngleDeg: -36,
+        endAngleDeg: 36
+      },
       objectives: ["Secure Korriban temple approaches", "Deny Republic reconnaissance through Sith Worlds"],
       activeWars: [],
       surveyStars: [
@@ -86,7 +92,7 @@ export const GALAXY_CONTROL_MAP = {
       factionId: "sith-empire",
       grid: "R-5",
       position: [3.96, -3.96],
-      radius: 0.2,
+      radius: 0.065,
       placementConfidence: "Canonical broad placement: Sith Worlds, Esstran sector, Outer Rim",
       contested: false,
       objectives: ["Maintain temple control", "Defend academy and tomb access"],

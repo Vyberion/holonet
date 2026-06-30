@@ -164,8 +164,7 @@ async function doClockIn(interaction, options = {}) {
     description: `<@${interaction.user.id}> clocked in${shift.late ? " late" : ""}.`,
     fields: [
       { name: "Scope", value: scopeLabel(shift.scope), inline: true },
-      shift.late ? { name: "Late", value: `${shift.late_minutes || 0} minute(s)`, inline: true } : null,
-      { name: "Started", value: `<t:${Math.floor(new Date(shift.started_at).getTime() / 1000)}:F>`, inline: false }
+      shift.late ? { name: "Late", value: `${shift.late_minutes || 0} minute(s)`, inline: true } : null
     ].filter(Boolean)
   });
 }

@@ -27,6 +27,7 @@ export const GALAXY_MAP = {
       localDistance: 2.55,
       radius: 0.46,
       selectable: true,
+      robloxPlaceId: 1177256329,
       colors: {
         surface: "#8f2f22",
         surfaceDark: "#2a0806",
@@ -48,7 +49,8 @@ export const GALAXY_MAP = {
       localAngleDeg: 85,
       localDistance: 2.7,
       radius: 0.34,
-      selectable: true,
+      selectable: false,
+      hidden: true,
       colors: {
         surface: "#52333c",
         surfaceDark: "#0e070b",
@@ -69,7 +71,8 @@ export const GALAXY_MAP = {
       position: [5.77, 0.22, -0.43],
       localPosition: [5.77, 0.22, -0.43],
       radius: 0.2,
-      selectable: true,
+      selectable: false,
+      hidden: true,
       colors: {
         surface: "#b7c7cc",
         surfaceDark: "#1a2328",
@@ -81,6 +84,10 @@ export const GALAXY_MAP = {
   ]
 };
 
+export function visibleGalaxyBodies(map = GALAXY_MAP) {
+  return (map.bodies || []).filter(body => !body.hidden);
+}
+
 export function selectableGalaxyBodies(map = GALAXY_MAP) {
-  return (map.bodies || []).filter(body => body.selectable);
+  return visibleGalaxyBodies(map).filter(body => body.selectable);
 }

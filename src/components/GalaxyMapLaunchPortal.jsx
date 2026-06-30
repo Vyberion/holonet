@@ -29,6 +29,7 @@ export function GalaxyMapLaunchPortal({ placeId }) {
 
   useEffect(() => {
     document.documentElement.classList.add("galaxy-map-active");
+    document.body.classList.add("galaxy-map-active");
     writeIntroCompleteFlag();
 
     const syncPanel = () => {
@@ -60,6 +61,7 @@ export function GalaxyMapLaunchPortal({ placeId }) {
       window.removeEventListener("pageshow", syncPanel);
       window.removeEventListener("visibilitychange", syncPanel);
       document.documentElement.classList.remove("galaxy-map-active");
+      document.body.classList.remove("galaxy-map-active");
     };
   }, []);
 
@@ -83,37 +85,41 @@ export function GalaxyMapLaunchPortal({ placeId }) {
 
 const STYLES = `
   html.galaxy-map-active,
-  html:has(.gm-root),
-  body:has(.gm-root) {
+  body.galaxy-map-active {
     overscroll-behavior: none;
   }
 
-  html:has(.gm-root) #nav-container {
-    inset: 0 0 auto 0;
-    position: fixed;
-    z-index: 60;
+  html.galaxy-map-active #app {
+    position: relative;
+    z-index: 1;
   }
 
-  html:has(.gm-root) .gm-root {
+  html.galaxy-map-active #nav-container {
+    clip-path: none !important;
+    display: block !important;
+    filter: none !important;
+    inset: 0 0 auto 0;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    position: fixed !important;
+    transform: none !important;
+    visibility: visible !important;
+    z-index: 9999 !important;
+  }
+
+  html.galaxy-map-active .gm-root {
     z-index: 0 !important;
   }
 
-  html:has(.gm-root) .gm-stage {
-    --gm-flat-blur: .36px;
-  }
-
-  html:has(.gm-root) .gm-stage canvas {
-    filter: blur(var(--gm-flat-blur)) saturate(1.02);
-    transform: scale(1.001);
-    transform-origin: center;
+  html.galaxy-map-active .gm-stage canvas {
     touch-action: none;
   }
 
-  html:has(.gm-root) .gm-topbar {
+  html.galaxy-map-active .gm-topbar {
     top: clamp(72px, 7vw, 92px) !important;
   }
 
-  html:has(.gm-root) .gm-loading {
+  html.galaxy-map-active .gm-loading {
     display: none !important;
   }
 

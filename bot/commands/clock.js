@@ -4,6 +4,7 @@ import { config } from "../config/index.js";
 import { postActivityLog } from "../services/activity-log.js";
 import { embed, ephemeral, errorEmbed, successEmbed, textModal } from "../services/discord-ui.js";
 import { canAdjustTime, canManageBot, getVerifiedProfile, inferScope } from "../services/roles.js";
+import { setShiftRemindersEnabled } from "../services/shift-reminders.js";
 import { supabase } from "../services/supabase.js";
 import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
 
@@ -22,7 +23,9 @@ const SCOPE_CHOICES = [
 export const commands = [
   new SlashCommandBuilder().setName("clockin").setDescription("Start a shift").addBooleanOption(option => option.setName("late").setDescription("Clock in late")),
   new SlashCommandBuilder().setName("clockout").setDescription("End your active shift").addBooleanOption(option => option.setName("late").setDescription("Clock out late")),
-  new SlashCommandBuilder().setName("shift").setDescription("Show your active shift"),
+  new SlashCommandBuilder().setName("shift").setDescription("Shift tools")
+    .addSubcommand(subcommand => subcommand.setName("status").setDescription("Show your active shift"))
+    .addSubcommand(subcommand => subcommand.setName("reminders").setDescription("Enable or disable hourly shift reminders").addBooleanOption(option => option.setName("enable").setDescription("Whether hourly shift reminders are enabled").setRequired(true))),
   new SlashCommandBuilder().setName("clockpanel").setDescription("Clock panel tools").addSubcommand(subcommand => subcommand.setName("create").setDescription("Create a clock panel").addStringOption(option => addScopeChoices(option.setName("scope").setDescription("Clock scope").setRequired(true)))),
   new SlashCommandBuilder().setName("shifts").setDescription("Shift reports")
     .addSubcommand(subcommand => subcommand.setName("active").setDescription("Show active shifts"))
@@ -208,6 +211,23 @@ async function canAdjustTarget(interaction, targetUser) {
     : { allowed: false, reason: "You do not have clearance to adjust that user's time." };
 }
 
+async function handleShiftReminderButton(interaction) {
+  const [, action, targetId] = interaction.customId.split(":");
+  if (action !== "disable") return false;
+
+  if (targetId && targetId !== interaction.user.id) {
+    await interaction.reply(ephemeral({ embeds: [errorEmbed("Only the reminded user can change this reminder setting.")] }));
+    return true;
+  }
+
+  await setShiftRemindersEnabled(interaction.user.id, false);
+  await interaction.update({
+    embeds: [successEmbed("Shift Reminders Disabled", "Hourly shift reminders are now disabled. Use `/shift reminders enable: true` to turn them back on.")],
+    components: []
+  });
+  return true;
+}
+
 export async function handleCommand(interaction) {
   const commandName = interaction.commandName;
   const subcommand = interaction.options?.getSubcommand(false) || "";
@@ -225,7 +245,13 @@ export async function handleCommand(interaction) {
   }
 
   if (interaction.commandName === "shift") {
-    await replyShiftSummary(interaction);
+    if (subcommand === "reminders") {
+      const enabled = interaction.options.getBoolean("enable", true);
+      await setShiftRemindersEnabled(interaction.user.id, enabled);
+      await interaction.reply(ephemeral({ embeds: [successEmbed("Shift Reminders", `Hourly shift reminders are now ${enabled ? "enabled" : "disabled"}.`)] }));
+    } else {
+      await replyShiftSummary(interaction);
+    }
     return true;
   }
 
@@ -287,6 +313,8 @@ export async function handleCommand(interaction) {
 }
 
 export async function handleButton(interaction) {
+  if (interaction.customId.startsWith("shiftreminder:")) return handleShiftReminderButton(interaction);
+
   if (interaction.customId.startsWith("viewtime:")) {
     const [, scope, , page] = interaction.customId.split(":");
     await replyScopeLeaderboard(interaction, scope, Number(page) || 0, true);

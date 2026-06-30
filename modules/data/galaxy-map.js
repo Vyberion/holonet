@@ -1,5 +1,5 @@
 export const GALAXY_MAP = {
-  title: "Hidden Archives Galaxy Map",
+  title: "Galactic Map",
   focus: {
     id: "sith-worlds",
     name: "Sith Worlds",
@@ -10,7 +10,7 @@ export const GALAXY_MAP = {
     localPosition: [6.55, 0.16, -2.65],
     radius: 1.12,
     sectorRadius: 1.76,
-    summary: "A remote archive projection tied to ancient Sith worlds and forgotten imperial records."
+    summary: "An archival of the galactic map."
   },
   bodies: [
     {
@@ -48,14 +48,14 @@ export const GALAXY_MAP = {
       localAngleDeg: 85,
       localDistance: 2.7,
       radius: 0.34,
-      selectable: false,
+      selectable: true,
       colors: {
         surface: "#52333c",
         surfaceDark: "#0e070b",
         glow: "#a46a8a",
         accent: "#5eb6c4"
       },
-      summary: "The parent world used here as a dim anchor for Khar Shian's local placement."
+      summary: "The parent of Khar Shian."
     },
     {
       id: "khar-shian",

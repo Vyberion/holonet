@@ -1,14 +1,16 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Billboard, Html, OrbitControls, Sparkles, Stars, Text } from "@react-three/drei";
+import { Billboard, OrbitControls, Sparkles, Stars, Text } from "@react-three/drei";
 import { Bloom, ChromaticAberration, DepthOfField, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 const TAU = Math.PI * 2;
 const GALAXY_RADIUS = 11.4;
-const GALAXY_FLATTEN = 0.78;
+const GALAXY_FLATTEN = 1;
+const SPIRAL_ARM_COUNT = 3;
+const SPIRAL_SWEEP = 0.36;
 const CORE_RADIUS = 1.08;
 const GALAXY_BASE_ROTATION_Y = -0.32;
 const GALAXY_SPIN_SPEED = 0.018;
@@ -17,8 +19,13 @@ const WIDE_TARGET = new THREE.Vector3(0.18, 0, -0.36);
 const SECTOR_CAMERA_LIFT = 5.7;
 const SECTOR_CAMERA_PULLBACK = 6.6;
 const PLANET_APPROACH_DISTANCE = 4.8;
-const PLANET_ENTRY_DISTANCE = 22;
+const PLANET_ENTRY_DISTANCE = 48;
 const BODY_Y_OFFSET = 0.05;
+const PARTICLE_COUNTS = {
+  high: { stars: 100000, dust: 32000, nebula: 24000, sky: 15000, sparkles: 480, streaks: 1600 },
+  balanced: { stars: 55000, dust: 18000, nebula: 12000, sky: 9000, sparkles: 260, streaks: 950 },
+  reduced: { stars: 30000, dust: 9000, nebula: 6000, sky: 6000, sparkles: 120, streaks: 520 }
+};
 const DEFAULT_FACTIONS = [
   {
     id: "sith-empire",
@@ -201,11 +208,11 @@ function makeSpiralArmPoints(arm, radiusStart = 1.1, radiusEnd = GALAXY_RADIUS, 
   for (let i = 0; i <= segments; i += 1) {
     const t = i / segments;
     const radius = radiusStart + (radiusEnd - radiusStart) * t;
-    const angle = (arm / 5) * TAU + radius * 0.68 + offset;
-    const widthWave = Math.sin(t * Math.PI) * 0.22;
+    const angle = (arm / SPIRAL_ARM_COUNT) * TAU + radius * SPIRAL_SWEEP + offset;
+    const widthWave = Math.sin(t * Math.PI) * 0.48;
     points.push(new THREE.Vector3(
       Math.cos(angle) * (radius + widthWave),
-      0.08 + Math.sin(t * TAU + arm) * 0.03,
+      0.08 + Math.sin(t * TAU + arm) * 0.045,
       Math.sin(angle) * (radius + widthWave) * GALAXY_FLATTEN
     ));
   }
@@ -215,9 +222,10 @@ function makeSpiralArmPoints(arm, radiusStart = 1.1, radiusEnd = GALAXY_RADIUS, 
 function SpiralArmRibbons({ opacity = 1 }) {
   const arms = useMemo(() => {
     const rows = [];
-    for (let arm = 0; arm < 5; arm += 1) {
-      rows.push({ key: `glow-${arm}`, points: makeSpiralArmPoints(arm, 1.16, 10.95, 120, 0), color: arm % 2 ? "#ff3b4f" : "#ffd08c", opacity: arm % 2 ? 0.18 : 0.13, radius: arm % 2 ? 0.03 : 0.024 });
-      rows.push({ key: `dust-${arm}`, points: makeSpiralArmPoints(arm, 1.6, 10.65, 100, -0.18), color: "#7c1020", opacity: 0.12, radius: 0.019 });
+    for (let arm = 0; arm < SPIRAL_ARM_COUNT; arm += 1) {
+      rows.push({ key: `glow-${arm}`, points: makeSpiralArmPoints(arm, 1.05, 11.05, 120, 0), color: arm % 2 ? "#ff3b4f" : "#ffd08c", opacity: arm % 2 ? 0.2 : 0.15, radius: arm % 2 ? 0.072 : 0.06 });
+      rows.push({ key: `haze-${arm}`, points: makeSpiralArmPoints(arm, 1.4, 11.35, 110, -0.16), color: arm % 2 ? "#61d9ff" : "#ff7a45", opacity: 0.08, radius: 0.13 });
+      rows.push({ key: `dust-${arm}`, points: makeSpiralArmPoints(arm, 1.65, 10.9, 100, 0.2), color: "#7c1020", opacity: 0.16, radius: 0.055 });
     }
     return rows;
   }, []);
@@ -240,21 +248,25 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
   const colors = new Float32Array(count * 3);
   const sizes = new Float32Array(count);
   const color = new THREE.Color();
+  const isDust = mode === "dust";
+  const isNebula = mode === "nebula";
 
   for (let i = 0; i < count; i += 1) {
-    const isCore = mode === "core" || rnd() < 0.11;
-    const arm = i % 5;
+    const isCore = mode === "core" || rnd() < (isNebula ? 0.07 : 0.1);
+    const arm = Math.floor(rnd() * SPIRAL_ARM_COUNT);
     const radius = isCore
       ? Math.pow(rnd(), 1.9) * CORE_RADIUS
-      : Math.pow(rnd(), mode === "dust" ? 0.72 : 0.54) * (GALAXY_RADIUS - CORE_RADIUS) + CORE_RADIUS;
-    const sweep = radius * 0.7;
-    const armAngle = (arm / 5) * TAU + sweep;
-    const jitter = isCore ? randRange(rnd, -TAU, TAU) : randRange(rnd, -0.26 - radius * 0.014, 0.26 + radius * 0.014);
-    const angle = isCore ? rnd() * TAU : armAngle + jitter;
-    const spread = mode === "dust" ? 0.34 + radius * 0.038 : 0.08 + radius * 0.016;
+      : Math.pow(rnd(), isDust ? 0.42 : isNebula ? 0.48 : 0.34) * (GALAXY_RADIUS - CORE_RADIUS) + CORE_RADIUS;
+    const sweep = radius * SPIRAL_SWEEP;
+    const armAngle = (arm / SPIRAL_ARM_COUNT) * TAU + sweep;
+    const interArm = !isCore && rnd() < (isNebula ? 0.36 : isDust ? 0.22 : 0.09);
+    const jitterWidth = isNebula ? 0.62 + radius * 0.035 : isDust ? 0.42 + radius * 0.028 : 0.22 + radius * 0.016;
+    const jitter = isCore ? randRange(rnd, -TAU, TAU) : randRange(rnd, -jitterWidth, jitterWidth);
+    const angle = isCore ? rnd() * TAU : interArm ? rnd() * TAU : armAngle + jitter;
+    const spread = isNebula ? 0.32 + radius * 0.082 : isDust ? 0.22 + radius * 0.06 : 0.055 + radius * 0.026;
     const x = Math.cos(angle) * radius + randRange(rnd, -spread, spread);
     const z = Math.sin(angle) * radius * GALAXY_FLATTEN + randRange(rnd, -spread, spread);
-    const y = randRange(rnd, -0.08, 0.1) * (1 + radius * 0.08);
+    const y = randRange(rnd, isNebula ? -0.16 : -0.08, isNebula ? 0.18 : 0.1) * (1 + radius * (isNebula ? 0.11 : 0.08));
     const rimFade = Math.min(1, radius / GALAXY_RADIUS);
 
     positions[i * 3] = x;
@@ -263,14 +275,18 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
 
     const palette = isCore
       ? (rnd() > 0.28 ? "#ffe2a0" : "#ff563f")
-      : rnd() > 0.9 ? "#ff3b4f" : rnd() > 0.62 ? "#ffd58a" : rnd() > 0.32 ? "#f9fbff" : "#9feeff";
+      : isNebula
+        ? rnd() > 0.72 ? "#ff2438" : rnd() > 0.45 ? "#ff8a4a" : rnd() > 0.2 ? "#61d9ff" : "#fff0c8"
+        : rnd() > 0.9 ? "#ff3b4f" : rnd() > 0.62 ? "#ffd58a" : rnd() > 0.32 ? "#f9fbff" : "#9feeff";
     color.set(palette);
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
-    sizes[i] = mode === "dust"
-      ? randRange(rnd, 0.035, 0.12) * (1.2 - rimFade * 0.22)
-      : randRange(rnd, 0.014, 0.075) * (isCore ? 1.8 : 1);
+    sizes[i] = isNebula
+      ? randRange(rnd, 0.02, 0.08) * (1.16 - rimFade * 0.18)
+      : isDust
+        ? randRange(rnd, 0.01, 0.04) * (1.26 - rimFade * 0.18)
+        : randRange(rnd, 0.004, 0.018) * (isCore ? 1.55 : 1);
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -287,7 +303,10 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   useFrame(({ clock }) => {
-    if (materialRef.current) materialRef.current.uniforms.uTime.value = clock.elapsedTime;
+    if (materialRef.current) {
+      materialRef.current.uniforms.uTime.value = clock.elapsedTime;
+      materialRef.current.uniforms.uOpacity.value = opacity;
+    }
   });
 
   return (
@@ -301,7 +320,8 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
         uniforms={{
           uTime: { value: 0 },
           uOpacity: { value: opacity },
-          uScale: { value: sizeScale }
+          uScale: { value: sizeScale },
+          uNebula: { value: mode === "nebula" ? 1 : 0 }
         }}
         vertexShader={`
           attribute float aSize;
@@ -313,21 +333,23 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
             vec3 pos = position;
             pos.y += sin(uTime * 0.22 + position.x * 1.8 + position.z * 1.3) * 0.018;
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            gl_PointSize = aSize * uScale * (440.0 / max(6.0, -mvPosition.z));
+            gl_PointSize = aSize * uScale * (260.0 / max(8.0, -mvPosition.z));
             gl_Position = projectionMatrix * mvPosition;
           }
         `}
         fragmentShader={`
           uniform float uTime;
           uniform float uOpacity;
+          uniform float uNebula;
           varying vec3 vColor;
           void main() {
             vec2 uv = gl_PointCoord * 2.0 - 1.0;
             float d = length(uv);
-            float core = 1.0 - smoothstep(0.0, 0.16, d);
+            float core = (1.0 - smoothstep(0.0, 0.16, d)) * (1.0 - uNebula);
             float glow = 1.0 - smoothstep(0.12, 1.0, d);
-            float twinkle = 0.74 + 0.26 * sin(uTime * 1.7 + vColor.r * 17.0);
-            gl_FragColor = vec4(vColor, (core + glow * 0.64) * uOpacity * twinkle);
+            float mist = pow(max(glow, 0.0), mix(1.0, 1.85, uNebula));
+            float twinkle = mix(0.74 + 0.26 * sin(uTime * 1.7 + vColor.r * 17.0), 0.88 + 0.12 * sin(uTime * 0.38 + vColor.b * 13.0), uNebula);
+            gl_FragColor = vec4(vColor, (core + mist * mix(0.64, 0.48, uNebula)) * uOpacity * twinkle);
           }
         `}
       />
@@ -373,7 +395,7 @@ function GalacticCore({ opacity = 1 }) {
   return (
     <group>
       <sprite position={[0, 0.08, 0]} scale={[4.4, 4.4, 1]}>
-        <spriteMaterial map={glow} color="#ffcf91" transparent opacity={0.72 * opacity} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <spriteMaterial map={glow} color="#ffcf91" transparent opacity={0.34 * opacity} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
       <mesh position={[0, 0.05, 0]}>
         <sphereGeometry args={[0.34, 48, 24]} />
@@ -381,6 +403,93 @@ function GalacticCore({ opacity = 1 }) {
       </mesh>
       <Sparkles count={90} scale={[2.4, 0.9, 2.4]} size={3.6} speed={0.35} color="#ffd38a" opacity={0.84 * opacity} />
     </group>
+  );
+}
+
+function LabelBackdrop({ width, height, color, opacity = 1 }) {
+  const borderPoints = useMemo(() => {
+    const x = width / 2;
+    const y = height / 2;
+    return [
+      new THREE.Vector3(-x, -y, 0),
+      new THREE.Vector3(x, -y, 0),
+      new THREE.Vector3(x, y, 0),
+      new THREE.Vector3(-x, y, 0),
+      new THREE.Vector3(-x, -y, 0)
+    ];
+  }, [width, height]);
+
+  return (
+    <group position={[0, 0, -0.02]}>
+      <mesh>
+        <planeGeometry args={[width, height]} />
+        <meshBasicMaterial color="#070104" transparent opacity={0.62 * opacity} depthWrite={false} depthTest={false} side={THREE.DoubleSide} />
+      </mesh>
+      <line>
+        <LineGeometry points={borderPoints} />
+        <lineBasicMaterial color={color} transparent opacity={0.5 * opacity} depthWrite={false} depthTest={false} />
+      </line>
+    </group>
+  );
+}
+
+function SectorVectorLabel({ sector, faction, dominant, active, dimmed, position, onSelect }) {
+  const color = faction.glow || faction.color;
+  const opacity = dimmed ? 0.28 : active ? 1 : 0.82;
+
+  const handleClick = event => {
+    event.stopPropagation();
+    onSelect(sector.id);
+  };
+
+  return (
+    <Billboard position={[position.x, 0.58, position.z]} follow>
+      <group onClick={handleClick} onPointerOver={event => event.stopPropagation()}>
+        <LabelBackdrop width={2.15} height={0.72} color={color} opacity={opacity} />
+        <Text position={[0, 0.2, 0]} fontSize={0.105} anchorX="center" anchorY="middle" color={color} outlineWidth={0.004} outlineColor="#000000" material-depthTest={false} material-depthWrite={false} material-toneMapped={false}>
+          {sector.grid || "SECTOR"}
+        </Text>
+        <Text position={[0, 0.02, 0]} fontSize={0.16} maxWidth={1.92} anchorX="center" anchorY="middle" color="#fff2df" outlineWidth={0.007} outlineColor="#000000" material-depthTest={false} material-depthWrite={false} material-toneMapped={false}>
+          {sector.name}
+        </Text>
+        <Text position={[0, -0.2, 0]} fontSize={0.092} anchorX="center" anchorY="middle" color={color} outlineWidth={0.004} outlineColor="#000000" material-depthTest={false} material-depthWrite={false} material-toneMapped={false}>
+          {dominant || 100}% {faction.shortName || faction.name}
+        </Text>
+      </group>
+    </Billboard>
+  );
+}
+
+function PlanetVectorLabel({ body, onSelect, onHover }) {
+  const color = body.colors.glow;
+
+  const handleClick = event => {
+    event.stopPropagation();
+    onSelect(body.id);
+  };
+
+  const handlePointerOver = event => {
+    event.stopPropagation();
+    onHover(body.id);
+  };
+
+  const handlePointerOut = event => {
+    event.stopPropagation();
+    onHover(null);
+  };
+
+  return (
+    <Billboard position={[0, Math.max(body.visualRadius * 3.1, 0.34), 0]} follow>
+      <group onClick={handleClick} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut}>
+        <LabelBackdrop width={1.45} height={0.48} color={color} opacity={0.9} />
+        <Text position={[0, 0.12, 0]} fontSize={0.082} anchorX="center" anchorY="middle" color={color} outlineWidth={0.004} outlineColor="#000000" material-depthTest={false} material-depthWrite={false} material-toneMapped={false}>
+          {body.grid || "R-5"}
+        </Text>
+        <Text position={[0, -0.06, 0]} fontSize={0.135} maxWidth={1.24} anchorX="center" anchorY="middle" color="#fff2df" outlineWidth={0.006} outlineColor="#000000" material-depthTest={false} material-depthWrite={false} material-toneMapped={false}>
+          {body.shortName || body.name}
+        </Text>
+      </group>
+    </Billboard>
   );
 }
 
@@ -425,7 +534,7 @@ function makeSectorGeometry(sector, map) {
   return { geometry, edgePoints: vectors.map(point => new THREE.Vector3(point.x, -0.026, point.z)) };
 }
 
-function SectorControlZone({ map, sector, active, dimmed, onSelect }) {
+function SectorControlZone({ map, sector, active, dimmed, labelVisible, onSelect }) {
   const faction = factionById(map, sector.factionId);
   const { geometry, edgePoints } = useMemo(() => makeSectorGeometry(sector, map), [sector, map]);
   const center = useMemo(() => sectorSceneCenter(sector, map), [sector, map]);
@@ -454,18 +563,17 @@ function SectorControlZone({ map, sector, active, dimmed, onSelect }) {
         <LineGeometry points={[...edgePoints, edgePoints[0]]} />
         <lineBasicMaterial color={faction.glow || faction.color} transparent opacity={active ? 0.9 : dimmed ? 0.12 : 0.45} blending={THREE.AdditiveBlending} depthWrite={false} />
       </line>
-      <Html transform center distanceFactor={7.2} position={[center.x, 0.52, center.z]} zIndexRange={[5, 0]}>
-        <button
-          className={`gm-sector-label${active ? " is-active" : ""}${dimmed ? " is-dimmed" : ""}`}
-          type="button"
-          onClick={handleClick}
-          style={{ "--sector-color": faction.glow || faction.color }}
-        >
-          <span>{sector.grid || "sector"}</span>
-          <strong>{sector.name}</strong>
-          <em>{dominant || 100}% {faction.shortName || faction.name}</em>
-        </button>
-      </Html>
+      {labelVisible ? (
+        <SectorVectorLabel
+          sector={sector}
+          faction={faction}
+          dominant={dominant}
+          active={active}
+          dimmed={dimmed}
+          position={center}
+          onSelect={onSelect}
+        />
+      ) : null}
     </group>
   );
 }
@@ -568,7 +676,7 @@ function normalizePlanet(map, planet) {
       glow: planet.colors?.glow || faction.glow || faction.color
     },
     scenePosition: mapPointToScene(planet.position || planet.mapPosition || [0, 0], map, BODY_Y_OFFSET),
-    visualRadius: Math.max(0.18, (planet.radius || 0.065) * getMapScale(map) * 3.45)
+    visualRadius: Math.max(0.07, (planet.radius || 0.065) * getMapScale(map) * 2.35)
   };
 }
 
@@ -582,7 +690,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
   const haloTexture = useMemo(() => makeGlowTexture("rgba(255,255,255,1)", colorWithAlpha(body.colors.glow, 0.58)), [body.colors.glow]);
   const isGalaxy = mode === "galaxy";
   const targetScale = active ? 2.7 : mode === "sector" ? (hovered ? 1.35 : 1.08) : isGalaxy ? 0.34 : 2.15;
-  const labelVisible = mode !== "galaxy" || hovered || active;
+  const labelVisible = mode === "sector";
 
   useEffect(() => () => {
     textures.map.dispose();
@@ -653,21 +761,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
         <LineGeometry points={makeEllipsePoints(body.visualRadius * 2.55, body.visualRadius * 2.55, 150)} />
         <lineBasicMaterial color={active ? "#ffb04a" : body.colors.glow} transparent opacity={0.24} blending={THREE.AdditiveBlending} depthWrite={false} />
       </line>
-      {labelVisible ? (
-        <Html transform center distanceFactor={active ? 4.6 : 7.2} position={[0, body.visualRadius * 2.85, 0]} zIndexRange={[7, 0]}>
-          <button
-            className={`gm-planet-label${active ? " is-active" : ""}`}
-            type="button"
-            onClick={handleClick}
-            onPointerEnter={() => onHover(body.id)}
-            onPointerLeave={() => onHover(null)}
-            style={{ "--planet-color": body.colors.glow }}
-          >
-            <span>{body.grid || "R-5"}</span>
-            <strong>{body.shortName || body.name}</strong>
-          </button>
-        </Html>
-      ) : null}
+      {labelVisible ? <PlanetVectorLabel body={body} onSelect={onSelect} onHover={onHover} /> : null}
     </group>
   );
 }
@@ -702,10 +796,11 @@ function SectorPlanetField({ map, view, hoveredPlanetId, onSelectPlanet, onHover
   );
 }
 
-function GalaxyControlMap({ map, view, onSelectSector }) {
+function GalaxyControlMap({ map, view, onSelectSector, quality }) {
   const mode = view.mode;
   const opacity = mode === "galaxy" ? 1 : mode === "sector" ? 0.28 : 0;
   const sectorOpacity = mode === "galaxy" ? 1 : mode === "sector" ? 0.58 : 0;
+  const counts = PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced;
 
   return (
     <group visible={opacity > 0.001}>
@@ -718,56 +813,107 @@ function GalaxyControlMap({ map, view, onSelectSector }) {
             sector={sector}
             active={view.sectorId === sector.id}
             dimmed={mode !== "galaxy" && view.sectorId !== sector.id}
+            labelVisible={mode === "galaxy"}
             onSelect={onSelectSector}
           />
         ))}
       </group>
       <SpiralArmRibbons opacity={opacity} />
-      <GalaxyParticles mode="stars" count={22000} seed={4321} opacity={0.86 * opacity} sizeScale={0.95} />
-      <GalaxyParticles mode="dust" count={3600} seed={8827} opacity={0.06 * opacity} sizeScale={1.08} />
-      <GalacticCore opacity={sectorOpacity} />
+      <GalaxyParticles mode="nebula" count={counts.nebula} seed={5288} opacity={0.004 * opacity} sizeScale={1} />
+      <GalaxyParticles mode="stars" count={counts.stars} seed={4321} opacity={0.035 * opacity} sizeScale={0.82} />
+      <GalaxyParticles mode="dust" count={counts.dust} seed={8827} opacity={0.012 * opacity} sizeScale={1} />
+      <GalacticCore opacity={0.4 * sectorOpacity} />
     </group>
   );
 }
 
-function HyperspaceTunnel({ active }) {
-  const geometry = useMemo(() => {
-    const rnd = seededRandom(7717);
-    const positions = new Float32Array(900 * 3);
-    const colors = new Float32Array(900 * 3);
-    const color = new THREE.Color();
-    for (let i = 0; i < 900; i += 1) {
-      const angle = rnd() * TAU;
-      const radius = randRange(rnd, 1.4, 14);
-      const depth = randRange(rnd, -34, 8);
-      positions[i * 3] = Math.cos(angle) * radius;
-      positions[i * 3 + 1] = Math.sin(angle) * radius * 0.55;
-      positions[i * 3 + 2] = depth;
-      color.set(rnd() > 0.42 ? "#ffffff" : rnd() > 0.5 ? "#ff2848" : "#77dbff");
-      colors[i * 3] = color.r;
-      colors[i * 3 + 1] = color.g;
-      colors[i * 3 + 2] = color.b;
-    }
-    const next = new THREE.BufferGeometry();
-    next.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    next.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-    return next;
-  }, []);
+function makeHyperspaceGeometry(count, seed) {
+  const rnd = seededRandom(seed);
+  const positions = new Float32Array(count * 2 * 3);
+  const colors = new Float32Array(count * 2 * 3);
+  const streaks = [];
+  const color = new THREE.Color();
+
+  for (let i = 0; i < count; i += 1) {
+    const angle = rnd() * TAU;
+    const radius = randRange(rnd, 0.75, 19);
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius * randRange(rnd, 0.52, 0.9);
+    const z = randRange(rnd, -86, -3);
+    const length = randRange(rnd, 3.8, 12.5);
+    const speed = randRange(rnd, 34, 72);
+    const idx = i * 6;
+    streaks.push({ x, y, z, length, speed, radius });
+
+    positions[idx] = x;
+    positions[idx + 1] = y;
+    positions[idx + 2] = z;
+    positions[idx + 3] = x;
+    positions[idx + 4] = y;
+    positions[idx + 5] = z - length;
+
+    color.set(rnd() > 0.5 ? "#ffffff" : rnd() > 0.55 ? "#ff2848" : "#77dbff");
+    colors[idx] = color.r;
+    colors[idx + 1] = color.g;
+    colors[idx + 2] = color.b;
+    colors[idx + 3] = color.r;
+    colors[idx + 4] = color.g;
+    colors[idx + 5] = color.b;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  geometry.getAttribute("position").setUsage(THREE.DynamicDrawUsage);
+  return { geometry, streaks };
+}
+
+function HyperspaceTunnel({ active, quality, reducedMotion }) {
+  const count = (PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced).streaks;
+  const { geometry, streaks } = useMemo(() => makeHyperspaceGeometry(count, 7717), [count]);
   const ref = useRef(null);
+  const materialRef = useRef(null);
+  const opacityRef = useRef(0);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
-  useFrame(({ clock }) => {
-    if (!ref.current) return;
-    ref.current.visible = active;
-    ref.current.rotation.z = clock.elapsedTime * 0.42;
-    ref.current.position.z = Math.sin(clock.elapsedTime * 9) * 1.6;
+  useFrame(({ camera, clock }, delta) => {
+    if (!ref.current || !materialRef.current) return;
+    const targetOpacity = active ? (reducedMotion ? 0.48 : 0.88) : 0;
+    opacityRef.current = THREE.MathUtils.lerp(opacityRef.current, targetOpacity, active ? 0.18 : 0.12);
+    ref.current.visible = opacityRef.current > 0.01;
+    ref.current.position.copy(camera.position);
+    ref.current.quaternion.copy(camera.quaternion);
+    ref.current.rotation.z += Math.sin(clock.elapsedTime * 0.8) * 0.0008;
+
+    const position = geometry.getAttribute("position");
+    const array = position.array;
+    const speedScale = active ? (reducedMotion ? 0.48 : 1) : 0.18;
+    for (let i = 0; i < streaks.length; i += 1) {
+      const streak = streaks[i];
+      streak.z += streak.speed * delta * speedScale;
+      if (streak.z > 2) {
+        streak.z = randRange(seededRandom(i + 919), -92, -62);
+      }
+
+      const stretch = streak.length * (1 + opacityRef.current * (reducedMotion ? 0.7 : 2.15));
+      const pulse = 1 + Math.sin(clock.elapsedTime * 1.8 + i) * 0.018;
+      const idx = i * 6;
+      array[idx] = streak.x * pulse;
+      array[idx + 1] = streak.y * pulse;
+      array[idx + 2] = streak.z;
+      array[idx + 3] = streak.x * (pulse + 0.015);
+      array[idx + 4] = streak.y * (pulse + 0.015);
+      array[idx + 5] = streak.z - stretch;
+    }
+    position.needsUpdate = true;
+    materialRef.current.opacity = opacityRef.current;
   });
 
   return (
-    <points ref={ref} geometry={geometry} visible={active} position={[0, 0, -7]}>
-      <pointsMaterial vertexColors transparent opacity={active ? 0.78 : 0} size={0.08} depthWrite={false} blending={THREE.AdditiveBlending} />
-    </points>
+    <lineSegments ref={ref} geometry={geometry} visible={false}>
+      <lineBasicMaterial ref={materialRef} vertexColors transparent opacity={0} depthWrite={false} depthTest={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+    </lineSegments>
   );
 }
 
@@ -815,20 +961,25 @@ function CameraRig({ map, view, transition, controlsRef }) {
     const targetCamera = resolveCamera(view, map, camera.position);
     const controls = controlsRef.current;
     const kind = transition.kind || view.mode;
-    const isPlanetEntry = kind === "planet";
+    const isPlanetEntry = kind === "planet" && view.mode === "planet";
+    const entryDirection = camera.position.clone().sub(focus);
+    if (entryDirection.lengthSq() < 0.01) entryDirection.set(1.8, 0.6, 1.8);
+    entryDirection.normalize();
+    const entryDistance = transition.reducedMotion ? 18 : PLANET_ENTRY_DISTANCE;
     const fromCamera = isPlanetEntry
-      ? focus.clone().add(camera.position.clone().sub(focus).normalize().multiplyScalar(PLANET_ENTRY_DISTANCE)).add(new THREE.Vector3(2.8, 0.9, 2.2))
+      ? focus.clone().add(entryDirection.multiplyScalar(entryDistance)).add(new THREE.Vector3(5.4, 1.6, 4.2))
       : camera.position.clone();
 
     activeTransition.current = {
       kind,
       startedAt: performance.now(),
-      duration: isPlanetEntry ? 2100 : 980,
+      duration: isPlanetEntry ? transition.flightDuration || 1850 : transition.duration || 980,
       fromCamera,
       toCamera: targetCamera,
       fromTarget: controls?.target?.clone?.() || WIDE_TARGET.clone(),
       toTarget: focus,
-      recoil: isPlanetEntry ? 0.42 : 0.08
+      recoil: isPlanetEntry ? transition.reducedMotion ? 0.12 : 0.95 : 0.08,
+      reducedMotion: !!transition.reducedMotion
     };
 
     if (controls) {
@@ -844,11 +995,20 @@ function CameraRig({ map, view, transition, controlsRef }) {
     const current = activeTransition.current;
     if (current) {
       const raw = (performance.now() - current.startedAt) / current.duration;
-      const t = smoothstep(0, 1, raw);
-      const recoil = Math.sin(Math.min(1, raw) * Math.PI * 2.6) * current.recoil * (1 - t);
+      const capped = Math.min(1, raw);
+      const isPlanetEntry = current.kind === "planet" && view.mode === "planet";
+      const t = isPlanetEntry ? 1 - Math.pow(1 - capped, 3.4) : smoothstep(0, 1, raw);
+      const recoil = isPlanetEntry
+        ? Math.sin(capped * Math.PI * 3.1) * current.recoil * (1 - t * 0.62)
+        : Math.sin(capped * Math.PI * 2.6) * current.recoil * (1 - t);
       camera.position.copy(current.fromCamera).lerp(current.toCamera, t);
       const recoilDirection = current.toCamera.clone().sub(current.toTarget).normalize();
       camera.position.add(recoilDirection.multiplyScalar(recoil));
+      if (isPlanetEntry && !current.reducedMotion) {
+        const shake = Math.sin(capped * Math.PI) * (1 - t * 0.45) * 0.075;
+        camera.position.x += Math.sin(raw * 74) * shake;
+        camera.position.y += Math.cos(raw * 61) * shake * 0.55;
+      }
       controls.target.copy(current.fromTarget).lerp(current.toTarget, t);
       controls.update();
 
@@ -873,12 +1033,13 @@ function CameraRig({ map, view, transition, controlsRef }) {
   return null;
 }
 
-function GalaxyScene({ map, view, hoveredPlanetId, onSelectSector, onSelectPlanet, onHoverPlanet, transition, quality }) {
+function GalaxyScene({ map, view, hoveredPlanetId, onSelectSector, onSelectPlanet, onHoverPlanet, transition, quality, reducedMotion }) {
   const controlsRef = useRef(null);
   const galaxyRef = useRef(null);
   const selectedPlanet = useMemo(() => (map.planets || []).find(planet => planet.id === view.planetId), [map.planets, view.planetId]);
   const selectedPlanetScenePosition = useMemo(() => selectedPlanet ? mapPointToScene(selectedPlanet.position || selectedPlanet.mapPosition || [0, 0], map, BODY_Y_OFFSET) : null, [selectedPlanet, map]);
-  const hyperspaceActive = transition.kind === "planet" && transition.active;
+  const hyperspaceActive = transition.kind === "planet" && transition.active && (transition.phase === "hyperspace" || transition.phase === "arrival");
+  const counts = PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced;
 
   useFrame(({ clock }) => {
     if (galaxyRef.current && view.mode === "galaxy") {
@@ -900,12 +1061,12 @@ function GalaxyScene({ map, view, hoveredPlanetId, onSelectSector, onSelectPlane
         <pointLight position={selectedPlanetScenePosition.clone().add(new THREE.Vector3(3.4, 2.2, 2.6)).toArray()} intensity={68} distance={12} color={normalizePlanet(map, selectedPlanet).colors.glow} />
       ) : null}
 
-      <Stars radius={96} depth={48} count={quality === "high" ? 8200 : 4200} factor={5.7} saturation={0.62} fade speed={0.22} />
-      <Sparkles count={view.mode === "planet" ? 0 : quality === "high" ? 320 : 150} scale={[24, 5.4, 18]} size={1.55} speed={0.44} color="#ff9a3d" opacity={0.64} />
-      <HyperspaceTunnel active={hyperspaceActive} />
+      <Stars radius={96} depth={48} count={counts.sky} factor={6.2} saturation={0.68} fade speed={0.22} />
+      <Sparkles count={view.mode === "planet" ? 0 : counts.sparkles} scale={[24, 5.4, 24]} size={1.8} speed={0.44} color="#ff9a3d" opacity={0.7} />
+      <HyperspaceTunnel active={hyperspaceActive} quality={quality} reducedMotion={reducedMotion} />
 
       <group ref={galaxyRef} rotation={[-0.045, GALAXY_BASE_ROTATION_Y, 0.02]}>
-        <GalaxyControlMap map={map} view={view} onSelectSector={onSelectSector} />
+        <GalaxyControlMap map={map} view={view} onSelectSector={onSelectSector} quality={quality} />
       </group>
 
       <SectorPlanetField
@@ -929,13 +1090,15 @@ function GalaxyScene({ map, view, hoveredPlanetId, onSelectSector, onSelectPlane
         autoRotateSpeed={view.mode === "galaxy" ? 0.18 : view.mode === "sector" ? 0.28 : 0.2}
         target={WIDE_TARGET}
       />
-      <EffectComposer multisampling={0}>
-        <Bloom intensity={quality === "high" ? 0.82 : 0.5} luminanceThreshold={0.2} luminanceSmoothing={0.22} />
-        <DepthOfField focusDistance={0} focalLength={0.015} bokehScale={quality === "high" ? 0.28 : 0.16} height={480} />
-        <ChromaticAberration offset={quality === "high" ? [0.0008, 0.0004] : [0.00035, 0.00018]} />
-        <Noise opacity={0.032} />
-        <Vignette eskil={false} offset={0.2} darkness={0.58} />
-      </EffectComposer>
+      {view.mode === "planet" ? (
+        <EffectComposer multisampling={0}>
+          <Bloom intensity={quality === "high" ? 0.32 : 0.2} luminanceThreshold={0.42} luminanceSmoothing={0.22} />
+          <DepthOfField focusDistance={0} focalLength={0.015} bokehScale={quality === "high" ? 0.24 : 0.14} height={480} />
+          <ChromaticAberration offset={quality === "high" ? [0.0008, 0.0004] : [0.00035, 0.00018]} />
+          <Noise opacity={0.032} />
+          <Vignette eskil={false} offset={0.2} darkness={0.58} />
+        </EffectComposer>
+      ) : null}
     </>
   );
 }
@@ -1006,24 +1169,44 @@ export function GalaxyMapExperience({ map }) {
   const [view, setView] = useState({ mode: "galaxy", sectorId: null, planetId: null });
   const [hoveredPlanetId, setHoveredPlanetId] = useState(null);
   const [quality, setQuality] = useState("high");
-  const [transition, setTransition] = useState({ kind: "galaxy", token: 0, active: false });
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [transition, setTransition] = useState({ kind: "galaxy", token: 0, active: false, phase: "idle" });
+  const transitionTimersRef = useRef([]);
   const sectorSummary = getSectorSummary(normalizedMap, view.sectorId);
   const planetSummary = getPlanetSummary(normalizedMap, view.planetId);
   const panelFaction = planetSummary?.faction || sectorSummary?.faction || null;
+
+  const clearTransitionTimers = useCallback(() => {
+    transitionTimersRef.current.forEach(timer => window.clearTimeout(timer));
+    transitionTimersRef.current = [];
+  }, []);
+
+  const queueTransitionTimer = useCallback((callback, delay) => {
+    const timer = window.setTimeout(() => {
+      transitionTimersRef.current = transitionTimersRef.current.filter(item => item !== timer);
+      callback();
+    }, delay);
+    transitionTimersRef.current.push(timer);
+  }, []);
 
   useEffect(() => {
     const isReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
     const isCompact = window.matchMedia?.("(max-width: 760px)")?.matches;
     const cores = window.navigator?.hardwareConcurrency || 8;
-    setQuality(isReducedMotion || isCompact || cores <= 4 ? "balanced" : "high");
+    setReducedMotion(!!isReducedMotion);
+    setQuality(isReducedMotion || isCompact || cores <= 4 ? "reduced" : cores <= 6 ? "balanced" : "high");
   }, []);
 
+  useEffect(() => () => clearTransitionTimers(), [clearTransitionTimers]);
+
   const beginTransition = useCallback(kind => {
-    setTransition(current => ({ kind, token: current.token + 1, active: true }));
-    window.setTimeout(() => {
-      setTransition(current => ({ ...current, active: false }));
-    }, kind === "planet" ? 2150 : 980);
-  }, []);
+    clearTransitionTimers();
+    const duration = reducedMotion ? 620 : 980;
+    setTransition(current => ({ kind, token: current.token + 1, active: true, phase: "settle", duration, reducedMotion }));
+    queueTransitionTimer(() => {
+      setTransition(current => ({ ...current, active: false, phase: "idle" }));
+    }, duration);
+  }, [clearTransitionTimers, queueTransitionTimer, reducedMotion]);
 
   const selectSector = useCallback(sectorId => {
     setHoveredPlanetId(null);
@@ -1034,10 +1217,44 @@ export function GalaxyMapExperience({ map }) {
   const selectPlanet = useCallback(planetId => {
     const planet = (normalizedMap.planets || []).find(item => item.id === planetId);
     if (!planet) return;
+    clearTransitionTimers();
     setHoveredPlanetId(null);
-    setView({ mode: "planet", sectorId: planet.sectorId, planetId });
-    beginTransition("planet");
-  }, [normalizedMap.planets, beginTransition]);
+    const wipeDuration = reducedMotion ? 260 : 520;
+    const flightDuration = reducedMotion ? 900 : 1850;
+    const arrivalPhaseDelay = reducedMotion ? 240 : 680;
+
+    setTransition(current => ({
+      kind: "planet",
+      token: current.token,
+      active: true,
+      phase: "wipe",
+      wipeDuration,
+      flightDuration,
+      reducedMotion
+    }));
+
+    queueTransitionTimer(() => {
+      setView({ mode: "planet", sectorId: planet.sectorId, planetId });
+      setTransition(current => ({
+        ...current,
+        kind: "planet",
+        token: current.token + 1,
+        active: true,
+        phase: "hyperspace",
+        duration: flightDuration,
+        flightDuration,
+        reducedMotion
+      }));
+    }, wipeDuration);
+
+    queueTransitionTimer(() => {
+      setTransition(current => current.kind === "planet" ? { ...current, phase: "arrival" } : current);
+    }, wipeDuration + arrivalPhaseDelay);
+
+    queueTransitionTimer(() => {
+      setTransition(current => current.kind === "planet" ? { ...current, active: false, phase: "idle" } : current);
+    }, wipeDuration + flightDuration);
+  }, [normalizedMap.planets, clearTransitionTimers, queueTransitionTimer, reducedMotion]);
 
   const zoomOut = useCallback(() => {
     if (view.mode === "planet") {
@@ -1059,18 +1276,27 @@ export function GalaxyMapExperience({ map }) {
   const panelSummary = planetSummary?.planet?.summary
     || sectorSummary?.sector?.objectives?.[0]
     || "Select a sector to enter local space. Select a world to make a hyperspace approach.";
+  const wipeClass = transition.kind === "planet" && transition.active && transition.phase === "wipe"
+    ? " is-wiping"
+    : transition.kind === "planet" && transition.active && transition.phase === "hyperspace"
+      ? " is-revealing"
+      : "";
+  const dpr = quality === "high" ? [1, 2] : quality === "balanced" ? [1, 1.5] : [1, 1.15];
 
   return (
     <section className={`gm-root${ready ? " gm-root--ready" : ""}${transition.active ? " is-transitioning" : ""}`} aria-label="Hidden Archives Galaxy Map">
       <div className="gm-stage" aria-hidden="true">
         <Canvas
           camera={{ position: WIDE_CAMERA.toArray(), fov: 45, near: 0.04, far: 180 }}
-          dpr={quality === "high" ? [1, 2] : [1, 1.35]}
-          gl={{ antialias: true, powerPreference: "high-performance", stencil: false }}
-          onCreated={({ gl }) => {
+          dpr={dpr}
+          gl={{ antialias: true, alpha: false, powerPreference: "high-performance", stencil: false }}
+          onCreated={({ gl, scene }) => {
+            gl.setClearColor(new THREE.Color("#030105"), 1);
+            gl.setClearAlpha(1);
             gl.toneMapping = THREE.ACESFilmicToneMapping;
             gl.toneMappingExposure = 0.9;
             gl.outputColorSpace = THREE.SRGBColorSpace;
+            scene.background = new THREE.Color("#030105");
             setReady(true);
           }}
         >
@@ -1083,11 +1309,12 @@ export function GalaxyMapExperience({ map }) {
             onHoverPlanet={setHoveredPlanetId}
             transition={transition}
             quality={quality}
+            reducedMotion={reducedMotion}
           />
         </Canvas>
       </div>
 
-      <div className={`gm-hyperdrive${transition.kind === "planet" && transition.active ? " is-active" : ""}`} aria-hidden="true" />
+      <div className={`gm-wipe${wipeClass}`} aria-hidden="true" style={{ "--wipe-duration": `${transition.wipeDuration || 520}ms` }} />
       <div className="gm-scan" aria-hidden="true" />
       <div className="gm-vignette" aria-hidden="true" />
 
@@ -1167,7 +1394,7 @@ export function GalaxyMapExperience({ map }) {
 const STYLES = `
   html:has(.gm-root),
   body:has(.gm-root) {
-    background: var(--theme-bg, #050204);
+    background: #050204;
     overflow: hidden;
   }
 
@@ -1176,8 +1403,8 @@ const STYLES = `
     --gm-display-font: Orbitron, Rajdhani, "Eurostile Extended", "Bank Gothic", "Trebuchet MS", system-ui, sans-serif;
     --gm-serif-font: Cinzel, "Trajan Pro", Georgia, serif;
     background:
-      radial-gradient(ellipse 56% 46% at 50% 46%, var(--theme-body-glow-a, rgba(160, 0, 22, .08)), transparent 66%),
-      linear-gradient(180deg, var(--theme-bg, #050204) 0%, #050204 58%, #000000 100%);
+      radial-gradient(ellipse 56% 46% at 50% 46%, rgba(160, 0, 22, .08), transparent 66%),
+      linear-gradient(180deg, #050204 0%, #050204 58%, #000000 100%);
     color: var(--text, #fff7f7);
     font-family: var(--gm-display-font);
     height: 100dvh;
@@ -1199,7 +1426,7 @@ const STYLES = `
   .gm-stage canvas,
   .gm-scan,
   .gm-vignette,
-  .gm-hyperdrive {
+  .gm-wipe {
     inset: 0;
     position: absolute;
   }
@@ -1209,6 +1436,7 @@ const STYLES = `
   }
 
   .gm-stage canvas {
+    background: #030105;
     cursor: grab;
     display: block;
     height: 100% !important;
@@ -1238,21 +1466,40 @@ const STYLES = `
     z-index: 4;
   }
 
-  .gm-hyperdrive {
-    background:
-      radial-gradient(circle at 50% 50%, rgba(255,255,255,.9), rgba(255,255,255,.12) 7%, transparent 18%),
-      repeating-conic-gradient(from 0deg, rgba(255,255,255,.72) 0deg 1deg, transparent 1deg 6deg),
-      radial-gradient(circle at 50% 50%, transparent 0 20%, rgba(255,36,56,.28) 42%, rgba(97,217,255,.18) 64%, transparent 78%);
-    filter: blur(.35px) saturate(1.4);
+  .gm-wipe {
     opacity: 0;
+    overflow: hidden;
     pointer-events: none;
-    transform: scale(.4) rotate(0deg);
-    transition: opacity .16s ease;
-    z-index: 5;
+    z-index: 10;
   }
 
-  .gm-hyperdrive.is-active {
-    animation: gm-hyperdrive 2.15s cubic-bezier(.17,.84,.28,1) both;
+  .gm-wipe::before {
+    background: #000;
+    bottom: -76vmax;
+    content: "";
+    height: 220vmax;
+    position: absolute;
+    right: -76vmax;
+    transform: translate(72%, 72%) rotate(45deg);
+    transform-origin: center;
+    width: 220vmax;
+  }
+
+  .gm-wipe.is-wiping {
+    opacity: 1;
+  }
+
+  .gm-wipe.is-wiping::before {
+    animation: gm-wipe-in var(--wipe-duration, 520ms) cubic-bezier(.77,0,.18,1) both;
+  }
+
+  .gm-wipe.is-revealing {
+    animation: gm-wipe-reveal .44s ease both;
+    opacity: 1;
+  }
+
+  .gm-wipe.is-revealing::before {
+    transform: translate(0, 0) rotate(45deg);
   }
 
   .gm-topbar {
@@ -1360,6 +1607,17 @@ const STYLES = `
     z-index: 8;
   }
 
+  .gm-panel.is-planet {
+    bottom: auto;
+    left: clamp(18px, 4vw, 58px);
+    max-width: 480px;
+    padding: 22px;
+    right: auto;
+    top: 50%;
+    transform: translateY(-50%);
+    width: min(480px, calc(100vw - 36px));
+  }
+
   .gm-panel-title {
     border-bottom: 1px solid color-mix(in srgb, var(--panel-color) 52%, transparent);
     margin-bottom: 11px;
@@ -1387,6 +1645,16 @@ const STYLES = `
     font-size: .82rem;
     line-height: 1.5;
     margin: 12px 0 0;
+  }
+
+  .gm-panel.is-planet h1 {
+    font-size: clamp(1.62rem, 2.4vw, 2.12rem);
+    margin: 10px 0 8px;
+  }
+
+  .gm-panel.is-planet p {
+    font-size: .92rem;
+    line-height: 1.58;
   }
 
   .gm-selectors {
@@ -1526,12 +1794,14 @@ const STYLES = `
     to { transform: rotate(360deg); }
   }
 
-  @keyframes gm-hyperdrive {
-    0% { opacity: 0; transform: scale(.32) rotate(0deg); filter: blur(2px) saturate(1.2); }
-    18% { opacity: .88; transform: scale(.75) rotate(18deg); }
-    52% { opacity: .96; transform: scale(1.55) rotate(44deg); filter: blur(.6px) saturate(1.8); }
-    78% { opacity: .55; transform: scale(2.35) rotate(63deg); }
-    100% { opacity: 0; transform: scale(3.2) rotate(74deg); filter: blur(2px) saturate(1.1); }
+  @keyframes gm-wipe-in {
+    0% { transform: translate(72%, 72%) rotate(45deg); }
+    100% { transform: translate(0, 0) rotate(45deg); }
+  }
+
+  @keyframes gm-wipe-reveal {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
   }
 
   @media (max-width: 760px) {
@@ -1553,6 +1823,17 @@ const STYLES = `
       max-width: none;
       padding: 14px;
       right: 14px;
+      width: auto;
+    }
+
+    .gm-panel.is-planet {
+      bottom: 14px;
+      left: 14px;
+      max-width: none;
+      padding: 14px;
+      right: 14px;
+      top: auto;
+      transform: none;
       width: auto;
     }
 

@@ -1,6 +1,6 @@
 import { GalaxyMapExperience } from "../../../../components/GalaxyMapExperience.jsx";
 import { holonetMetadata } from "../../../../lib/metadata.js";
-import { GALAXY_MAP } from "../../../../../modules/data/galaxy-map.js";
+import { GALAXY_MAP, visibleGalaxyBodies } from "../../../../../modules/data/galaxy-map.js";
 
 export const metadata = holonetMetadata({
   title: "Galactic Map",
@@ -8,5 +8,10 @@ export const metadata = holonetMetadata({
 });
 
 export default function ArchivesGalaxyMapPage() {
-  return <GalaxyMapExperience map={GALAXY_MAP} />;
+  const visibleMap = {
+    ...GALAXY_MAP,
+    bodies: visibleGalaxyBodies(GALAXY_MAP)
+  };
+
+  return <GalaxyMapExperience map={visibleMap} />;
 }

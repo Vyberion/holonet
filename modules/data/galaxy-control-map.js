@@ -71,8 +71,8 @@ export const GALAXY_CONTROL_MAP = {
         startAngleDeg: -36,
         endAngleDeg: 36
       },
-      objectives: ["Secure Korriban temple approaches", "Deny Republic reconnaissance through Sith Worlds"],
-      activeWars: [],
+      objectives: [],
+      activeWars: ["Ak'tuun vs Kalazar"],
       surveyStars: [
         { id: "esstran-a", position: [3.46, -4.22], size: 0.045 },
         { id: "esstran-b", position: [4.15, -3.62], size: 0.035 },
@@ -99,7 +99,7 @@ export const GALAXY_CONTROL_MAP = {
       locations: ["Sith Temple", "Sith Academy approaches", "Valley tomb routes"],
       robloxPlaceId: 1177256329,
       robloxLaunchUrl: "roblox://experiences/start?placeId=1177256329",
-      summary: "Ancient Sith homeworld and current Imperial stronghold in the Sith Worlds."
+      summary: "Homeworld of the Sith and location of the Sith Academy."
     }
   ]
 };

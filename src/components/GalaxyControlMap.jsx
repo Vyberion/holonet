@@ -16,7 +16,6 @@ const GALAXY_BASE_ROTATION_X = -0.045;
 const GALAXY_BASE_ROTATION_Y = -0.32;
 const GALAXY_BASE_ROTATION_Z = 0.02;
 const GALAXY_BASE_ROTATION = new THREE.Euler(GALAXY_BASE_ROTATION_X, GALAXY_BASE_ROTATION_Y, GALAXY_BASE_ROTATION_Z);
-const GALAXY_SPIN_SPEED = 0.018;
 const WIDE_CAMERA = new THREE.Vector3(0, 16.8, 15.4);
 const WIDE_TARGET = new THREE.Vector3(0.18, 0, -0.36);
 const SECTOR_CAMERA_LIFT = 5.7;
@@ -25,9 +24,9 @@ const PLANET_APPROACH_DISTANCE = 2.15;
 const PLANET_ENTRY_DISTANCE = 54;
 const BODY_Y_OFFSET = 0.05;
 const PARTICLE_COUNTS = {
-  high: { stars: 160000, dust: 64000, nebula: 48000, sky: 28000, sparkles: 650, streaks: 1900 },
-  balanced: { stars: 90000, dust: 34000, nebula: 26000, sky: 18000, sparkles: 360, streaks: 1150 },
-  reduced: { stars: 50000, dust: 16000, nebula: 10000, sky: 9000, sparkles: 160, streaks: 620 }
+  high: { stars: 160000, brightStars: 90000, dust: 64000, nebula: 48000, sky: 28000, sparkles: 650, streaks: 1900 },
+  balanced: { stars: 90000, brightStars: 52000, dust: 34000, nebula: 26000, sky: 18000, sparkles: 360, streaks: 1150 },
+  reduced: { stars: 50000, brightStars: 26000, dust: 16000, nebula: 10000, sky: 9000, sparkles: 160, streaks: 620 }
 };
 const KORRIBAN_TEXTURE_URLS = [
   "/assets/galaxy/korriban/diffuse.png",
@@ -251,9 +250,9 @@ function SpiralArmRibbons({ opacity = 1 }) {
   const arms = useMemo(() => {
     const rows = [];
     for (let arm = 0; arm < SPIRAL_ARM_COUNT; arm += 1) {
-      rows.push({ key: `glow-${arm}`, points: makeSpiralArmPoints(arm, 1.05, 11.05, 120, 0), color: arm % 2 ? "#ff3b4f" : "#ffd08c", opacity: arm % 2 ? 0.32 : 0.24, radius: arm % 2 ? 0.12 : 0.1 });
-      rows.push({ key: `haze-${arm}`, points: makeSpiralArmPoints(arm, 1.4, 11.35, 110, -0.16), color: arm % 2 ? "#61d9ff" : "#ff7a45", opacity: 0.15, radius: 0.22 });
-      rows.push({ key: `dust-${arm}`, points: makeSpiralArmPoints(arm, 1.65, 10.9, 100, 0.2), color: "#7c1020", opacity: 0.24, radius: 0.082 });
+      rows.push({ key: `glow-${arm}`, points: makeSpiralArmPoints(arm, 1.05, 11.05, 120, 0), color: arm % 2 ? "#ff3b4f" : "#ffd08c", opacity: arm % 2 ? 0.11 : 0.085, radius: arm % 2 ? 0.058 : 0.048 });
+      rows.push({ key: `haze-${arm}`, points: makeSpiralArmPoints(arm, 1.4, 11.35, 110, -0.16), color: arm % 2 ? "#61d9ff" : "#ff7a45", opacity: 0.052, radius: 0.105 });
+      rows.push({ key: `dust-${arm}`, points: makeSpiralArmPoints(arm, 1.65, 10.9, 100, 0.2), color: "#7c1020", opacity: 0.075, radius: 0.04 });
     }
     return rows;
   }, []);
@@ -378,6 +377,107 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
             float mist = pow(max(glow, 0.0), mix(1.0, 1.85, uNebula));
             float twinkle = mix(0.74 + 0.26 * sin(uTime * 1.7 + vColor.r * 17.0), 0.88 + 0.12 * sin(uTime * 0.38 + vColor.b * 13.0), uNebula);
             gl_FragColor = vec4(vColor, (core + mist * mix(0.64, 0.48, uNebula)) * uOpacity * twinkle);
+          }
+        `}
+      />
+    </points>
+  );
+}
+
+function makeVisibleGalaxyStarsGeometry(count, seed) {
+  const rnd = seededRandom(seed);
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+  const color = new THREE.Color();
+
+  for (let i = 0; i < count; i += 1) {
+    const isCore = rnd() < 0.12;
+    const interArm = !isCore && rnd() < 0.34;
+    const arm = Math.floor(rnd() * SPIRAL_ARM_COUNT);
+    const radius = isCore
+      ? Math.pow(rnd(), 1.7) * CORE_RADIUS
+      : Math.pow(rnd(), 0.58) * (GALAXY_RADIUS - CORE_RADIUS) + CORE_RADIUS;
+    const armAngle = (arm / SPIRAL_ARM_COUNT) * TAU + radius * SPIRAL_SWEEP;
+    const angle = isCore
+      ? rnd() * TAU
+      : interArm
+        ? rnd() * TAU
+        : armAngle + randRange(rnd, -0.11 - radius * 0.035, 0.11 + radius * 0.035);
+    const spread = isCore ? 0.08 : 0.03 + radius * 0.012;
+    const idx = i * 3;
+
+    positions[idx] = Math.cos(angle) * radius + randRange(rnd, -spread, spread);
+    positions[idx + 1] = randRange(rnd, -0.028, 0.09) * (1 + radius * 0.035);
+    positions[idx + 2] = Math.sin(angle) * radius * GALAXY_FLATTEN + randRange(rnd, -spread, spread);
+
+    color.set(rnd() > 0.94 ? "#9edfff" : rnd() > 0.68 ? "#ffd27a" : "#fffaf0");
+    colors[idx] = color.r;
+    colors[idx + 1] = color.g;
+    colors[idx + 2] = color.b;
+    sizes[i] = rnd() > 0.965 ? randRange(rnd, 3.2, 5.2) : rnd() > 0.72 ? randRange(rnd, 2.1, 3.35) : randRange(rnd, 1.05, 2.05);
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+  return geometry;
+}
+
+function VisibleGalaxyStars({ count, opacity = 1 }) {
+  const geometry = useMemo(() => makeVisibleGalaxyStarsGeometry(count, 18421), [count]);
+  const materialRef = useRef(null);
+  const pixelRatio = useThree(state => Math.min(2, state.gl.getPixelRatio?.() || 1));
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  useFrame(({ clock }) => {
+    if (!materialRef.current) return;
+    materialRef.current.uniforms.uTime.value = clock.elapsedTime;
+    materialRef.current.uniforms.uOpacity.value = opacity;
+    materialRef.current.uniforms.uPixelRatio.value = pixelRatio;
+  });
+
+  return (
+    <points geometry={geometry} renderOrder={12}>
+      <shaderMaterial
+        ref={materialRef}
+        vertexColors
+        transparent
+        depthWrite={false}
+        depthTest={false}
+        blending={THREE.AdditiveBlending}
+        toneMapped={false}
+        uniforms={{
+          uTime: { value: 0 },
+          uOpacity: { value: opacity },
+          uPixelRatio: { value: pixelRatio }
+        }}
+        vertexShader={`
+          attribute float aSize;
+          uniform float uTime;
+          uniform float uPixelRatio;
+          varying vec3 vColor;
+          varying float vPulse;
+          void main() {
+            vColor = color;
+            vPulse = 0.78 + 0.22 * sin(uTime * 2.8 + position.x * 7.3 + position.z * 5.9);
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = aSize * uPixelRatio;
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `}
+        fragmentShader={`
+          uniform float uOpacity;
+          varying vec3 vColor;
+          varying float vPulse;
+          void main() {
+            vec2 uv = gl_PointCoord * 2.0 - 1.0;
+            float d = length(uv);
+            float core = 1.0 - smoothstep(0.0, 0.42, d);
+            float glow = 1.0 - smoothstep(0.3, 1.0, d);
+            gl_FragColor = vec4(vColor, (core + glow * 0.75) * uOpacity * vPulse);
           }
         `}
       />
@@ -804,6 +904,16 @@ function useKorribanTextureSet() {
   return { map, normalMap, elevationMap, roughnessMap, cloudMap };
 }
 
+function KorribanTexturePreloader({ onReady }) {
+  useKorribanTextureSet();
+
+  useEffect(() => {
+    onReady?.();
+  }, [onReady]);
+
+  return null;
+}
+
 function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
   const body = useMemo(() => normalizePlanet(map, planet), [map, planet]);
   const groupRef = useRef(null);
@@ -818,6 +928,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
   const isGalaxy = mode === "galaxy";
   const targetScale = active ? 7.4 : mode === "sector" ? (hovered ? 1.35 : 1.08) : isGalaxy ? 0.34 : 2.15;
   const labelVisible = mode === "sector";
+  const sectorMarkerVisible = mode === "sector";
 
   useEffect(() => () => {
     if (generatedTextures) {
@@ -842,9 +953,11 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
     }
     if (cloudsRef.current) cloudsRef.current.rotation.y -= 0.0018 + body.visualRadius * 0.0014;
     if (scanRef.current) {
+      scanRef.current.visible = sectorMarkerVisible;
+      if (!sectorMarkerVisible) return;
       const pulse = 0.5 + Math.sin(t * 3.2) * 0.5;
       scanRef.current.rotation.z += active ? 0.028 : 0.012;
-      scanRef.current.material.opacity = (active ? 0.7 : hovered ? 0.44 : mode === "sector" ? 0.18 : 0.08) + pulse * (active ? 0.18 : 0.06);
+      scanRef.current.material.opacity = (hovered ? 0.44 : 0.18) + pulse * 0.06;
     }
   });
 
@@ -912,17 +1025,21 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
           <meshStandardMaterial map={textures.cloudMap} transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
         )}
       </mesh>
-      <mesh scale={1.18}>
-        <sphereGeometry args={[body.visualRadius * 1.16, 96, 36]} />
-        <meshBasicMaterial color={body.colors.glow} transparent opacity={active ? 0.26 : hovered ? 0.16 : mode === "sector" ? 0.08 : 0.035} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.BackSide} />
-      </mesh>
-      <sprite scale={[body.visualRadius * (active ? 4.8 : mode === "sector" ? 6.8 : 4.8), body.visualRadius * (active ? 4.8 : mode === "sector" ? 6.8 : 4.8), 1]}>
-        <spriteMaterial map={haloTexture} color={body.colors.glow} transparent opacity={active ? 0.38 : hovered ? 0.24 : mode === "sector" ? 0.12 : 0.045} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </sprite>
-      <line ref={scanRef} rotation={[Math.PI / 2, 0, 0]}>
-        <LineGeometry points={makeEllipsePoints(body.visualRadius * 2.55, body.visualRadius * 2.55, 150)} />
-        <lineBasicMaterial color={active ? "#ffb04a" : body.colors.glow} transparent opacity={0.24} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </line>
+      {sectorMarkerVisible ? (
+        <>
+          <mesh scale={1.18}>
+            <sphereGeometry args={[body.visualRadius * 1.16, 96, 36]} />
+            <meshBasicMaterial color={body.colors.glow} transparent opacity={hovered ? 0.16 : 0.08} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.BackSide} />
+          </mesh>
+          <sprite scale={[body.visualRadius * 6.8, body.visualRadius * 6.8, 1]}>
+            <spriteMaterial map={haloTexture} color={body.colors.glow} transparent opacity={hovered ? 0.24 : 0.12} blending={THREE.AdditiveBlending} depthWrite={false} />
+          </sprite>
+          <line ref={scanRef} rotation={[Math.PI / 2, 0, 0]}>
+            <LineGeometry points={makeEllipsePoints(body.visualRadius * 2.55, body.visualRadius * 2.55, 150)} />
+            <lineBasicMaterial color={body.colors.glow} transparent opacity={0.24} blending={THREE.AdditiveBlending} depthWrite={false} />
+          </line>
+        </>
+      ) : null}
       {labelVisible ? <PlanetVectorLabel body={body} /> : null}
     </group>
   );
@@ -984,6 +1101,7 @@ function GalaxyControlMap({ map, view, onSelectSector, quality }) {
       <GalaxyParticles mode="nebula" count={counts.nebula} seed={5288} opacity={0.052 * opacity} sizeScale={1.25} />
       <GalaxyParticles mode="stars" count={counts.stars} seed={4321} opacity={0.16 * opacity} sizeScale={0.95} />
       <GalaxyParticles mode="dust" count={counts.dust} seed={8827} opacity={0.055 * opacity} sizeScale={1.05} />
+      <VisibleGalaxyStars count={counts.brightStars} opacity={(mode === "galaxy" ? 0.96 : 0.38) * opacity} />
       <GalacticCore opacity={0.62 * sectorOpacity} />
     </group>
   );
@@ -1197,7 +1315,7 @@ function CameraRig({ map, view, transition, controlsRef }) {
   return null;
 }
 
-function GalaxyScene({ map, view, hoveredPlanetId, onSelectSector, onSelectPlanet, onHoverPlanet, transition, quality, reducedMotion }) {
+function GalaxyScene({ map, view, hoveredPlanetId, onSelectSector, onSelectPlanet, onHoverPlanet, onAssetsReady, transition, quality, reducedMotion }) {
   const controlsRef = useRef(null);
   const galaxyRef = useRef(null);
   const selectedPlanet = useMemo(() => (map.planets || []).find(planet => planet.id === view.planetId), [map.planets, view.planetId]);
@@ -1205,23 +1323,21 @@ function GalaxyScene({ map, view, hoveredPlanetId, onSelectSector, onSelectPlane
   const hyperspaceActive = transition.kind === "planet" && transition.active && (transition.phase === "hyperspace" || transition.phase === "arrival");
   const counts = PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced;
 
-  useFrame(({ clock }) => {
+  useFrame(() => {
     if (!galaxyRef.current) return;
-    const rotationY = view.mode === "galaxy"
-      ? GALAXY_BASE_ROTATION_Y + clock.elapsedTime * GALAXY_SPIN_SPEED
-      : GALAXY_BASE_ROTATION_Y;
-    galaxyRef.current.rotation.set(GALAXY_BASE_ROTATION_X, rotationY, GALAXY_BASE_ROTATION_Z);
+    galaxyRef.current.rotation.set(GALAXY_BASE_ROTATION_X, GALAXY_BASE_ROTATION_Y, GALAXY_BASE_ROTATION_Z);
   });
 
   return (
     <>
       <color attach="background" args={["#030105"]} />
+      <KorribanTexturePreloader onReady={onAssetsReady} />
       <fogExp2 attach="fog" args={["#050107", view.mode === "planet" ? 0.0012 : 0.003]} />
       <ambientLight intensity={view.mode === "planet" ? 0.34 : 0.2} color="#4d1b20" />
       <directionalLight position={[4.8, 8.2, 5.4]} intensity={view.mode === "planet" ? 3.8 : 3.2} color="#ffd8a8" />
       <pointLight position={[0, 1.4, 0]} intensity={view.mode === "planet" ? 0 : 88} distance={19} color="#ffb168" />
       {selectedPlanetScenePosition ? (
-        <pointLight position={selectedPlanetScenePosition.clone().add(new THREE.Vector3(3.4, 2.2, 2.6)).toArray()} intensity={68} distance={12} color={normalizePlanet(map, selectedPlanet).colors.glow} />
+        <pointLight position={selectedPlanetScenePosition.clone().add(new THREE.Vector3(3.4, 2.2, 2.6)).toArray()} intensity={68} distance={12} color={view.mode === "planet" ? "#ffe2bd" : normalizePlanet(map, selectedPlanet).colors.glow} />
       ) : null}
 
       <DistantStarDome count={counts.sky} opacity={view.mode === "planet" ? 0.64 : 0.92} />
@@ -1326,7 +1442,8 @@ function getPlanetSummary(map, planetId) {
 
 export function GalaxyMapExperience({ map }) {
   const normalizedMap = useMemo(() => normalizeMap(map || {}), [map]);
-  const [ready, setReady] = useState(false);
+  const [canvasReady, setCanvasReady] = useState(false);
+  const [assetsReady, setAssetsReady] = useState(false);
   const [view, setView] = useState({ mode: "galaxy", sectorId: null, planetId: null });
   const [hoveredPlanetId, setHoveredPlanetId] = useState(null);
   const [quality, setQuality] = useState("high");
@@ -1336,6 +1453,7 @@ export function GalaxyMapExperience({ map }) {
   const sectorSummary = getSectorSummary(normalizedMap, view.sectorId);
   const planetSummary = getPlanetSummary(normalizedMap, view.planetId);
   const panelFaction = planetSummary?.faction || sectorSummary?.faction || null;
+  const ready = canvasReady && assetsReady;
 
   const clearTransitionTimers = useCallback(() => {
     transitionTimersRef.current.forEach(timer => window.clearTimeout(timer));
@@ -1348,6 +1466,10 @@ export function GalaxyMapExperience({ map }) {
       callback();
     }, delay);
     transitionTimersRef.current.push(timer);
+  }, []);
+
+  const markGalaxyAssetsReady = useCallback(() => {
+    setAssetsReady(true);
   }, []);
 
   useEffect(() => {
@@ -1458,7 +1580,7 @@ export function GalaxyMapExperience({ map }) {
             gl.toneMappingExposure = 0.9;
             gl.outputColorSpace = THREE.SRGBColorSpace;
             scene.background = new THREE.Color("#030105");
-            setReady(true);
+            setCanvasReady(true);
           }}
         >
           <GalaxyScene
@@ -1468,6 +1590,7 @@ export function GalaxyMapExperience({ map }) {
             onSelectSector={selectSector}
             onSelectPlanet={selectPlanet}
             onHoverPlanet={setHoveredPlanetId}
+            onAssetsReady={markGalaxyAssetsReady}
             transition={transition}
             quality={quality}
             reducedMotion={reducedMotion}

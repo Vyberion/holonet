@@ -98,8 +98,26 @@ const STYLES = `
     z-index: 0 !important;
   }
 
+  html:has(.gm-root) .gm-stage {
+    --gm-flat-blur: .72px;
+  }
+
   html:has(.gm-root) .gm-stage canvas {
+    filter: blur(var(--gm-flat-blur)) saturate(1.04);
+    transform: scale(1.002);
+    transform-origin: center;
     touch-action: none;
+  }
+
+  html:has(.gm-root) .gm-stage::after {
+    background: rgba(255, 255, 255, .001);
+    backdrop-filter: blur(var(--gm-flat-blur));
+    -webkit-backdrop-filter: blur(var(--gm-flat-blur));
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: 2;
   }
 
   html:has(.gm-root) .gm-topbar {

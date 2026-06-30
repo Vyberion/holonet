@@ -15,7 +15,7 @@ export default function HomePage() {
       footerNode="KOR-7"
       mainClassName="home-main"
     >
-      <nav className="nav-grid" aria-label="Holonet Sections">
+      <nav className="nav-grid nav-grid--home" aria-label="Holonet Sections">
         <a href="/codex" className="nav-card" aria-label="Enter The Codex">
           <div className="card-inner-border" aria-hidden="true" />
           <div className="card-corners" aria-hidden="true" />
@@ -67,7 +67,7 @@ export default function HomePage() {
           <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
         </a>
 
-        <a href="/archives/cots" className="nav-card nav-card--wide" aria-label="Enter Champion of The Sith">
+        <a href="/archives/cots" className="nav-card nav-card--home-short" aria-label="Enter Champion of The Sith">
           <div className="card-inner-border" aria-hidden="true" />
           <div className="card-corners" aria-hidden="true" />
           <div className="card-vline" aria-hidden="true" />
@@ -83,11 +83,53 @@ export default function HomePage() {
           <p className="card-desc">CoTS records.</p>
           <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
         </a>
+
       </nav>
 
       <div className="marquee-wrap" aria-hidden="true">
         <div className="marquee-track" style={{ color: "var(--text-dim)" }} />
       </div>
+
+      <style>{`
+        .nav-grid--home .nav-card--home-short {
+          grid-column: 1 / -1;
+          height: clamp(190px, 19vh, 270px);
+          min-height: 190px;
+        }
+
+        .nav-grid--home .nav-card--home-short .card-bg-glyph {
+          font-size: clamp(6.5rem, 8vw, 11rem);
+          left: auto;
+          right: clamp(54px, 8vw, 130px);
+          transform: translateY(-50%);
+        }
+
+        .nav-grid--home .nav-card--home-short .card-desc {
+          max-width: 34ch;
+        }
+
+        @media (max-width: 860px) {
+          .nav-grid--home {
+            grid-template-columns: 1fr;
+          }
+
+          .nav-grid--home .nav-card,
+          .nav-grid--home .nav-card--home-short {
+            grid-column: auto;
+          }
+
+          .nav-grid--home .nav-card--home-short {
+            height: 200px;
+            min-height: 200px;
+          }
+
+          .nav-grid--home .nav-card--home-short .card-bg-glyph {
+            left: 50%;
+            right: auto;
+            transform: translate(-50%, -50%);
+          }
+        }
+      `}</style>
 
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} />
     </HolonetFrame>

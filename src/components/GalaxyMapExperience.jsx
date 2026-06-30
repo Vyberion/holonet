@@ -1,8 +1,8 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Billboard, Html, OrbitControls, Sparkles, Stars } from "@react-three/drei";
-import { Bloom, ChromaticAberration, DepthOfField, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
+import { Billboard, OrbitControls, Sparkles, Stars, Text } from "@react-three/drei";
+import { Bloom, ChromaticAberration, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
@@ -13,6 +13,8 @@ const GALAXY_RADIUS = 11.4;
 const CORE_RADIUS = 1.08;
 const GALAXY_BASE_ROTATION_Y = -0.32;
 const GALAXY_SPIN_SPEED = 0.026;
+const PLANET_SIZE_SCALE = 0.82;
+const BODY_Y_OFFSET = -0.3;
 
 function seededRandom(seed) {
   let state = seed >>> 0;
@@ -42,10 +44,10 @@ function bodyLocalPosition(body, map) {
   if (map && Number.isFinite(body.localAngleDeg) && Number.isFinite(body.localDistance)) {
     const angle = THREE.MathUtils.degToRad(body.localAngleDeg);
     const origin = focusMapPosition(map);
-    const y = body.localPosition?.[1] ?? body.position?.[1] ?? body.mapPosition?.[1] ?? 0;
+    const y = (body.localPosition?.[1] ?? body.position?.[1] ?? body.mapPosition?.[1] ?? 0) + BODY_Y_OFFSET;
     return origin.add(new THREE.Vector3(Math.cos(angle) * body.localDistance, y - origin.y, Math.sin(angle) * body.localDistance));
   }
-  return vec3(body.localPosition || body.position || body.mapPosition);
+  return vec3(body.localPosition || body.position || body.mapPosition).add(new THREE.Vector3(0, BODY_Y_OFFSET, 0));
 }
 
 function focusMapPosition(map) {
@@ -409,6 +411,7 @@ function PlanetBody({ body, map, selected, hovered, onSelect, onHover, focusMode
   const haloTexture = useMemo(() => makeGlowTexture("rgba(255,255,255,1)", colorWithAlpha(body.colors?.glow || "#ff3b4f", 0.52)), [body]);
   const textures = useMemo(() => makePlanetTextures(body), [body]);
   const localPosition = useMemo(() => bodyLocalPosition(body, map), [body, map]);
+  const visualRadius = body.radius * PLANET_SIZE_SCALE;
 
   useEffect(() => () => {
     haloTexture.dispose();
@@ -451,7 +454,7 @@ function PlanetBody({ body, map, selected, hovered, onSelect, onHover, focusMode
   return (
     <group ref={groupRef} position={localPosition.toArray()} userData={{ bodyId: body.id }}>
       <mesh ref={planetRef} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut} onClick={handleClick}>
-        <sphereGeometry args={[body.radius, 96, 48]} />
+        <sphereGeometry args={[visualRadius, 96, 48]} />
         <meshStandardMaterial
           map={textures.map}
           bumpMap={textures.bumpMap}
@@ -463,33 +466,37 @@ function PlanetBody({ body, map, selected, hovered, onSelect, onHover, focusMode
         />
       </mesh>
       <mesh ref={cloudsRef} scale={1.018}>
-        <sphereGeometry args={[body.radius * 1.018, 96, 48]} />
+        <sphereGeometry args={[visualRadius * 1.018, 96, 48]} />
         <meshStandardMaterial map={textures.cloudMap} transparent opacity={body.id === "khar-shian" ? 0.34 : 0.18} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
       <mesh scale={1.18}>
-        <sphereGeometry args={[body.radius * 1.16, 96, 36]} />
+        <sphereGeometry args={[visualRadius * 1.16, 96, 36]} />
         <meshBasicMaterial color={body.colors?.glow || "#ffffff"} transparent opacity={body.selectable ? (selected ? 0.22 : hovered ? 0.15 : 0.07) : 0.035} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.BackSide} />
       </mesh>
-      <sprite scale={[body.radius * (selected ? 11 : focusMode ? 7 : 4.8), body.radius * (selected ? 11 : focusMode ? 7 : 4.8), 1]}>
+      <sprite scale={[visualRadius * (selected ? 11 : focusMode ? 7 : 4.8), visualRadius * (selected ? 11 : focusMode ? 7 : 4.8), 1]}>
         <spriteMaterial map={haloTexture} color={body.colors?.glow || "#ffffff"} transparent opacity={body.selectable ? (selected ? 0.38 : hovered ? 0.25 : 0.11) : 0.04} blending={THREE.AdditiveBlending} depthWrite={false} />
       </sprite>
       <line ref={scanRef} rotation={[Math.PI / 2, 0, 0]}>
-        <LineGeometry points={makeEllipsePoints(body.radius * 2.45, body.radius * 2.45, 150)} />
+        <LineGeometry points={makeEllipsePoints(visualRadius * 2.45, visualRadius * 2.45, 150)} />
         <lineBasicMaterial color={selected ? "#ff9a3d" : body.colors?.glow || "#ff3b4f"} transparent opacity={0.24} blending={THREE.AdditiveBlending} depthWrite={false} />
       </line>
-      {body.selectable && !focusMode ? (
-        <Billboard position={[0, body.radius * (focusMode ? 3.15 : 2.7), 0]}>
-          <Html center distanceFactor={focusMode ? 34 : 18} transform occlude={false}>
-            <button
-              type="button"
-              className={`gm-world-label${selected ? " is-selected" : ""}${hovered ? " is-hovered" : ""}${focusMode ? " is-focus" : ""}${focusMode && !selected && !hovered ? " is-muted" : ""}`}
-              onClick={() => onSelect(body.id)}
-              onPointerEnter={() => onHover(body.id)}
-              onPointerLeave={() => onHover(null)}
-            >
-              {body.shortName || body.name}
-            </button>
-          </Html>
+      {body.selectable && hovered ? (
+        <Billboard position={[0, visualRadius * (focusMode ? 3.15 : 2.85), 0]}>
+          <Text
+            anchorX="center"
+            anchorY="middle"
+            color={body.colors?.glow || "#ffffff"}
+            fontSize={focusMode ? 0.16 : 0.22}
+            outlineColor="#120205"
+            outlineWidth={0.012}
+            renderOrder={20}
+            textAlign="center"
+            onClick={handleClick}
+            onPointerOver={handlePointerOver}
+            onPointerOut={handlePointerOut}
+          >
+            {body.shortName || body.name}
+          </Text>
         </Billboard>
       ) : null}
     </group>
@@ -563,7 +570,8 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
         controls.enabled = false;
       }
     } else if (controls) {
-      controls.autoRotate = true;
+      if (!zoomTravel.current) controls.enabled = true;
+      controls.autoRotate = !zoomTravel.current;
     }
   }, [selectedId, controlsRef]);
 
@@ -585,9 +593,8 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
     const controls = controlsRef.current;
     if (!controls) return;
     const selectedPosition = selectedIdRef.current ? selectedPositionRef.current : null;
-    const isFocusLocked = Boolean(selectedIdRef.current);
 
-    if (selectedPosition) {
+    if (selectedPosition && focusTravel.current) {
       const body = bodyById(map, selectedIdRef.current);
       const scale = body?.id === "khar-shian" ? 0.78 : 1;
       const outward = selectedPosition.clone().sub(WIDE_TARGET).normalize().multiplyScalar(1.05 * scale);
@@ -597,23 +604,22 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
       controls.autoRotate = false;
     }
 
-    if (isFocusLocked || focusTravel.current || zoomTravel.current) {
+    if (focusTravel.current || zoomTravel.current) {
       controls.enabled = false;
-      camera.position.lerp(targetCamera.current, isFocusLocked ? 0.18 : 0.045);
-      controls.target.lerp(targetControl.current, isFocusLocked ? 0.22 : 0.055);
+      camera.position.lerp(targetCamera.current, focusTravel.current ? 0.09 : 0.045);
+      controls.target.lerp(targetControl.current, focusTravel.current ? 0.11 : 0.055);
       const cameraDone = camera.position.distanceTo(targetCamera.current) < 0.035;
       const targetDone = controls.target.distanceTo(targetControl.current) < 0.02;
       if (cameraDone && targetDone) {
+        const wasZooming = zoomTravel.current;
         focusTravel.current = false;
         zoomTravel.current = false;
-        if (!isFocusLocked) {
-          controls.enabled = true;
-          controls.autoRotate = true;
-        }
+        controls.enabled = true;
+        controls.autoRotate = wasZooming && !selectedIdRef.current;
       }
     } else {
       controls.enabled = true;
-      controls.autoRotate = true;
+      controls.autoRotate = !selectedIdRef.current;
     }
 
     controls.update();
@@ -687,7 +693,7 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
         makeDefault
         enableDamping
         dampingFactor={0.07}
-        enablePan={false}
+        enablePan={Boolean(selectable)}
         minDistance={4.2}
         maxDistance={34}
         autoRotate={!selectable}
@@ -696,11 +702,6 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
       />
       <EffectComposer multisampling={0}>
         <Bloom intensity={quality === "high" ? 0.72 : 0.46} luminanceThreshold={0.24} luminanceSmoothing={0.22} />
-        <DepthOfField
-          focusDistance={selectable ? 0.022 : 0.052}
-          focalLength={selectable ? 0.045 : 0.018}
-          bokehScale={quality === "high" ? 1.05 : 0.52}
-        />
         <ChromaticAberration offset={quality === "high" ? [0.0008, 0.0004] : [0.00035, 0.00018]} />
         <Noise opacity={0.032} />
         <Vignette eskil={false} offset={0.2} darkness={0.58} />
@@ -730,7 +731,6 @@ export function GalaxyMapExperience({ map }) {
   const selectBody = useCallback(id => {
     const body = bodyById(map, id);
     if (!body?.selectable) return;
-    setHoveredId(id);
     setSelectedId(id);
   }, [map]);
 
@@ -870,6 +870,7 @@ const STYLES = `
   .gm-stage canvas {
     cursor: grab;
     display: block;
+    filter: blur(.38px) saturate(1.06) contrast(1.02);
     height: 100% !important;
     outline: none;
     width: 100% !important;
@@ -1091,37 +1092,6 @@ const STYLES = `
 
   .gm-hint span {
     white-space: nowrap;
-  }
-
-  .gm-world-label {
-    appearance: none;
-    background: rgba(10, 2, 5, .76);
-    border: 1px solid var(--theme-accent-dim, #7a1a28);
-    box-shadow: 0 0 16px var(--theme-accent-glow, rgba(255, 59, 79, .22));
-    color: var(--text-dim, #ffffff);
-    cursor: crosshair;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    padding: 5px 8px;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  .gm-world-label.is-focus {
-    font-size: 11px;
-  }
-
-  .gm-world-label.is-muted {
-    opacity: .34;
-  }
-
-  .gm-world-label.is-selected,
-  .gm-world-label.is-hovered,
-  .gm-world-label:hover,
-  .gm-world-label:focus-visible {
-    border-color: var(--theme-accent, #ff3b4f);
-    color: var(--text, #ffffff);
-    outline: none;
   }
 
   .gm-loading {

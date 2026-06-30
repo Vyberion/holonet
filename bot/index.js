@@ -4,6 +4,7 @@ import { routeInteraction } from "./commands/index.js";
 import { ephemeral, errorEmbed } from "./services/discord-ui.js";
 import { syncClockPanels } from "./services/clock-panels.js";
 import { syncVerifiedRoleForLinkedUsers } from "./services/roles.js";
+import { startShiftReminderLoop } from "./services/shift-reminders.js";
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
@@ -33,6 +34,7 @@ client.once("clientReady", () => {
   client.user.setActivity("Torreto do his Hell Jacks", { type: ActivityType.Watching });
   syncLinkedVerifiedRole();
   syncStoredClockPanels();
+  startShiftReminderLoop(client);
   setInterval(syncLinkedVerifiedRole, 5 * 60 * 1000);
 });
 

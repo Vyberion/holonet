@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Billboard, OrbitControls, Sparkles, Stars, Text } from "@react-three/drei";
-import { Bloom, ChromaticAberration, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
+import { Bloom, ChromaticAberration, DepthOfField, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
@@ -15,6 +15,11 @@ const GALAXY_BASE_ROTATION_Y = -0.32;
 const GALAXY_SPIN_SPEED = 0.026;
 const PLANET_SIZE_SCALE = 0.82;
 const BODY_Y_OFFSET = -0.3;
+const DOF_FOCUS_DISTANCE = 0;
+const DOF_FOCAL_LENGTH = 0.018;
+const DOF_BOKEH_SCALE_HIGH = 0.42;
+const DOF_BOKEH_SCALE_BALANCED = 0.24;
+const DOF_HEIGHT = 480;
 
 function seededRandom(seed) {
   let state = seed >>> 0;
@@ -550,11 +555,14 @@ function LocalSystem({ map, selectedId, hoveredId, onSelect, onHover }) {
   );
 }
 
-function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositionRef }) {
+function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositionRef, controlInterruptRef }) {
   const { camera } = useThree();
   const selectedIdRef = useRef(selectedId);
+  const lastControlInterrupt = useRef(0);
   const zoomSignalRef = useRef(zoomOutSignal);
   const focusTravel = useRef(false);
+  const focusTargetLatched = useRef(false);
+  const selectedTrackTarget = useRef(null);
   const zoomTravel = useRef(false);
   const targetCamera = useRef(WIDE_CAMERA.clone());
   const targetControl = useRef(WIDE_TARGET.clone());
@@ -564,10 +572,12 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
     const controls = controlsRef.current;
     if (selectedId) {
       focusTravel.current = true;
+      focusTargetLatched.current = false;
+      selectedTrackTarget.current = null;
       zoomTravel.current = false;
       if (controls) {
         controls.autoRotate = false;
-        controls.enabled = false;
+        controls.enabled = true;
       }
     } else if (controls) {
       if (!zoomTravel.current) controls.enabled = true;
@@ -582,6 +592,8 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
     targetControl.current.copy(WIDE_TARGET);
     zoomTravel.current = true;
     focusTravel.current = false;
+    focusTargetLatched.current = false;
+    selectedTrackTarget.current = null;
     const controls = controlsRef.current;
     if (controls) {
       controls.enabled = false;
@@ -592,20 +604,31 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
   useFrame(() => {
     const controls = controlsRef.current;
     if (!controls) return;
+    if (controlInterruptRef.current !== lastControlInterrupt.current) {
+      lastControlInterrupt.current = controlInterruptRef.current;
+      if (selectedIdRef.current) {
+        focusTravel.current = false;
+        focusTargetLatched.current = false;
+        selectedTrackTarget.current = null;
+        controls.enabled = true;
+        controls.autoRotate = false;
+      }
+    }
     const selectedPosition = selectedIdRef.current ? selectedPositionRef.current : null;
 
-    if (selectedPosition && focusTravel.current) {
+    if (selectedPosition && focusTravel.current && !focusTargetLatched.current) {
       const body = bodyById(map, selectedIdRef.current);
       const scale = body?.id === "khar-shian" ? 0.78 : 1;
       const outward = selectedPosition.clone().sub(WIDE_TARGET).normalize().multiplyScalar(1.05 * scale);
       targetCamera.current.copy(selectedPosition).add(outward).add(new THREE.Vector3(1.15 * scale, 0.92 * scale, 1.72 * scale));
       targetControl.current.copy(selectedPosition);
-      controls.enabled = false;
+      focusTargetLatched.current = true;
+      controls.enabled = true;
       controls.autoRotate = false;
     }
 
     if (focusTravel.current || zoomTravel.current) {
-      controls.enabled = false;
+      controls.enabled = !zoomTravel.current;
       camera.position.lerp(targetCamera.current, focusTravel.current ? 0.09 : 0.045);
       controls.target.lerp(targetControl.current, focusTravel.current ? 0.11 : 0.055);
       const cameraDone = camera.position.distanceTo(targetCamera.current) < 0.035;
@@ -613,6 +636,8 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
       if (cameraDone && targetDone) {
         const wasZooming = zoomTravel.current;
         focusTravel.current = false;
+        focusTargetLatched.current = false;
+        selectedTrackTarget.current = null;
         zoomTravel.current = false;
         controls.enabled = true;
         controls.autoRotate = wasZooming && !selectedIdRef.current;
@@ -620,6 +645,21 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
     } else {
       controls.enabled = true;
       controls.autoRotate = !selectedIdRef.current;
+    }
+
+    if (selectedPosition && !focusTravel.current && !zoomTravel.current) {
+      const lastTarget = selectedTrackTarget.current || controls.target.clone();
+      const delta = selectedPosition.clone().sub(lastTarget);
+      if (delta.lengthSq() > 0.0000001) {
+        camera.position.add(delta);
+        controls.target.add(delta);
+      }
+      controls.target.copy(selectedPosition);
+      targetControl.current.copy(selectedPosition);
+      targetCamera.current.copy(camera.position);
+      selectedTrackTarget.current = selectedPosition.clone();
+    } else if (!selectedPosition) {
+      selectedTrackTarget.current = null;
     }
 
     controls.update();
@@ -630,6 +670,7 @@ function CameraRig({ map, selectedId, zoomOutSignal, controlsRef, selectedPositi
 
 function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSignal, quality }) {
   const controlsRef = useRef(null);
+  const controlInterruptRef = useRef(0);
   const galaxyRef = useRef(null);
   const localRef = useRef(null);
   const selectedPositionRef = useRef(null);
@@ -687,21 +728,31 @@ function GalaxyScene({ map, selectedId, hoveredId, onSelect, onHover, zoomOutSig
         zoomOutSignal={zoomOutSignal}
         controlsRef={controlsRef}
         selectedPositionRef={selectedPositionRef}
+        controlInterruptRef={controlInterruptRef}
       />
       <OrbitControls
         ref={controlsRef}
         makeDefault
         enableDamping
         dampingFactor={0.07}
-        enablePan={Boolean(selectable)}
-        minDistance={4.2}
-        maxDistance={34}
+        enablePan={false}
+        minDistance={selectable ? 1.25 : 4.2}
+        maxDistance={selectable ? 9.5 : 34}
         autoRotate={!selectable}
         autoRotateSpeed={0.22}
+        onStart={() => {
+          controlInterruptRef.current += 1;
+        }}
         target={WIDE_TARGET}
       />
       <EffectComposer multisampling={0}>
         <Bloom intensity={quality === "high" ? 0.72 : 0.46} luminanceThreshold={0.24} luminanceSmoothing={0.22} />
+        <DepthOfField
+          focusDistance={DOF_FOCUS_DISTANCE}
+          focalLength={DOF_FOCAL_LENGTH}
+          bokehScale={quality === "high" ? DOF_BOKEH_SCALE_HIGH : DOF_BOKEH_SCALE_BALANCED}
+          height={DOF_HEIGHT}
+        />
         <ChromaticAberration offset={quality === "high" ? [0.0008, 0.0004] : [0.00035, 0.00018]} />
         <Noise opacity={0.032} />
         <Vignette eskil={false} offset={0.2} darkness={0.58} />
@@ -864,7 +915,6 @@ const STYLES = `
   .gm-stage canvas {
     cursor: grab;
     display: block;
-    filter: blur(.38px) saturate(1.06) contrast(1.02);
     height: 100% !important;
     outline: none;
     width: 100% !important;

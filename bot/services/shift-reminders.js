@@ -43,33 +43,14 @@ async function loadActiveShifts() {
   return data || [];
 }
 
-async function loadReminderChannelsByScope() {
-  const { data, error } = await supabase
-    .from("clock_panels")
-    .select("scope,channel_id,updated_at")
-    .order("updated_at", { ascending: false });
-
-  if (error) throw error;
-
-  const channels = new Map();
-  for (const panel of data || []) {
-    const scope = String(panel.scope || "").trim();
-    const channelId = String(panel.channel_id || "").trim();
-    if (scope && channelId && !channels.has(scope)) channels.set(scope, channelId);
-  }
-  return channels;
-}
-
-async function sendShiftReminder(client, shift, hours, channelId) {
+async function sendShiftReminder(client, shift, hours) {
   const discordUserId = String(shift.discord_user_id || "");
-  if (!discordUserId || !channelId) return false;
+  if (!discordUserId) return false;
 
-  const channel = await client.channels.fetch(channelId);
-  if (!channel?.isTextBased?.() || typeof channel.send !== "function") throw new Error("SHIFT_REMINDER_CHANNEL_UNAVAILABLE");
+  const user = await client.users.fetch(discordUserId);
+  if (!user || typeof user.send !== "function") throw new Error("SHIFT_REMINDER_USER_UNAVAILABLE");
 
-  await channel.send({
-    content: `<@${discordUserId}>`,
-    allowedMentions: { users: [discordUserId] },
+  await user.send({
     embeds: [embed("Shift Check-In", [
       `Your shift is **${formatHours(hours)}** long.`,
       "Make sure to take a break.",
@@ -90,7 +71,6 @@ export async function checkShiftReminders(client, options = {}) {
     const now = Date.now();
     const activeShifts = await loadActiveShifts();
     const activeIds = new Set(activeShifts.map(shift => String(shift.id)));
-    const reminderChannelsByScope = await loadReminderChannelsByScope();
     let sent = 0;
     let skipped = 0;
     let failed = 0;
@@ -117,15 +97,8 @@ export async function checkShiftReminders(client, options = {}) {
         continue;
       }
 
-      const channelId = reminderChannelsByScope.get(String(shift.scope || ""));
-      if (!channelId) {
-        skipped += 1;
-        console.warn("Shift reminder skipped: no clock panel channel for scope", { shiftId, scope: shift.scope });
-        continue;
-      }
-
       try {
-        await sendShiftReminder(client, shift, hours, channelId);
+        await sendShiftReminder(client, shift, hours);
         remindedHoursByShiftId.set(shiftId, hours);
         sent += 1;
       } catch (error) {

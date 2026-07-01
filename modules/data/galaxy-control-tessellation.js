@@ -153,62 +153,15 @@ function reassignClosestCell(sector, structuralCells, cellsBySector) {
   cellsBySector.get(sector.id)?.push(best);
 }
 
-function mergeSectorCells(cells) {
-  const runsByRing = new Map();
-
-  cells.forEach(cell => {
-    const ringRuns = runsByRing.get(cell.ringIndex) || [];
-    ringRuns.push({
-      angleStartIndex: cell.angleStartIndex,
-      angleEndIndex: cell.angleEndIndex,
-      ringStartIndex: cell.ringStartIndex,
-      ringEndIndex: cell.ringEndIndex
-    });
-    runsByRing.set(cell.ringIndex, ringRuns);
-  });
-
-  const horizontalRuns = [];
-
-  [...runsByRing.entries()].sort((a, b) => a[0] - b[0]).forEach(([, ringRuns]) => {
-    ringRuns.sort((a, b) => a.angleStartIndex - b.angleStartIndex);
-    ringRuns.forEach(run => {
-      const previous = horizontalRuns[horizontalRuns.length - 1];
-      if (
-        previous
-        && previous.ringStartIndex === run.ringStartIndex
-        && previous.ringEndIndex === run.ringEndIndex
-        && previous.angleEndIndex === run.angleStartIndex
-      ) {
-        previous.angleEndIndex = run.angleEndIndex;
-      } else {
-        horizontalRuns.push({ ...run });
-      }
-    });
-  });
-
-  const verticalRuns = [];
-  horizontalRuns
-    .sort((a, b) => a.angleStartIndex - b.angleStartIndex || a.angleEndIndex - b.angleEndIndex || a.ringStartIndex - b.ringStartIndex)
-    .forEach(run => {
-      const previous = verticalRuns[verticalRuns.length - 1];
-      if (
-        previous
-        && previous.angleStartIndex === run.angleStartIndex
-        && previous.angleEndIndex === run.angleEndIndex
-        && previous.ringEndIndex === run.ringStartIndex
-      ) {
-        previous.ringEndIndex = run.ringEndIndex;
-      } else {
-        verticalRuns.push({ ...run });
-      }
-    });
-
-  return verticalRuns.map(run => [
-    run.angleStartIndex,
-    run.angleEndIndex,
-    run.ringStartIndex,
-    run.ringEndIndex
-  ]);
+function serializeSectorCells(cells) {
+  return cells
+    .sort((a, b) => a.ringStartIndex - b.ringStartIndex || a.angleStartIndex - b.angleStartIndex)
+    .map(cell => [
+      cell.angleStartIndex,
+      cell.angleEndIndex,
+      cell.ringStartIndex,
+      cell.ringEndIndex
+    ]);
 }
 
 function buildProceduralTessellation(map) {
@@ -233,7 +186,7 @@ function buildProceduralTessellation(map) {
     angles,
     rings,
     structuralCells,
-    cellsBySector: new Map([...cellsBySector.entries()].map(([sectorId, cells]) => [sectorId, mergeSectorCells(cells)]))
+    cellsBySector: new Map([...cellsBySector.entries()].map(([sectorId, cells]) => [sectorId, serializeSectorCells(cells)]))
   };
 }
 
@@ -257,7 +210,7 @@ export function withProceduralSectorCells(map) {
           angle: [cell.angleStartIndex, cell.angleEndIndex],
           ring: [cell.ringStartIndex, cell.ringEndIndex]
         })),
-        strategy: "full disk polar lattice with hidden structural cells merged into sector runs"
+        strategy: "full disk polar lattice with uniform hidden structural cells"
       }
     },
     sectors: map.sectors.map(sector => ({

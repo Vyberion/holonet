@@ -27,7 +27,7 @@ const SPIRAL_ARM_PROFILES = [
 // perfectly circular sector grid (GALAXY_FLATTEN = 1). Keeping both at 1 makes the
 // galaxy a true circle in its own plane; the tilt/perspective from camera framing
 // is what should account for any apparent ellipse, not a baked-in squash.
-const GALAXY_VISUAL_FLATTEN = 0.8;
+const GALAXY_VISUAL_FLATTEN = 1;
 const CORE_RADIUS = 1.08;
 const GALAXY_BASE_ROTATION_X = -0.045;
 const GALAXY_BASE_ROTATION_Y = -0.32;

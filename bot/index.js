@@ -56,7 +56,7 @@ client.once("clientReady", () => {
   console.log(`Holonet bot online as ${client.user.tag}`);
   client.user.setPresence({
     status: "online",
-    activities: [{ name: "Torreto do his Hell Jacks", type: ActivityType.Watching }]
+    activities: [{ name: "Sith Temple on Korriban", type: ActivityType.Playing }]
   });
   syncLinkedVerifiedRole();
   syncStoredClockPanels();

@@ -276,6 +276,16 @@ function applyManualSectorCorrections(structuralCells, cellsBySector) {
   moveCellsToSector(
     structuralCells,
     cellsBySector,
+    "tapani",
+    cell => cell.ownerSectorId === "hapes"
+      && cell.ringStartIndex === 7
+      && cell.angleStartIndex >= 22
+      && cell.angleStartIndex < 34
+  );
+
+  moveCellsToSector(
+    structuralCells,
+    cellsBySector,
     "duro",
     cell => cell.ringStartIndex === 7 && cell.angleStartIndex >= 14 && cell.angleStartIndex < 22
   );

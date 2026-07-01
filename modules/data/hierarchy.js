@@ -251,8 +251,9 @@ const HIERARCHY_GROUPS = [
         slug: "inquisitors",
         href: "/inquisitors",
         name: "Inquisitorius",
-        body: "Division information can be filled in here.",
-        category: "Division"
+        body: "",
+        category: "Division",
+        classified: true
       }
     ]
   },

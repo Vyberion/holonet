@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { OrbitControls, Sparkles } from "@react-three/drei";
+import { OrbitControls, Sparkles, useProgress } from "@react-three/drei";
 import { Bloom, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -1659,6 +1659,7 @@ function getPlanetSummary(map, planetId) {
 
 export function GalaxyMapExperience({ map }) {
   const normalizedMap = useMemo(() => normalizeMap(map || {}), [map]);
+  const loadingState = useProgress();
   const [canvasReady, setCanvasReady] = useState(false);
   const [assetsReady, setAssetsReady] = useState(false);
   const [view, setView] = useState({ mode: "galaxy", sectorId: null, planetId: null });
@@ -1676,6 +1677,15 @@ export function GalaxyMapExperience({ map }) {
   const displayedPlanetSummary = hoveredPlanetSummary || planetSummary;
   const panelFaction = displayedPlanetSummary?.faction || displayedSectorSummary?.faction || null;
   const ready = canvasReady && assetsReady;
+  const assetProgress = loadingState.total > 0 ? loadingState.progress : assetsReady ? 100 : 0;
+  const galaxyLoaderProgress = ready ? 100 : Math.min(98, Math.round((canvasReady ? 18 : 4) + assetProgress * 0.78));
+  const galaxyLoaderDetail = useMemo(() => ({
+    active: !ready,
+    progress: galaxyLoaderProgress,
+    ready,
+    loaded: loadingState.loaded,
+    total: loadingState.total
+  }), [galaxyLoaderProgress, loadingState.loaded, loadingState.total, ready]);
 
   const clearTransitionTimers = useCallback(() => {
     transitionTimersRef.current.forEach(timer => window.clearTimeout(timer));
@@ -1693,6 +1703,12 @@ export function GalaxyMapExperience({ map }) {
   const markGalaxyAssetsReady = useCallback(() => {
     setAssetsReady(true);
   }, []);
+
+  useEffect(() => {
+    window.__holonetGalaxyLoaderDetail = galaxyLoaderDetail;
+    window.dispatchEvent(new CustomEvent("holonet:galaxy-loader-progress", { detail: galaxyLoaderDetail }));
+    if (ready) window.dispatchEvent(new CustomEvent("holonet:galaxy-loader-ready", { detail: galaxyLoaderDetail }));
+  }, [galaxyLoaderDetail, ready]);
 
   useEffect(() => {
     const isReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -2057,7 +2073,7 @@ const STYLES = `
     position: absolute;
     right: auto;
     text-align: left;
-    top: calc(var(--nav-height, 62px) + 14px);
+    top: calc(var(--nav-height, 62px) + 14px + var(--gm-topbar-inset));
     width: auto;
     z-index: 8;
   }
@@ -2337,7 +2353,7 @@ const STYLES = `
       left: var(--gm-topbar-inset);
       max-width: none;
       right: var(--gm-topbar-inset);
-      top: calc(var(--nav-height, 56px) + 12px);
+      top: calc(var(--nav-height, 56px) + 12px + var(--gm-topbar-inset));
     }
 
     .gm-lockup {

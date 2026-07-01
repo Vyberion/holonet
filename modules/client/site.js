@@ -632,16 +632,64 @@
   function runStandardLoader(loader) {
     const loaderAlreadyShown = sessionStorage.getItem(LOADER_SHOWN_KEY);
     const accessPending = document.documentElement.classList.contains("access-pending");
+    const galaxyLoaderRoot = document.querySelector(".gm-root");
+    const waitForGalaxyLoader = Boolean(galaxyLoaderRoot);
+    let galaxyReady = !waitForGalaxyLoader;
+    let pageReady = document.readyState === "complete";
 
     if (!loaderAlreadyShown) {
       sessionStorage.setItem(LOADER_SHOWN_KEY, "true");
     }
 
     setLoaderPhase(loader, "standard");
-    const stopProgress = startLoaderProgress(loader, {
-      start: document.readyState === "complete" ? 48 : 10,
-      cap: accessPending ? 93 : 88
-    });
+    const stopProgress = waitForGalaxyLoader
+      ? () => {}
+      : startLoaderProgress(loader, {
+        start: document.readyState === "complete" ? 48 : 10,
+        cap: accessPending ? 93 : 88
+      });
+
+    if (waitForGalaxyLoader) {
+      setLoaderProgress(loader, 4);
+    }
+
+    function handleGalaxyProgress(event) {
+      const progress = Number(event?.detail?.progress);
+      if (Number.isFinite(progress)) {
+        setLoaderProgress(loader, progress);
+        const loaderText = loader.querySelector(".loader-text");
+        if (loaderText) {
+          loaderText.textContent = progress >= 100
+            ? "Link Established"
+            : `Establishing Link... ${Math.round(progress)}%`;
+        }
+      }
+      if (event?.detail?.ready) {
+        galaxyReady = true;
+        waitForAccessAndHide();
+      }
+    }
+
+    function handleGalaxyReady(event) {
+      const progress = Number(event?.detail?.progress);
+      if (Number.isFinite(progress)) setLoaderProgress(loader, progress);
+      galaxyReady = true;
+      waitForAccessAndHide();
+    }
+
+    function cleanupGalaxyListeners() {
+      if (!waitForGalaxyLoader) return;
+      window.removeEventListener("holonet:galaxy-loader-progress", handleGalaxyProgress);
+      window.removeEventListener("holonet:galaxy-loader-ready", handleGalaxyReady);
+    }
+
+    if (waitForGalaxyLoader) {
+      window.addEventListener("holonet:galaxy-loader-progress", handleGalaxyProgress);
+      window.addEventListener("holonet:galaxy-loader-ready", handleGalaxyReady);
+      if (window.__holonetGalaxyLoaderDetail) {
+        handleGalaxyProgress({ detail: window.__holonetGalaxyLoaderDetail });
+      }
+    }
 
     function waitForAccessAndHide() {
       if (document.documentElement.classList.contains("access-pending")) {
@@ -649,14 +697,21 @@
         return;
       }
 
+      if (!pageReady) return;
+      if (!galaxyReady) return;
+
       stopProgress();
+      cleanupGalaxyListeners();
       hideLoader(loader);
     }
 
-    if (document.readyState === "complete") {
+    if (pageReady) {
       waitForAccessAndHide();
     } else {
-      window.addEventListener("load", waitForAccessAndHide);
+      window.addEventListener("load", () => {
+        pageReady = true;
+        waitForAccessAndHide();
+      });
     }
   }
 

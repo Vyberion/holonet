@@ -58,8 +58,7 @@ const GALAXY_RIM_GLOW_COLOR = "#e8fbff";
 const DEFAULT_POLAR_TESSELLATION = {
   angles: [-180, -150, -116, -84, -52, -24, 8, 38, 68, 100, 132, 164, 196, 228, 260, 294, 330, 360],
   rings: [0.16, 0.82, 1.42, 2.05, 2.85, 3.72, 4.86, 5.58, 6.24, 6.74]
-};
-const CORE_CUTOUT_RING_INDEX = 2;
+};const CORE_CUTOUT_RING_INDEX = 2;
 const SECTOR_TESSELLATION_CELLS = {
   "tython-deep-core": [[1, 3, 0, 1]],
   coruscant: [[3, 5, 0, 2]],
@@ -291,6 +290,42 @@ function sectorSceneCenter(sector, map) {
 
 function getPolarTessellation(map) {
   return map?.guide?.tessellation || DEFAULT_POLAR_TESSELLATION;
+}
+
+function sectorTessellationCells(sector, map) {
+  const tessellation = getPolarTessellation(map);
+  const cells = sector.cells || SECTOR_TESSELLATION_CELLS[sector.id] || [];
+
+  if (!cells.length) {
+    return [{
+      startAngleDeg: sector.startAngleDeg || 0,
+      endAngleDeg: sector.endAngleDeg || (sector.startAngleDeg || 0) + 22,
+      innerRadius: sector.innerRadius || 0.82,
+      outerRadius: sector.outerRadius || getGuideRadius(map)
+    }];
+  }
+
+  return cells.map(cell => {
+    const [angleStartIndex, angleEndIndex, ringStartIndex, ringEndIndex] = Array.isArray(cell)
+      ? cell
+      : [cell.angle?.[0], cell.angle?.[1], cell.ring?.[0], cell.ring?.[1]];
+
+    return {
+      angleStartIndex,
+      angleEndIndex,
+      ringStartIndex,
+      ringEndIndex,
+      startAngleDeg: tessellation.angles[angleStartIndex],
+      endAngleDeg: tessellation.angles[angleEndIndex],
+      innerRadius: tessellation.rings[ringStartIndex],
+      outerRadius: tessellation.rings[ringEndIndex]
+    };
+  }).filter(cell => (
+    Number.isFinite(cell.startAngleDeg)
+    && Number.isFinite(cell.endAngleDeg)
+    && Number.isFinite(cell.innerRadius)
+    && Number.isFinite(cell.outerRadius)
+  ));
 }
 
 function makeLineGeometry(points) {

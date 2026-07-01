@@ -54,7 +54,10 @@ async function syncStoredClockPanels() {
 
 client.once("clientReady", () => {
   console.log(`Holonet bot online as ${client.user.tag}`);
-  client.user.setActivity("Torreto do his Hell Jacks", { type: ActivityType.Watching });
+  client.user.setPresence({
+    status: "online",
+    activities: [{ name: "Torreto do his Hell Jacks", type: ActivityType.Watching }]
+  });
   syncLinkedVerifiedRole();
   syncStoredClockPanels();
   startShiftReminderLoop(client);

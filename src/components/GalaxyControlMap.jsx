@@ -1396,12 +1396,11 @@ function CameraRig({ map, view, transition, controlsRef }) {
       duration: isPlanetEntry ? transition.flightDuration || 1850 : transition.duration || 980,
       fromCamera,
       toCamera: targetCamera,
-      fromTarget: controls?.target?.clone?.() || WIDE_TARGET.clone(),
+      fromTarget: isPlanetEntry ? focus.clone() : controls?.target?.clone?.() || WIDE_TARGET.clone(),
       toTarget: focus,
       recoil: isPlanetEntry ? transition.reducedMotion ? 0.12 : 0.95 : 0.08,
       reducedMotion: !!transition.reducedMotion
     };
-
     if (controls) {
       controls.enabled = false;
       controls.autoRotate = false;
@@ -1729,27 +1728,40 @@ export function GalaxyMapExperience({ map }) {
     setHoveredSectorId(null);
     setHoveredPlanetId(null);
 
+    const wipeDuration = reducedMotion ? 450 : 900;
     const flightDuration = reducedMotion ? 900 : 1850;
-
-    setView({ mode: "planet", sectorId: planet.sectorId, planetId });
 
     setTransition(current => ({
       kind: "planet",
-      token: current.token + 1,
+      token: current.token,
       active: true,
-      phase: "hyperspace",
-      duration: flightDuration,
-      flightDuration,
-      snap: false,
+      phase: "wipe",
+      wipeDuration,
       reducedMotion
     }));
 
     queueTransitionTimer(() => {
+      setView({ mode: "planet", sectorId: planet.sectorId, planetId });
+
+      setTransition(current => ({
+        kind: "planet",
+        token: current.token + 1,
+        active: true,
+        phase: "hyperspace",
+        duration: flightDuration,
+        flightDuration,
+        snapTarget: true,
+        snap: false,
+        reducedMotion
+      }));
+    }, wipeDuration);
+
+    queueTransitionTimer(() => {
       setTransition(current => current.kind === "planet"
-        ? { ...current, active: false, phase: "idle", snap: false }
+        ? { ...current, active: false, phase: "idle", snap: false, snapTarget: false }
         : current
       );
-    }, flightDuration);
+    }, wipeDuration + flightDuration);
   }, [
     transition.active,
     normalizedMap.planets,
@@ -1914,6 +1926,17 @@ const STYLES = `
     overflow: hidden;
   }
 
+  body:has(.gm-root) .site-header,
+  body:has(.gm-root) .site-nav,
+  body:has(.gm-root) nav,
+  body:has(.gm-root) header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 99999 !important;
+  }
+
   .gm-root {
     --gm-panel: color-mix(in srgb, var(--theme-panel, rgba(22, 7, 12, .88)) 76%, transparent);
     --gm-display-font: Orbitron, Rajdhani, "Eurostile Extended", "Bank Gothic", "Trebuchet MS", system-ui, sans-serif;
@@ -1965,24 +1988,17 @@ const STYLES = `
     cursor: grabbing;
   }
 
-  .gm-scan {
+.gm-scan {
   background:
     repeating-linear-gradient(
-      90deg,
-      rgba(190, 225, 255, 0.00) 0px,
-      rgba(190, 225, 255, 0.00) 2px,
-      rgba(190, 225, 255, 0.06) 2px,
-      rgba(190, 225, 255, 0.06) 4px
-    ),
-    linear-gradient(
       180deg,
-      rgba(120, 180, 255, 0.04),
-      rgba(255, 255, 255, 0.00) 22%,
-      rgba(255, 255, 255, 0.00) 78%,
-      rgba(120, 180, 255, 0.04)
+      rgba(255, 255, 255, 0.035) 0px,
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 4px
     );
   mix-blend-mode: screen;
-  opacity: .42;
+  opacity: .28;
   pointer-events: none;
   z-index: 3;
 }
@@ -2038,7 +2054,7 @@ const STYLES = `
     left: clamp(14px, 2.2vw, 28px);
     max-width: calc(100vw - 44px);
     position: absolute;
-    top: clamp(14px, 2.2vw, 28px);
+    top: calc(var(--nav-height, 72px) + clamp(14px, 2.2vw, 28px));
     z-index: 8;
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { Billboard, OrbitControls, Sparkles, Text } from "@react-three/drei";
+import { Billboard, OrbitControls, Sparkles, Stars, Text } from "@react-three/drei";
 import { Bloom, DepthOfField, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -10,7 +10,8 @@ const TAU = Math.PI * 2;
 const GALAXY_RADIUS = 11.4;
 const GALAXY_FLATTEN = 1;
 const SPIRAL_ARM_COUNT = 5;
-const SPIRAL_SWEEP = 0.24;
+const SPIRAL_SWEEP = 0.7;
+const GALAXY_VISUAL_FLATTEN = 0.78;
 const CORE_RADIUS = 1.08;
 const GALAXY_BASE_ROTATION_X = -0.045;
 const GALAXY_BASE_ROTATION_Y = -0.32;
@@ -24,9 +25,9 @@ const PLANET_APPROACH_DISTANCE = 2.15;
 const PLANET_ENTRY_DISTANCE = 54;
 const BODY_Y_OFFSET = 0.05;
 const PARTICLE_COUNTS = {
-  high: { stars: 160000, brightStars: 90000, dust: 64000, nebula: 48000, sky: 28000, sparkles: 650, streaks: 1900 },
-  balanced: { stars: 90000, brightStars: 52000, dust: 34000, nebula: 26000, sky: 18000, sparkles: 360, streaks: 1150 },
-  reduced: { stars: 50000, brightStars: 26000, dust: 16000, nebula: 10000, sky: 9000, sparkles: 160, streaks: 620 }
+  high: { stars: 24500, dust: 3600, sky: 7200, sparkles: 340, streaks: 1900 },
+  balanced: { stars: 12800, dust: 1800, sky: 3400, sparkles: 150, streaks: 1150 },
+  reduced: { stars: 8800, dust: 1100, sky: 2200, sparkles: 90, streaks: 620 }
 };
 const KORRIBAN_TEXTURE_URLS = [
   "/assets/galaxy/korriban/diffuse.png",
@@ -35,7 +36,6 @@ const KORRIBAN_TEXTURE_URLS = [
   "/assets/galaxy/korriban/roughness.png",
   "/assets/galaxy/korriban/clouds.png"
 ];
-const KORRIBAN_NORMAL_SCALE = new THREE.Vector2(0.58, 0.58);
 const DEFAULT_FACTIONS = [
   {
     id: "sith-empire",
@@ -230,17 +230,17 @@ function makeEllipsePoints(radiusX, radiusZ, segments = 240, start = 0, end = TA
   return points;
 }
 
-function makeSpiralArmPoints(arm, radiusStart = 1.1, radiusEnd = GALAXY_RADIUS, segments = 110, offset = 0) {
+function makeSpiralArmPoints(arm, radiusStart = 1.1, radiusEnd = GALAXY_RADIUS, segments = 96, offset = 0) {
   const points = [];
   for (let i = 0; i <= segments; i += 1) {
     const t = i / segments;
     const radius = radiusStart + (radiusEnd - radiusStart) * t;
     const angle = (arm / SPIRAL_ARM_COUNT) * TAU + radius * SPIRAL_SWEEP + offset;
-    const widthWave = Math.sin(t * Math.PI) * 0.62;
+    const widthWave = Math.sin(t * Math.PI) * 0.18;
     points.push(new THREE.Vector3(
       Math.cos(angle) * (radius + widthWave),
-      0.08 + Math.sin(t * TAU + arm) * 0.045,
-      Math.sin(angle) * (radius + widthWave) * GALAXY_FLATTEN
+      0.032 + Math.sin(t * TAU + arm) * 0.018,
+      Math.sin(angle) * (radius + widthWave) * GALAXY_VISUAL_FLATTEN
     ));
   }
   return points;
@@ -250,9 +250,20 @@ function SpiralArmRibbons({ opacity = 1 }) {
   const arms = useMemo(() => {
     const rows = [];
     for (let arm = 0; arm < SPIRAL_ARM_COUNT; arm += 1) {
-      rows.push({ key: `glow-${arm}`, points: makeSpiralArmPoints(arm, 1.05, 11.05, 120, 0), color: arm % 2 ? "#ff3b4f" : "#ffd08c", opacity: arm % 2 ? 0.11 : 0.085, radius: arm % 2 ? 0.058 : 0.048 });
-      rows.push({ key: `haze-${arm}`, points: makeSpiralArmPoints(arm, 1.4, 11.35, 110, -0.16), color: arm % 2 ? "#61d9ff" : "#ff7a45", opacity: 0.052, radius: 0.105 });
-      rows.push({ key: `dust-${arm}`, points: makeSpiralArmPoints(arm, 1.65, 10.9, 100, 0.2), color: "#7c1020", opacity: 0.075, radius: 0.04 });
+      rows.push({
+        key: `glow-${arm}`,
+        points: makeSpiralArmPoints(arm, 1.16, 10.95, 110, 0),
+        color: arm % 2 ? "#ff3b4f" : "#ffd08c",
+        opacity: arm % 2 ? 0.16 : 0.12,
+        radius: arm % 2 ? 0.026 : 0.022
+      });
+      rows.push({
+        key: `dust-${arm}`,
+        points: makeSpiralArmPoints(arm, 1.6, 10.55, 92, -0.18),
+        color: "#7c1020",
+        opacity: 0.11,
+        radius: 0.018
+      });
     }
     return rows;
   }, []);
@@ -275,25 +286,21 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
   const colors = new Float32Array(count * 3);
   const sizes = new Float32Array(count);
   const color = new THREE.Color();
-  const isDust = mode === "dust";
-  const isNebula = mode === "nebula";
 
   for (let i = 0; i < count; i += 1) {
-    const isCore = mode === "core" || rnd() < (isNebula ? 0.07 : 0.1);
-    const arm = Math.floor(rnd() * SPIRAL_ARM_COUNT);
+    const isCore = mode === "core" || rnd() < 0.11;
+    const arm = i % SPIRAL_ARM_COUNT;
     const radius = isCore
       ? Math.pow(rnd(), 1.9) * CORE_RADIUS
-      : Math.pow(rnd(), isDust ? 0.42 : isNebula ? 0.48 : 0.34) * (GALAXY_RADIUS - CORE_RADIUS) + CORE_RADIUS;
+      : Math.pow(rnd(), mode === "dust" ? 0.72 : 0.54) * (GALAXY_RADIUS - CORE_RADIUS) + CORE_RADIUS;
     const sweep = radius * SPIRAL_SWEEP;
     const armAngle = (arm / SPIRAL_ARM_COUNT) * TAU + sweep;
-    const interArm = !isCore && rnd() < (isNebula ? 0.36 : isDust ? 0.22 : 0.09);
-    const jitterWidth = isNebula ? 0.62 + radius * 0.035 : isDust ? 0.42 + radius * 0.028 : 0.22 + radius * 0.016;
-    const jitter = isCore ? randRange(rnd, -TAU, TAU) : randRange(rnd, -jitterWidth, jitterWidth);
-    const angle = isCore ? rnd() * TAU : interArm ? rnd() * TAU : armAngle + jitter;
-    const spread = isNebula ? 0.32 + radius * 0.082 : isDust ? 0.22 + radius * 0.06 : 0.055 + radius * 0.026;
+    const jitter = isCore ? randRange(rnd, -TAU, TAU) : randRange(rnd, -0.22 - radius * 0.012, 0.22 + radius * 0.012);
+    const angle = isCore ? rnd() * TAU : armAngle + jitter;
+    const spread = mode === "dust" ? 0.34 + radius * 0.035 : 0.08 + radius * 0.014;
     const x = Math.cos(angle) * radius + randRange(rnd, -spread, spread);
-    const z = Math.sin(angle) * radius * GALAXY_FLATTEN + randRange(rnd, -spread, spread);
-    const y = randRange(rnd, isNebula ? -0.16 : -0.08, isNebula ? 0.18 : 0.1) * (1 + radius * (isNebula ? 0.11 : 0.08));
+    const z = Math.sin(angle) * radius * GALAXY_VISUAL_FLATTEN + randRange(rnd, -spread, spread);
+    const y = randRange(rnd, -0.08, 0.08) * (1 + radius * 0.08);
     const rimFade = Math.min(1, radius / GALAXY_RADIUS);
 
     positions[i * 3] = x;
@@ -302,18 +309,15 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
 
     const palette = isCore
       ? (rnd() > 0.28 ? "#ffe2a0" : "#ff563f")
-      : isNebula
-        ? rnd() > 0.72 ? "#ff2438" : rnd() > 0.45 ? "#ff8a4a" : rnd() > 0.2 ? "#61d9ff" : "#fff0c8"
-        : rnd() > 0.9 ? "#ff3b4f" : rnd() > 0.62 ? "#ffd58a" : rnd() > 0.32 ? "#f9fbff" : "#9feeff";
+      : rnd() > 0.9 ? "#ff3b4f" : rnd() > 0.62 ? "#ffd58a" : rnd() > 0.32 ? "#f9fbff" : "#9feeff";
     color.set(palette);
+    if (!isCore && rnd() > 0.88) color.lerp(new THREE.Color("#526cff"), 0.22);
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
-    sizes[i] = isNebula
-      ? randRange(rnd, 0.08, 0.24) * (1.16 - rimFade * 0.18)
-      : isDust
-        ? randRange(rnd, 0.026, 0.095) * (1.26 - rimFade * 0.18)
-        : randRange(rnd, 0.018, 0.07) * (isCore ? 1.65 : 1);
+    sizes[i] = mode === "dust"
+      ? randRange(rnd, 0.035, 0.12) * (1.2 - rimFade * 0.22)
+      : randRange(rnd, 0.014, 0.075) * (isCore ? 1.8 : 1);
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -347,8 +351,7 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
         uniforms={{
           uTime: { value: 0 },
           uOpacity: { value: opacity },
-          uScale: { value: sizeScale },
-          uNebula: { value: mode === "nebula" ? 1 : 0 }
+          uScale: { value: sizeScale }
         }}
         vertexShader={`
           attribute float aSize;
@@ -358,25 +361,24 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
           void main() {
             vColor = color;
             vec3 pos = position;
-            pos.y += sin(uTime * 0.22 + position.x * 1.8 + position.z * 1.3) * 0.018;
+            float breath = sin(uTime * 0.24 + position.x * 1.8 + position.z * 1.3) * 0.018;
+            pos.y += breath;
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            gl_PointSize = aSize * uScale * (460.0 / max(8.0, -mvPosition.z));
+            gl_PointSize = aSize * uScale * (440.0 / max(6.0, -mvPosition.z));
             gl_Position = projectionMatrix * mvPosition;
           }
         `}
         fragmentShader={`
           uniform float uTime;
           uniform float uOpacity;
-          uniform float uNebula;
           varying vec3 vColor;
           void main() {
             vec2 uv = gl_PointCoord * 2.0 - 1.0;
             float d = length(uv);
-            float core = (1.0 - smoothstep(0.0, 0.16, d)) * (1.0 - uNebula);
+            float core = 1.0 - smoothstep(0.0, 0.18, d);
             float glow = 1.0 - smoothstep(0.12, 1.0, d);
-            float mist = pow(max(glow, 0.0), mix(1.0, 1.85, uNebula));
-            float twinkle = mix(0.74 + 0.26 * sin(uTime * 1.7 + vColor.r * 17.0), 0.88 + 0.12 * sin(uTime * 0.38 + vColor.b * 13.0), uNebula);
-            gl_FragColor = vec4(vColor, (core + mist * mix(0.64, 0.48, uNebula)) * uOpacity * twinkle);
+            float twinkle = 0.75 + 0.25 * sin(uTime * 1.8 + vColor.r * 17.0);
+            gl_FragColor = vec4(vColor, (core + glow * 0.62) * uOpacity * twinkle);
           }
         `}
       />
@@ -939,7 +941,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
     haloTexture.dispose();
   }, [generatedTextures, haloTexture]);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     const t = clock.elapsedTime;
     if (groupRef.current) {
       const next = new THREE.Vector3(targetScale, targetScale, targetScale);
@@ -948,10 +950,10 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
       groupRef.current.position.y = body.scenePosition.y + emergence;
     }
     if (planetRef.current) {
-      planetRef.current.rotation.y += 0.0042 + body.visualRadius * 0.0014;
-      planetRef.current.rotation.x = Math.sin(t * 0.23 + body.visualRadius * 13) * 0.07;
+      planetRef.current.rotation.y += (active ? 0.05 : 0.035) * delta;
+      planetRef.current.rotation.x = THREE.MathUtils.lerp(planetRef.current.rotation.x, 0.018, 0.025);
     }
-    if (cloudsRef.current) cloudsRef.current.rotation.y -= 0.0018 + body.visualRadius * 0.0014;
+    if (cloudsRef.current) cloudsRef.current.rotation.y += (active ? 0.072 : 0.052) * delta;
     if (scanRef.current) {
       scanRef.current.visible = sectorMarkerVisible;
       if (!sectorMarkerVisible) return;
@@ -979,21 +981,13 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
       <mesh ref={planetRef} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut} onClick={handleClick}>
         <sphereGeometry args={[body.visualRadius, 96, 48]} />
         {hasKorribanTextures ? (
-          <meshPhysicalMaterial
+          <meshStandardMaterial
             map={textures.map}
-            normalMap={textures.normalMap}
-            normalScale={KORRIBAN_NORMAL_SCALE}
-            displacementMap={textures.elevationMap}
-            displacementScale={body.visualRadius * 0.04}
-            displacementBias={-body.visualRadius * 0.018}
             roughnessMap={textures.roughnessMap}
-            roughness={0.86}
+            roughness={0.9}
             metalness={0}
-            specularIntensity={0.22}
-            clearcoat={0.025}
-            clearcoatRoughness={0.82}
             emissive={body.colors.surfaceDark}
-            emissiveIntensity={active ? 0.18 : 0.035}
+            emissiveIntensity={active ? 0.12 : 0.03}
           />
         ) : (
           <meshStandardMaterial
@@ -1098,10 +1092,8 @@ function GalaxyControlMap({ map, view, onSelectSector, quality }) {
         ))}
       </group>
       <SpiralArmRibbons opacity={opacity} />
-      <GalaxyParticles mode="nebula" count={counts.nebula} seed={5288} opacity={0.052 * opacity} sizeScale={1.25} />
-      <GalaxyParticles mode="stars" count={counts.stars} seed={4321} opacity={0.16 * opacity} sizeScale={0.95} />
+      <GalaxyParticles mode="stars" count={counts.stars} seed={4321} opacity={0.88 * opacity} sizeScale={0.92} />
       <GalaxyParticles mode="dust" count={counts.dust} seed={8827} opacity={0.055 * opacity} sizeScale={1.05} />
-      <VisibleGalaxyStars count={counts.brightStars} opacity={(mode === "galaxy" ? 0.96 : 0.38) * opacity} />
       <GalacticCore opacity={0.62 * sectorOpacity} />
     </group>
   );
@@ -1340,8 +1332,8 @@ function GalaxyScene({ map, view, hoveredPlanetId, onSelectSector, onSelectPlane
         <pointLight position={selectedPlanetScenePosition.clone().add(new THREE.Vector3(3.4, 2.2, 2.6)).toArray()} intensity={68} distance={12} color={view.mode === "planet" ? "#ffe2bd" : normalizePlanet(map, selectedPlanet).colors.glow} />
       ) : null}
 
-      <DistantStarDome count={counts.sky} opacity={view.mode === "planet" ? 0.64 : 0.92} />
-      <Sparkles count={view.mode === "planet" ? 0 : counts.sparkles} scale={[24, 5.4, 24]} size={1.8} speed={0.44} color="#ff9a3d" opacity={0.7} />
+      <Stars radius={82} depth={42} count={counts.sky} factor={5.6} saturation={0.62} fade speed={0.26} />
+      <Sparkles count={view.mode === "planet" ? 0 : counts.sparkles} scale={[24, 5.4, 18]} size={1.55} speed={0.44} color="#ff9a3d" opacity={0.72} />
       <HyperspaceTunnel active={hyperspaceActive} quality={quality} reducedMotion={reducedMotion} />
 
       <group ref={galaxyRef} rotation={[GALAXY_BASE_ROTATION_X, GALAXY_BASE_ROTATION_Y, GALAXY_BASE_ROTATION_Z]}>

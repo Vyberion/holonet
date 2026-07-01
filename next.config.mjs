@@ -1,5 +1,7 @@
-import { URL } from "node:url";
+import path from "node:path";
+import { URL, fileURLToPath } from "node:url";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const supabaseUrl = process.env.SUPABASE_URL || "";
 let remotePatterns = [];
 
@@ -34,6 +36,19 @@ const nextConfig = {
   poweredByHeader: false,
   images: {
     remotePatterns
+  },
+  webpack(config) {
+    config.module.rules.push({
+      test: /GalaxyControlMap\.jsx$/,
+      enforce: "pre",
+      use: [
+        {
+          loader: path.join(__dirname, "scripts/galaxy-control-map-loader.cjs")
+        }
+      ]
+    });
+
+    return config;
   },
   async headers() {
     return [

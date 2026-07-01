@@ -5,6 +5,8 @@ import { hasCoreAccess } from "../../modules/auth/permissions.js";
 import { loadProfileForRoblox, loadRobloxUser, rawRanksFromProfile } from "./roblox.js";
 import { audit, supabase } from "./supabase.js";
 
+const UNLINKED_ROLE_ID = "1340850135680155674";
+
 function compactIds(values) {
   return values.flat().filter(value => value && !String(value).includes("ROLE_ID"));
 }
@@ -29,7 +31,7 @@ function rolesFromRanges(rank, ranges = []) {
 
 export function managedRoleIds() {
   const roles = config.roles?.managed || {};
-  const ids = [config.roles?.verified];
+  const ids = [config.roles?.verified, UNLINKED_ROLE_ID];
 
   Object.values(roles.DARK_COUNCIL?.ranks || {}).forEach(id => ids.push(id));
   (roles.DARK_COUNCIL?.ranges || []).forEach(range => ids.push(rolesFromRule(range)));
@@ -222,16 +224,21 @@ async function loadLinkedDiscordUserIds() {
 export async function syncVerifiedRoleForLinkedUsers(client) {
   const roleId = config.roles?.verified;
   const guildId = config.discord?.guildId;
-  if (!roleId || !guildId) return { checked: 0, added: 0, failed: 0 };
+  if (!roleId || !guildId) return { checked: 0, added: 0, removed: 0, failed: 0 };
 
   const guild = await client.guilds.fetch(guildId);
   const linkedDiscordIds = await loadLinkedDiscordUserIds();
   let added = 0;
+  let removed = 0;
   let failed = 0;
 
   for (const discordUserId of linkedDiscordIds) {
     try {
       const member = await guild.members.fetch(discordUserId);
+      if (member.roles.cache.has(UNLINKED_ROLE_ID)) {
+        await member.roles.remove(UNLINKED_ROLE_ID, "Holonet verified Discord link");
+        removed += 1;
+      }
       if (!member.roles.cache.has(roleId)) {
         await member.roles.add(roleId, "Holonet verified Discord link");
         added += 1;
@@ -245,7 +252,7 @@ export async function syncVerifiedRoleForLinkedUsers(client) {
     }
   }
 
-  return { checked: linkedDiscordIds.length, added, failed };
+  return { checked: linkedDiscordIds.length, added, removed, failed };
 }
 
 export function divisionTierWeight(tier) {

@@ -8,7 +8,7 @@ import * as THREE from "three";
 
 const TAU = Math.PI * 2;
 const GALAXY_RADIUS = 5.7;
-const GALAXY_FLATTEN = 0.8;
+const GALAXY_FLATTEN = 1;
 const SPIRAL_ARM_COUNT = 5;
 // Real disk galaxies trace logarithmic spirals with a pitch angle of roughly 10-25deg
 // (tight near the core, opening up toward the rim). This replaces the old linear

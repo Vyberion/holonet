@@ -41,10 +41,19 @@ const PLANET_APPROACH_DISTANCE = 2.15;
 const PLANET_ENTRY_DISTANCE = 54;
 const BODY_Y_OFFSET = 0.05;
 const PARTICLE_COUNTS = {
-  high: { stars: 112000, dust: 164000, sky: 9600, sparkles: 460, streaks: 2200 },
-  balanced: { stars: 60000, dust: 88000, sky: 5200, sparkles: 220, streaks: 1350 },
-  reduced: { stars: 32000, dust: 44000, sky: 3000, sparkles: 130, streaks: 720 }
+  high: { stars: 10000, dust: 24000, sky: 9600, sparkles: 460, streaks: 2200 },
+  balanced: { stars: 10000, dust: 18000, sky: 5200, sparkles: 220, streaks: 1350 },
+  reduced: { stars: 10000, dust: 12000, sky: 3000, sparkles: 130, streaks: 720 }
 };
+const GALAXY_RANDOMNESS = 0.3;
+const GALAXY_RANDOMNESS_POWER_XZ = 2.468;
+const GALAXY_RANDOMNESS_POWER_Y = 5.2;
+const GALAXY_VERTICAL_RANDOMNESS = 0.026;
+const GALAXY_INITIAL_SPIN_TIME = 42;
+const GALAXY_SPIN_STRENGTH = 0.2;
+const GALAXY_INSIDE_COLOR = "#f9fdff";
+const GALAXY_OUTSIDE_COLOR = "#83c9ff";
+const GALAXY_RIM_GLOW_COLOR = "#e8fbff";
 const KORRIBAN_TEXTURE_URLS = [
   "/assets/galaxy/korriban/diffuse.png",
   "/assets/galaxy/korriban/bump.png",
@@ -290,22 +299,22 @@ function SpiralArmRibbons({ opacity = 1 }) {
       rows.push({
         key: `glow-${arm}`,
         points: makeSpiralArmPoints(arm, profile.radiusStart, profile.radiusEnd, 124, 0, 1),
-        color: arm % 2 ? "#ff3b4f" : "#ffd08c",
-        opacity: arm % 2 ? 0.25 : 0.2,
+        color: arm % 2 ? "#dff6ff" : "#9fd9ff",
+        opacity: arm % 2 ? 0.22 : 0.18,
         radius: arm % 2 ? 0.034 : 0.029
       });
       rows.push({
         key: `haze-${arm}`,
         points: makeSpiralArmPoints(arm, profile.radiusStart + 0.16, Math.min(GALAXY_RADIUS, profile.radiusEnd + 0.08), 108, -0.16, 1.18),
-        color: arm % 2 ? "#61d9ff" : "#ff7a45",
-        opacity: 0.13,
+        color: arm % 2 ? "#72c8ff" : "#eefaff",
+        opacity: 0.14,
         radius: 0.058
       });
       rows.push({
         key: `dust-${arm}`,
         points: makeSpiralArmPoints(arm, profile.radiusStart + 0.3, profile.radiusEnd - 0.2, 98, -0.18, 0.76),
-        color: "#7c1020",
-        opacity: 0.34,
+        color: "#b9e5ff",
+        opacity: 0.22,
         radius: 0.036
       });
     }
@@ -329,21 +338,29 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
   const sizes = new Float32Array(count);
+  const scales = new Float32Array(count);
+  const randomness = new Float32Array(count * 3);
+  const colorInside = new THREE.Color(GALAXY_INSIDE_COLOR);
+  const colorOutside = new THREE.Color(GALAXY_OUTSIDE_COLOR);
+  const colorRim = new THREE.Color(GALAXY_RIM_GLOW_COLOR);
   const color = new THREE.Color();
 
   for (let i = 0; i < count; i += 1) {
     const coreChance = mode === "stars" ? 0.01 : mode === "dust" ? 0.018 : 0.11;
     const isCore = mode === "core" || rnd() < coreChance;
-    const isInterArm = !isCore && rnd() < (mode === "dust" ? 0.76 : 0.66);
+    const isInterArm = !isCore && rnd() < (mode === "dust" ? 0.82 : 0.72);
     const arm = i % SPIRAL_ARM_COUNT;
     const profile = spiralArmProfile(arm);
     const armStart = Math.max(profile.radiusStart, mode === "dust" ? CORE_RADIUS * 1.16 : CORE_RADIUS * 1.24);
     const radius = isCore
       ? Math.pow(rnd(), 1.9) * CORE_RADIUS
-      : Math.pow(rnd(), isInterArm ? 0.76 : mode === "dust" ? 0.62 : 0.54) * (profile.radiusEnd - armStart) + armStart;
+      : Math.min(
+        GALAXY_RADIUS,
+        Math.pow(rnd(), isInterArm ? 0.72 : mode === "dust" ? 0.62 : 0.58) * (GALAXY_RADIUS - armStart) + armStart
+      );
     const armProgress = clamp((radius - profile.radiusStart) / Math.max(0.01, profile.radiusEnd - profile.radiusStart), 0, 1);
     const rimTaper = 1 - smoothstep(0.72, 1, armProgress) * profile.tailCurl;
-    const armAngle = spiralAngle(radius, arm) - Math.pow(armProgress, 2.2) * profile.tailCurl;
+    const armAngle = spiralAngle(radius, arm) - Math.pow(armProgress, 2.2) * profile.tailCurl * 0.62;
     // Arms stay narrow near the core and relax into wider bands further out -
     // real arms have roughly constant angular width in radians, not linear width,
     // so the physical band gets wider (in distance) as radius grows.
@@ -361,40 +378,49 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
         ? interArmOffset
         : randRange(rnd, -armWidth, armWidth);
     const angle = isCore ? rnd() * TAU : armAngle + jitter;
-    const spread = isInterArm
-      ? (mode === "dust" ? 0.22 + radius * 0.028 : 0.064 + radius * 0.011)
-      : (mode === "dust" ? 0.13 + radius * 0.018 : 0.026 + radius * 0.006);
-    const x = Math.cos(angle) * radius + randRange(rnd, -spread, spread);
-    const z = Math.sin(angle) * radius * GALAXY_VISUAL_FLATTEN + randRange(rnd, -spread, spread);
-    const y = randRange(rnd, -0.055, 0.055) * (1 + radius * 0.045);
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius * GALAXY_VISUAL_FLATTEN;
+    const y = randRange(rnd, -0.018, 0.018) * (1 + radius * 0.025);
     const rimFade = Math.min(1, radius / GALAXY_RADIUS);
+    const randomSign = () => (rnd() < 0.5 ? -1 : 1);
+    const fieldSpread = isInterArm
+      ? (mode === "dust" ? 1.34 : 1.12)
+      : (mode === "dust" ? 0.58 : 0.34);
+    const randomX = Math.pow(rnd(), GALAXY_RANDOMNESS_POWER_XZ) * randomSign() * GALAXY_RANDOMNESS * radius * fieldSpread;
+    const randomY = Math.pow(rnd(), GALAXY_RANDOMNESS_POWER_Y) * randomSign() * GALAXY_VERTICAL_RANDOMNESS * radius;
+    const randomZ = Math.pow(rnd(), GALAXY_RANDOMNESS_POWER_XZ) * randomSign() * GALAXY_RANDOMNESS * radius * fieldSpread;
 
     positions[i * 3] = x;
     positions[i * 3 + 1] = y;
     positions[i * 3 + 2] = z;
+    randomness[i * 3] = randomX;
+    randomness[i * 3 + 1] = randomY;
+    randomness[i * 3 + 2] = randomZ;
 
-    const palette = isCore
-      ? (rnd() > 0.28 ? "#ffe2a0" : "#ff563f")
-      : rnd() > 0.94 ? "#ff5fae" : rnd() > 0.87 ? "#ff3b4f" : rnd() > 0.62 ? "#ffd58a" : rnd() > 0.32 ? "#f9fbff" : "#9feeff";
-    color.set(palette);
-    if (isInterArm) color.lerp(new THREE.Color("#b9d5ff"), mode === "dust" ? 0.18 : 0.28);
-    if (!isCore && !isInterArm && rnd() > 0.88) color.lerp(new THREE.Color("#526cff"), 0.22);
+    color.copy(colorInside).lerp(colorOutside, rimFade);
+    if (isInterArm) color.lerp(new THREE.Color("#d8efff"), mode === "dust" ? 0.36 : 0.44);
+    if (rimFade > 0.76) color.lerp(colorRim, smoothstep(0.76, 1, rimFade) * (mode === "dust" ? 0.62 : 0.78));
+    if (isCore) color.lerp(new THREE.Color("#ffffff"), 0.58);
+    if (!isCore && !isInterArm && rnd() > 0.88) color.lerp(new THREE.Color("#f7fcff"), 0.28);
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
     sizes[i] = mode === "dust"
-      ? randRange(rnd, 0.048, 0.15) * (1.18 - rimFade * 0.1) * (isInterArm ? 0.92 : 1.08)
-      : randRange(rnd, 0.022, 0.078) * (isCore ? 0.88 : isInterArm ? 0.96 : 1.18);
+      ? randRange(rnd, 0.052, 0.17) * (1.04 + rimFade * 0.22) * (isInterArm ? 0.94 : 1.08)
+      : randRange(rnd, 0.024, 0.088) * (isCore ? 0.94 : isInterArm ? 1 : 1.16) * (1 + smoothstep(0.78, 1, rimFade) * 0.34);
+    scales[i] = randRange(rnd, 0.58, 1.36) * (rimFade > 0.78 ? 1.18 : 1);
   }
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+  geometry.setAttribute("aScale", new THREE.BufferAttribute(scales, 1));
+  geometry.setAttribute("aRandomness", new THREE.BufferAttribute(randomness, 3));
   return geometry;
 }
 
-const NEBULA_PALETTE = ["#ff2f6b", "#ff6fae", "#4fd8ff", "#8f6bff", "#ffb45c"];
+const NEBULA_PALETTE = ["#f8fdff", "#dff4ff", "#a8dcff", "#76c5ff", "#cbeeff"];
 
 function makeNebulaCloudTexture(hex) {
   return makeTextureFromCanvas((ctx, width, height) => {
@@ -467,6 +493,7 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
   useFrame(({ clock }) => {
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = clock.elapsedTime;
+      materialRef.current.uniforms.uSpinTime.value = GALAXY_INITIAL_SPIN_TIME + clock.elapsedTime;
       materialRef.current.uniforms.uOpacity.value = opacity;
     }
   });
@@ -481,21 +508,34 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
         blending={THREE.AdditiveBlending}
         uniforms={{
           uTime: { value: 0 },
+          uSpinTime: { value: GALAXY_INITIAL_SPIN_TIME },
+          uSpinStrength: { value: GALAXY_SPIN_STRENGTH },
           uOpacity: { value: opacity },
           uScale: { value: sizeScale }
         }}
         vertexShader={`
           attribute float aSize;
+          attribute float aScale;
+          attribute vec3 aRandomness;
           uniform float uTime;
+          uniform float uSpinTime;
+          uniform float uSpinStrength;
           uniform float uScale;
           varying vec3 vColor;
           void main() {
             vColor = color;
             vec3 pos = position;
-            float breath = sin(uTime * 0.24 + position.x * 1.8 + position.z * 1.3) * 0.018;
+            float distanceToCenter = max(length(pos.xz), 0.08);
+            float angle = atan(pos.x, pos.z);
+            float angleOffset = (1.0 / distanceToCenter) * uSpinTime * uSpinStrength;
+            angle += angleOffset;
+            pos.x = cos(angle) * distanceToCenter;
+            pos.z = sin(angle) * distanceToCenter;
+            pos += aRandomness;
+            float breath = sin(uTime * 0.24 + position.x * 1.8 + position.z * 1.3) * 0.006;
             pos.y += breath;
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            gl_PointSize = aSize * uScale * (440.0 / max(6.0, -mvPosition.z));
+            gl_PointSize = aSize * aScale * uScale * (460.0 / max(6.0, -mvPosition.z));
             gl_Position = projectionMatrix * mvPosition;
           }
         `}
@@ -510,7 +550,7 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
             float glow = 1.0 - smoothstep(0.08, 1.0, d);
             float halo = pow(max(glow, 0.0), 0.72);
             float twinkle = 0.88 + 0.32 * sin(uTime * 1.8 + vColor.r * 17.0);
-            gl_FragColor = vec4(vColor * mix(1.18, 1.38, glow), (core * 1.12 + glow * 0.82 + halo * 0.24) * uOpacity * twinkle);
+            gl_FragColor = vec4(vColor * mix(1.32, 1.72, glow), (core * 1.22 + glow * 1.02 + halo * 0.36) * uOpacity * twinkle);
           }
         `}
       />
@@ -550,19 +590,19 @@ function SectorGrid({ opacity = 1 }) {
 }
 
 function GalacticCore({ opacity = 1 }) {
-  const glow = useMemo(() => makeGlowTexture("rgba(255,255,255,1)", "rgba(255,83,45,.58)"), []);
+  const glow = useMemo(() => makeGlowTexture("rgba(255,255,255,1)", "rgba(130,210,255,.62)"), []);
   useEffect(() => () => glow.dispose(), [glow]);
 
   return (
     <group>
       <sprite position={[0, 0.08, 0]} scale={[4.4, 4.4, 1]}>
-        <spriteMaterial map={glow} color="#ffcf91" transparent opacity={0.34 * opacity} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <spriteMaterial map={glow} color="#e8f9ff" transparent opacity={0.38 * opacity} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
       <mesh position={[0, 0.05, 0]}>
         <sphereGeometry args={[0.34, 48, 24]} />
-        <meshBasicMaterial color="#ffe1a0" transparent opacity={0.94 * opacity} blending={THREE.AdditiveBlending} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.94 * opacity} blending={THREE.AdditiveBlending} />
       </mesh>
-      <Sparkles count={90} scale={[2.4, 0.9, 2.4]} size={3.6} speed={0.35} color="#ffd38a" opacity={0.84 * opacity} />
+      <Sparkles count={90} scale={[2.4, 0.55, 2.4]} size={3.8} speed={0.35} color="#d8f5ff" opacity={0.92 * opacity} />
     </group>
   );
 }

@@ -669,46 +669,19 @@ function GalacticCore({ opacity = 1 }) {
   );
 }
 
-function isOutermostCell(cell, map) {
-  const tessellation = getPolarTessellation(map);
-  const lastRingIndex = Math.max(0, (tessellation.rings?.length || 1) - 1);
-
-  return Number.isFinite(cell.ringEndIndex)
-    ? cell.ringEndIndex >= lastRingIndex
-    : cell.outerRadius >= (tessellation.rings?.[lastRingIndex] || getGuideRadius(map)) - 0.001;
-}
-
-function outerEdgeWarpRadius(sector, cell, map, t) {
-  if (!isOutermostCell(cell, map)) return cell.outerRadius;
-
-  const seed = idSeed(`${sector.id}:${cell.cellKey || `${cell.startAngleDeg}:${cell.endAngleDeg}`}`);
-
-  // Not every outer edge gets a warp.
-  if (seed % 5 === 0) return cell.outerRadius;
-
-  const center = 0.28 + ((seed % 41) / 40) * 0.44;
-  const width = 0.105 + ((seed % 17) / 16) * 0.055;
-  const sign = seed % 3 === 0 ? -1 : 1;
-  const strength = 0.095 + ((seed % 23) / 22) * 0.075;
-
-  const falloff = Math.exp(-Math.pow(t - center, 2) / (2 * width * width));
-  const endFade = Math.sin(t * Math.PI);
-
-  return cell.outerRadius + sign * strength * falloff * endFade;
-}
 
 function makeSectorCellPoints(sector, cell, map) {
   const start = cell.startAngleDeg;
   const end = cell.endAngleDeg;
   const inner = cell.innerRadius;
+  const outer = cell.outerRadius;
   const steps = Math.max(18, Math.ceil(Math.abs(end - start) / 1.6));
   const vectors = [];
 
   for (let i = 0; i <= steps; i += 1) {
     const t = i / steps;
     const angle = start + (end - start) * t;
-    const warpedOuter = outerEdgeWarpRadius(sector, cell, map, t);
-    vectors.push(polarToScene(angle, warpedOuter, map));
+    vectors.push(polarToScene(angle, outer, map));
   }
 
   for (let i = steps; i >= 0; i -= 1) {
@@ -777,18 +750,13 @@ function makeSectorGeometry(sector, map) {
   );
 }
 
-function makeSectorArcPoints(radius, startAngleDeg, endAngleDeg, map, y = -0.026, sector = null, cell = null, outerEdge = false) {
+function makeSectorArcPoints(radius, startAngleDeg, endAngleDeg, map, y = -0.026) {
   const steps = Math.max(10, Math.ceil(Math.abs(endAngleDeg - startAngleDeg) / 1.6));
   const points = [];
 
   for (let i = 0; i <= steps; i += 1) {
     const t = i / steps;
-    const angle = startAngleDeg + (endAngleDeg - startAngleDeg) * t;
-    const warpedRadius = outerEdge && sector && cell
-      ? outerEdgeWarpRadius(sector, cell, map, t)
-      : radius;
-
-    const point = polarToScene(angle, warpedRadius, map);
+    const point = polarToScene(startAngleDeg + (endAngleDeg - startAngleDeg) * t, radius, map);
     points.push(new THREE.Vector3(point.x, y, point.z));
   }
 
@@ -819,7 +787,7 @@ function makeSectorBoundarySegments(sector, map) {
   cells.forEach(cell => {
     if (!cell.cellKey) {
   segments.push(
-    makeSectorArcPoints(cell.outerRadius, cell.startAngleDeg, cell.endAngleDeg, map, -0.026, sector, cell, true),
+    makeSectorArcPoints(cell.outerRadius, cell.startAngleDeg, cell.endAngleDeg, map),
     makeSectorArcPoints(cell.innerRadius, cell.startAngleDeg, cell.endAngleDeg, map),
     makeSectorRadialPoints(cell.startAngleDeg, cell.innerRadius, cell.outerRadius, map),
     makeSectorRadialPoints(cell.endAngleDeg, cell.innerRadius, cell.outerRadius, map)

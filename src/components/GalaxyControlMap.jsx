@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { OrbitControls, Sparkles, useProgress } from "@react-three/drei";
+import { OrbitControls, Sparkles } from "@react-three/drei";
 import { Bloom, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -1659,10 +1659,8 @@ function getPlanetSummary(map, planetId) {
 
 export function GalaxyMapExperience({ map }) {
   const normalizedMap = useMemo(() => normalizeMap(map || {}), [map]);
-  const loadingState = useProgress();
   const [canvasReady, setCanvasReady] = useState(false);
   const [assetsReady, setAssetsReady] = useState(false);
-  const [displayProgress, setDisplayProgress] = useState(0);
   const [view, setView] = useState({ mode: "galaxy", sectorId: null, planetId: null });
   const [hoveredSectorId, setHoveredSectorId] = useState(null);
   const [hoveredPlanetId, setHoveredPlanetId] = useState(null);
@@ -1677,16 +1675,7 @@ export function GalaxyMapExperience({ map }) {
   const displayedSectorSummary = hoveredSectorSummary || sectorSummary;
   const displayedPlanetSummary = hoveredPlanetSummary || planetSummary;
   const panelFaction = displayedPlanetSummary?.faction || displayedSectorSummary?.faction || null;
-  const assetProgress = loadingState.total > 0 ? loadingState.progress : assetsReady ? 100 : 0;
-  const rawReady = canvasReady && assetsReady && !loadingState.active;
-  const loadingTarget = rawReady ? 100 : Math.min(96, Math.max(canvasReady ? 24 : 6, assetProgress));
-  const loadingPercent = Math.round(Math.min(100, displayProgress));
-  const loadingMeta = loadingState.total > 0
-    ? `${Math.min(loadingState.loaded, loadingState.total)}/${loadingState.total} ASSETS`
-    : canvasReady
-      ? "BUILDING TEXTURES"
-      : "STARTING RENDERER";
-  const ready = rawReady && displayProgress >= 99.5;
+  const ready = canvasReady && assetsReady;
 
   const clearTransitionTimers = useCallback(() => {
     transitionTimersRef.current.forEach(timer => window.clearTimeout(timer));
@@ -1704,25 +1693,6 @@ export function GalaxyMapExperience({ map }) {
   const markGalaxyAssetsReady = useCallback(() => {
     setAssetsReady(true);
   }, []);
-
-  useEffect(() => {
-    let frame = 0;
-
-    const step = () => {
-      let shouldContinue = false;
-      setDisplayProgress(current => {
-        const delta = loadingTarget - current;
-        if (Math.abs(delta) < 0.25) return loadingTarget;
-        shouldContinue = true;
-        return current + delta * 0.18;
-      });
-
-      if (shouldContinue) frame = window.requestAnimationFrame(step);
-    };
-
-    frame = window.requestAnimationFrame(step);
-    return () => window.cancelAnimationFrame(frame);
-  }, [loadingTarget]);
 
   useEffect(() => {
     const isReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -1941,17 +1911,6 @@ export function GalaxyMapExperience({ map }) {
         ) : null}
       </aside>
 
-      {!ready ? (
-        <div className="gm-loading" style={{ "--gm-loading-progress": `${loadingPercent}%` }}>
-          <span className="gm-loading-spinner" />
-          <div className="gm-loading-copy">
-            <strong>CALIBRATING ARCHIVE MAP</strong>
-            <div className="gm-loading-track" aria-hidden="true"><span /></div>
-            <em>{loadingPercent}% - {loadingMeta}</em>
-          </div>
-        </div>
-      ) : null}
-
       <style>{STYLES}</style>
     </section>
   );
@@ -1967,6 +1926,11 @@ const STYLES = `
   body:has(.gm-root) .site-header,
   body:has(.gm-root) .site-nav {
     z-index: 3000 !important;
+  }
+
+  body:has(.gm-root) #app > .status-bar,
+  body:has(.gm-root) #app > footer {
+    display: none;
   }
 
   .gm-root {
@@ -2093,7 +2057,7 @@ const STYLES = `
     position: absolute;
     right: auto;
     text-align: left;
-    top: calc(var(--nav-height, 62px) + 8px);
+    top: calc(var(--nav-height, 62px) + 14px);
     width: auto;
     z-index: 8;
   }
@@ -2146,8 +2110,7 @@ const STYLES = `
   }
 
   .gm-lockup,
-  .gm-panel,
-  .gm-loading {
+  .gm-panel {
     background:
       linear-gradient(135deg, var(--theme-wash, rgba(192, 0, 26, .035)), transparent 62%),
       var(--gm-panel);
@@ -2357,72 +2320,6 @@ const STYLES = `
     opacity: .24;
   }
 
-  .gm-loading {
-    align-items: center;
-    color: var(--text, #fff);
-    display: flex;
-    gap: 12px;
-    left: 50%;
-    min-width: min(360px, calc(100vw - 32px));
-    padding: 14px 17px;
-    position: absolute;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 12;
-  }
-
-  .gm-loading-spinner {
-    animation: gm-spin 1.1s linear infinite;
-    border: 2px solid var(--theme-accent-dim, #7a1a28);
-    border-top-color: var(--theme-accent, #ff3b4f);
-    border-radius: 999px;
-    flex: 0 0 auto;
-    height: 18px;
-    width: 18px;
-  }
-
-  .gm-loading-copy {
-    display: grid;
-    flex: 1;
-    gap: 7px;
-    min-width: 0;
-  }
-
-  .gm-loading strong {
-    font-size: .76rem;
-    letter-spacing: .18em;
-    text-transform: uppercase;
-  }
-
-  .gm-loading-track {
-    background: rgba(0, 0, 0, .34);
-    border: 1px solid color-mix(in srgb, var(--theme-accent-dim, #7a1a28) 72%, transparent);
-    height: 6px;
-    overflow: hidden;
-  }
-
-  .gm-loading-track span {
-    background: linear-gradient(90deg, var(--theme-accent-dim, #7a1a28), var(--theme-accent, #ff3b4f));
-    box-shadow: 0 0 14px var(--theme-accent-glow, rgba(255, 59, 79, .26));
-    display: block;
-    height: 100%;
-    transition: width .16s linear;
-    width: var(--gm-loading-progress, 0%);
-  }
-
-  .gm-loading em {
-    color: var(--text-dim, #f2d8d8);
-    font-size: .56rem;
-    font-style: normal;
-    letter-spacing: .18em;
-    line-height: 1;
-    text-transform: uppercase;
-  }
-
-  @keyframes gm-spin {
-    to { transform: rotate(360deg); }
-  }
-
   @keyframes gm-wipe-in {
     0% { transform: translate(72%, 72%) rotate(45deg); }
     100% { transform: translate(0, 0) rotate(45deg); }
@@ -2440,7 +2337,7 @@ const STYLES = `
       left: var(--gm-topbar-inset);
       max-width: none;
       right: var(--gm-topbar-inset);
-      top: calc(var(--nav-height, 56px) + 8px);
+      top: calc(var(--nav-height, 56px) + 12px);
     }
 
     .gm-lockup {

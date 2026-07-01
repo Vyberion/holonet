@@ -7,12 +7,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 const TAU = Math.PI * 2;
-const GALAXY_RADIUS = 11.4;
+const GALAXY_RADIUS = 12.0; 
 const GALAXY_FLATTEN = 1;
-const SPIRAL_ARM_COUNT = 5;
-const SPIRAL_SWEEP = 0.7;
-const GALAXY_VISUAL_FLATTEN = 0.78;
-const CORE_RADIUS = 1.08;
+const SPIRAL_ARM_COUNT = 4; // Classic grand-design spiral arms
+const SPIRAL_SWEEP = 0.25; // Gentle, realistic curve, not tightly wrapped
+const GALAXY_VISUAL_FLATTEN = 1.0; // PERFECTLY CIRCULAR shape on the mathematical plane
+const CORE_RADIUS = 1.6; // Slightly larger, more pronounced central bulge
 const GALAXY_BASE_ROTATION_X = -0.045;
 const GALAXY_BASE_ROTATION_Y = -0.32;
 const GALAXY_BASE_ROTATION_Z = 0.02;
@@ -37,30 +37,9 @@ const KORRIBAN_TEXTURE_URLS = [
   "/assets/galaxy/korriban/clouds.png"
 ];
 const DEFAULT_FACTIONS = [
-  {
-    id: "sith-empire",
-    name: "Sith Empire",
-    shortName: "Sith",
-    color: "#d8162a",
-    glow: "#ff2438",
-    fill: "#7d0611"
-  },
-  {
-    id: "jedi-republic",
-    name: "Jedi / Republic",
-    shortName: "Republic",
-    color: "#2f9cff",
-    glow: "#61d9ff",
-    fill: "#0e4f89"
-  },
-  {
-    id: "neutral",
-    name: "Neutral / Unknown",
-    shortName: "Neutral",
-    color: "#767676",
-    glow: "#c0c0c0",
-    fill: "#2a2a2a"
-  }
+  { id: "sith-empire", name: "Sith Empire", shortName: "Sith", color: "#d8162a", glow: "#ff2438", fill: "#7d0611" },
+  { id: "jedi-republic", name: "Jedi / Republic", shortName: "Republic", color: "#2f9cff", glow: "#61d9ff", fill: "#0e4f89" },
+  { id: "neutral", name: "Neutral / Unknown", shortName: "Neutral", color: "#767676", glow: "#c0c0c0", fill: "#2a2a2a" }
 ];
 
 function seededRandom(seed) {
@@ -230,39 +209,42 @@ function makeEllipsePoints(radiusX, radiusZ, segments = 240, start = 0, end = TA
   return points;
 }
 
-function makeSpiralArmPoints(arm, radiusStart = 1.1, radiusEnd = GALAXY_RADIUS, segments = 96, offset = 0) {
-  const points = [];
-  for (let i = 0; i <= segments; i += 1) {
-    const t = i / segments;
-    const radius = radiusStart + (radiusEnd - radiusStart) * t;
-    const angle = (arm / SPIRAL_ARM_COUNT) * TAU + radius * SPIRAL_SWEEP + offset;
-    const widthWave = Math.sin(t * Math.PI) * 0.18;
-    points.push(new THREE.Vector3(
-      Math.cos(angle) * (radius + widthWave),
-      0.032 + Math.sin(t * TAU + arm) * 0.018,
-      Math.sin(angle) * (radius + widthWave) * GALAXY_VISUAL_FLATTEN
-    ));
-  }
-  return points;
-}
-
 function SpiralArmRibbons({ opacity = 1 }) {
   const arms = useMemo(() => {
     const rows = [];
     for (let arm = 0; arm < SPIRAL_ARM_COUNT; arm += 1) {
+      // Re-engineered points for the spectacular circular curve
+      const makeRibbonPoints = (rStart, rEnd, sweep, offset, yVariance) => {
+        const pts = [];
+        for (let i = 0; i <= 120; i++) {
+          const t = i / 120;
+          const r = rStart + (rEnd - rStart) * t;
+          const angle = (arm / SPIRAL_ARM_COUNT) * TAU + r * sweep + offset;
+          const wave = Math.sin(t * Math.PI) * 0.15; // Width variation
+          pts.push(new THREE.Vector3(
+            Math.cos(angle) * (r + wave),
+            Math.sin(t * TAU * 2 + arm) * yVariance,
+            Math.sin(angle) * (r + wave) * GALAXY_VISUAL_FLATTEN
+          ));
+        }
+        return pts;
+      };
+
+      // Bright vibrant nebula glow in the arms
       rows.push({
         key: `glow-${arm}`,
-        points: makeSpiralArmPoints(arm, 1.16, 10.95, 110, 0),
-        color: arm % 2 ? "#ff3b4f" : "#ffd08c",
-        opacity: arm % 2 ? 0.16 : 0.12,
-        radius: arm % 2 ? 0.026 : 0.022
+        points: makeRibbonPoints(CORE_RADIUS * 0.9, GALAXY_RADIUS * 0.95, SPIRAL_SWEEP, 0, 0.04),
+        color: arm % 2 ? "#5e8dff" : "#ff4281", // Alternating blue and pink nebula fields
+        opacity: 0.18,
+        radius: 0.038
       });
+      // Deep obscuring dust lane hugging the inner edge of each arm
       rows.push({
         key: `dust-${arm}`,
-        points: makeSpiralArmPoints(arm, 1.6, 10.55, 92, -0.18),
-        color: "#7c1020",
-        opacity: 0.11,
-        radius: 0.018
+        points: makeRibbonPoints(CORE_RADIUS * 1.1, GALAXY_RADIUS * 0.88, SPIRAL_SWEEP, -0.15, 0.015),
+        color: "#0a0203", // Pitch dark realistic dust
+        opacity: 0.28,
+        radius: 0.022
       });
     }
     return rows;
@@ -288,36 +270,76 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
   const color = new THREE.Color();
 
   for (let i = 0; i < count; i += 1) {
-    const isCore = mode === "core" || rnd() < 0.11;
-    const arm = i % SPIRAL_ARM_COUNT;
-    const radius = isCore
-      ? Math.pow(rnd(), 1.9) * CORE_RADIUS
-      : Math.pow(rnd(), mode === "dust" ? 0.72 : 0.54) * (GALAXY_RADIUS - CORE_RADIUS) + CORE_RADIUS;
-    const sweep = radius * SPIRAL_SWEEP;
-    const armAngle = (arm / SPIRAL_ARM_COUNT) * TAU + sweep;
-    const jitter = isCore ? randRange(rnd, -TAU, TAU) : randRange(rnd, -0.22 - radius * 0.012, 0.22 + radius * 0.012);
-    const angle = isCore ? rnd() * TAU : armAngle + jitter;
-    const spread = mode === "dust" ? 0.34 + radius * 0.035 : 0.08 + radius * 0.014;
-    const x = Math.cos(angle) * radius + randRange(rnd, -spread, spread);
-    const z = Math.sin(angle) * radius * GALAXY_VISUAL_FLATTEN + randRange(rnd, -spread, spread);
-    const y = randRange(rnd, -0.08, 0.08) * (1 + radius * 0.08);
-    const rimFade = Math.min(1, radius / GALAXY_RADIUS);
+    const isCore = mode === "core" || rnd() < 0.15; // 15% of mass inside the core/bulge
+    let x, y, z, radius;
+    let isArm = false;
+
+    if (isCore) {
+      // 3D Spherical/Ellipsoidal Central Bulge
+      radius = Math.pow(rnd(), 2.2) * CORE_RADIUS;
+      const theta = rnd() * TAU;
+      const phi = Math.acos(2 * rnd() - 1); // True spherical distribution
+      
+      x = radius * Math.sin(phi) * Math.cos(theta);
+      z = radius * Math.sin(phi) * Math.sin(theta) * GALAXY_VISUAL_FLATTEN;
+      y = radius * Math.cos(phi) * 0.45; // Flattened slightly top-to-bottom for realistic bulge
+    } else {
+      // Galactic Disk & Arms
+      radius = CORE_RADIUS + Math.pow(rnd(), mode === "dust" ? 0.65 : 0.5) * (GALAXY_RADIUS - CORE_RADIUS);
+      const sweep = radius * SPIRAL_SWEEP;
+      
+      // 65% of disk matter clusters in the spiral density waves (arms)
+      isArm = rnd() < 0.65;
+      let angle;
+
+      if (isArm) {
+        const arm = Math.floor(rnd() * SPIRAL_ARM_COUNT);
+        const armAngle = (arm / SPIRAL_ARM_COUNT) * TAU + sweep;
+        // Tighter packing near the core, spreading out towards the rim
+        const spread = mode === "dust" ? 0.25 : 0.12; 
+        const jitter = randRange(rnd, -spread, spread) * (1 + radius * 0.15);
+        angle = armAngle + jitter;
+      } else {
+        // Scattered matter resting in the galactic disk between arms
+        angle = rnd() * TAU;
+      }
+
+      // Realistic very thin disk that flares gently at the edges
+      const diskThickness = mode === "dust" ? 0.015 : 0.025;
+      const edgeFlare = 1 + Math.pow(radius / GALAXY_RADIUS, 2) * 2.5; 
+      y = randRange(rnd, -diskThickness, diskThickness) * edgeFlare;
+
+      x = Math.cos(angle) * radius;
+      z = Math.sin(angle) * radius * GALAXY_VISUAL_FLATTEN;
+    }
 
     positions[i * 3] = x;
     positions[i * 3 + 1] = y;
     positions[i * 3 + 2] = z;
 
-    const palette = isCore
-      ? (rnd() > 0.28 ? "#ffe2a0" : "#ff563f")
-      : rnd() > 0.9 ? "#ff3b4f" : rnd() > 0.62 ? "#ffd58a" : rnd() > 0.32 ? "#f9fbff" : "#9feeff";
+    // Spectacular Realistic Coloring
+    let palette;
+    if (mode === "dust") {
+      palette = rnd() > 0.5 ? "#14070a" : "#080304"; // Dark rich dust
+    } else if (isCore) {
+      // Older, cooler population II stars in the bulge
+      palette = rnd() > 0.45 ? "#ffe2b8" : (rnd() > 0.2 ? "#ffb56b" : "#ffffff"); 
+    } else {
+      // Younger, hotter population I stars in the disk/arms
+      if (isArm && rnd() > 0.94) palette = "#ff5e81"; // Pink H-II star-forming regions!
+      else if (rnd() > 0.65) palette = "#9bc0ff"; // Intense bright blue O/B stars
+      else if (rnd() > 0.3) palette = "#dbe8ff"; // Blue-white stars
+      else palette = "#ffffff"; // Main sequence whites
+    }
+
     color.set(palette);
-    if (!isCore && rnd() > 0.88) color.lerp(new THREE.Color("#526cff"), 0.22);
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
+
     sizes[i] = mode === "dust"
-      ? randRange(rnd, 0.035, 0.12) * (1.2 - rimFade * 0.22)
-      : randRange(rnd, 0.014, 0.075) * (isCore ? 1.8 : 1);
+      ? randRange(rnd, 0.06, 0.22)
+      : randRange(rnd, 0.012, 0.06) * (isCore ? 1.6 : 1);
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -377,205 +399,9 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
             float d = length(uv);
             float core = 1.0 - smoothstep(0.0, 0.18, d);
             float glow = 1.0 - smoothstep(0.12, 1.0, d);
-            float twinkle = 0.75 + 0.25 * sin(uTime * 1.8 + vColor.r * 17.0);
-            gl_FragColor = vec4(vColor, (core + glow * 0.62) * uOpacity * twinkle);
-          }
-        `}
-      />
-    </points>
-  );
-}
-
-function makeVisibleGalaxyStarsGeometry(count, seed) {
-  const rnd = seededRandom(seed);
-  const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  const sizes = new Float32Array(count);
-  const color = new THREE.Color();
-
-  for (let i = 0; i < count; i += 1) {
-    const isCore = rnd() < 0.12;
-    const interArm = !isCore && rnd() < 0.34;
-    const arm = Math.floor(rnd() * SPIRAL_ARM_COUNT);
-    const radius = isCore
-      ? Math.pow(rnd(), 1.7) * CORE_RADIUS
-      : Math.pow(rnd(), 0.58) * (GALAXY_RADIUS - CORE_RADIUS) + CORE_RADIUS;
-    const armAngle = (arm / SPIRAL_ARM_COUNT) * TAU + radius * SPIRAL_SWEEP;
-    const angle = isCore
-      ? rnd() * TAU
-      : interArm
-        ? rnd() * TAU
-        : armAngle + randRange(rnd, -0.11 - radius * 0.035, 0.11 + radius * 0.035);
-    const spread = isCore ? 0.08 : 0.03 + radius * 0.012;
-    const idx = i * 3;
-
-    positions[idx] = Math.cos(angle) * radius + randRange(rnd, -spread, spread);
-    positions[idx + 1] = randRange(rnd, -0.028, 0.09) * (1 + radius * 0.035);
-    positions[idx + 2] = Math.sin(angle) * radius * GALAXY_FLATTEN + randRange(rnd, -spread, spread);
-
-    color.set(rnd() > 0.94 ? "#9edfff" : rnd() > 0.68 ? "#ffd27a" : "#fffaf0");
-    colors[idx] = color.r;
-    colors[idx + 1] = color.g;
-    colors[idx + 2] = color.b;
-    sizes[i] = rnd() > 0.965 ? randRange(rnd, 3.2, 5.2) : rnd() > 0.72 ? randRange(rnd, 2.1, 3.35) : randRange(rnd, 1.05, 2.05);
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-  geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
-  return geometry;
-}
-
-function VisibleGalaxyStars({ count, opacity = 1 }) {
-  const geometry = useMemo(() => makeVisibleGalaxyStarsGeometry(count, 18421), [count]);
-  const materialRef = useRef(null);
-  const pixelRatio = useThree(state => Math.min(2, state.gl.getPixelRatio?.() || 1));
-
-  useEffect(() => () => geometry.dispose(), [geometry]);
-
-  useFrame(({ clock }) => {
-    if (!materialRef.current) return;
-    materialRef.current.uniforms.uTime.value = clock.elapsedTime;
-    materialRef.current.uniforms.uOpacity.value = opacity;
-    materialRef.current.uniforms.uPixelRatio.value = pixelRatio;
-  });
-
-  return (
-    <points geometry={geometry} renderOrder={12}>
-      <shaderMaterial
-        ref={materialRef}
-        vertexColors
-        transparent
-        depthWrite={false}
-        depthTest={false}
-        blending={THREE.AdditiveBlending}
-        toneMapped={false}
-        uniforms={{
-          uTime: { value: 0 },
-          uOpacity: { value: opacity },
-          uPixelRatio: { value: pixelRatio }
-        }}
-        vertexShader={`
-          attribute float aSize;
-          uniform float uTime;
-          uniform float uPixelRatio;
-          varying vec3 vColor;
-          varying float vPulse;
-          void main() {
-            vColor = color;
-            vPulse = 0.78 + 0.22 * sin(uTime * 2.8 + position.x * 7.3 + position.z * 5.9);
-            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = aSize * uPixelRatio;
-            gl_Position = projectionMatrix * mvPosition;
-          }
-        `}
-        fragmentShader={`
-          uniform float uOpacity;
-          varying vec3 vColor;
-          varying float vPulse;
-          void main() {
-            vec2 uv = gl_PointCoord * 2.0 - 1.0;
-            float d = length(uv);
-            float core = 1.0 - smoothstep(0.0, 0.42, d);
-            float glow = 1.0 - smoothstep(0.3, 1.0, d);
-            gl_FragColor = vec4(vColor, (core + glow * 0.75) * uOpacity * vPulse);
-          }
-        `}
-      />
-    </points>
-  );
-}
-
-function makeDistantStarDomeGeometry(count, seed) {
-  const rnd = seededRandom(seed);
-  const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  const sizes = new Float32Array(count);
-  const color = new THREE.Color();
-
-  for (let i = 0; i < count; i += 1) {
-    const theta = rnd() * TAU;
-    const biasedPlane = rnd() < 0.68;
-    const yUnit = biasedPlane
-      ? clamp(randRange(rnd, -0.42, 0.42) + randRange(rnd, -0.12, 0.12), -0.86, 0.86)
-      : randRange(rnd, -1, 1);
-    const ring = Math.sqrt(Math.max(0.001, 1 - yUnit * yUnit));
-    const radius = randRange(rnd, 76, 124);
-    const idx = i * 3;
-
-    positions[idx] = Math.cos(theta) * ring * radius;
-    positions[idx + 1] = yUnit * radius * randRange(rnd, 0.72, 1.08);
-    positions[idx + 2] = Math.sin(theta) * ring * radius;
-
-    color.set(rnd() > 0.88 ? "#fff4dc" : rnd() > 0.62 ? "#dcecff" : "#ffffff");
-    colors[idx] = color.r;
-    colors[idx + 1] = color.g;
-    colors[idx + 2] = color.b;
-    sizes[i] = rnd() > 0.94 ? randRange(rnd, 0.22, 0.42) : randRange(rnd, 0.06, 0.2);
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-  geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
-  return geometry;
-}
-
-function DistantStarDome({ count, opacity = 1 }) {
-  const geometry = useMemo(() => makeDistantStarDomeGeometry(count, 19391), [count]);
-  const ref = useRef(null);
-  const materialRef = useRef(null);
-
-  useEffect(() => () => geometry.dispose(), [geometry]);
-
-  useFrame(({ clock }) => {
-    if (ref.current) {
-      ref.current.rotation.y = clock.elapsedTime * 0.003;
-      ref.current.rotation.x = Math.sin(clock.elapsedTime * 0.05) * 0.012;
-    }
-    if (materialRef.current) {
-      materialRef.current.uniforms.uTime.value = clock.elapsedTime;
-      materialRef.current.uniforms.uOpacity.value = opacity;
-    }
-  });
-
-  return (
-    <points ref={ref} geometry={geometry} renderOrder={-10}>
-      <shaderMaterial
-        ref={materialRef}
-        vertexColors
-        transparent
-        depthWrite={false}
-        depthTest
-        blending={THREE.AdditiveBlending}
-        uniforms={{
-          uTime: { value: 0 },
-          uOpacity: { value: opacity }
-        }}
-        vertexShader={`
-          attribute float aSize;
-          uniform float uTime;
-          varying vec3 vColor;
-          varying float vPulse;
-          void main() {
-            vColor = color;
-            vPulse = 0.82 + 0.18 * sin(uTime * 0.8 + position.x * 0.07 + position.z * 0.05);
-            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = aSize * (620.0 / max(34.0, -mvPosition.z));
-            gl_Position = projectionMatrix * mvPosition;
-          }
-        `}
-        fragmentShader={`
-          uniform float uOpacity;
-          varying vec3 vColor;
-          varying float vPulse;
-          void main() {
-            vec2 uv = gl_PointCoord * 2.0 - 1.0;
-            float d = length(uv);
-            float core = 1.0 - smoothstep(0.0, 0.32, d);
-            float glow = 1.0 - smoothstep(0.22, 1.0, d);
-            gl_FragColor = vec4(vColor, (core + glow * 0.42) * uOpacity * vPulse);
+            // Softer, more spectacular twinkle
+            float twinkle = 0.8 + 0.2 * sin(uTime * 1.5 + vColor.r * 15.0);
+            gl_FragColor = vec4(vColor, (core + glow * 0.55) * uOpacity * twinkle);
           }
         `}
       />
@@ -1039,7 +865,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
   );
 }
 
-function SectorPlanetField({ map, view, hoveredPlanetId, onSelectPlanet, onHoverPlanet }) {
+export function SectorPlanetField({ map, view, hoveredPlanetId, onSelectPlanet, onHoverPlanet }) {
   const sectorPlanets = useMemo(() => {
     if (!view.sectorId && view.mode !== "planet") return [];
     if (view.mode === "planet") return map.planets || [];
@@ -1050,21 +876,18 @@ function SectorPlanetField({ map, view, hoveredPlanetId, onSelectPlanet, onHover
 
   return (
     <group>
-      {sectorPlanets.map(planet => {
-        if (view.mode === "planet" && planet.id !== view.planetId) return null;
-        return (
-          <PlanetBody
-            key={planet.id}
-            map={map}
-            planet={planet}
-            mode={view.mode}
-            active={view.planetId === planet.id}
-            hovered={hoveredPlanetId === planet.id}
-            onSelect={onSelectPlanet}
-            onHover={onHoverPlanet}
-          />
-        );
-      })}
+      {sectorPlanets.map((planet) => (
+        <PlanetBody
+          key={planet.id}
+          map={map}
+          planet={planet}
+          mode={view.mode}
+          active={view.planetId === planet.id}
+          hovered={hoveredPlanetId === planet.id}
+          onSelect={onSelectPlanet}
+          onHover={onHoverPlanet}
+        />
+      ))}
     </group>
   );
 }

@@ -59,7 +59,7 @@ const DEFAULT_POLAR_TESSELLATION = {
   angles: [-180, -150, -116, -84, -52, -24, 8, 38, 68, 100, 132, 164, 196, 228, 260, 294, 330, 360],
   rings: [0.16, 0.72, 1.42, 2.05, 2.85, 3.72, 4.86, 5.58, 6.24, 6.74]
 };
-const CORE_CUTOUT_RING_INDEX = 2;
+const CORE_CUTOUT_RING_INDEX = 1;
 const SECTOR_TESSELLATION_CELLS = {
   "tython-deep-core": [[1, 3, 0, 1]],
   coruscant: [[3, 5, 0, 2]],
@@ -333,13 +333,22 @@ function drawableSectorCells(sector, map) {
   const tessellation = getPolarTessellation(map);
   const cutoutRadius = tessellation.rings[CORE_CUTOUT_RING_INDEX] || tessellation.rings[0] || 0;
 
-  return sectorTessellationCells(sector, map).filter(cell => {
+  return sectorTessellationCells(sector, map).map(cell => {
     if (Number.isFinite(cell.ringStartIndex)) {
-      return cell.ringStartIndex >= CORE_CUTOUT_RING_INDEX;
+      if (cell.ringEndIndex <= CORE_CUTOUT_RING_INDEX) return null;
+      if (cell.ringStartIndex < CORE_CUTOUT_RING_INDEX) {
+        return {
+          ...cell,
+          ringStartIndex: CORE_CUTOUT_RING_INDEX,
+          innerRadius: cutoutRadius
+        };
+      }
     }
 
-    return cell.innerRadius >= cutoutRadius;
-  });
+    if (cell.outerRadius <= cutoutRadius) return null;
+    if (cell.innerRadius < cutoutRadius) return { ...cell, innerRadius: cutoutRadius };
+    return cell;
+  }).filter(Boolean);
 } 
 
 function visibleSectors(map) {
@@ -728,45 +737,62 @@ function makeSectorRadialPoints(angleDeg, innerRadius, outerRadius, map, y = -0.
 }
 
 function makeSectorBoundarySegments(sector, map) {
-  const edges = new Map();
+  const ringEdges = new Map();
+  const spokeEdges = new Map();
+  const formatKey = value => Number(value).toFixed(4);
 
-  const addEdge = (key, points) => {
-    if (edges.has(key)) {
-      edges.delete(key);
-      return;
-    }
+  const addInterval = (groups, key, from, to, meta) => {
+    const start = Math.min(from, to);
+    const end = Math.max(from, to);
+    if (Math.abs(end - start) < 0.0001) return;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push({ start, end, ...meta });
+  };
 
-    edges.set(key, points);
+  const flushIntervals = (groups, makePoints) => {
+    const segments = [];
+
+    groups.forEach(intervals => {
+      const stops = [...new Set(intervals.flatMap(interval => [interval.start, interval.end]).map(formatKey))]
+        .map(Number)
+        .sort((left, right) => left - right);
+
+      let openStart = null;
+      let openEnd = null;
+
+      for (let index = 0; index < stops.length - 1; index += 1) {
+        const start = stops[index];
+        const end = stops[index + 1];
+        const midpoint = (start + end) * 0.5;
+        const coverage = intervals.filter(interval => midpoint > interval.start + 0.0001 && midpoint < interval.end - 0.0001).length;
+
+        if (coverage === 1) {
+          if (openStart === null) openStart = start;
+          openEnd = end;
+        } else if (openStart !== null) {
+          segments.push(makePoints(intervals[0], openStart, openEnd));
+          openStart = null;
+          openEnd = null;
+        }
+      }
+
+      if (openStart !== null) segments.push(makePoints(intervals[0], openStart, openEnd));
+    });
+
+    return segments;
   };
 
   drawableSectorCells(sector, map).forEach(cell => {
-    const angleStartKey = cell.angleStartIndex ?? cell.startAngleDeg;
-    const angleEndKey = cell.angleEndIndex ?? cell.endAngleDeg;
-    const ringStartKey = cell.ringStartIndex ?? cell.innerRadius;
-    const ringEndKey = cell.ringEndIndex ?? cell.outerRadius;
-
-    addEdge(
-      `ring:${ringEndKey}:${angleStartKey}:${angleEndKey}`,
-      makeSectorArcPoints(cell.outerRadius, cell.startAngleDeg, cell.endAngleDeg, map)
-    );
-
-    addEdge(
-      `ring:${ringStartKey}:${angleStartKey}:${angleEndKey}`,
-      makeSectorArcPoints(cell.innerRadius, cell.startAngleDeg, cell.endAngleDeg, map)
-    );
-
-    addEdge(
-      `spoke:${angleStartKey}:${ringStartKey}:${ringEndKey}`,
-      makeSectorRadialPoints(cell.startAngleDeg, cell.innerRadius, cell.outerRadius, map)
-    );
-
-    addEdge(
-      `spoke:${angleEndKey}:${ringStartKey}:${ringEndKey}`,
-      makeSectorRadialPoints(cell.endAngleDeg, cell.innerRadius, cell.outerRadius, map)
-    );
+    addInterval(ringEdges, `ring:${formatKey(cell.outerRadius)}`, cell.startAngleDeg, cell.endAngleDeg, { radius: cell.outerRadius });
+    addInterval(ringEdges, `ring:${formatKey(cell.innerRadius)}`, cell.startAngleDeg, cell.endAngleDeg, { radius: cell.innerRadius });
+    addInterval(spokeEdges, `spoke:${formatKey(cell.startAngleDeg)}`, cell.innerRadius, cell.outerRadius, { angle: cell.startAngleDeg });
+    addInterval(spokeEdges, `spoke:${formatKey(cell.endAngleDeg)}`, cell.innerRadius, cell.outerRadius, { angle: cell.endAngleDeg });
   });
 
-  return [...edges.values()];
+  return [
+    ...flushIntervals(ringEdges, (edge, start, end) => makeSectorArcPoints(edge.radius, start, end, map)),
+    ...flushIntervals(spokeEdges, (edge, start, end) => makeSectorRadialPoints(edge.angle, start, end, map))
+  ];
 }
 
 function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onHover }) {

@@ -127,6 +127,8 @@ const DEFAULT_FACTIONS = [
   }
 ];
 
+const PLANET_TEXTURE_CACHE = new Map();
+
 function seededRandom(seed) {
   let state = seed >>> 0;
   return () => {
@@ -293,6 +295,7 @@ function getPolarTessellation(map) {
 function sectorTessellationCells(sector, map) {
   const tessellation = getPolarTessellation(map);
   const cells = sector.cells || SECTOR_TESSELLATION_CELLS[sector.id] || [];
+
   if (!cells.length) {
     return [{
       startAngleDeg: sector.startAngleDeg || 0,
@@ -301,11 +304,17 @@ function sectorTessellationCells(sector, map) {
       outerRadius: sector.outerRadius || getGuideRadius(map)
     }];
   }
+
   return cells.map(cell => {
     const [angleStartIndex, angleEndIndex, ringStartIndex, ringEndIndex] = Array.isArray(cell)
       ? cell
       : [cell.angle?.[0], cell.angle?.[1], cell.ring?.[0], cell.ring?.[1]];
+
     return {
+      angleStartIndex,
+      angleEndIndex,
+      ringStartIndex,
+      ringEndIndex,
       startAngleDeg: tessellation.angles[angleStartIndex],
       endAngleDeg: tessellation.angles[angleEndIndex],
       innerRadius: tessellation.rings[ringStartIndex],
@@ -655,25 +664,90 @@ function makeSectorGeometry(sector, map) {
     const shape = new THREE.Shape(vectors.map(point => new THREE.Vector2(point.x, point.z)));
     const geometry = new THREE.ShapeGeometry(shape, 2);
     const position = geometry.getAttribute("position");
+
     for (let i = 0; i < position.count; i += 1) {
       const x = position.getX(i);
       const z = position.getY(i);
       position.setXYZ(i, x, -0.055, z);
     }
+
     position.needsUpdate = true;
     geometry.computeVertexNormals();
-    return { geometry, edgePoints: vectors.map(point => new THREE.Vector3(point.x, -0.026, point.z)) };
+    return { geometry };
   });
 }
 
+function makeSectorArcPoints(radius, startAngleDeg, endAngleDeg, map, y = -0.026) {
+  const steps = Math.max(10, Math.ceil(Math.abs(endAngleDeg - startAngleDeg) / 1.6));
+  const points = [];
+
+  for (let i = 0; i <= steps; i += 1) {
+    const t = i / steps;
+    const point = polarToScene(startAngleDeg + (endAngleDeg - startAngleDeg) * t, radius, map);
+    points.push(new THREE.Vector3(point.x, y, point.z));
+  }
+
+  return points;
+}
+
+function makeSectorRadialPoints(angleDeg, innerRadius, outerRadius, map, y = -0.026) {
+  const inner = polarToScene(angleDeg, innerRadius, map);
+  const outer = polarToScene(angleDeg, outerRadius, map);
+  return [
+    new THREE.Vector3(inner.x, y, inner.z),
+    new THREE.Vector3(outer.x, y, outer.z)
+  ];
+}
+
+function makeSectorBoundarySegments(sector, map) {
+  const edges = new Map();
+
+  const addEdge = (key, points) => {
+    if (edges.has(key)) {
+      edges.delete(key);
+      return;
+    }
+
+    edges.set(key, points);
+  };
+
+  sectorTessellationCells(sector, map).forEach(cell => {
+    const angleStartKey = cell.angleStartIndex ?? cell.startAngleDeg;
+    const angleEndKey = cell.angleEndIndex ?? cell.endAngleDeg;
+    const ringStartKey = cell.ringStartIndex ?? cell.innerRadius;
+    const ringEndKey = cell.ringEndIndex ?? cell.outerRadius;
+
+    addEdge(
+      `ring:${ringEndKey}:${angleStartKey}:${angleEndKey}`,
+      makeSectorArcPoints(cell.outerRadius, cell.startAngleDeg, cell.endAngleDeg, map)
+    );
+
+    addEdge(
+      `ring:${ringStartKey}:${angleStartKey}:${angleEndKey}`,
+      makeSectorArcPoints(cell.innerRadius, cell.startAngleDeg, cell.endAngleDeg, map)
+    );
+
+    addEdge(
+      `spoke:${angleStartKey}:${ringStartKey}:${ringEndKey}`,
+      makeSectorRadialPoints(cell.startAngleDeg, cell.innerRadius, cell.outerRadius, map)
+    );
+
+    addEdge(
+      `spoke:${angleEndKey}:${ringStartKey}:${ringEndKey}`,
+      makeSectorRadialPoints(cell.endAngleDeg, cell.innerRadius, cell.outerRadius, map)
+    );
+  });
+
+  return [...edges.values()];
+}
+
 function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onHover }) {
-  const sectorPlanets = planetsForSector(map, sector.id);
-  const hasPlanets = sectorPlanets.length > 0;
-  const faction = hasPlanets ? factionById(map, sector.factionId) : factionById(map, "neutral");
+  const faction = factionById(map, sector.factionId);
   const tiles = useMemo(() => makeSectorGeometry(sector, map), [sector, map]);
-  const fillOpacity = active ? 0.52 : dimmed ? 0.08 : hovered ? 0.42 : hasPlanets ? 0.34 : 0.24;
-  const lineOpacity = active ? 0.95 : dimmed ? 0.18 : hovered ? 0.9 : hasPlanets ? 0.72 : 0.52;
-  const scanOpacity = active ? 0.2 : dimmed ? 0.035 : hovered ? 0.16 : hasPlanets ? 0.12 : 0.08;
+  const boundarySegments = useMemo(() => makeSectorBoundarySegments(sector, map), [sector, map]);
+  const fillOpacity = active ? 0.52 : dimmed ? 0.08 : hovered ? 0.42 : 0.34;
+  const lineOpacity = active ? 0.95 : dimmed ? 0.18 : hovered ? 0.9 : 0.72;
+  const scanOpacity = active ? 0.2 : dimmed ? 0.035 : hovered ? 0.16 : 0.12;
 
   useEffect(() => () => tiles.forEach(tile => tile.geometry.dispose()), [tiles]);
 
@@ -681,10 +755,12 @@ function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onH
     event.stopPropagation();
     onSelect(sector.id);
   };
+
   const handlePointerOver = event => {
     event.stopPropagation();
     onHover(sector.id);
   };
+
   const handlePointerOut = event => {
     event.stopPropagation();
     onHover(null);
@@ -705,6 +781,7 @@ function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onH
               polygonOffsetFactor={1}
             />
           </mesh>
+
           <mesh geometry={tile.geometry} raycast={() => null}>
             <shaderMaterial
               transparent
@@ -731,11 +808,21 @@ function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onH
               `}
             />
           </mesh>
-          <line raycast={() => null}>
-            <LineGeometry points={[...tile.edgePoints, tile.edgePoints[0]]} />
-            <lineBasicMaterial color={faction.glow || faction.color} transparent opacity={lineOpacity} blending={THREE.AdditiveBlending} depthWrite={false} depthTest={false} />
-          </line>
         </group>
+      ))}
+
+      {boundarySegments.map((points, index) => (
+        <line key={`boundary-${index}`} raycast={() => null}>
+          <LineGeometry points={points} />
+          <lineBasicMaterial
+            color={faction.glow || faction.color}
+            transparent
+            opacity={lineOpacity}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            depthTest={false}
+          />
+        </line>
       ))}
     </group>
   );
@@ -826,6 +913,14 @@ function makePlanetTextures(body) {
   return { map, bumpMap, cloudMap };
 }
 
+function getGeneratedPlanetTextures(body) {
+  if (!PLANET_TEXTURE_CACHE.has(body.id)) {
+    PLANET_TEXTURE_CACHE.set(body.id, makePlanetTextures(body));
+  }
+
+  return PLANET_TEXTURE_CACHE.get(body.id);
+}
+
 function normalizePlanet(map, planet) {
   const faction = factionById(map, planet.factionId);
   return {
@@ -868,33 +963,29 @@ function KorribanTexturePreloader({ onReady }) {
   return null;
 }
 
-function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
+function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, interactive = true, hidden = false }) {
   const body = useMemo(() => normalizePlanet(map, planet), [map, planet]);
   const groupRef = useRef(null);
   const planetRef = useRef(null);
   const cloudsRef = useRef(null);
   const scanRef = useRef(null);
   const korribanTextures = useKorribanTextureSet();
-  const generatedTextures = useMemo(() => body.id === "korriban" ? null : makePlanetTextures(body), [body]);
+  const generatedTextures = useMemo(() => body.id === "korriban" ? null : getGeneratedPlanetTextures(body), [body]);
   const hasKorribanTextures = body.id === "korriban";
   const textures = hasKorribanTextures ? korribanTextures : generatedTextures;
   const haloTexture = useMemo(() => makeGlowTexture("rgba(255,255,255,1)", colorWithAlpha(body.colors.glow, 0.58)), [body.colors.glow]);
   const isGalaxy = mode === "galaxy";
   const targetScale = active ? 7.4 : mode === "sector" ? (hovered ? 1.35 : 1.08) : isGalaxy ? 0.34 : 2.15;
-  const sectorMarkerVisible = mode === "sector";
+  const sectorMarkerVisible = !hidden && mode === "sector";
 
   useEffect(() => () => {
-    if (generatedTextures) {
-      generatedTextures.map.dispose();
-      generatedTextures.bumpMap.dispose();
-      generatedTextures.cloudMap.dispose();
-    }
-    haloTexture.dispose();
-  }, [generatedTextures, haloTexture]);
+  haloTexture.dispose();
+  }, [haloTexture]);
 
   useFrame(({ clock }, delta) => {
     const t = clock.elapsedTime;
     if (groupRef.current) {
+      groupRef.current.visible = !hidden;
       const next = new THREE.Vector3(targetScale, targetScale, targetScale);
       groupRef.current.scale.lerp(next, 0.075);
       const emergence = active && mode !== "sector" ? Math.sin(t * 0.7 + idSeed(body.id)) * 0.035 : 0;
@@ -915,21 +1006,32 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
   });
 
   const handlePointerOver = event => {
-    event.stopPropagation();
-    onHover(body.id);
+  event.stopPropagation();
+  if (!interactive || hidden) return;
+  onHover(body.id);
   };
+
   const handlePointerOut = event => {
-    event.stopPropagation();
-    onHover(null);
+  event.stopPropagation();
+  if (!interactive || hidden) return;
+  onHover(null);
   };
+
   const handleClick = event => {
-    event.stopPropagation();
-    onSelect(body.id);
+  event.stopPropagation();
+  if (!interactive || hidden) return;
+  onSelect(body.id);
   };
 
   return (
     <group ref={groupRef} position={body.scenePosition.toArray()}>
-      <mesh ref={planetRef} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut} onClick={handleClick}>
+      <mesh
+  ref={planetRef}
+  raycast={interactive && !hidden ? undefined : () => null}
+  onPointerOver={handlePointerOver}
+  onPointerOut={handlePointerOut}
+  onClick={handleClick}
+>
         <sphereGeometry args={[body.visualRadius, 96, 48]} />
         {hasKorribanTextures ? (
           <meshStandardMaterial
@@ -990,31 +1092,47 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
 }
 
 function SectorPlanetField({ map, view, hoveredPlanetId, onSelectPlanet, onHoverPlanet }) {
-  const sectorPlanets = useMemo(() => {
-    if (!view.sectorId && view.mode !== "planet") return [];
-    if (view.mode === "planet") return map.planets || [];
-    return planetsForSector(map, view.sectorId);
-  }, [map, view.mode, view.sectorId]);
+  const visiblePlanets = useMemo(() => {
+    if (view.mode === "galaxy") return [];
+    if (view.mode === "planet") {
+      return (map.planets || []).filter(planet => planet.id === view.planetId);
+    }
 
-  if (view.mode === "galaxy") return null;
+    return planetsForSector(map, view.sectorId);
+  }, [map, view.mode, view.sectorId, view.planetId]);
 
   return (
     <group>
-      {sectorPlanets.map(planet => {
-        if (view.mode === "planet" && planet.id !== view.planetId) return null;
-        return (
+      <group visible={false}>
+        {(map.planets || []).map(planet => (
           <PlanetBody
-            key={planet.id}
+            key={`preload-${planet.id}`}
             map={map}
             planet={planet}
-            mode={view.mode}
-            active={view.planetId === planet.id}
-            hovered={hoveredPlanetId === planet.id}
-            onSelect={onSelectPlanet}
-            onHover={onHoverPlanet}
+            mode="galaxy"
+            active={false}
+            hovered={false}
+            interactive={false}
+            hidden
+            onSelect={() => {}}
+            onHover={() => {}}
           />
-        );
-      })}
+        ))}
+      </group>
+
+      {visiblePlanets.map(planet => (
+        <PlanetBody
+          key={planet.id}
+          map={map}
+          planet={planet}
+          mode={view.mode}
+          active={view.planetId === planet.id}
+          hovered={hoveredPlanetId === planet.id}
+          interactive={view.mode !== "planet"}
+          onSelect={onSelectPlanet}
+          onHover={onHoverPlanet}
+        />
+      ))}
     </group>
   );
 }
@@ -1412,7 +1530,7 @@ function getSectorSummary(map, sectorId) {
   const sector = (map.sectors || []).find(item => item.id === sectorId);
   if (!sector) return null;
   const planets = planetsForSector(map, sector.id);
-  const faction = planets.length ? factionById(map, sector.factionId) : factionById(map, "neutral");
+  const faction = factionById(map, sector.factionId);
   return { sector, faction, planets, control: controlForSector(map, sector.id) };
 }
 
@@ -1490,6 +1608,7 @@ export function GalaxyMapExperience({ map }) {
   const selectPlanet = useCallback(planetId => {
     const planet = (normalizedMap.planets || []).find(item => item.id === planetId);
     if (!planet) return;
+    if (view.mode === "planet" && view.planetId === planetId) return;
     clearTransitionTimers();
     setHoveredSectorId(null);
     setHoveredPlanetId(null);
@@ -1528,7 +1647,7 @@ export function GalaxyMapExperience({ map }) {
     queueTransitionTimer(() => {
       setTransition(current => current.kind === "planet" ? { ...current, active: false, phase: "idle" } : current);
     }, wipeDuration + flightDuration);
-  }, [normalizedMap.planets, clearTransitionTimers, queueTransitionTimer, reducedMotion]);
+  }, [normalizedMap.planets, view.mode, view.planetId, clearTransitionTimers, queueTransitionTimer, reducedMotion]);
 
   const zoomOut = useCallback(() => {
     if (view.mode === "planet") {

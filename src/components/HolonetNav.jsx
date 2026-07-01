@@ -4,6 +4,14 @@ import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { preloadHierarchyImages } from "../lib/preload-images.js";
 
+const MAIN_SITE_ORIGIN = (process.env.NEXT_PUBLIC_PRIMARY_SITE_ORIGIN || "https://www.thesithorder.org").replace(/\/$/, "");
+
+function mainSiteHref(path = "/") {
+  if (/^https?:\/\//i.test(path)) return path;
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${MAIN_SITE_ORIGIN}${cleanPath}`;
+}
+
 function readCachedAccess() {
   try {
     const raw = sessionStorage.getItem("holonet:access:global");
@@ -88,7 +96,7 @@ function NavLink({ href, page, prefix, label, account = false, children, activeP
 function PrivilegedLinks({ permissions, activePage, onClick }) {
   return (
     <>
-      <NavLink href="/lookup" page="lookup" account activePage={activePage} onClick={onClick}>
+      <NavLink href={mainSiteHref("/lookup")} page="lookup" account activePage={activePage} onClick={onClick}>
         <div className="account-text"><span className="nav-link-label">Lookup</span></div>
         <div className="account-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -99,7 +107,7 @@ function PrivilegedLinks({ permissions, activePage, onClick }) {
         <div className="nav-link-corners" aria-hidden="true" />
       </NavLink>
       {permissions?.canAccessAdmin ? (
-        <NavLink href="/admin" page="admin" account activePage={activePage} onClick={onClick}>
+        <NavLink href={mainSiteHref("/admin")} page="admin" account activePage={activePage} onClick={onClick}>
           <div className="account-text"><span className="nav-link-label">Admin</span></div>
           <div className="account-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -123,12 +131,12 @@ export function HolonetNav() {
   const divisionContext = currentDivisionContext(pathname);
   const showDivisionReturn = divisionContext && !["home", "info"].includes(divisionContext.section);
   const centerLinks = [
-    { href: "/", page: "home", prefix: "00", label: "Home" },
-    { href: "/codex", page: "codex", prefix: "01", label: "Codex" },
-    { href: "/archives", page: "archives", prefix: "02", label: "Archives" },
-    { href: "/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
+    { href: mainSiteHref("/"), page: "home", prefix: "00", label: "Home" },
+    { href: mainSiteHref("/codex"), page: "codex", prefix: "01", label: "Codex" },
+    { href: mainSiteHref("/archives"), page: "archives", prefix: "02", label: "Archives" },
+    { href: mainSiteHref("/hierarchy"), page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
     ...(access?.permissions?.canAccessRegistry
-      ? [{ href: "/registry", page: "registry", prefix: "04", label: "Registry" }]
+      ? [{ href: mainSiteHref("/registry"), page: "registry", prefix: "04", label: "Registry" }]
       : [])
   ];
 
@@ -194,7 +202,7 @@ export function HolonetNav() {
         <div className="nav-inner">
           <div className="nav-left">
             {showDivisionReturn ? (
-              <NavLink href={`${divisionContext.base}/home`} page="division-return" account activePage="" onClick={closeNav}>
+              <NavLink href={mainSiteHref("/registry")} page="division-return" account activePage="" onClick={closeNav}>
                 <div className="account-text"><span className="nav-link-label">Return</span></div>
                 <div className="account-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -286,7 +294,7 @@ export function HolonetNav() {
             <div className="nav-privileged" data-nav-privileged>
               <PrivilegedLinks permissions={access?.permissions} activePage={activePage} onClick={closeNav} />
             </div>
-            <NavLink href="/account" page="account" account activePage={activePage} onClick={closeNav}>
+            <NavLink href={mainSiteHref("/account")} page="account" account activePage={activePage} onClick={closeNav}>
               <div className="account-text">
                 <span className="nav-link-label">Account</span>
               </div>

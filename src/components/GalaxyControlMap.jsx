@@ -1524,7 +1524,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
   const galaxyRef = useRef(null);
   const selectedPlanet = useMemo(() => (map.planets || []).find(planet => planet.id === view.planetId), [map.planets, view.planetId]);
   const selectedPlanetScenePosition = useMemo(() => selectedPlanet ? mapPointToWorld(selectedPlanet.position || selectedPlanet.mapPosition || [0, 0], map, BODY_Y_OFFSET) : null, [selectedPlanet, map]);
-  const hyperspaceActive = transition.kind === "planet" && transition.active;
+  const hyperspaceActive = transition.kind === "planet" && transition.active && transition.phase === "reveal";
   const counts = PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced;
 
   useFrame(({ clock }) => {
@@ -1748,7 +1748,7 @@ export function GalaxyMapExperience({ map }) {
         kind: "planet",
         token: current.token + 1,
         active: true,
-        phase: "hyperspace",
+        phase: "reveal",
         duration: flightDuration,
         flightDuration,
         snapTarget: true,

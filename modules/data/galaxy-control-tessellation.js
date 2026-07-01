@@ -246,6 +246,48 @@ function reassignClosestCell(sector, structuralCells, cellsBySector) {
   cellsBySector.get(sector.id)?.push(best);
 }
 
+function moveCellToSector(cell, targetSectorId, cellsBySector) {
+  if (!cell || cell.ownerSectorId === targetSectorId) return;
+
+  const previousCells = cellsBySector.get(cell.ownerSectorId) || [];
+  const previousIndex = previousCells.indexOf(cell);
+  if (previousIndex >= 0) previousCells.splice(previousIndex, 1);
+
+  cell.ownerSectorId = targetSectorId;
+  if (!cellsBySector.has(targetSectorId)) cellsBySector.set(targetSectorId, []);
+  cellsBySector.get(targetSectorId).push(cell);
+}
+
+function moveCellsToSector(structuralCells, cellsBySector, targetSectorId, matcher) {
+  structuralCells
+    .filter(matcher)
+    .forEach(cell => moveCellToSector(cell, targetSectorId, cellsBySector));
+}
+
+function applyManualSectorCorrections(structuralCells, cellsBySector) {
+  // Small lore-map cleanup passes for awkward procedural ownership seams.
+  moveCellsToSector(
+    structuralCells,
+    cellsBySector,
+    "hapes",
+    cell => cell.ringStartIndex === 4 && cell.angleStartIndex === 38
+  );
+
+  moveCellsToSector(
+    structuralCells,
+    cellsBySector,
+    "duro",
+    cell => cell.ringStartIndex === 7 && cell.angleStartIndex >= 14 && cell.angleStartIndex < 22
+  );
+
+  moveCellsToSector(
+    structuralCells,
+    cellsBySector,
+    "taris",
+    cell => cell.ringStartIndex === 11 && cell.angleStartIndex >= 8 && cell.angleStartIndex < 18
+  );
+}
+
 function outermostRunRadii(sectorId, cells, outerRingIndex) {
   const radii = new Map();
   const outerCells = cells
@@ -320,6 +362,8 @@ function buildProceduralTessellation(map) {
     if (cellsBySector.get(sector.id)?.length) return;
     reassignClosestCell(sector, structuralCells, cellsBySector);
   });
+
+  applyManualSectorCorrections(structuralCells, cellsBySector);
 
   return {
     angles,

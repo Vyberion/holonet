@@ -2,12 +2,12 @@ import { SlashCommandBuilder } from "discord.js";
 import { ephemeral } from "../services/discord-ui.js";
 
 const SAY_USER_ID = "1455303713701757138";
-export const SAY_COMMAND_ROLE_ID = "1520884881545232515";
 
 export const commands = [
   new SlashCommandBuilder()
     .setName("say")
     .setDescription("Send a plain bot message")
+    .setDefaultMemberPermissions(0)
     .addStringOption(option => option
       .setName("input")
       .setDescription("Message to send")

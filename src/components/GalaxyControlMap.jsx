@@ -9,7 +9,7 @@ import * as THREE from "three";
 const TAU = Math.PI * 2;
 const GALAXY_RADIUS = 5.7;
 const GALAXY_FLATTEN = 1;
-const SPIRAL_ARM_COUNT = 4;
+const SPIRAL_ARM_COUNT = 5;
 // Real disk galaxies trace logarithmic spirals with a pitch angle of roughly 10-25deg
 // (tight near the core, opening up toward the rim). This replaces the old linear
 // "angle = radius * sweep" model, which wound at a constant rate everywhere and
@@ -34,9 +34,9 @@ const PLANET_APPROACH_DISTANCE = 2.15;
 const PLANET_ENTRY_DISTANCE = 54;
 const BODY_Y_OFFSET = 0.05;
 const PARTICLE_COUNTS = {
-  high: { stars: 24500, dust: 36000, sky: 7200, sparkles: 340, streaks: 1900 },
-  balanced: { stars: 12800, dust: 18000, sky: 3400, sparkles: 150, streaks: 1150 },
-  reduced: { stars: 8800, dust: 9000, sky: 2200, sparkles: 90, streaks: 620 }
+  high: { stars: 56000, dust: 82000, sky: 7200, sparkles: 340, streaks: 1900 },
+  balanced: { stars: 30000, dust: 44000, sky: 3400, sparkles: 150, streaks: 1150 },
+  reduced: { stars: 16000, dust: 22000, sky: 2200, sparkles: 90, streaks: 620 }
 };
 const KORRIBAN_TEXTURE_URLS = [
   "/assets/galaxy/korriban/diffuse.png",
@@ -306,21 +306,35 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
   const color = new THREE.Color();
 
   for (let i = 0; i < count; i += 1) {
-    const coreChance = mode === "stars" ? 0.012 : mode === "dust" ? 0.028 : 0.11;
+    const coreChance = mode === "stars" ? 0.01 : mode === "dust" ? 0.018 : 0.11;
     const isCore = mode === "core" || rnd() < coreChance;
+    const isInterArm = !isCore && rnd() < (mode === "dust" ? 0.32 : 0.22);
     const arm = i % SPIRAL_ARM_COUNT;
-    const armStart = mode === "dust" ? CORE_RADIUS * 1.18 : CORE_RADIUS * 1.34;
+    const armStart = mode === "dust" ? CORE_RADIUS * 1.16 : CORE_RADIUS * 1.24;
     const radius = isCore
       ? Math.pow(rnd(), 1.9) * CORE_RADIUS
-      : Math.pow(rnd(), mode === "dust" ? 0.72 : 0.62) * (GALAXY_RADIUS - armStart) + armStart;
+      : Math.pow(rnd(), isInterArm ? 0.82 : mode === "dust" ? 0.68 : 0.6) * (GALAXY_RADIUS - armStart) + armStart;
     const armAngle = spiralAngle(radius, arm);
     // Arms stay narrow near the core and relax into wider bands further out -
     // real arms have roughly constant angular width in radians, not linear width,
     // so the physical band gets wider (in distance) as radius grows.
-    const armWidth = mode === "dust" ? 0.15 + radius * 0.019 : 0.07 + radius * 0.01;
-    const jitter = isCore ? randRange(rnd, -TAU, TAU) : randRange(rnd, -armWidth, armWidth);
+    const armWidth = mode === "dust" ? 0.11 + radius * 0.014 : 0.055 + radius * 0.007;
+    const interArmSign = rnd() > 0.5 ? 1 : -1;
+    const interArmGap = TAU / SPIRAL_ARM_COUNT;
+    const interArmOffset = interArmSign * randRange(
+      rnd,
+      armWidth * (mode === "dust" ? 1.55 : 1.9),
+      interArmGap * (mode === "dust" ? 0.46 : 0.42)
+    );
+    const jitter = isCore
+      ? randRange(rnd, -TAU, TAU)
+      : isInterArm
+        ? interArmOffset
+        : randRange(rnd, -armWidth, armWidth);
     const angle = isCore ? rnd() * TAU : armAngle + jitter;
-    const spread = mode === "dust" ? 0.3 + radius * 0.03 : 0.025 + radius * 0.006;
+    const spread = isInterArm
+      ? (mode === "dust" ? 0.18 + radius * 0.018 : 0.048 + radius * 0.007)
+      : (mode === "dust" ? 0.11 + radius * 0.012 : 0.018 + radius * 0.004);
     const x = Math.cos(angle) * radius + randRange(rnd, -spread, spread);
     const z = Math.sin(angle) * radius * GALAXY_VISUAL_FLATTEN + randRange(rnd, -spread, spread);
     const y = randRange(rnd, -0.055, 0.055) * (1 + radius * 0.045);
@@ -334,13 +348,14 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
       ? (rnd() > 0.28 ? "#ffe2a0" : "#ff563f")
       : rnd() > 0.94 ? "#ff5fae" : rnd() > 0.87 ? "#ff3b4f" : rnd() > 0.62 ? "#ffd58a" : rnd() > 0.32 ? "#f9fbff" : "#9feeff";
     color.set(palette);
-    if (!isCore && rnd() > 0.88) color.lerp(new THREE.Color("#526cff"), 0.22);
+    if (isInterArm) color.lerp(new THREE.Color("#b9d5ff"), mode === "dust" ? 0.18 : 0.28);
+    if (!isCore && !isInterArm && rnd() > 0.88) color.lerp(new THREE.Color("#526cff"), 0.22);
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
     sizes[i] = mode === "dust"
-      ? randRange(rnd, 0.065, 0.21) * (1.28 - rimFade * 0.18)
-      : randRange(rnd, 0.014, 0.075) * (isCore ? 0.85 : 1);
+      ? randRange(rnd, 0.036, 0.118) * (1.12 - rimFade * 0.12) * (isInterArm ? 0.82 : 1)
+      : randRange(rnd, 0.016, 0.06) * (isCore ? 0.72 : isInterArm ? 0.86 : 1);
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -982,8 +997,8 @@ function GalaxyControlMap({ map, view, onSelectSector, quality }) {
         ))}
       </group>
       <SpiralArmRibbons opacity={opacity} />
-      <GalaxyParticles mode="stars" count={counts.stars} seed={4321} opacity={0.88 * opacity} sizeScale={0.92} />
-      <GalaxyParticles mode="dust" count={counts.dust} seed={8827} opacity={0.24 * opacity} sizeScale={1.75} />
+      <GalaxyParticles mode="stars" count={counts.stars} seed={4321} opacity={0.9 * opacity} sizeScale={0.86} />
+      <GalaxyParticles mode="dust" count={counts.dust} seed={8827} opacity={0.32 * opacity} sizeScale={1.18} />
       <GalacticCore opacity={0.62 * sectorOpacity} />
     </group>
   );

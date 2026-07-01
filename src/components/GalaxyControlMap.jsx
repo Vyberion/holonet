@@ -310,6 +310,8 @@ function sectorTessellationCells(sector, map) {
     const [angleStartIndex, angleEndIndex, ringStartIndex, ringEndIndex] = Array.isArray(cell)
       ? cell
       : [cell.angle?.[0], cell.angle?.[1], cell.ring?.[0], cell.ring?.[1]];
+    const explicitInnerRadius = Array.isArray(cell) ? null : cell.innerRadius;
+    const explicitOuterRadius = Array.isArray(cell) ? null : cell.outerRadius;
 
     if (
       !Number.isFinite(angleStartIndex)
@@ -332,8 +334,8 @@ function sectorTessellationCells(sector, map) {
           cellKey: `${angleIndex}:${ringIndex}`,
           startAngleDeg: tessellation.angles[angleIndex],
           endAngleDeg: tessellation.angles[angleIndex + 1],
-          innerRadius: tessellation.rings[ringIndex],
-          outerRadius: tessellation.rings[ringIndex + 1]
+          innerRadius: Number.isFinite(explicitInnerRadius) ? explicitInnerRadius : tessellation.rings[ringIndex],
+          outerRadius: Number.isFinite(explicitOuterRadius) ? explicitOuterRadius : tessellation.rings[ringIndex + 1]
         });
       }
     }
@@ -557,7 +559,7 @@ function NebulaClouds({ opacity = 1, count = 46, seed = 6410 }) {
   );
 }
 
-function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
+function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1, renderOrder = -5 }) {
   const geometry = useMemo(() => makeSpiralGalaxyGeometry(count, seed, mode), [count, seed, mode]);
   const materialRef = useRef(null);
 
@@ -571,7 +573,7 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
   });
 
   return (
-    <points geometry={geometry}>
+    <points geometry={geometry} renderOrder={renderOrder}>
       <shaderMaterial
         ref={materialRef}
         vertexColors
@@ -640,14 +642,14 @@ function GalacticCore({ opacity = 1 }) {
 
   return (
     <group>
-      <sprite position={[0, 0.08, 0]} scale={[4.4, 4.4, 1]}>
+      <sprite position={[0, 0.08, 0]} scale={[5.45, 5.45, 1]} renderOrder={6}>
         <spriteMaterial map={glow} color="#e8f9ff" transparent opacity={0.38 * opacity} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
-      <mesh position={[0, 0.05, 0]}>
-        <sphereGeometry args={[0.34, 48, 24]} />
+      <mesh position={[0, 0.05, 0]} renderOrder={7}>
+        <sphereGeometry args={[0.46, 48, 24]} />
         <meshBasicMaterial color="#ffffff" transparent opacity={0.94 * opacity} blending={THREE.AdditiveBlending} />
       </mesh>
-      <Sparkles count={90} scale={[2.4, 0.55, 2.4]} size={3.8} speed={0.35} color="#d8f5ff" opacity={0.92 * opacity} />
+      <Sparkles count={120} scale={[3.2, 0.55, 3.2]} size={3.8} speed={0.35} color="#d8f5ff" opacity={0.88 * opacity} />
     </group>
   );
 }
@@ -804,7 +806,7 @@ function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onH
   const faction = factionById(map, sector.factionId);
   const geometry = useMemo(() => makeSectorGeometry(sector, map), [sector, map]);
   const boundarySegments = useMemo(() => makeSectorBoundarySegments(sector, map), [sector, map]);
-  const fillOpacity = active ? 0.52 : dimmed ? 0.08 : hovered ? 0.42 : 0.34;
+  const fillOpacity = active ? 0.6 : dimmed ? 0.12 : hovered ? 0.5 : 0.44;
   const lineOpacity = active ? 0.95 : dimmed ? 0.18 : hovered ? 0.9 : 0.72;
   const scanOpacity = active ? 0.2 : dimmed ? 0.035 : hovered ? 0.16 : 0.12;
 
@@ -829,19 +831,20 @@ function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onH
 
   return (
     <group>
-      <mesh geometry={geometry} onClick={handleClick} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut}>
+      <mesh geometry={geometry} renderOrder={10} onClick={handleClick} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut}>
         <meshBasicMaterial
           color={faction.fill || faction.color}
           transparent
           opacity={fillOpacity}
           depthWrite={false}
+          depthTest={false}
           side={THREE.DoubleSide}
           polygonOffset
           polygonOffsetFactor={1}
         />
       </mesh>
 
-      <mesh geometry={geometry} raycast={() => null}>
+      <mesh geometry={geometry} renderOrder={11} raycast={() => null}>
         <shaderMaterial
           transparent
           depthWrite={false}
@@ -869,7 +872,7 @@ function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onH
       </mesh>
 
       {boundarySegments.map((points, index) => (
-        <line key={`boundary-${index}`} raycast={() => null}>
+        <line key={`boundary-${index}`} renderOrder={12} raycast={() => null}>
           <LineGeometry points={points} />
           <lineBasicMaterial
             color={faction.glow || faction.color}
@@ -1081,9 +1084,10 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
   };
 
   return (
-    <group ref={groupRef} position={body.scenePosition.toArray()}>
+    <group ref={groupRef} position={body.scenePosition.toArray()} renderOrder={30}>
       <mesh
   ref={planetRef}
+  renderOrder={30}
   raycast={interactive && !hidden ? undefined : () => null}
   onPointerOver={handlePointerOver}
   onPointerOut={handlePointerOut}
@@ -1111,7 +1115,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
           />
         )}
       </mesh>
-      <mesh ref={cloudsRef}>
+      <mesh ref={cloudsRef} renderOrder={31}>
         <sphereGeometry args={[body.visualRadius * (hasKorribanTextures ? 1.0015 : 1.004), 96, 48]} />
         {hasKorribanTextures ? (
           <meshStandardMaterial
@@ -1131,14 +1135,14 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
       </mesh>
       {sectorMarkerVisible ? (
         <>
-          <mesh scale={1.18}>
+          <mesh scale={1.18} renderOrder={32}>
             <sphereGeometry args={[body.visualRadius * 1.16, 96, 36]} />
             <meshBasicMaterial color={body.colors.glow} transparent opacity={hovered ? 0.16 : 0.08} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.BackSide} />
           </mesh>
-          <sprite scale={[body.visualRadius * 6.8, body.visualRadius * 6.8, 1]}>
+          <sprite scale={[body.visualRadius * 6.8, body.visualRadius * 6.8, 1]} renderOrder={33}>
             <spriteMaterial map={haloTexture} color={body.colors.glow} transparent opacity={hovered ? 0.24 : 0.12} blending={THREE.AdditiveBlending} depthWrite={false} />
           </sprite>
-          <line ref={scanRef} rotation={[Math.PI / 2, 0, 0]}>
+          <line ref={scanRef} rotation={[Math.PI / 2, 0, 0]} renderOrder={34}>
             <LineGeometry points={makeEllipsePoints(body.visualRadius * 2.55, body.visualRadius * 2.55, 150)} />
             <lineBasicMaterial color={body.colors.glow} transparent opacity={0.24} blending={THREE.AdditiveBlending} depthWrite={false} />
           </line>
@@ -1203,6 +1207,9 @@ function GalaxyControlMap({ map, view, hoveredSectorId, onSelectSector, onHoverS
   return (
     <group visible={opacity > 0.001}>
       <SectorGrid map={map} opacity={opacity} />
+      <GalaxyParticles mode="stars" count={counts.stars} seed={4321} opacity={1.18 * opacity} sizeScale={1.06} renderOrder={-8} />
+      <GalaxyParticles mode="dust" count={counts.dust} seed={8827} opacity={0.52 * opacity} sizeScale={1.34} renderOrder={-7} />
+      <GalacticCore opacity={0.62 * sectorOpacity} />
       <group position={[0, -0.005, 0]}>
         {visibleSectors(map).map(sector => (
           <SectorControlZone
@@ -1217,9 +1224,6 @@ function GalaxyControlMap({ map, view, hoveredSectorId, onSelectSector, onHoverS
           />
         ))}
       </group>
-      <GalaxyParticles mode="stars" count={counts.stars} seed={4321} opacity={1.18 * opacity} sizeScale={1.06} />
-      <GalaxyParticles mode="dust" count={counts.dust} seed={8827} opacity={0.52 * opacity} sizeScale={1.34} />
-      <GalacticCore opacity={0.62 * sectorOpacity} />
     </group>
   );
 }

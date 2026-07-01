@@ -15,6 +15,17 @@ const REGION_CELL_COUNTS = {
   "wild-space": 72
 };
 
+const REGION_RADIAL_BANDS = {
+  "deep-core": 2,
+  core: 2,
+  colonies: 2,
+  "inner-rim": 2,
+  expansion: 2,
+  "mid-rim": 2,
+  "outer-rim": 3,
+  "wild-space": 1
+};
+
 const MAX_SECTOR_ANGLE_SPAN_BY_REGION = {
   "deep-core": 18,
   core: 20,
@@ -28,6 +39,23 @@ const MAX_SECTOR_ANGLE_SPAN_BY_REGION = {
 
 function roundAngle(angle) {
   return Math.round(angle * 1000) / 1000;
+}
+
+function roundRadius(radius) {
+  return Math.round(radius * 1000) / 1000;
+}
+
+function hashString(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function hashFraction(value) {
+  return hashString(value) / 4294967295;
 }
 
 function normalizeAngle(angle) {
@@ -97,20 +125,45 @@ function assignSectorForCell(candidates, cell, region) {
   }, null)?.sector || candidates[0];
 }
 
-function makeRingRadii(map) {
-  return map.regions.reduce((radii, region, index) => {
-    if (index === 0) radii.push(Math.max(MIN_CORE_RADIUS, region.radius[0] || 0));
-    radii.push(region.radius[1]);
-    return radii;
-  }, []);
+function makeRadialBands(map) {
+  const rings = [];
+  const bands = [];
+
+  map.regions.forEach((region, index) => {
+    const inner = roundRadius(index === 0 ? Math.max(MIN_CORE_RADIUS, region.radius[0] || 0) : region.radius[0]);
+    const outer = roundRadius(region.radius[1]);
+    const bandCount = REGION_RADIAL_BANDS[region.id] || 2;
+
+    if (!rings.length) rings.push(inner);
+
+    for (let bandIndex = 0; bandIndex < bandCount; bandIndex += 1) {
+      const bandInner = roundRadius(inner + ((outer - inner) * bandIndex) / bandCount);
+      const bandOuter = roundRadius(inner + ((outer - inner) * (bandIndex + 1)) / bandCount);
+      const ringIndex = rings.length - 1;
+
+      if (Math.abs(rings[ringIndex] - bandInner) > 0.001) rings.push(bandInner);
+      bands.push({
+        region,
+        regionId: region.id,
+        ringIndex: rings.length - 1,
+        innerRadius: bandInner,
+        outerRadius: bandOuter
+      });
+      rings.push(bandOuter);
+    }
+  });
+
+  return { rings, bands };
 }
 
-function buildStructuralCells(map, rings, angles) {
+function buildStructuralCells(radialBands, angles) {
   const cells = [];
 
-  map.regions.forEach((region, ringIndex) => {
-    const innerRadius = rings[ringIndex];
-    const outerRadius = rings[ringIndex + 1];
+  radialBands.forEach(band => {
+    const region = band.region;
+    const ringIndex = band.ringIndex;
+    const innerRadius = band.innerRadius;
+    const outerRadius = band.outerRadius;
     const ringAngles = makeRingAngleIndexes(region.id);
 
     for (let index = 0; index < ringAngles.length - 1; index += 1) {
@@ -193,29 +246,62 @@ function reassignClosestCell(sector, structuralCells, cellsBySector) {
   cellsBySector.get(sector.id)?.push(best);
 }
 
-function serializeSectorCells(cells) {
+function cellKey(cell) {
+  return `${cell.angleStartIndex}:${cell.ringStartIndex}`;
+}
+
+function shapedCellRadii(sectorId, cell, occupiedCells) {
+  const thickness = Math.max(0.01, cell.outerRadius - cell.innerRadius);
+  const maxDelta = Math.min(0.16, thickness * 0.34);
+  const hasInnerNeighbor = occupiedCells.has(`${cell.angleStartIndex}:${cell.ringStartIndex - 1}`);
+  const hasOuterNeighbor = occupiedCells.has(`${cell.angleStartIndex}:${cell.ringStartIndex + 1}`);
+  let innerRadius = cell.innerRadius;
+  let outerRadius = cell.outerRadius;
+
+  if (!hasInnerNeighbor) {
+    const inwardBias = hashFraction(`${sectorId}:${cell.id}:inner`) - 0.74;
+    innerRadius += inwardBias * maxDelta;
+  }
+
+  if (!hasOuterNeighbor) {
+    const outwardBias = hashFraction(`${sectorId}:${cell.id}:outer`) - 0.34;
+    outerRadius += outwardBias * maxDelta;
+  }
+
+  innerRadius = Math.max(MIN_CORE_RADIUS, roundRadius(innerRadius));
+  outerRadius = roundRadius(Math.max(innerRadius + 0.045, outerRadius));
+  return { innerRadius, outerRadius };
+}
+
+function serializeSectorCells(sectorId, cells) {
+  const occupiedCells = new Set(cells.map(cellKey));
+
   return cells
     .sort((a, b) => a.ringStartIndex - b.ringStartIndex || a.angleStartIndex - b.angleStartIndex)
-    .map(cell => [
-      cell.angleStartIndex,
-      cell.angleEndIndex,
-      cell.ringStartIndex,
-      cell.ringEndIndex
-    ]);
+    .map(cell => {
+      const { innerRadius, outerRadius } = shapedCellRadii(sectorId, cell, occupiedCells);
+
+      return {
+        angle: [cell.angleStartIndex, cell.angleEndIndex],
+        ring: [cell.ringStartIndex, cell.ringEndIndex],
+        innerRadius,
+        outerRadius
+      };
+    });
 }
 
 function buildProceduralTessellation(map) {
-  const rings = makeRingRadii(map);
+  const { rings, bands } = makeRadialBands(map);
   const angles = Array.from({ length: ANGLE_LATTICE_STEPS + 1 }, (_, index) => latticeAngle(index));
-  const structuralCells = buildStructuralCells(map, rings, angles);
+  const structuralCells = buildStructuralCells(bands, angles);
   const cellsBySector = new Map(map.sectors.map(sector => [sector.id, []]));
+  const regionsById = new Map(map.regions.map(region => [region.id, region]));
 
   structuralCells.forEach(cell => {
-    const region = map.regions[cell.ringIndex] || map.regions[0];
-    const candidates = candidatesForCell(map, region, cell).filter(sector => cellFitsSector(cell, sector));
-    if (!candidates.length) return;
-
-    const sector = assignSectorForCell(candidates, cell, region);
+    const region = regionsById.get(cell.regionId) || map.regions[0];
+    const candidates = candidatesForCell(map, region, cell);
+    const fittingCandidates = candidates.filter(sector => cellFitsSector(cell, sector));
+    const sector = assignSectorForCell(fittingCandidates.length ? fittingCandidates : candidates, cell, region);
     cell.ownerSectorId = sector.id;
     cellsBySector.get(sector.id)?.push(cell);
   });
@@ -229,7 +315,7 @@ function buildProceduralTessellation(map) {
     angles,
     rings,
     structuralCells,
-    cellsBySector: new Map([...cellsBySector.entries()].map(([sectorId, cells]) => [sectorId, serializeSectorCells(cells)]))
+    cellsBySector: new Map([...cellsBySector.entries()].map(([sectorId, cells]) => [sectorId, serializeSectorCells(sectorId, cells)]))
   };
 }
 
@@ -253,7 +339,7 @@ export function withProceduralSectorCells(map) {
           angle: [cell.angleStartIndex, cell.angleEndIndex],
           ring: [cell.ringStartIndex, cell.ringEndIndex]
         })),
-        strategy: "footprint-limited polar lattice with hidden structural cells"
+        strategy: "full-coverage shaped polar lattice with hidden structural cells"
       }
     },
     sectors: map.sectors.map(sector => ({

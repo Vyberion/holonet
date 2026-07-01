@@ -328,6 +328,23 @@ function sectorTessellationCells(sector, map) {
   ));
 }
 
+function drawableSectorCells(sector, map) {
+  const tessellation = getPolarTessellation(map);
+  const cutoutRadius = tessellation.rings[CORE_CUTOUT_RING_INDEX] || tessellation.rings[0] || 0;
+
+  return sectorTessellationCells(sector, map).filter(cell => {
+    if (Number.isFinite(cell.ringStartIndex)) {
+      return cell.ringStartIndex >= CORE_CUTOUT_RING_INDEX;
+    }
+
+    return cell.innerRadius >= cutoutRadius;
+  });
+} 
+
+function visibleSectors(map) {
+  return (map?.sectors || []).filter(sector => drawableSectorCells(sector, map).length > 0);
+}
+
 function makeLineGeometry(points) {
   return new THREE.BufferGeometry().setFromPoints(points);
 }
@@ -585,45 +602,8 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
   );
 }
 
-function SectorGrid({ map, opacity = 1 }) {
-  const tessellation = getPolarTessellation(map);
-  const visibleRings = tessellation.rings.slice(CORE_CUTOUT_RING_INDEX);
-
-  const radialLines = useMemo(() => {
-    const minRadius = (tessellation.rings[CORE_CUTOUT_RING_INDEX] || tessellation.rings[0]) * getMapScale(map);
-    const maxRadius = tessellation.rings[tessellation.rings.length - 1] * getMapScale(map);
-
-    return tessellation.angles.slice(0, -1).map(angleDeg => {
-      const angle = THREE.MathUtils.degToRad(angleDeg);
-      return [
-        new THREE.Vector3(Math.cos(angle) * minRadius, 0.018, Math.sin(angle) * minRadius * GALAXY_FLATTEN),
-        new THREE.Vector3(Math.cos(angle) * maxRadius, 0.018, Math.sin(angle) * maxRadius * GALAXY_FLATTEN)
-      ];
-    });
-  }, [map, tessellation]);
-
-  return (
-    <group>
-      {visibleRings.map((radius, index) => {
-        const ringIndex = index + CORE_CUTOUT_RING_INDEX;
-        const isOuterRing = ringIndex >= tessellation.rings.length - 3;
-
-        return (
-          <line key={radius} position={[0, 0.02 + index * 0.002, 0]}>
-            <LineGeometry points={makeEllipsePoints(radius * getMapScale(map), radius * getMapScale(map) * GALAXY_FLATTEN, 260)} />
-            <lineBasicMaterial color={isOuterRing ? "#cfefff" : "#6ea9cc"} transparent opacity={(isOuterRing ? 0.2 : 0.08) * opacity} blending={THREE.AdditiveBlending} depthWrite={false} />
-          </line>
-        );
-      })}
-
-      {radialLines.map((points, index) => (
-        <line key={index}>
-          <LineGeometry points={points} />
-          <lineBasicMaterial color={index % 3 === 0 ? "#dff6ff" : "#77b8dd"} transparent opacity={(index % 3 === 0 ? 0.16 : 0.075) * opacity} blending={THREE.AdditiveBlending} depthWrite={false} />
-        </line>
-      ))}
-    </group>
-  );
+function SectorGrid() {
+  return null;
 }
 
 function GalacticCore({ opacity = 1 }) {
@@ -1900,14 +1880,26 @@ const STYLES = `
   }
 
   .gm-scan {
-    background:
-      repeating-linear-gradient(0deg, transparent 0, transparent 2px, var(--scanline, rgba(255, 210, 210, .018)) 2px, var(--scanline, rgba(255, 210, 210, .018)) 4px),
-      linear-gradient(90deg, var(--theme-wash, rgba(192, 0, 26, .025)), transparent 18%, transparent 82%, var(--theme-wash, rgba(192, 0, 26, .025)));
-    mix-blend-mode: screen;
-    opacity: .58;
-    pointer-events: none;
-    z-index: 3;
-  }
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(190, 225, 255, 0.00) 0px,
+      rgba(190, 225, 255, 0.00) 2px,
+      rgba(190, 225, 255, 0.06) 2px,
+      rgba(190, 225, 255, 0.06) 4px
+    ),
+    linear-gradient(
+      180deg,
+      rgba(120, 180, 255, 0.04),
+      rgba(255, 255, 255, 0.00) 22%,
+      rgba(255, 255, 255, 0.00) 78%,
+      rgba(120, 180, 255, 0.04)
+    );
+  mix-blend-mode: screen;
+  opacity: .42;
+  pointer-events: none;
+  z-index: 3;
+}
 
   .gm-vignette {
     background:

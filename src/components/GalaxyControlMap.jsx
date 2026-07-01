@@ -59,6 +59,7 @@ const DEFAULT_POLAR_TESSELLATION = {
   angles: [-180, -150, -116, -84, -52, -24, 8, 38, 68, 100, 132, 164, 196, 228, 260, 294, 330, 360],
   rings: [0.16, 0.82, 1.42, 2.05, 2.85, 3.72, 4.86, 5.58, 6.24, 6.74]
 };
+const CORE_CUTOUT_RING_INDEX = 2;
 const SECTOR_TESSELLATION_CELLS = {
   "tython-deep-core": [[1, 3, 0, 1]],
   coruscant: [[3, 5, 0, 2]],
@@ -273,7 +274,7 @@ function sectorMidRadius(sector) {
 }
 
 function sectorSceneCenter(sector, map) {
-  const cells = sectorTessellationCells(sector, map);
+  const cells = drawableSectorCells(sector, map);
   if (cells.length) {
     const center = new THREE.Vector3();
     let totalWeight = 0;
@@ -292,41 +293,7 @@ function getPolarTessellation(map) {
   return map?.guide?.tessellation || DEFAULT_POLAR_TESSELLATION;
 }
 
-function sectorTessellationCells(sector, map) {
-  const tessellation = getPolarTessellation(map);
-  const cells = sector.cells || SECTOR_TESSELLATION_CELLS[sector.id] || [];
-
-  if (!cells.length) {
-    return [{
-      startAngleDeg: sector.startAngleDeg || 0,
-      endAngleDeg: sector.endAngleDeg || (sector.startAngleDeg || 0) + 22,
-      innerRadius: sector.innerRadius || 0.82,
-      outerRadius: sector.outerRadius || getGuideRadius(map)
-    }];
-  }
-
-  return cells.map(cell => {
-    const [angleStartIndex, angleEndIndex, ringStartIndex, ringEndIndex] = Array.isArray(cell)
-      ? cell
-      : [cell.angle?.[0], cell.angle?.[1], cell.ring?.[0], cell.ring?.[1]];
-
-    return {
-      angleStartIndex,
-      angleEndIndex,
-      ringStartIndex,
-      ringEndIndex,
-      startAngleDeg: tessellation.angles[angleStartIndex],
-      endAngleDeg: tessellation.angles[angleEndIndex],
-      innerRadius: tessellation.rings[ringStartIndex],
-      outerRadius: tessellation.rings[ringEndIndex]
-    };
-  }).filter(cell => (
-    Number.isFinite(cell.startAngleDeg)
-    && Number.isFinite(cell.endAngleDeg)
-    && Number.isFinite(cell.innerRadius)
-    && Number.isFinite(cell.outerRadius)
-  ));
-}
+const CORE_CUTOUT_RING_INDEX = 2;
 
 function makeLineGeometry(points) {
   return new THREE.BufferGeometry().setFromPoints(points);
@@ -587,9 +554,12 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
 
 function SectorGrid({ map, opacity = 1 }) {
   const tessellation = getPolarTessellation(map);
+  const visibleRings = tessellation.rings.slice(CORE_CUTOUT_RING_INDEX);
+
   const radialLines = useMemo(() => {
-    const minRadius = tessellation.rings[0] * getMapScale(map);
+    const minRadius = (tessellation.rings[CORE_CUTOUT_RING_INDEX] || tessellation.rings[0]) * getMapScale(map);
     const maxRadius = tessellation.rings[tessellation.rings.length - 1] * getMapScale(map);
+
     return tessellation.angles.slice(0, -1).map(angleDeg => {
       const angle = THREE.MathUtils.degToRad(angleDeg);
       return [
@@ -601,12 +571,18 @@ function SectorGrid({ map, opacity = 1 }) {
 
   return (
     <group>
-      {tessellation.rings.slice(1).map((radius, index) => (
-        <line key={radius} position={[0, 0.02 + index * 0.002, 0]}>
-          <LineGeometry points={makeEllipsePoints(radius * getMapScale(map), radius * getMapScale(map) * GALAXY_FLATTEN, 260)} />
-          <lineBasicMaterial color={index >= tessellation.rings.length - 3 ? "#cfefff" : "#6ea9cc"} transparent opacity={(index >= tessellation.rings.length - 3 ? 0.2 : 0.08) * opacity} blending={THREE.AdditiveBlending} depthWrite={false} />
-        </line>
-      ))}
+      {visibleRings.map((radius, index) => {
+        const ringIndex = index + CORE_CUTOUT_RING_INDEX;
+        const isOuterRing = ringIndex >= tessellation.rings.length - 3;
+
+        return (
+          <line key={radius} position={[0, 0.02 + index * 0.002, 0]}>
+            <LineGeometry points={makeEllipsePoints(radius * getMapScale(map), radius * getMapScale(map) * GALAXY_FLATTEN, 260)} />
+            <lineBasicMaterial color={isOuterRing ? "#cfefff" : "#6ea9cc"} transparent opacity={(isOuterRing ? 0.2 : 0.08) * opacity} blending={THREE.AdditiveBlending} depthWrite={false} />
+          </line>
+        );
+      })}
+
       {radialLines.map((points, index) => (
         <line key={index}>
           <LineGeometry points={points} />
@@ -658,23 +634,61 @@ function makeSectorCellPoints(cell, map) {
   return vectors;
 }
 
-function makeSectorGeometry(sector, map) {
-  return sectorTessellationCells(sector, map).map(cell => {
-    const vectors = makeSectorCellPoints(cell, map);
-    const shape = new THREE.Shape(vectors.map(point => new THREE.Vector2(point.x, point.z)));
-    const geometry = new THREE.ShapeGeometry(shape, 2);
+function makeSectorCellGeometry(cell, map) {
+  const vectors = makeSectorCellPoints(cell, map);
+  const shape = new THREE.Shape(vectors.map(point => new THREE.Vector2(point.x, point.z)));
+  const geometry = new THREE.ShapeGeometry(shape, 2);
+  const position = geometry.getAttribute("position");
+
+  for (let i = 0; i < position.count; i += 1) {
+    const x = position.getX(i);
+    const z = position.getY(i);
+    position.setXYZ(i, x, -0.055, z);
+  }
+
+  position.needsUpdate = true;
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function mergeSectorGeometries(geometries) {
+  const positions = [];
+  const indices = [];
+  let vertexOffset = 0;
+
+  geometries.forEach(geometry => {
     const position = geometry.getAttribute("position");
+    const index = geometry.getIndex();
 
     for (let i = 0; i < position.count; i += 1) {
-      const x = position.getX(i);
-      const z = position.getY(i);
-      position.setXYZ(i, x, -0.055, z);
+      positions.push(position.getX(i), position.getY(i), position.getZ(i));
     }
 
-    position.needsUpdate = true;
-    geometry.computeVertexNormals();
-    return { geometry };
+    if (index) {
+      for (let i = 0; i < index.count; i += 1) {
+        indices.push(index.getX(i) + vertexOffset);
+      }
+    } else {
+      for (let i = 0; i < position.count; i += 1) {
+        indices.push(i + vertexOffset);
+      }
+    }
+
+    vertexOffset += position.count;
+    geometry.dispose();
   });
+
+  const merged = new THREE.BufferGeometry();
+  merged.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  merged.setIndex(indices);
+  merged.computeVertexNormals();
+  return merged;
+}
+
+function makeSectorGeometry(sector, map) {
+  return mergeSectorGeometries(
+    drawableSectorCells(sector, map).map(cell => makeSectorCellGeometry(cell, map))
+  );
 }
 
 function makeSectorArcPoints(radius, startAngleDeg, endAngleDeg, map, y = -0.026) {
@@ -711,7 +725,7 @@ function makeSectorBoundarySegments(sector, map) {
     edges.set(key, points);
   };
 
-  sectorTessellationCells(sector, map).forEach(cell => {
+  drawableSectorCells(sector, map).forEach(cell => {
     const angleStartKey = cell.angleStartIndex ?? cell.startAngleDeg;
     const angleEndKey = cell.angleEndIndex ?? cell.endAngleDeg;
     const ringStartKey = cell.ringStartIndex ?? cell.innerRadius;
@@ -743,13 +757,15 @@ function makeSectorBoundarySegments(sector, map) {
 
 function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onHover }) {
   const faction = factionById(map, sector.factionId);
-  const tiles = useMemo(() => makeSectorGeometry(sector, map), [sector, map]);
+  const geometry = useMemo(() => makeSectorGeometry(sector, map), [sector, map]);
   const boundarySegments = useMemo(() => makeSectorBoundarySegments(sector, map), [sector, map]);
   const fillOpacity = active ? 0.52 : dimmed ? 0.08 : hovered ? 0.42 : 0.34;
   const lineOpacity = active ? 0.95 : dimmed ? 0.18 : hovered ? 0.9 : 0.72;
   const scanOpacity = active ? 0.2 : dimmed ? 0.035 : hovered ? 0.16 : 0.12;
 
-  useEffect(() => () => tiles.forEach(tile => tile.geometry.dispose()), [tiles]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  if (!boundarySegments.length) return null;
 
   const handleClick = event => {
     event.stopPropagation();
@@ -768,48 +784,44 @@ function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onH
 
   return (
     <group>
-      {tiles.map((tile, index) => (
-        <group key={index}>
-          <mesh geometry={tile.geometry} onClick={handleClick} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut}>
-            <meshBasicMaterial
-              color={faction.fill || faction.color}
-              transparent
-              opacity={fillOpacity}
-              depthWrite={false}
-              side={THREE.DoubleSide}
-              polygonOffset
-              polygonOffsetFactor={1}
-            />
-          </mesh>
+      <mesh geometry={geometry} onClick={handleClick} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut}>
+        <meshBasicMaterial
+          color={faction.fill || faction.color}
+          transparent
+          opacity={fillOpacity}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+          polygonOffset
+          polygonOffsetFactor={1}
+        />
+      </mesh>
 
-          <mesh geometry={tile.geometry} raycast={() => null}>
-            <shaderMaterial
-              transparent
-              depthWrite={false}
-              depthTest={false}
-              blending={THREE.AdditiveBlending}
-              uniforms={{
-                uColor: { value: new THREE.Color(faction.glow || faction.color) },
-                uOpacity: { value: scanOpacity }
-              }}
-              vertexShader={`
-                void main() {
-                  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-              `}
-              fragmentShader={`
-                uniform vec3 uColor;
-                uniform float uOpacity;
-                void main() {
-                  float scan = 0.55 + 0.45 * sin(gl_FragCoord.y * 1.75);
-                  float band = smoothstep(0.18, 1.0, scan);
-                  gl_FragColor = vec4(uColor * (0.7 + band * 0.45), uOpacity * (0.38 + band * 0.62));
-                }
-              `}
-            />
-          </mesh>
-        </group>
-      ))}
+      <mesh geometry={geometry} raycast={() => null}>
+        <shaderMaterial
+          transparent
+          depthWrite={false}
+          depthTest={false}
+          blending={THREE.AdditiveBlending}
+          uniforms={{
+            uColor: { value: new THREE.Color(faction.glow || faction.color) },
+            uOpacity: { value: scanOpacity }
+          }}
+          vertexShader={`
+            void main() {
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `}
+          fragmentShader={`
+            uniform vec3 uColor;
+            uniform float uOpacity;
+            void main() {
+              float scan = 0.55 + 0.45 * sin(gl_FragCoord.y * 1.75);
+              float band = smoothstep(0.18, 1.0, scan);
+              gl_FragColor = vec4(uColor * (0.7 + band * 0.45), uOpacity * (0.38 + band * 0.62));
+            }
+          `}
+        />
+      </mesh>
 
       {boundarySegments.map((points, index) => (
         <line key={`boundary-${index}`} raycast={() => null}>
@@ -1147,7 +1159,7 @@ function GalaxyControlMap({ map, view, hoveredSectorId, onSelectSector, onHoverS
     <group visible={opacity > 0.001}>
       <SectorGrid map={map} opacity={opacity} />
       <group position={[0, -0.005, 0]}>
-        {(map.sectors || []).map(sector => (
+        {visibleSectors(map).map(sector => (
           <SectorControlZone
             key={sector.id}
             map={map}
@@ -1528,7 +1540,7 @@ function normalizeMap(map) {
 
 function getSectorSummary(map, sectorId) {
   const sector = (map.sectors || []).find(item => item.id === sectorId);
-  if (!sector) return null;
+  if (!sector || !drawableSectorCells(sector, map).length) return null;
   const planets = planetsForSector(map, sector.id);
   const faction = factionById(map, sector.factionId);
   return { sector, faction, planets, control: controlForSector(map, sector.id) };
@@ -1738,7 +1750,7 @@ export function GalaxyMapExperience({ map }) {
 
         {view.mode === "galaxy" ? (
           <div className="gm-selectors" aria-label="Galaxy sectors">
-            {(normalizedMap.sectors || []).map(sector => {
+            {visibleSectors(normalizedMap).map(sector => {
               const summary = getSectorSummary(normalizedMap, sector.id);
               const faction = summary?.faction || factionById(normalizedMap, sector.factionId);
               return (

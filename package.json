@@ -8,7 +8,7 @@
   "main": "js/main.js",
   "scripts": {
     "dev": "next dev",
-    "build": "next build && npm run prepare:standalone",
+    "build": "next build --webpack && npm run prepare:standalone",
     "prepare:standalone": "node scripts/prepare-standalone.mjs",
     "start": "next start -H 0.0.0.0",
     "start:standalone": "node .next/standalone/server.js",

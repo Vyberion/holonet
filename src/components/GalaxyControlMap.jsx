@@ -53,7 +53,7 @@ const GALAXY_RANDOMNESS_POWER_Y = 5.2;
 const GALAXY_VERTICAL_RANDOMNESS = 0.026;
 const GALAXY_INITIAL_SPIN_TIME = 42;
 const GALAXY_SPIN_STRENGTH = 0.05;
-const GALAXY_FLOW_ROTATION_SPEED = -0.012;
+const GALAXY_FLOW_ROTATION_SPEED = 0.012;
 const GALAXY_INSIDE_COLOR = "#f9fdff";
 const GALAXY_OUTSIDE_COLOR = "#83c9ff";
 const GALAXY_RIM_GLOW_COLOR = "#e8fbff";
@@ -1064,7 +1064,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
       groupRef.current.visible = !hidden;
       const next = new THREE.Vector3(targetScale, targetScale, targetScale);
       groupRef.current.scale.lerp(next, 0.075);
-      const emergence = active && mode !== "sector" ? Math.sin(t * 0.7 + idSeed(body.id)) * 0.035 : 0;
+      const emergence = active && mode !== "sector" && mode !== "planet" ? Math.sin(t * 0.7 + idSeed(body.id)) * 0.035 : 0;
       groupRef.current.position.y = mode === "sector" ? -0.026 : body.scenePosition.y + emergence;
     }
     if (planetRef.current) {
@@ -1349,7 +1349,7 @@ function resolveCamera(view, map, previousCamera, elapsedTime = 0) {
   return WIDE_CAMERA.clone();
 }
 
-function CameraRig({ map, view, transition, controlsRef }) {
+function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
   const { camera, clock } = useThree();
   const activeTransition = useRef(null);
   const lastKey = useRef(null);
@@ -1361,9 +1361,9 @@ function CameraRig({ map, view, transition, controlsRef }) {
     if (key === lastKey.current) return;
     lastKey.current = key;
 
-    const elapsedTime = clock.elapsedTime;
-    const focus = resolveFocus(view, map, elapsedTime);
-    const targetCamera = resolveCamera(view, map, camera.position, elapsedTime);
+    const galaxySpinTime = galaxySpinTimeRef.current;
+    const focus = resolveFocus(view, map, galaxySpinTime);
+    const targetCamera = resolveCamera(view, map, camera.position, galaxySpinTime);
     const controls = controlsRef.current;
     const kind = transition.kind || view.mode;
     const isPlanetEntry = kind === "planet" && view.mode === "planet";
@@ -1373,8 +1373,8 @@ function CameraRig({ map, view, transition, controlsRef }) {
       if (controls) {
         controls.target.copy(focus);
         controls.enabled = true;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = view.mode === "galaxy" ? 0.18 : view.mode === "sector" ? 0.28 : 0.2;
+        controls.autoRotate = false;
+        controls.autoRotateSpeed = 0;
         controls.update();
       }
       activeTransition.current = null;
@@ -1406,16 +1406,17 @@ function CameraRig({ map, view, transition, controlsRef }) {
       controls.enabled = false;
       controls.autoRotate = false;
     }
-  }, [view, transition, map, camera.position, controlsRef, clock]);
+  }, [view, transition, map, camera.position, controlsRef, clock, galaxySpinTimeRef]);
 
   useFrame(({ clock }) => {
     const controls = controlsRef.current;
     if (!controls) return;
-    const liveFocus = resolveFocus(view, map, clock.elapsedTime);
+    const galaxySpinTime = galaxySpinTimeRef.current;
+    const liveFocus = resolveFocus(view, map, galaxySpinTime);
 
     const current = activeTransition.current;
     if (current) {
-      const liveCamera = resolveCamera(view, map, camera.position, clock.elapsedTime);
+      const liveCamera = resolveCamera(view, map, camera.position, galaxySpinTime);
       const raw = (performance.now() - current.startedAt) / current.duration;
       const capped = Math.min(1, raw);
       const isPlanetEntry = current.kind === "planet" && view.mode === "planet";
@@ -1438,8 +1439,8 @@ function CameraRig({ map, view, transition, controlsRef }) {
         activeTransition.current = null;
         lastStableView.current = view;
         controls.enabled = true;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = view.mode === "galaxy" ? 0.18 : view.mode === "sector" ? 0.28 : 0.2;
+        controls.autoRotate = false;
+        controls.autoRotateSpeed = 0;
         controls.target.copy(liveFocus);
         lastFocusRef.current = liveFocus.clone();
         controls.update();
@@ -1453,8 +1454,8 @@ function CameraRig({ map, view, transition, controlsRef }) {
     if (view.mode !== "galaxy") camera.position.add(focusDelta);
     controls.target.copy(liveFocus);
     lastFocusRef.current = liveFocus.clone();
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = view.mode === "galaxy" ? 0.18 : view.mode === "sector" ? 0.28 : 0.2;
+    controls.autoRotate = false;
+    controls.autoRotateSpeed = 0;
     controls.update();
   });
 
@@ -1522,16 +1523,18 @@ function CameraAnchoredStars({ count, mode }) {
 function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSector, onHoverSector, onSelectPlanet, onHoverPlanet, onAssetsReady, transition, quality, reducedMotion }) {
   const controlsRef = useRef(null);
   const galaxyRef = useRef(null);
+  const galaxySpinTimeRef = useRef(0);
   const selectedPlanet = useMemo(() => (map.planets || []).find(planet => planet.id === view.planetId), [map.planets, view.planetId]);
   const selectedPlanetScenePosition = useMemo(() => selectedPlanet ? mapPointToWorld(selectedPlanet.position || selectedPlanet.mapPosition || [0, 0], map, BODY_Y_OFFSET) : null, [selectedPlanet, map]);
   const hyperspaceActive = transition.kind === "planet" && transition.active && transition.phase === "reveal";
   const counts = PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced;
 
-  useFrame(({ clock }) => {
+  useFrame((_, delta) => {
     if (!galaxyRef.current) return;
+    if (view.mode === "galaxy") galaxySpinTimeRef.current += delta;
     galaxyRef.current.rotation.set(
       GALAXY_BASE_ROTATION_X,
-      GALAXY_BASE_ROTATION_Y + clock.elapsedTime * GALAXY_FLOW_ROTATION_SPEED,
+      GALAXY_BASE_ROTATION_Y + galaxySpinTimeRef.current * GALAXY_FLOW_ROTATION_SPEED,
       GALAXY_BASE_ROTATION_Z
     );
   });
@@ -1570,7 +1573,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
         />
       </group>
 
-      <CameraRig map={map} view={view} transition={transition} controlsRef={controlsRef} />
+      <CameraRig map={map} view={view} transition={transition} controlsRef={controlsRef} galaxySpinTimeRef={galaxySpinTimeRef} />
       <OrbitControls
         ref={controlsRef}
         makeDefault
@@ -1579,8 +1582,8 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
         enablePan={false}
         minDistance={view.mode === "planet" ? 1.2 : view.mode === "sector" ? 3.2 : 4.2}
         maxDistance={view.mode === "planet" ? 10.5 : view.mode === "sector" ? 18 : 34}
-        autoRotate
-        autoRotateSpeed={view.mode === "galaxy" ? 0.18 : view.mode === "sector" ? 0.28 : 0.2}
+        autoRotate={false}
+        autoRotateSpeed={0}
         target={WIDE_TARGET}
       />
       {view.mode === "planet" ? (
@@ -2049,11 +2052,12 @@ const STYLES = `
   }
 
   .gm-topbar {
+    --gm-topbar-inset: clamp(24px, 5vw, 84px);
     align-items: center;
     display: flex;
     gap: 12px;
-    left: clamp(14px, 2.2vw, 28px);
-    max-width: calc(100vw - 44px);
+    left: var(--gm-topbar-inset);
+    max-width: min(560px, calc(100vw - var(--gm-topbar-inset) - var(--gm-topbar-inset)));
     position: absolute;
     top: calc(var(--nav-height, 72px) + clamp(14px, 2.2vw, 28px));
     z-index: 8;
@@ -2358,8 +2362,10 @@ const STYLES = `
 
   @media (max-width: 760px) {
     .gm-topbar {
-      left: 14px;
-      right: 14px;
+      --gm-topbar-inset: clamp(18px, 6vw, 24px);
+      left: var(--gm-topbar-inset);
+      max-width: none;
+      right: var(--gm-topbar-inset);
       top: 14px;
     }
 

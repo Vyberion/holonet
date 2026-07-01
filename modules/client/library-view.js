@@ -46,12 +46,16 @@ function ensureSearchScript() {
 }
 
 function renderSubClauses(subClauses = []) {
-  return subClauses.map(clause => `
+  return subClauses.map((clause, index) => {
+    const label = String(clause.label || "").replace(/Sub-Section\s+(\d+)/i, (_, value) => `Sub-Section ${toRoman(value)}`)
+      || `Sub-Section ${toRoman(index + 1)}`;
+    return `
     <div class="sub-clause">
-      <span class="sub-marker">${escapeHtml(clause.label || "Sub-Section")}</span>
+      <span class="sub-marker">${escapeHtml(label)}</span>
       ${renderTextBlocks(clause.body || "", "")}
     </div>
-  `).join("");
+  `;
+  }).join("");
 }
 
 function renderEntry(entry) {

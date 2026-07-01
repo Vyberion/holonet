@@ -205,6 +205,7 @@
       activity: document.getElementById("admin-activity")
     };
     if (!nodes.counts || !nodes.overrides || !nodes.activity) return;
+    document.body.classList.add("holonet-admin-mobile");
 
     let overrides = [];
 

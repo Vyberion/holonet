@@ -22,6 +22,15 @@ function normalizeTime(hours = 0, minutes = 0) {
   };
 }
 
+function reportTotals(members = []) {
+  return members.reduce((totals, member) => ({
+    hours: totals.hours + (Number(member.hours) || 0),
+    minutes: totals.minutes + (Number(member.minutes) || 0),
+    eventsHosted: totals.eventsHosted + (Number(member.eventsHosted) || 0),
+    eventsAttended: totals.eventsAttended + (Number(member.eventsAttended) || 0)
+  }), { hours: 0, minutes: 0, eventsHosted: 0, eventsAttended: 0 });
+}
+
 function timestampFor(entry, section) {
   if (section === "activity") return "";
 
@@ -152,7 +161,10 @@ function renderWeeklyReports(entries) {
         <span class="hub-timestamp">Week: ${escapeHtml(entry.weekStart || "Unknown")}</span>
         <span>${escapeHtml(entry.authorName || "Unknown author")}</span>
         <p>${memberCount} members / ${Number(totalTime.hours || 0)}h ${Number(totalTime.minutes || 0)}m / ${Number(totals.eventsHosted || 0)} hosted / ${Number(totals.eventsAttended || 0)} attended</p>
-        ${activeContext?.canWrite ? `<div class="hub-row-tools"><button type="button" class="hub-row-edit" data-weekly-report-edit="${index}">EDIT</button></div>` : ""}
+        <div class="hub-row-tools">
+          <button type="button" class="hub-write-btn" data-weekly-report-view="${index}">VIEW REPORT</button>
+          ${activeContext?.canWrite ? `<button type="button" class="hub-row-edit" data-weekly-report-edit="${index}">EDIT</button>` : ""}
+        </div>
       </article>
     `;
   }).join("")}</div>`;
@@ -160,6 +172,9 @@ function renderWeeklyReports(entries) {
 
 function renderActivityRoster(members) {
   if (!members?.length) return '<p class="hub-empty">No current division members found</p>';
+  const visibleMembers = activeContext?.division?.id === "darkCouncil"
+    ? members.filter(member => !/\b(project\s*manager|group\s*owner|owner|manager)\b/i.test(String(member.role || "")))
+    : members;
 
   return `
     <div class="tracking-table-wrap">
@@ -172,7 +187,7 @@ function renderActivityRoster(members) {
           </tr>
         </thead>
         <tbody>
-          ${members.map(member => {
+          ${visibleMembers.map(member => {
             const time = normalizeTime(member.hours, member.minutes);
             const identity = member.displayName && member.displayName !== member.username
               ? `${member.displayName} (@${member.username})`
@@ -277,7 +292,10 @@ function weekStartValue() {
 }
 
 function reportMemberRows(members = []) {
-  return members.filter(Boolean).map((member, index) => {
+  return members.filter(Boolean).sort((left, right) => (
+    Number(right.rank || 0) - Number(left.rank || 0)
+    || String(left.username || left.displayName || left.robloxId || "").localeCompare(String(right.username || right.displayName || right.robloxId || ""))
+  )).map((member, index) => {
     const memberTime = normalizeTime(member.hours, member.minutes);
     return `
       <div class="weekly-report-member" data-report-member="${index}">
@@ -297,6 +315,80 @@ function reportMemberRows(members = []) {
       </div>
     `;
   }).join("");
+}
+
+function reportMemberIdentity(member = {}) {
+  return member.displayName && member.displayName !== member.username
+    ? `${member.displayName} (@${member.username})`
+    : member.username || member.displayName || member.robloxId || "Unknown";
+}
+
+function renderReportViewerRows(members = []) {
+  if (!members.length) return `<tr><td colspan="5">No member rows recorded.</td></tr>`;
+
+  return members.slice().sort((left, right) => (
+    Number(right.rank || 0) - Number(left.rank || 0)
+    || String(reportMemberIdentity(left)).localeCompare(String(reportMemberIdentity(right)))
+  )).map(member => {
+    const memberTime = normalizeTime(member.hours, member.minutes);
+    return `
+      <tr>
+        <td><strong>${escapeHtml(reportMemberIdentity(member))}</strong><span>${escapeHtml(member.robloxId || "")}</span></td>
+        <td>${escapeHtml(member.role || "Unranked")}</td>
+        <td>${escapeHtml(memberTime.hours)}h ${escapeHtml(memberTime.minutes)}m</td>
+        <td>${escapeHtml(member.eventsHosted || 0)}</td>
+        <td>${escapeHtml(member.eventsAttended || 0)}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function ensureReportViewOverlay() {
+  let overlay = document.getElementById("report-view-overlay");
+  if (overlay) return overlay;
+
+  overlay = document.createElement("div");
+  overlay.id = "report-view-overlay";
+  overlay.innerHTML = `
+    <div class="resource-editor-container library-editor-container" role="dialog" aria-modal="true" aria-labelledby="report-view-title">
+      <div class="resource-editor-topbar">
+        <span class="resource-editor-title" id="report-view-title">VIEW REPORT</span>
+        <button type="button" class="resource-editor-close" data-report-view-close>CLOSE</button>
+      </div>
+      <div class="report-view-body" data-report-view-body></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector("[data-report-view-close]").addEventListener("click", () => overlay.classList.remove("active"));
+  overlay.addEventListener("click", event => {
+    if (event.target === overlay) overlay.classList.remove("active");
+  });
+  return overlay;
+}
+
+function openReportViewer(report = {}) {
+  const overlay = ensureReportViewOverlay();
+  const body = overlay.querySelector("[data-report-view-body]");
+  const members = Array.isArray(report.members) ? report.members : [];
+  const totals = report.totals || reportTotals(members);
+  const time = normalizeTime(totals.hours, totals.minutes);
+
+  body.innerHTML = `
+    <div class="overview-total-strip">
+      <span>${escapeHtml(members.length)} members</span>
+      <span>${escapeHtml(time.hours)}h ${escapeHtml(time.minutes)}m</span>
+      <span>${escapeHtml(totals.eventsHosted || 0)} hosted</span>
+      <span>${escapeHtml(totals.eventsAttended || 0)} attended</span>
+      <span>${escapeHtml(report.authorName || "Unknown author")}</span>
+    </div>
+    <div class="tracking-table-wrap">
+      <table class="tracking-table">
+        <thead><tr><th>Member</th><th>Rank</th><th>Tracked Time</th><th>Hosted</th><th>Attended</th></tr></thead>
+        <tbody>${renderReportViewerRows(members)}</tbody>
+      </table>
+    </div>
+  `;
+  overlay.classList.add("active");
 }
 
 async function openWeeklyReportEditor(entry = null) {
@@ -453,6 +545,12 @@ function bindEditorControls(mount) {
       return;
     }
 
+    const weeklyView = event.target.closest("[data-weekly-report-view]");
+    if (weeklyView) {
+      openReportViewer(activeEntries[Number(weeklyView.dataset.weeklyReportView)] || {});
+      return;
+    }
+
     const editButton = event.target.closest("[data-resource-edit]");
     if (editButton) {
       const entry = activeEntries[Number(editButton.dataset.resourceEdit)] || {};
@@ -485,6 +583,13 @@ function renderSection(mount, division, section, entries, canWrite) {
         </div>
         <p class="hub-summary">${escapeHtml(descriptionForSection(division, section))}</p>
       </div>
+      ${["transmissions", "reports", "activity"].includes(section) ? `
+        <div class="hub-status-grid division-section-status-grid">
+          <div class="hub-status-cell"><span class="hub-label">Status</span><span class="hub-value">ACTIVE</span></div>
+          <div class="hub-status-cell"><span class="hub-label">Division</span><span class="hub-value">${escapeHtml(division.shortName || division.name)}</span></div>
+          <div class="hub-status-cell"><span class="hub-label">${section === "activity" ? "Activity" : escapeHtml(section)}</span><span class="hub-value">${section === "activity" ? `${escapeHtml(entries?.length || 0)} MEMBERS` : `${escapeHtml(entries?.length || 0)} ENTRIES`}</span></div>
+        </div>
+      ` : ""}
 
       <section class="hub-panel">
         ${section === "activity" ? "" : `

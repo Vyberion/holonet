@@ -57,9 +57,9 @@ const GALAXY_OUTSIDE_COLOR = "#83c9ff";
 const GALAXY_RIM_GLOW_COLOR = "#e8fbff";
 const DEFAULT_POLAR_TESSELLATION = {
   angles: [-180, -150, -116, -84, -52, -24, 8, 38, 68, 100, 132, 164, 196, 228, 260, 294, 330, 360],
-  rings: [0.16, 0.72, 1.42, 2.05, 2.85, 3.72, 4.86, 5.58, 6.24, 6.74]
+  rings: [0.28, 0.72, 1.42, 2.05, 2.85, 3.72, 4.86, 5.58, 6.24, 6.74]
 };
-const CORE_CUTOUT_RING_INDEX = 1;
+const CORE_CUTOUT_RING_INDEX = 0;
 const SECTOR_TESSELLATION_CELLS = {
   "tython-deep-core": [[1, 3, 0, 1]],
   coruscant: [[3, 5, 0, 2]],
@@ -306,21 +306,39 @@ function sectorTessellationCells(sector, map) {
     }];
   }
 
-  return cells.map(cell => {
+  return cells.flatMap(cell => {
     const [angleStartIndex, angleEndIndex, ringStartIndex, ringEndIndex] = Array.isArray(cell)
       ? cell
       : [cell.angle?.[0], cell.angle?.[1], cell.ring?.[0], cell.ring?.[1]];
 
-    return {
-      angleStartIndex,
-      angleEndIndex,
-      ringStartIndex,
-      ringEndIndex,
-      startAngleDeg: tessellation.angles[angleStartIndex],
-      endAngleDeg: tessellation.angles[angleEndIndex],
-      innerRadius: tessellation.rings[ringStartIndex],
-      outerRadius: tessellation.rings[ringEndIndex]
-    };
+    if (
+      !Number.isFinite(angleStartIndex)
+      || !Number.isFinite(angleEndIndex)
+      || !Number.isFinite(ringStartIndex)
+      || !Number.isFinite(ringEndIndex)
+    ) {
+      return [];
+    }
+
+    const atomicCells = [];
+
+    for (let angleIndex = angleStartIndex; angleIndex < angleEndIndex; angleIndex += 1) {
+      for (let ringIndex = ringStartIndex; ringIndex < ringEndIndex; ringIndex += 1) {
+        atomicCells.push({
+          angleStartIndex: angleIndex,
+          angleEndIndex: angleIndex + 1,
+          ringStartIndex: ringIndex,
+          ringEndIndex: ringIndex + 1,
+          cellKey: `${angleIndex}:${ringIndex}`,
+          startAngleDeg: tessellation.angles[angleIndex],
+          endAngleDeg: tessellation.angles[angleIndex + 1],
+          innerRadius: tessellation.rings[ringIndex],
+          outerRadius: tessellation.rings[ringIndex + 1]
+        });
+      }
+    }
+
+    return atomicCells;
   }).filter(cell => (
     Number.isFinite(cell.startAngleDeg)
     && Number.isFinite(cell.endAngleDeg)
@@ -737,62 +755,49 @@ function makeSectorRadialPoints(angleDeg, innerRadius, outerRadius, map, y = -0.
 }
 
 function makeSectorBoundarySegments(sector, map) {
-  const ringEdges = new Map();
-  const spokeEdges = new Map();
-  const formatKey = value => Number(value).toFixed(4);
-
-  const addInterval = (groups, key, from, to, meta) => {
-    const start = Math.min(from, to);
-    const end = Math.max(from, to);
-    if (Math.abs(end - start) < 0.0001) return;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push({ start, end, ...meta });
+  const tessellation = getPolarTessellation(map);
+  const angleCellCount = Math.max(0, (tessellation.angles?.length || 0) - 1);
+  const cells = drawableSectorCells(sector, map);
+  const occupiedCells = new Set(cells.map(cell => cell.cellKey).filter(Boolean));
+  const segments = [];
+  const angleNeighborIndex = angleIndex => {
+    if (!angleCellCount) return angleIndex;
+    return ((angleIndex % angleCellCount) + angleCellCount) % angleCellCount;
   };
+  const hasOccupiedNeighbor = (angleIndex, ringIndex) => occupiedCells.has(`${angleNeighborIndex(angleIndex)}:${ringIndex}`);
 
-  const flushIntervals = (groups, makePoints) => {
-    const segments = [];
+  cells.forEach(cell => {
+    if (!cell.cellKey) {
+      segments.push(
+        makeSectorArcPoints(cell.outerRadius, cell.startAngleDeg, cell.endAngleDeg, map),
+        makeSectorArcPoints(cell.innerRadius, cell.startAngleDeg, cell.endAngleDeg, map),
+        makeSectorRadialPoints(cell.startAngleDeg, cell.innerRadius, cell.outerRadius, map),
+        makeSectorRadialPoints(cell.endAngleDeg, cell.innerRadius, cell.outerRadius, map)
+      );
+      return;
+    }
 
-    groups.forEach(intervals => {
-      const stops = [...new Set(intervals.flatMap(interval => [interval.start, interval.end]).map(formatKey))]
-        .map(Number)
-        .sort((left, right) => left - right);
+    const angleIndex = cell.angleStartIndex;
+    const ringIndex = cell.ringStartIndex;
 
-      let openStart = null;
-      let openEnd = null;
+    if (!hasOccupiedNeighbor(angleIndex, ringIndex + 1)) {
+      segments.push(makeSectorArcPoints(cell.outerRadius, cell.startAngleDeg, cell.endAngleDeg, map));
+    }
 
-      for (let index = 0; index < stops.length - 1; index += 1) {
-        const start = stops[index];
-        const end = stops[index + 1];
-        const midpoint = (start + end) * 0.5;
-        const coverage = intervals.filter(interval => midpoint > interval.start + 0.0001 && midpoint < interval.end - 0.0001).length;
+    if (!hasOccupiedNeighbor(angleIndex, ringIndex - 1)) {
+      segments.push(makeSectorArcPoints(cell.innerRadius, cell.startAngleDeg, cell.endAngleDeg, map));
+    }
 
-        if (coverage === 1) {
-          if (openStart === null) openStart = start;
-          openEnd = end;
-        } else if (openStart !== null) {
-          segments.push(makePoints(intervals[0], openStart, openEnd));
-          openStart = null;
-          openEnd = null;
-        }
-      }
+    if (!hasOccupiedNeighbor(angleIndex - 1, ringIndex)) {
+      segments.push(makeSectorRadialPoints(cell.startAngleDeg, cell.innerRadius, cell.outerRadius, map));
+    }
 
-      if (openStart !== null) segments.push(makePoints(intervals[0], openStart, openEnd));
-    });
-
-    return segments;
-  };
-
-  drawableSectorCells(sector, map).forEach(cell => {
-    addInterval(ringEdges, `ring:${formatKey(cell.outerRadius)}`, cell.startAngleDeg, cell.endAngleDeg, { radius: cell.outerRadius });
-    addInterval(ringEdges, `ring:${formatKey(cell.innerRadius)}`, cell.startAngleDeg, cell.endAngleDeg, { radius: cell.innerRadius });
-    addInterval(spokeEdges, `spoke:${formatKey(cell.startAngleDeg)}`, cell.innerRadius, cell.outerRadius, { angle: cell.startAngleDeg });
-    addInterval(spokeEdges, `spoke:${formatKey(cell.endAngleDeg)}`, cell.innerRadius, cell.outerRadius, { angle: cell.endAngleDeg });
+    if (!hasOccupiedNeighbor(angleIndex + 1, ringIndex)) {
+      segments.push(makeSectorRadialPoints(cell.endAngleDeg, cell.innerRadius, cell.outerRadius, map));
+    }
   });
 
-  return [
-    ...flushIntervals(ringEdges, (edge, start, end) => makeSectorArcPoints(edge.radius, start, end, map)),
-    ...flushIntervals(spokeEdges, (edge, start, end) => makeSectorRadialPoints(edge.angle, start, end, map))
-  ];
+  return segments;
 }
 
 function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onHover }) {

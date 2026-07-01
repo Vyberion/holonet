@@ -2,17 +2,28 @@ import { GALAXY_CONTROL_MAP as BASE_GALAXY_CONTROL_MAP } from "./galaxy-control-
 
 const BASE_ANGLE_STEP_DEG = 5;
 const ANGLE_LATTICE_STEPS = Math.round(360 / BASE_ANGLE_STEP_DEG);
-const MIN_CORE_RADIUS = 0.16;
+const MIN_CORE_RADIUS = 0.28;
 
 const REGION_CELL_COUNTS = {
-  "deep-core": 12,
-  core: 18,
-  colonies: 24,
+  "deep-core": 36,
+  core: 36,
+  colonies: 36,
   "inner-rim": 36,
   expansion: 36,
   "mid-rim": 36,
   "outer-rim": 72,
   "wild-space": 72
+};
+
+const MAX_SECTOR_ANGLE_SPAN_BY_REGION = {
+  "deep-core": 18,
+  core: 20,
+  colonies: 24,
+  "inner-rim": 28,
+  expansion: 32,
+  "mid-rim": 34,
+  "outer-rim": 36,
+  "wild-space": 36
 };
 
 function roundAngle(angle) {
@@ -30,6 +41,14 @@ function circularDistance(a, b) {
 
 function sectorAnchor(sector) {
   return ((sector.startAngleDeg || 0) + (sector.endAngleDeg || 0)) / 2;
+}
+
+function sectorAngleSpan(sector) {
+  const start = sector.startAngleDeg || 0;
+  const end = sector.endAngleDeg ?? start + 24;
+  let span = end - start;
+  while (span <= 0) span += 360;
+  return Math.min(span, 360);
 }
 
 function sectorMidRadius(sector) {
@@ -126,6 +145,24 @@ function candidatesForCell(map, region, cell) {
   return candidates.length ? candidates : map.sectors;
 }
 
+function cellFitsSector(cell, sector) {
+  const cellAngleMid = (cell.startAngleDeg + cell.endAngleDeg) / 2;
+  const cellAngleSpan = Math.abs(cell.endAngleDeg - cell.startAngleDeg);
+  const maxAngleSpan = MAX_SECTOR_ANGLE_SPAN_BY_REGION[sector.regionId] || 36;
+  const sectorHalfSpan = Math.min(sectorAngleSpan(sector), maxAngleSpan) / 2;
+  const angularAllowance = sectorHalfSpan + cellAngleSpan * 0.5 + 0.25;
+  const angleFits = circularDistance(sectorAnchor(sector), cellAngleMid) <= angularAllowance;
+  const radialOverlap = sectorRadialOverlap(sector, cell.innerRadius, cell.outerRadius);
+  const cellThickness = Math.max(0.01, cell.outerRadius - cell.innerRadius);
+  const radiusMid = (cell.innerRadius + cell.outerRadius) / 2;
+  const radialPadding = Math.max(0.1, cellThickness * 0.18);
+  const radialFits = radialOverlap >= Math.min(0.12, cellThickness * 0.32)
+    || (radiusMid >= (sector.innerRadius || MIN_CORE_RADIUS) - radialPadding
+      && radiusMid <= (sector.outerRadius || cell.outerRadius) + radialPadding);
+
+  return angleFits && radialFits;
+}
+
 function scoreCellForSector(cell, sector) {
   const angleMid = (cell.startAngleDeg + cell.endAngleDeg) / 2;
   const radiusMid = (cell.innerRadius + cell.outerRadius) / 2;
@@ -137,8 +174,11 @@ function scoreCellForSector(cell, sector) {
 }
 
 function reassignClosestCell(sector, structuralCells, cellsBySector) {
-  const best = structuralCells.reduce((winner, cell) => {
-    const score = scoreCellForSector(cell, sector);
+  const fittingCells = structuralCells.filter(cell => cellFitsSector(cell, sector));
+  const candidateCells = fittingCells.length ? fittingCells : structuralCells;
+  const best = candidateCells.reduce((winner, cell) => {
+    const ownerPenalty = cell.ownerSectorId ? 18 : 0;
+    const score = scoreCellForSector(cell, sector) + ownerPenalty;
     if (!winner || score < winner.score) return { cell, score };
     return winner;
   }, null)?.cell;
@@ -172,7 +212,10 @@ function buildProceduralTessellation(map) {
 
   structuralCells.forEach(cell => {
     const region = map.regions[cell.ringIndex] || map.regions[0];
-    const sector = assignSectorForCell(candidatesForCell(map, region, cell), cell, region);
+    const candidates = candidatesForCell(map, region, cell).filter(sector => cellFitsSector(cell, sector));
+    if (!candidates.length) return;
+
+    const sector = assignSectorForCell(candidates, cell, region);
     cell.ownerSectorId = sector.id;
     cellsBySector.get(sector.id)?.push(cell);
   });
@@ -210,7 +253,7 @@ export function withProceduralSectorCells(map) {
           angle: [cell.angleStartIndex, cell.angleEndIndex],
           ring: [cell.ringStartIndex, cell.ringEndIndex]
         })),
-        strategy: "full disk polar lattice with uniform hidden structural cells"
+        strategy: "footprint-limited polar lattice with hidden structural cells"
       }
     },
     sectors: map.sectors.map(sector => ({

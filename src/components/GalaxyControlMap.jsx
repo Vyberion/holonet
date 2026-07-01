@@ -293,8 +293,6 @@ function getPolarTessellation(map) {
   return map?.guide?.tessellation || DEFAULT_POLAR_TESSELLATION;
 }
 
-const CORE_CUTOUT_RING_INDEX = 2;
-
 function makeLineGeometry(points) {
   return new THREE.BufferGeometry().setFromPoints(points);
 }

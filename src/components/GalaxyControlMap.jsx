@@ -1931,14 +1931,8 @@ const STYLES = `
   }
 
   body:has(.gm-root) .site-header,
-  body:has(.gm-root) .site-nav,
-  body:has(.gm-root) nav,
-  body:has(.gm-root) header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 99999 !important;
+  body:has(.gm-root) .site-nav {
+    z-index: 3000 !important;
   }
 
   .gm-root {
@@ -2052,7 +2046,7 @@ const STYLES = `
   }
 
   .gm-topbar {
-    --gm-topbar-inset: clamp(24px, 5vw, 84px);
+    --gm-topbar-inset: clamp(48px, 6vw, 112px);
     align-items: center;
     display: flex;
     gap: 12px;
@@ -2362,7 +2356,7 @@ const STYLES = `
 
   @media (max-width: 760px) {
     .gm-topbar {
-      --gm-topbar-inset: clamp(18px, 6vw, 24px);
+      --gm-topbar-inset: clamp(22px, 7vw, 34px);
       left: var(--gm-topbar-inset);
       max-width: none;
       right: var(--gm-topbar-inset);

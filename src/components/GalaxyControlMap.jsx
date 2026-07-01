@@ -2398,6 +2398,16 @@ const STYLES = `
       margin-top: 11px;
     }
 
+    .gm-panel.is-galaxy .gm-selectors {
+      max-height: 42px;
+      scroll-snap-type: y mandatory;
+    }
+
+    .gm-panel.is-galaxy .gm-selector {
+      min-height: 42px;
+      scroll-snap-align: start;
+    }
+
     .gm-selector {
       font-size: .68rem;
       min-height: 34px;

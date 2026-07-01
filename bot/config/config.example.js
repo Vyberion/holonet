@@ -23,6 +23,18 @@ export default {
       darkCouncil: "CHANNEL_ID"
     }
   },
+  cheekyResponder: {
+    enabled: true,
+    channelId: "1406487804413739059",
+    chance: 1 / 2000,
+    cooldownMs: 4 * 60 * 60 * 1000,
+    phrases: [
+      "Speak.",
+      "Summarize this.",
+      "No.",
+      "Yes."
+    ]
+  },
   scopes: {
     priority: ["darkCouncil", "reavers", "dhg", "inquisitors", "dreadmasters", "highranks"],
     divisionOrder: ["reavers", "dhg", "inquisitors", "dreadmasters"]

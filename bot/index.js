@@ -1,5 +1,5 @@
 import { ActivityType, Client, GatewayIntentBits, Partials } from "discord.js";
-import { requireEnv } from "./config/index.js";
+import { config, requireEnv } from "./config/index.js";
 import { routeInteraction } from "./commands/index.js";
 import { ephemeral, errorEmbed } from "./services/discord-ui.js";
 import { syncClockPanels } from "./services/clock-panels.js";
@@ -7,9 +7,32 @@ import { syncVerifiedRoleForLinkedUsers } from "./services/roles.js";
 import { startShiftReminderLoop } from "./services/shift-reminders.js";
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages],
   partials: [Partials.GuildMember]
 });
+
+let lastCheekyResponseAt = 0;
+
+function pickRandom(items) {
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+async function maybeSendCheekyResponse(message) {
+  const responder = config.cheekyResponder;
+  if (!responder?.enabled) return;
+  if (message.author?.bot) return;
+  if (message.channelId !== responder.channelId) return;
+
+  const now = Date.now();
+  if (now - lastCheekyResponseAt < responder.cooldownMs) return;
+  if (Math.random() >= responder.chance) return;
+
+  const phrase = pickRandom(responder.phrases || []);
+  if (!phrase || !message.channel?.send) return;
+
+  lastCheekyResponseAt = now;
+  await message.channel.send(phrase);
+}
 
 async function syncLinkedVerifiedRole() {
   try {
@@ -55,6 +78,14 @@ client.on("interactionCreate", async interaction => {
       if (interaction.deferred || interaction.replied) await interaction.followUp(payload).catch(() => {});
       else await interaction.reply(payload).catch(() => {});
     }
+  }
+});
+
+client.on("messageCreate", async message => {
+  try {
+    await maybeSendCheekyResponse(message);
+  } catch (error) {
+    console.error("Cheeky responder failed", error);
   }
 });
 

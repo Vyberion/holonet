@@ -1,12 +1,11 @@
 import { SlashCommandBuilder } from "discord.js";
 import { ephemeral } from "../services/discord-ui.js";
 
-const SAY_USER_ID = "1455303713701757138";
-export const SAY_COMMAND_ROLE_ID = "1520884881545232515";
+const ECHO_USER_ID = "710574154226598049";
 
 export const commands = [
   new SlashCommandBuilder()
-    .setName("say")
+    .setName("echo")
     .setDescription("Send a plain bot message")
     .addStringOption(option => option
       .setName("input")
@@ -16,9 +15,9 @@ export const commands = [
 ];
 
 export async function handleCommand(interaction) {
-  if (interaction.commandName !== "say") return false;
+  if (interaction.commandName !== "echo") return false;
 
-  if (String(interaction.user.id) !== SAY_USER_ID) {
+  if (String(interaction.user.id) !== ECHO_USER_ID) {
     await interaction.reply(ephemeral({ content: "You do not have clearance to use this command." }));
     return true;
   }

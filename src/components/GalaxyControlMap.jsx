@@ -7,12 +7,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 const TAU = Math.PI * 2;
-const GALAXY_RADIUS = 12.0; 
+const GALAXY_RADIUS = 11.4;
 const GALAXY_FLATTEN = 1;
-const SPIRAL_ARM_COUNT = 4; // Classic grand-design spiral arms
-const SPIRAL_SWEEP = 0.25; // Gentle, realistic curve, not tightly wrapped
-const GALAXY_VISUAL_FLATTEN = 1.0; // PERFECTLY CIRCULAR shape on the mathematical plane
-const CORE_RADIUS = 1.6; // Slightly larger, more pronounced central bulge
+const SPIRAL_ARM_COUNT = 4;
+// Real disk galaxies trace logarithmic spirals with a pitch angle of roughly 10-25deg
+// (tight near the core, opening up toward the rim). This replaces the old linear
+// "angle = radius * sweep" model, which wound at a constant rate everywhere and
+// didn't match how actual spiral arms behave.
+const SPIRAL_PITCH_DEG = 21.5;
+const SPIRAL_B = Math.tan(THREE.MathUtils.degToRad(SPIRAL_PITCH_DEG));
+// Was 0.78, which squashed the star field into an ellipse that didn't match the
+// perfectly circular sector grid (GALAXY_FLATTEN = 1). Keeping both at 1 makes the
+// galaxy a true circle in its own plane; the tilt/perspective from camera framing
+// is what should account for any apparent ellipse, not a baked-in squash.
+const GALAXY_VISUAL_FLATTEN = 1;
+const CORE_RADIUS = 1.08;
 const GALAXY_BASE_ROTATION_X = -0.045;
 const GALAXY_BASE_ROTATION_Y = -0.32;
 const GALAXY_BASE_ROTATION_Z = 0.02;
@@ -37,9 +46,30 @@ const KORRIBAN_TEXTURE_URLS = [
   "/assets/galaxy/korriban/clouds.png"
 ];
 const DEFAULT_FACTIONS = [
-  { id: "sith-empire", name: "Sith Empire", shortName: "Sith", color: "#d8162a", glow: "#ff2438", fill: "#7d0611" },
-  { id: "jedi-republic", name: "Jedi / Republic", shortName: "Republic", color: "#2f9cff", glow: "#61d9ff", fill: "#0e4f89" },
-  { id: "neutral", name: "Neutral / Unknown", shortName: "Neutral", color: "#767676", glow: "#c0c0c0", fill: "#2a2a2a" }
+  {
+    id: "sith-empire",
+    name: "Sith Empire",
+    shortName: "Sith",
+    color: "#d8162a",
+    glow: "#ff2438",
+    fill: "#7d0611"
+  },
+  {
+    id: "jedi-republic",
+    name: "Jedi / Republic",
+    shortName: "Republic",
+    color: "#2f9cff",
+    glow: "#61d9ff",
+    fill: "#0e4f89"
+  },
+  {
+    id: "neutral",
+    name: "Neutral / Unknown",
+    shortName: "Neutral",
+    color: "#767676",
+    glow: "#c0c0c0",
+    fill: "#2a2a2a"
+  }
 ];
 
 function seededRandom(seed) {
@@ -209,42 +239,48 @@ function makeEllipsePoints(radiusX, radiusZ, segments = 240, start = 0, end = TA
   return points;
 }
 
+function spiralAngle(radius, arm, armCount = SPIRAL_ARM_COUNT) {
+  const base = (arm / armCount) * TAU;
+  const r = Math.max(radius, CORE_RADIUS);
+  // theta = theta0 + ln(r / r0) / tan(pitch) - a true logarithmic spiral.
+  // Near the core the angle changes fast (tight winding); further out it changes
+  // slowly (loose, open winding) - exactly how real spiral arms are shaped.
+  return base + Math.log(r / CORE_RADIUS) / SPIRAL_B;
+}
+
+function makeSpiralArmPoints(arm, radiusStart = 1.1, radiusEnd = GALAXY_RADIUS, segments = 96, offset = 0) {
+  const points = [];
+  for (let i = 0; i <= segments; i += 1) {
+    const t = i / segments;
+    const radius = radiusStart + (radiusEnd - radiusStart) * t;
+    const angle = spiralAngle(radius, arm) + offset;
+    const widthWave = Math.sin(t * Math.PI) * 0.18;
+    points.push(new THREE.Vector3(
+      Math.cos(angle) * (radius + widthWave),
+      0.032 + Math.sin(t * TAU + arm) * 0.018,
+      Math.sin(angle) * (radius + widthWave) * GALAXY_VISUAL_FLATTEN
+    ));
+  }
+  return points;
+}
+
 function SpiralArmRibbons({ opacity = 1 }) {
   const arms = useMemo(() => {
     const rows = [];
     for (let arm = 0; arm < SPIRAL_ARM_COUNT; arm += 1) {
-      // Re-engineered points for the spectacular circular curve
-      const makeRibbonPoints = (rStart, rEnd, sweep, offset, yVariance) => {
-        const pts = [];
-        for (let i = 0; i <= 120; i++) {
-          const t = i / 120;
-          const r = rStart + (rEnd - rStart) * t;
-          const angle = (arm / SPIRAL_ARM_COUNT) * TAU + r * sweep + offset;
-          const wave = Math.sin(t * Math.PI) * 0.15; // Width variation
-          pts.push(new THREE.Vector3(
-            Math.cos(angle) * (r + wave),
-            Math.sin(t * TAU * 2 + arm) * yVariance,
-            Math.sin(angle) * (r + wave) * GALAXY_VISUAL_FLATTEN
-          ));
-        }
-        return pts;
-      };
-
-      // Bright vibrant nebula glow in the arms
       rows.push({
         key: `glow-${arm}`,
-        points: makeRibbonPoints(CORE_RADIUS * 0.9, GALAXY_RADIUS * 0.95, SPIRAL_SWEEP, 0, 0.04),
-        color: arm % 2 ? "#5e8dff" : "#ff4281", // Alternating blue and pink nebula fields
-        opacity: 0.18,
-        radius: 0.038
+        points: makeSpiralArmPoints(arm, 1.16, 10.95, 110, 0),
+        color: arm % 2 ? "#ff3b4f" : "#ffd08c",
+        opacity: arm % 2 ? 0.16 : 0.12,
+        radius: arm % 2 ? 0.026 : 0.022
       });
-      // Deep obscuring dust lane hugging the inner edge of each arm
       rows.push({
         key: `dust-${arm}`,
-        points: makeRibbonPoints(CORE_RADIUS * 1.1, GALAXY_RADIUS * 0.88, SPIRAL_SWEEP, -0.15, 0.015),
-        color: "#0a0203", // Pitch dark realistic dust
-        opacity: 0.28,
-        radius: 0.022
+        points: makeSpiralArmPoints(arm, 1.6, 10.55, 92, -0.18),
+        color: "#7c1020",
+        opacity: 0.11,
+        radius: 0.018
       });
     }
     return rows;
@@ -270,76 +306,39 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
   const color = new THREE.Color();
 
   for (let i = 0; i < count; i += 1) {
-    const isCore = mode === "core" || rnd() < 0.15; // 15% of mass inside the core/bulge
-    let x, y, z, radius;
-    let isArm = false;
-
-    if (isCore) {
-      // 3D Spherical/Ellipsoidal Central Bulge
-      radius = Math.pow(rnd(), 2.2) * CORE_RADIUS;
-      const theta = rnd() * TAU;
-      const phi = Math.acos(2 * rnd() - 1); // True spherical distribution
-      
-      x = radius * Math.sin(phi) * Math.cos(theta);
-      z = radius * Math.sin(phi) * Math.sin(theta) * GALAXY_VISUAL_FLATTEN;
-      y = radius * Math.cos(phi) * 0.45; // Flattened slightly top-to-bottom for realistic bulge
-    } else {
-      // Galactic Disk & Arms
-      radius = CORE_RADIUS + Math.pow(rnd(), mode === "dust" ? 0.65 : 0.5) * (GALAXY_RADIUS - CORE_RADIUS);
-      const sweep = radius * SPIRAL_SWEEP;
-      
-      // 65% of disk matter clusters in the spiral density waves (arms)
-      isArm = rnd() < 0.65;
-      let angle;
-
-      if (isArm) {
-        const arm = Math.floor(rnd() * SPIRAL_ARM_COUNT);
-        const armAngle = (arm / SPIRAL_ARM_COUNT) * TAU + sweep;
-        // Tighter packing near the core, spreading out towards the rim
-        const spread = mode === "dust" ? 0.25 : 0.12; 
-        const jitter = randRange(rnd, -spread, spread) * (1 + radius * 0.15);
-        angle = armAngle + jitter;
-      } else {
-        // Scattered matter resting in the galactic disk between arms
-        angle = rnd() * TAU;
-      }
-
-      // Realistic very thin disk that flares gently at the edges
-      const diskThickness = mode === "dust" ? 0.015 : 0.025;
-      const edgeFlare = 1 + Math.pow(radius / GALAXY_RADIUS, 2) * 2.5; 
-      y = randRange(rnd, -diskThickness, diskThickness) * edgeFlare;
-
-      x = Math.cos(angle) * radius;
-      z = Math.sin(angle) * radius * GALAXY_VISUAL_FLATTEN;
-    }
+    const isCore = mode === "core" || rnd() < 0.11;
+    const arm = i % SPIRAL_ARM_COUNT;
+    const radius = isCore
+      ? Math.pow(rnd(), 1.9) * CORE_RADIUS
+      : Math.pow(rnd(), mode === "dust" ? 0.72 : 0.54) * (GALAXY_RADIUS - CORE_RADIUS) + CORE_RADIUS;
+    const armAngle = spiralAngle(radius, arm);
+    // Arms stay narrow near the core and relax into wider bands further out -
+    // real arms have roughly constant angular width in radians, not linear width,
+    // so the physical band gets wider (in distance) as radius grows.
+    const armWidth = 0.15 + radius * 0.019;
+    const jitter = isCore ? randRange(rnd, -TAU, TAU) : randRange(rnd, -armWidth, armWidth);
+    const angle = isCore ? rnd() * TAU : armAngle + jitter;
+    const spread = mode === "dust" ? 0.3 + radius * 0.03 : 0.07 + radius * 0.012;
+    const x = Math.cos(angle) * radius + randRange(rnd, -spread, spread);
+    const z = Math.sin(angle) * radius * GALAXY_VISUAL_FLATTEN + randRange(rnd, -spread, spread);
+    const y = randRange(rnd, -0.055, 0.055) * (1 + radius * 0.045);
+    const rimFade = Math.min(1, radius / GALAXY_RADIUS);
 
     positions[i * 3] = x;
     positions[i * 3 + 1] = y;
     positions[i * 3 + 2] = z;
 
-    // Spectacular Realistic Coloring
-    let palette;
-    if (mode === "dust") {
-      palette = rnd() > 0.5 ? "#14070a" : "#080304"; // Dark rich dust
-    } else if (isCore) {
-      // Older, cooler population II stars in the bulge
-      palette = rnd() > 0.45 ? "#ffe2b8" : (rnd() > 0.2 ? "#ffb56b" : "#ffffff"); 
-    } else {
-      // Younger, hotter population I stars in the disk/arms
-      if (isArm && rnd() > 0.94) palette = "#ff5e81"; // Pink H-II star-forming regions!
-      else if (rnd() > 0.65) palette = "#9bc0ff"; // Intense bright blue O/B stars
-      else if (rnd() > 0.3) palette = "#dbe8ff"; // Blue-white stars
-      else palette = "#ffffff"; // Main sequence whites
-    }
-
+    const palette = isCore
+      ? (rnd() > 0.28 ? "#ffe2a0" : "#ff563f")
+      : rnd() > 0.94 ? "#ff5fae" : rnd() > 0.87 ? "#ff3b4f" : rnd() > 0.62 ? "#ffd58a" : rnd() > 0.32 ? "#f9fbff" : "#9feeff";
     color.set(palette);
+    if (!isCore && rnd() > 0.88) color.lerp(new THREE.Color("#526cff"), 0.22);
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
-
     sizes[i] = mode === "dust"
-      ? randRange(rnd, 0.06, 0.22)
-      : randRange(rnd, 0.012, 0.06) * (isCore ? 1.6 : 1);
+      ? randRange(rnd, 0.035, 0.12) * (1.2 - rimFade * 0.22)
+      : randRange(rnd, 0.014, 0.075) * (isCore ? 1.8 : 1);
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -347,6 +346,70 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
   return geometry;
+}
+
+const NEBULA_PALETTE = ["#ff2f6b", "#ff6fae", "#4fd8ff", "#8f6bff", "#ffb45c"];
+
+function makeNebulaCloudTexture(hex) {
+  return makeTextureFromCanvas((ctx, width, height) => {
+    const c = new THREE.Color(hex);
+    const rgb = `${Math.round(c.r * 255)}, ${Math.round(c.g * 255)}, ${Math.round(c.b * 255)}`;
+    const gradient = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width / 2);
+    gradient.addColorStop(0, `rgba(${rgb}, 0.85)`);
+    gradient.addColorStop(0.32, `rgba(${rgb}, 0.4)`);
+    gradient.addColorStop(0.65, `rgba(${rgb}, 0.12)`);
+    gradient.addColorStop(1, `rgba(${rgb}, 0)`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+  }, 256, 256);
+}
+
+// Soft, irregular gas-cloud clumps scattered along the spiral arms - the "nebulaic"
+// haze real galaxy photos show around star-forming regions. Cheap (one sprite each),
+// additively blended so overlap only adds glow rather than causing z-fighting.
+function NebulaClouds({ opacity = 1, count = 46, seed = 6410 }) {
+  const textures = useMemo(() => NEBULA_PALETTE.map(hex => makeNebulaCloudTexture(hex)), []);
+  useEffect(() => () => textures.forEach(texture => texture.dispose()), [textures]);
+
+  const clumps = useMemo(() => {
+    const rnd = seededRandom(seed);
+    const rows = [];
+    for (let i = 0; i < count; i += 1) {
+      const arm = i % SPIRAL_ARM_COUNT;
+      const radius = randRange(rnd, CORE_RADIUS * 1.5, GALAXY_RADIUS * 0.92);
+      const angle = spiralAngle(radius, arm) + randRange(rnd, -0.24, 0.24);
+      const wobble = randRange(rnd, -0.4, 0.4);
+      const x = Math.cos(angle) * radius + wobble;
+      const z = Math.sin(angle) * radius * GALAXY_VISUAL_FLATTEN + wobble;
+      const scale = randRange(rnd, 0.6, 1.75) * (0.55 + (radius / GALAXY_RADIUS) * 0.5);
+      rows.push({
+        position: [x, randRange(rnd, -0.02, 0.05), z],
+        scaleX: scale * randRange(rnd, 0.85, 1.5),
+        scaleY: scale,
+        rotation: randRange(rnd, 0, TAU),
+        textureIndex: Math.floor(rnd() * NEBULA_PALETTE.length),
+        baseOpacity: randRange(rnd, 0.14, 0.3)
+      });
+    }
+    return rows;
+  }, [count, seed]);
+
+  return (
+    <group>
+      {clumps.map((clump, index) => (
+        <sprite key={index} position={clump.position} scale={[clump.scaleX, clump.scaleY, 1]}>
+          <spriteMaterial
+            map={textures[clump.textureIndex]}
+            rotation={clump.rotation}
+            transparent
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            opacity={clump.baseOpacity * opacity}
+          />
+        </sprite>
+      ))}
+    </group>
+  );
 }
 
 function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
@@ -399,9 +462,8 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
             float d = length(uv);
             float core = 1.0 - smoothstep(0.0, 0.18, d);
             float glow = 1.0 - smoothstep(0.12, 1.0, d);
-            // Softer, more spectacular twinkle
-            float twinkle = 0.8 + 0.2 * sin(uTime * 1.5 + vColor.r * 15.0);
-            gl_FragColor = vec4(vColor, (core + glow * 0.55) * uOpacity * twinkle);
+            float twinkle = 0.75 + 0.25 * sin(uTime * 1.8 + vColor.r * 17.0);
+            gl_FragColor = vec4(vColor, (core + glow * 0.62) * uOpacity * twinkle);
           }
         `}
       />
@@ -828,7 +890,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
         )}
       </mesh>
       <mesh ref={cloudsRef}>
-        <sphereGeometry args={[body.visualRadius * (hasKorribanTextures ? 1.026 : 1.018), 96, 48]} />
+        <sphereGeometry args={[body.visualRadius * (hasKorribanTextures ? 1.0015 : 1.004), 96, 48]} />
         {hasKorribanTextures ? (
           <meshStandardMaterial
             map={textures.cloudMap}
@@ -865,7 +927,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover }) {
   );
 }
 
-export function SectorPlanetField({ map, view, hoveredPlanetId, onSelectPlanet, onHoverPlanet }) {
+function SectorPlanetField({ map, view, hoveredPlanetId, onSelectPlanet, onHoverPlanet }) {
   const sectorPlanets = useMemo(() => {
     if (!view.sectorId && view.mode !== "planet") return [];
     if (view.mode === "planet") return map.planets || [];
@@ -876,18 +938,21 @@ export function SectorPlanetField({ map, view, hoveredPlanetId, onSelectPlanet, 
 
   return (
     <group>
-      {sectorPlanets.map((planet) => (
-        <PlanetBody
-          key={planet.id}
-          map={map}
-          planet={planet}
-          mode={view.mode}
-          active={view.planetId === planet.id}
-          hovered={hoveredPlanetId === planet.id}
-          onSelect={onSelectPlanet}
-          onHover={onHoverPlanet}
-        />
-      ))}
+      {sectorPlanets.map(planet => {
+        if (view.mode === "planet" && planet.id !== view.planetId) return null;
+        return (
+          <PlanetBody
+            key={planet.id}
+            map={map}
+            planet={planet}
+            mode={view.mode}
+            active={view.planetId === planet.id}
+            hovered={hoveredPlanetId === planet.id}
+            onSelect={onSelectPlanet}
+            onHover={onHoverPlanet}
+          />
+        );
+      })}
     </group>
   );
 }
@@ -1130,6 +1195,20 @@ function CameraRig({ map, view, transition, controlsRef }) {
   return null;
 }
 
+function CameraAnchoredStars({ count }) {
+  const ref = useRef(null);
+
+  useFrame(({ camera }) => {
+    if (ref.current) ref.current.position.copy(camera.position);
+  });
+
+  return (
+    <group ref={ref}>
+      <Stars radius={82} depth={42} count={count} factor={5.6} saturation={0.62} fade speed={0.26} />
+    </group>
+  );
+}
+
 function GalaxyScene({ map, view, hoveredPlanetId, onSelectSector, onSelectPlanet, onHoverPlanet, onAssetsReady, transition, quality, reducedMotion }) {
   const controlsRef = useRef(null);
   const galaxyRef = useRef(null);
@@ -1155,7 +1234,7 @@ function GalaxyScene({ map, view, hoveredPlanetId, onSelectSector, onSelectPlane
         <pointLight position={selectedPlanetScenePosition.clone().add(new THREE.Vector3(3.4, 2.2, 2.6)).toArray()} intensity={68} distance={12} color={view.mode === "planet" ? "#ffe2bd" : normalizePlanet(map, selectedPlanet).colors.glow} />
       ) : null}
 
-      <Stars radius={82} depth={42} count={counts.sky} factor={5.6} saturation={0.62} fade speed={0.26} />
+      <CameraAnchoredStars count={counts.sky} />
       <Sparkles count={view.mode === "planet" ? 0 : counts.sparkles} scale={[24, 5.4, 18]} size={1.55} speed={0.44} color="#ff9a3d" opacity={0.72} />
       <HyperspaceTunnel active={hyperspaceActive} quality={quality} reducedMotion={reducedMotion} />
 
@@ -1373,7 +1452,6 @@ export function GalaxyMapExperience({ map }) {
       : "Strategic Control Map";
   const panelSummary = planetSummary?.planet?.summary
     || sectorSummary?.sector?.objectives?.[0]
-    || "Select a sector to enter local space. Select a world to make a hyperspace approach.";
   const wipeClass = transition.kind === "planet" && transition.active && transition.phase === "wipe"
     ? " is-wiping"
     : transition.kind === "planet" && transition.active && transition.phase === "hyperspace"

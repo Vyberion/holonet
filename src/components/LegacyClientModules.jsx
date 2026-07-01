@@ -30,11 +30,19 @@ const moduleLoaders = {
   "/modules/client/registry-directory.js": () => import("../../modules/client/registry-directory.js"),
   "/modules/client/group-timeline.js": () => import("../../modules/client/group-timeline.js"),
   "/modules/client/site.js": async () => {
-    await import("../../modules/client/intro-toggle.js");
-    await import("../../modules/client/mobile-ui-polish.js");
-    await import("../../modules/client/mobile-icon-colour.js");
-    await import("../../modules/client/hub-layout-fixes.js");
-    await import("../../modules/client/hub-latest-tweaks.js");
+    const optionalModules = [
+      () => import("../../modules/client/intro-toggle.js"),
+      () => import("../../modules/client/mobile-icon-colour.js")
+    ];
+
+    for (const loadOptionalModule of optionalModules) {
+      try {
+        await loadOptionalModule();
+      } catch (error) {
+        console.error("Holonet optional client module failed:", error);
+      }
+    }
+
     return import("../../modules/client/site.js");
   }
 };

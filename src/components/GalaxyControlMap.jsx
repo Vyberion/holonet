@@ -16,6 +16,13 @@ const SPIRAL_ARM_COUNT = 5;
 // didn't match how actual spiral arms behave.
 const SPIRAL_PITCH_DEG = 21.5;
 const SPIRAL_B = Math.tan(THREE.MathUtils.degToRad(SPIRAL_PITCH_DEG));
+const SPIRAL_ARM_PROFILES = [
+  { radiusStart: 1.04, radiusEnd: 5.62, angleOffset: -0.08, pitchScale: 0.86, widthScale: 1.28, tailCurl: 0.16, lift: 0.012 },
+  { radiusStart: 1.22, radiusEnd: 5.18, angleOffset: 0.18, pitchScale: 1.12, widthScale: 0.92, tailCurl: 0.34, lift: -0.01 },
+  { radiusStart: 1.1, radiusEnd: 5.74, angleOffset: -0.24, pitchScale: 0.96, widthScale: 1.12, tailCurl: 0.24, lift: 0.022 },
+  { radiusStart: 1.32, radiusEnd: 5.06, angleOffset: 0.06, pitchScale: 0.78, widthScale: 0.82, tailCurl: 0.42, lift: -0.018 },
+  { radiusStart: 1.0, radiusEnd: 5.42, angleOffset: 0.31, pitchScale: 1.24, widthScale: 1.36, tailCurl: 0.2, lift: 0.006 }
+];
 // Was 0.78, which squashed the star field into an ellipse that didn't match the
 // perfectly circular sector grid (GALAXY_FLATTEN = 1). Keeping both at 1 makes the
 // galaxy a true circle in its own plane; the tilt/perspective from camera framing
@@ -34,9 +41,9 @@ const PLANET_APPROACH_DISTANCE = 2.15;
 const PLANET_ENTRY_DISTANCE = 54;
 const BODY_Y_OFFSET = 0.05;
 const PARTICLE_COUNTS = {
-  high: { stars: 56000, dust: 82000, sky: 7200, sparkles: 340, streaks: 1900 },
-  balanced: { stars: 30000, dust: 44000, sky: 3400, sparkles: 150, streaks: 1150 },
-  reduced: { stars: 16000, dust: 22000, sky: 2200, sparkles: 90, streaks: 620 }
+  high: { stars: 112000, dust: 164000, sky: 9600, sparkles: 460, streaks: 2200 },
+  balanced: { stars: 60000, dust: 88000, sky: 5200, sparkles: 220, streaks: 1350 },
+  reduced: { stars: 32000, dust: 44000, sky: 3000, sparkles: 130, streaks: 720 }
 };
 const KORRIBAN_TEXTURE_URLS = [
   "/assets/galaxy/korriban/diffuse.png",
@@ -239,25 +246,36 @@ function makeEllipsePoints(radiusX, radiusZ, segments = 240, start = 0, end = TA
   return points;
 }
 
+function spiralArmProfile(arm) {
+  return SPIRAL_ARM_PROFILES[arm % SPIRAL_ARM_PROFILES.length] || SPIRAL_ARM_PROFILES[0];
+}
+
 function spiralAngle(radius, arm, armCount = SPIRAL_ARM_COUNT) {
+  const profile = spiralArmProfile(arm);
   const base = (arm / armCount) * TAU;
   const r = Math.max(radius, CORE_RADIUS);
   // theta = theta0 + ln(r / r0) / tan(pitch) - a true logarithmic spiral.
   // Near the core the angle changes fast (tight winding); further out it changes
   // slowly (loose, open winding) - exactly how real spiral arms are shaped.
-  return base + Math.log(r / CORE_RADIUS) / SPIRAL_B;
+  return base + profile.angleOffset + Math.log(r / CORE_RADIUS) / (SPIRAL_B * profile.pitchScale);
 }
 
-function makeSpiralArmPoints(arm, radiusStart = 1.1, radiusEnd = GALAXY_RADIUS, segments = 96, offset = 0) {
+function makeSpiralArmPoints(arm, radiusStart, radiusEnd, segments = 96, offset = 0, widthScale = 1) {
+  const profile = spiralArmProfile(arm);
+  const startRadius = radiusStart ?? profile.radiusStart;
+  const endRadius = radiusEnd ?? profile.radiusEnd;
   const points = [];
   for (let i = 0; i <= segments; i += 1) {
     const t = i / segments;
-    const radius = radiusStart + (radiusEnd - radiusStart) * t;
-    const angle = spiralAngle(radius, arm) + offset;
-    const widthWave = Math.sin(t * Math.PI) * 0.18;
+    const eased = 1 - Math.pow(1 - t, 1.12 + profile.tailCurl * 0.22);
+    const radius = startRadius + (endRadius - startRadius) * eased;
+    const rimTaper = 1 - smoothstep(0.72, 1, t) * profile.tailCurl;
+    const tailCurtail = Math.pow(t, 2.2) * profile.tailCurl;
+    const angle = spiralAngle(radius, arm) + offset - tailCurtail;
+    const widthWave = Math.sin(t * Math.PI) * 0.18 * profile.widthScale * widthScale * rimTaper;
     points.push(new THREE.Vector3(
       Math.cos(angle) * (radius + widthWave),
-      0.032 + Math.sin(t * TAU + arm) * 0.018,
+      0.032 + profile.lift + Math.sin(t * TAU + arm) * 0.018 * rimTaper,
       Math.sin(angle) * (radius + widthWave) * GALAXY_VISUAL_FLATTEN
     ));
   }
@@ -268,19 +286,27 @@ function SpiralArmRibbons({ opacity = 1 }) {
   const arms = useMemo(() => {
     const rows = [];
     for (let arm = 0; arm < SPIRAL_ARM_COUNT; arm += 1) {
+      const profile = spiralArmProfile(arm);
       rows.push({
         key: `glow-${arm}`,
-        points: makeSpiralArmPoints(arm, CORE_RADIUS * 1.08, GALAXY_RADIUS * 0.96, 110, 0),
+        points: makeSpiralArmPoints(arm, profile.radiusStart, profile.radiusEnd, 124, 0, 1),
         color: arm % 2 ? "#ff3b4f" : "#ffd08c",
-        opacity: arm % 2 ? 0.16 : 0.12,
-        radius: arm % 2 ? 0.026 : 0.022
+        opacity: arm % 2 ? 0.25 : 0.2,
+        radius: arm % 2 ? 0.034 : 0.029
+      });
+      rows.push({
+        key: `haze-${arm}`,
+        points: makeSpiralArmPoints(arm, profile.radiusStart + 0.16, Math.min(GALAXY_RADIUS, profile.radiusEnd + 0.08), 108, -0.16, 1.18),
+        color: arm % 2 ? "#61d9ff" : "#ff7a45",
+        opacity: 0.13,
+        radius: 0.058
       });
       rows.push({
         key: `dust-${arm}`,
-        points: makeSpiralArmPoints(arm, CORE_RADIUS * 1.32, GALAXY_RADIUS * 0.925, 92, -0.18),
+        points: makeSpiralArmPoints(arm, profile.radiusStart + 0.3, profile.radiusEnd - 0.2, 98, -0.18, 0.76),
         color: "#7c1020",
-        opacity: 0.24,
-        radius: 0.028
+        opacity: 0.34,
+        radius: 0.036
       });
     }
     return rows;
@@ -308,23 +334,26 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
   for (let i = 0; i < count; i += 1) {
     const coreChance = mode === "stars" ? 0.01 : mode === "dust" ? 0.018 : 0.11;
     const isCore = mode === "core" || rnd() < coreChance;
-    const isInterArm = !isCore && rnd() < (mode === "dust" ? 0.32 : 0.22);
+    const isInterArm = !isCore && rnd() < (mode === "dust" ? 0.76 : 0.66);
     const arm = i % SPIRAL_ARM_COUNT;
-    const armStart = mode === "dust" ? CORE_RADIUS * 1.16 : CORE_RADIUS * 1.24;
+    const profile = spiralArmProfile(arm);
+    const armStart = Math.max(profile.radiusStart, mode === "dust" ? CORE_RADIUS * 1.16 : CORE_RADIUS * 1.24);
     const radius = isCore
       ? Math.pow(rnd(), 1.9) * CORE_RADIUS
-      : Math.pow(rnd(), isInterArm ? 0.82 : mode === "dust" ? 0.68 : 0.6) * (GALAXY_RADIUS - armStart) + armStart;
-    const armAngle = spiralAngle(radius, arm);
+      : Math.pow(rnd(), isInterArm ? 0.76 : mode === "dust" ? 0.62 : 0.54) * (profile.radiusEnd - armStart) + armStart;
+    const armProgress = clamp((radius - profile.radiusStart) / Math.max(0.01, profile.radiusEnd - profile.radiusStart), 0, 1);
+    const rimTaper = 1 - smoothstep(0.72, 1, armProgress) * profile.tailCurl;
+    const armAngle = spiralAngle(radius, arm) - Math.pow(armProgress, 2.2) * profile.tailCurl;
     // Arms stay narrow near the core and relax into wider bands further out -
     // real arms have roughly constant angular width in radians, not linear width,
     // so the physical band gets wider (in distance) as radius grows.
-    const armWidth = mode === "dust" ? 0.11 + radius * 0.014 : 0.055 + radius * 0.007;
+    const armWidth = (mode === "dust" ? 0.14 + radius * 0.02 : 0.07 + radius * 0.01) * profile.widthScale * rimTaper;
     const interArmSign = rnd() > 0.5 ? 1 : -1;
     const interArmGap = TAU / SPIRAL_ARM_COUNT;
     const interArmOffset = interArmSign * randRange(
       rnd,
-      armWidth * (mode === "dust" ? 1.55 : 1.9),
-      interArmGap * (mode === "dust" ? 0.46 : 0.42)
+      armWidth * (mode === "dust" ? 1.45 : 1.7),
+      interArmGap * (mode === "dust" ? 0.58 : 0.54)
     );
     const jitter = isCore
       ? randRange(rnd, -TAU, TAU)
@@ -333,8 +362,8 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
         : randRange(rnd, -armWidth, armWidth);
     const angle = isCore ? rnd() * TAU : armAngle + jitter;
     const spread = isInterArm
-      ? (mode === "dust" ? 0.18 + radius * 0.018 : 0.048 + radius * 0.007)
-      : (mode === "dust" ? 0.11 + radius * 0.012 : 0.018 + radius * 0.004);
+      ? (mode === "dust" ? 0.22 + radius * 0.028 : 0.064 + radius * 0.011)
+      : (mode === "dust" ? 0.13 + radius * 0.018 : 0.026 + radius * 0.006);
     const x = Math.cos(angle) * radius + randRange(rnd, -spread, spread);
     const z = Math.sin(angle) * radius * GALAXY_VISUAL_FLATTEN + randRange(rnd, -spread, spread);
     const y = randRange(rnd, -0.055, 0.055) * (1 + radius * 0.045);
@@ -354,8 +383,8 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
     sizes[i] = mode === "dust"
-      ? randRange(rnd, 0.036, 0.118) * (1.12 - rimFade * 0.12) * (isInterArm ? 0.82 : 1)
-      : randRange(rnd, 0.016, 0.06) * (isCore ? 0.72 : isInterArm ? 0.86 : 1);
+      ? randRange(rnd, 0.048, 0.15) * (1.18 - rimFade * 0.1) * (isInterArm ? 0.92 : 1.08)
+      : randRange(rnd, 0.022, 0.078) * (isCore ? 0.88 : isInterArm ? 0.96 : 1.18);
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -477,10 +506,11 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
           void main() {
             vec2 uv = gl_PointCoord * 2.0 - 1.0;
             float d = length(uv);
-            float core = 1.0 - smoothstep(0.0, 0.18, d);
-            float glow = 1.0 - smoothstep(0.12, 1.0, d);
-            float twinkle = 0.75 + 0.25 * sin(uTime * 1.8 + vColor.r * 17.0);
-            gl_FragColor = vec4(vColor, (core + glow * 0.62) * uOpacity * twinkle);
+            float core = 1.0 - smoothstep(0.0, 0.16, d);
+            float glow = 1.0 - smoothstep(0.08, 1.0, d);
+            float halo = pow(max(glow, 0.0), 0.72);
+            float twinkle = 0.88 + 0.32 * sin(uTime * 1.8 + vColor.r * 17.0);
+            gl_FragColor = vec4(vColor * mix(1.18, 1.38, glow), (core * 1.12 + glow * 0.82 + halo * 0.24) * uOpacity * twinkle);
           }
         `}
       />
@@ -997,8 +1027,8 @@ function GalaxyControlMap({ map, view, onSelectSector, quality }) {
         ))}
       </group>
       <SpiralArmRibbons opacity={opacity} />
-      <GalaxyParticles mode="stars" count={counts.stars} seed={4321} opacity={0.9 * opacity} sizeScale={0.86} />
-      <GalaxyParticles mode="dust" count={counts.dust} seed={8827} opacity={0.32 * opacity} sizeScale={1.18} />
+      <GalaxyParticles mode="stars" count={counts.stars} seed={4321} opacity={1.18 * opacity} sizeScale={1.06} />
+      <GalaxyParticles mode="dust" count={counts.dust} seed={8827} opacity={0.52 * opacity} sizeScale={1.34} />
       <GalacticCore opacity={0.62 * sectorOpacity} />
     </group>
   );
@@ -1281,7 +1311,7 @@ function GalaxyScene({ map, view, hoveredPlanetId, onSelectSector, onSelectPlane
       />
       {view.mode === "planet" ? (
         <EffectComposer multisampling={0}>
-          <Bloom intensity={quality === "high" ? 0.32 : 0.2} luminanceThreshold={0.42} luminanceSmoothing={0.22} />
+          <Bloom intensity={quality === "high" ? 0.58 : 0.38} luminanceThreshold={0.24} luminanceSmoothing={0.28} />
           <DepthOfField focusDistance={0} focalLength={0.015} bokehScale={quality === "high" ? 0.24 : 0.14} height={480} />
           <Noise opacity={0.032} />
           <Vignette eskil={false} offset={0.2} darkness={0.58} />
@@ -1626,6 +1656,7 @@ const STYLES = `
   }
 
   .gm-stage {
+    filter: blur(.36px);
     z-index: 1;
   }
 

@@ -19,6 +19,7 @@ const SCOPE_CHOICES = [
   { name: "High Ranks", value: "highranks" },
   { name: "Dark Council", value: "darkCouncil" }
 ];
+const DIVISION_TIERS = ["none", "member", "nco", "co", "2ic", "1ic", "overseer"];
 
 export const commands = [
   new SlashCommandBuilder().setName("clockin").setDescription("Start a shift").addBooleanOption(option => option.setName("late").setDescription("Clock in late")),
@@ -59,6 +60,30 @@ function scopeLabel(scope) {
 
 function clockPanelPayload(scope) {
   return { embeds: [embed(`${scopeLabel(scope)} Clock Panel`, PANEL_DESCRIPTION)], components: panelRows(scope) };
+}
+
+function divisionTierAtLeast(profile, division, requiredTier) {
+  return DIVISION_TIERS.indexOf(profile?.divisions?.[division] || "none") >= DIVISION_TIERS.indexOf(requiredTier);
+}
+
+function hasDarkCouncilPlus(profile, member = null) {
+  return Boolean(canManageBot(profile, member) || Object.values(profile?.authorityRoles || {}).some(Boolean));
+}
+
+function canViewScopeTime(profile, scope, member = null) {
+  const roles = profile?.authorityRoles || {};
+  if (scope === "all") return canManageBot(profile, member);
+  if (scope === "inquisitors") return Boolean(divisionTierAtLeast(profile, "inquisitors", "member") || roles.inquisitoriusOverseer || canManageBot(profile, member));
+  if (scope === "darkCouncil") return hasDarkCouncilPlus(profile, member);
+  return canManageBot(profile, member);
+}
+
+async function requireScopeTimeAccess(interaction, scope) {
+  const verified = await getVerifiedProfile(interaction.user.id).catch(() => null);
+  if (canViewScopeTime(verified?.profile, scope, interaction.member)) return { allowed: true, profile: verified?.profile || null };
+
+  await interaction.reply(ephemeral({ embeds: [errorEmbed(`You do not have clearance to view ${scopeLabel(scope)} time.`)] }));
+  return { allowed: false, profile: verified?.profile || null };
 }
 
 function rankName(section, rank) { return section?.ranks?.[String(rank)]?.value || `Rank ${rank}`; }
@@ -136,15 +161,23 @@ function leaderboardEmbed(scope, rows, page) {
 }
 
 async function replyScopeLeaderboard(interaction, scope, page = 0, update = false) {
+  const access = await requireScopeTimeAccess(interaction, scope);
+  if (!access.allowed) return;
+
   const payload = leaderboardEmbed(scope, await loadScopeLeaderboard(scope), page);
   if (update) await interaction.update(payload);
   else await interaction.reply(ephemeral(payload));
 }
 
 async function replyUserTime(interaction, user) {
-  const totals = await shiftTotals(user.id);
   const verified = await getVerifiedProfile(user.id).catch(() => null);
   const scope = verified?.profile ? inferScope(verified.profile) : "";
+  if (user.id !== interaction.user.id) {
+    const access = await requireScopeTimeAccess(interaction, scope || "all");
+    if (!access.allowed) return;
+  }
+
+  const totals = await shiftTotals(user.id);
   await interaction.reply(ephemeral({ embeds: [embed("Shift Time", [
     `User: <@${user.id}>`,
     `Scope: ${scope ? scopeLabel(scope) : "Unassigned"}`,
@@ -228,6 +261,14 @@ async function handleShiftReminderButton(interaction) {
   return true;
 }
 
+async function canViewTargetUserTime(interaction, targetUser) {
+  if (targetUser.id === interaction.user.id) return true;
+  const verified = await getVerifiedProfile(targetUser.id).catch(() => null);
+  const scope = verified?.profile ? inferScope(verified.profile) : "";
+  const access = await requireScopeTimeAccess(interaction, scope || "all");
+  return access.allowed;
+}
+
 export async function handleCommand(interaction) {
   const commandName = interaction.commandName;
   const subcommand = interaction.options?.getSubcommand(false) || "";
@@ -239,7 +280,7 @@ export async function handleCommand(interaction) {
   }
 
   if (interaction.commandName === "clockout") {
-    if (interaction.options.getBoolean("late")) await interaction.showModal(textModal("clockmodal:out:auto", "Late Clock-Out", [{ id: "minutes", label: "How late is this clock-out? (minutes)", placeholder: "10" }]));
+    if (interaction.options.getBoolean("late")) await interaction.showModal(textModal("clockmodal:out:auto", "Late Clock-Out", [{ id: "minutes", label: "How late is this clock-out?", placeholder: "10" }]));
     else try { await doClockOut(interaction); } catch (error) { await replyClockError(interaction, error); }
     return true;
   }
@@ -293,15 +334,26 @@ export async function handleCommand(interaction) {
   }
 
   if (interaction.commandName === "shifts") {
-    if (!(await requireManager(interaction))) {
-      await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to view shift reports.")] }));
-      return true;
-    }
     const sub = interaction.options.getSubcommand();
     let query = supabase.from("clock_shifts").select("*").order("started_at", { ascending: false }).limit(10);
-    if (sub === "active") query = query.eq("status", "active");
-    if (sub === "user") query = query.eq("discord_user_id", interaction.options.getUser("user", true).id);
-    if (sub === "weekly") query = query.gte("started_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).eq("scope", interaction.options.getString("scope", true));
+
+    if (sub === "weekly") {
+      const scope = interaction.options.getString("scope", true);
+      const access = await requireScopeTimeAccess(interaction, scope);
+      if (!access.allowed) return true;
+      query = query.gte("started_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).eq("scope", scope);
+    } else if (sub === "user") {
+      const targetUser = interaction.options.getUser("user", true);
+      if (!(await canViewTargetUserTime(interaction, targetUser))) return true;
+      query = query.eq("discord_user_id", targetUser.id);
+    } else {
+      if (!(await requireManager(interaction))) {
+        await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to view shift reports.")] }));
+        return true;
+      }
+      if (sub === "active") query = query.eq("status", "active");
+    }
+
     const { data, error } = await query;
     if (error) throw error;
     const lines = (data || []).map(row => `<@${row.discord_user_id}> ${row.scope} ${row.status} ${row.duration_seconds ? formatDuration(row.duration_seconds) : ""}`);

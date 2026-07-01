@@ -57,8 +57,9 @@ const GALAXY_OUTSIDE_COLOR = "#83c9ff";
 const GALAXY_RIM_GLOW_COLOR = "#e8fbff";
 const DEFAULT_POLAR_TESSELLATION = {
   angles: [-180, -150, -116, -84, -52, -24, 8, 38, 68, 100, 132, 164, 196, 228, 260, 294, 330, 360],
-  rings: [0.16, 0.82, 1.42, 2.05, 2.85, 3.72, 4.86, 5.58, 6.24, 6.74]
-};const CORE_CUTOUT_RING_INDEX = 2;
+  rings: [0.16, 0.72, 1.42, 2.05, 2.85, 3.72, 4.86, 5.58, 6.24, 6.74]
+};
+const CORE_CUTOUT_RING_INDEX = 2;
 const SECTOR_TESSELLATION_CELLS = {
   "tython-deep-core": [[1, 3, 0, 1]],
   coruscant: [[3, 5, 0, 2]],

@@ -20,6 +20,11 @@ export const GALAXY_CONTROL_MAP = {
       label: "Wookieepedia Esstran sector and Sith Worlds references",
       url: "https://starwars.fandom.com/",
       note: "Legends sector, region, and Sith Worlds membership reference."
+    },
+    {
+      label: "Star Wars: The Old Republic planet references",
+      url: "https://www.swtor.com/holonet/planets/dromund-kaas",
+      note: "Era-specific placement reference for Sith Empire worlds."
     }
   ],
   factions: [
@@ -49,8 +54,8 @@ export const GALAXY_CONTROL_MAP = {
     }
   ],
   regions: [
-    { id: "deep-core", name: "Deep Core", radius: [0, 0.82] },
-    { id: "core", name: "Core Worlds", radius: [0.82, 1.42] },
+    { id: "deep-core", name: "Deep Core", radius: [0, 0.72] },
+    { id: "core", name: "Core Worlds", radius: [0.72, 1.42] },
     { id: "colonies", name: "Colonies", radius: [1.42, 2.05] },
     { id: "inner-rim", name: "Inner Rim", radius: [2.05, 2.85] },
     { id: "expansion", name: "Expansion Region", radius: [2.85, 3.72] },
@@ -84,7 +89,7 @@ export const GALAXY_CONTROL_MAP = {
     { id: "kanz", name: "Kanz Sector", regionId: "mid-rim", grid: "O-12", factionId: "neutral", placementConfidence: "Legends sector broad placement", innerRadius: 3.2, outerRadius: 4.78, outerStartRadius: 4.94, outerEndRadius: 4.54, startAngleDeg: 50, endAngleDeg: 92 },
     { id: "voss", name: "Voss Sector", regionId: "outer-rim", grid: "S-7", factionId: "neutral", placementConfidence: "Old Republic campaign-world broad placement", innerRadius: 3.62, outerRadius: 5.18, outerStartRadius: 4.98, outerEndRadius: 5.4, startAngleDeg: 92, endAngleDeg: 136 },
     { id: "belsavis", name: "Belsavis Sector", regionId: "outer-rim", grid: "Q-16", factionId: "neutral", placementConfidence: "Old Republic campaign-world broad placement", innerRadius: 3.94, outerRadius: 5.36, outerStartRadius: 5.5, outerEndRadius: 5.1, startAngleDeg: 136, endAngleDeg: 178 },
-    { id: "esstran", name: "Esstran Sector", regionId: "outer-rim", grid: "R-5", factionId: "sith-empire", placementConfidence: "Canonical broad placement: Sith Worlds / Esstran sector / Outer Rim", innerRadius: 4.72, outerRadius: 6.24, innerStartRadius: 4.58, innerEndRadius: 4.9, outerStartRadius: 6.34, outerEndRadius: 6.08, startAngleDeg: -64, endAngleDeg: -32, localView: { innerRadius: 0.94, outerRadius: 6.24, startAngleDeg: -36, endAngleDeg: 36 }, objectives: [], activeWars: ["Ak'tuun vs Kalazar"], surveyStars: [{ id: "esstran-a", position: [3.46, -4.22], size: 0.045 }, { id: "esstran-b", position: [4.15, -3.62], size: 0.035 }, { id: "esstran-c", position: [4.26, -4.16], size: 0.032 }, { id: "esstran-d", position: [5.24, -3.26], size: 0.04 }, { id: "esstran-e", position: [4.62, -3.72], size: 0.034 }] },
+    { id: "esstran", name: "Esstran Sector", regionId: "outer-rim", grid: "R-5", factionId: "sith-empire", placementConfidence: "Legends placement: Esstran sector in the Outer Rim, containing Sith Worlds and major Old Republic Sith worlds.", innerRadius: 4.72, outerRadius: 6.24, innerStartRadius: 4.58, innerEndRadius: 4.9, outerStartRadius: 6.34, outerEndRadius: 6.08, startAngleDeg: -64, endAngleDeg: -32, localView: { innerRadius: 0.72, outerRadius: 6.24, startAngleDeg: -30, endAngleDeg: 30 }, objectives: [], activeWars: ["Ak'tuun vs Kalazar"], surveyStars: [{ id: "esstran-a", position: [3.46, -4.22], size: 0.045 }, { id: "esstran-b", position: [4.15, -3.62], size: 0.035 }, { id: "esstran-c", position: [4.26, -4.16], size: 0.032 }, { id: "esstran-d", position: [5.24, -3.26], size: 0.04 }, { id: "esstran-e", position: [4.62, -3.72], size: 0.034 }] },
     { id: "dromund", name: "Dromund Sector", regionId: "outer-rim", grid: "S-5", factionId: "neutral", placementConfidence: "Sith Empire / Dromund Kaas broad placement", innerRadius: 4.96, outerRadius: 6.4, outerStartRadius: 6.22, outerEndRadius: 6.58, startAngleDeg: -32, endAngleDeg: -4 },
     { id: "hutt-space", name: "Hutt Space", regionId: "outer-rim", grid: "S-12", factionId: "neutral", placementConfidence: "Legends Hutt Space broad placement", innerRadius: 4.68, outerRadius: 6.5, outerStartRadius: 6.66, outerEndRadius: 6.28, startAngleDeg: -4, endAngleDeg: 28 },
     { id: "arkanis", name: "Arkanis Sector", regionId: "outer-rim", grid: "R-16", factionId: "neutral", placementConfidence: "Outer Rim Legends broad placement", innerRadius: 4.88, outerRadius: 6.34, innerEndRadius: 4.68, outerEndRadius: 6.56, startAngleDeg: 28, endAngleDeg: 56 },
@@ -115,6 +120,22 @@ export const GALAXY_CONTROL_MAP = {
       robloxPlaceId: 1177256329,
       robloxLaunchUrl: "roblox://experiences/start?placeId=1177256329",
       summary: "Homeworld of the Sith and location of the Sith Academy."
+    },
+    {
+      id: "dromund-kaas",
+      name: "Dromund Kaas",
+      shortName: "Dromund Kaas",
+      sectorId: "dromund",
+      regionId: "outer-rim",
+      factionId: "sith-empire",
+      grid: "R-5",
+      position: [4.76, -4.08],
+      radius: 0.02,
+      placementConfidence: "Legends placement: Dromund system, Sith Worlds region, Esstran sector, Outer Rim.",
+      contested: false,
+      objectives: ["Protect Imperial capital approaches", "Maintain Stygian Caldera route control"],
+      locations: ["Kaas City", "Imperial Citadel", "Dark Temple approaches"],
+      summary: "Jungle capital of the reconstituted Sith Empire during the Old Republic era."
     }
   ]
 };

@@ -29,7 +29,7 @@ export const GALAXY_CONTROL_MAP = {
   ],
   factions: [
     {
-      id: "neutral",
+      id: "sith-empire",
       name: "Sith Empire",
       shortName: "Sith",
       color: "#d8162a",
@@ -37,7 +37,7 @@ export const GALAXY_CONTROL_MAP = {
       fill: "#7d0611"
     },
     {
-      id: "neutral",
+      id: "jedi-republic",
       name: "Jedi / Republic",
       shortName: "Republic",
       color: "#2f9cff",
@@ -120,22 +120,6 @@ export const GALAXY_CONTROL_MAP = {
       robloxPlaceId: 1177256329,
       robloxLaunchUrl: "roblox://experiences/start?placeId=1177256329",
       summary: "Homeworld of the Sith and location of the Sith Academy."
-    },
-    {
-      id: "dromund-kaas",
-      name: "Dromund Kaas",
-      shortName: "Dromund Kaas",
-      sectorId: "dromund",
-      regionId: "outer-rim",
-      factionId: "sith-empire",
-      grid: "R-5",
-      position: [4.76, -4.08],
-      radius: 0.02,
-      placementConfidence: "Legends placement: Dromund system, Sith Worlds region, Esstran sector, Outer Rim.",
-      contested: false,
-      objectives: ["Protect Imperial capital approaches", "Maintain Stygian Caldera route control"],
-      locations: ["Kaas City", "Imperial Citadel", "Dark Temple approaches"],
-      summary: "Jungle capital of the reconstituted Sith Empire during the Old Republic era."
     }
   ]
 };

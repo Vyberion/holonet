@@ -2046,14 +2046,15 @@ const STYLES = `
   }
 
   .gm-topbar {
-    --gm-topbar-inset: clamp(48px, 6vw, 112px);
-    align-items: center;
+    --gm-topbar-inset: clamp(14px, 1.8vw, 24px);
+    --gm-topbar-card-size: 54px;
+    align-items: stretch;
     display: flex;
     gap: 12px;
     left: var(--gm-topbar-inset);
     max-width: min(560px, calc(100vw - var(--gm-topbar-inset) - var(--gm-topbar-inset)));
     position: absolute;
-    top: calc(var(--nav-height, 72px) + clamp(14px, 2.2vw, 28px));
+    top: calc(var(--nav-height, 62px) + clamp(10px, 1.4vw, 16px));
     z-index: 8;
   }
 
@@ -2077,11 +2078,11 @@ const STYLES = `
     color: var(--theme-accent, #ff3b4f);
     cursor: crosshair;
     display: inline-flex;
-    height: 42px;
+    height: var(--gm-topbar-card-size);
     justify-content: center;
     padding: 0;
     transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease;
-    width: 42px;
+    width: var(--gm-topbar-card-size);
   }
 
   .gm-back svg {
@@ -2117,6 +2118,7 @@ const STYLES = `
   .gm-lockup {
     display: grid;
     gap: 3px;
+    min-height: var(--gm-topbar-card-size);
     min-width: min(310px, calc(100vw - 74px));
     padding: 10px 14px;
   }
@@ -2356,11 +2358,12 @@ const STYLES = `
 
   @media (max-width: 760px) {
     .gm-topbar {
-      --gm-topbar-inset: clamp(22px, 7vw, 34px);
+      --gm-topbar-inset: clamp(12px, 4vw, 18px);
+      --gm-topbar-card-size: 50px;
       left: var(--gm-topbar-inset);
       max-width: none;
       right: var(--gm-topbar-inset);
-      top: 14px;
+      top: calc(var(--nav-height, 56px) + 10px);
     }
 
     .gm-lockup {

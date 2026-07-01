@@ -55,6 +55,44 @@ const GALAXY_FLOW_ROTATION_SPEED = -0.012;
 const GALAXY_INSIDE_COLOR = "#f9fdff";
 const GALAXY_OUTSIDE_COLOR = "#83c9ff";
 const GALAXY_RIM_GLOW_COLOR = "#e8fbff";
+const DEFAULT_POLAR_TESSELLATION = {
+  angles: [-180, -150, -116, -84, -52, -24, 8, 38, 68, 100, 132, 164, 196, 228, 260, 294, 330, 360],
+  rings: [0.16, 0.82, 1.42, 2.05, 2.85, 3.72, 4.86, 5.58, 6.24, 6.74]
+};
+const SECTOR_TESSELLATION_CELLS = {
+  "tython-deep-core": [[1, 3, 0, 1]],
+  coruscant: [[3, 5, 0, 2]],
+  corellian: [[5, 7, 1, 2]],
+  kuat: [[7, 9, 1, 2]],
+  alderaan: [[9, 11, 1, 2]],
+  alsakan: [[11, 13, 0, 2]],
+  brentaal: [[0, 2, 2, 3]],
+  duro: [[2, 4, 2, 3]],
+  tapani: [[4, 5, 2, 4], [5, 6, 2, 3]],
+  hapes: [[6, 8, 3, 4]],
+  manaan: [[8, 10, 3, 4]],
+  onderon: [[10, 12, 3, 4], [11, 12, 4, 5]],
+  balmorra: [[0, 2, 4, 5]],
+  taris: [[2, 3, 4, 6]],
+  "bothan-space": [[3, 5, 5, 6]],
+  mandalore: [[5, 6, 5, 7]],
+  "tion-cluster": [[6, 8, 4, 6]],
+  kanz: [[8, 9, 4, 6]],
+  voss: [[9, 11, 5, 7]],
+  belsavis: [[11, 13, 5, 7]],
+  esstran: [[4, 5, 6, 8]],
+  dromund: [[5, 6, 6, 8]],
+  "hutt-space": [[6, 7, 6, 9]],
+  arkanis: [[7, 8, 6, 8]],
+  anoat: [[8, 9, 6, 8]],
+  "gordian-reach": [[9, 10, 6, 8]],
+  "corporate-sector": [[10, 11, 6, 9]],
+  "tingel-arm": [[11, 12, 7, 9]],
+  "minos-cluster": [[12, 13, 7, 8]],
+  kathol: [[13, 14, 7, 9]],
+  "rishi-maze": [[14, 15, 7, 9]],
+  "ilum-frontier": [[15, 17, 6, 8]]
+};
 const KORRIBAN_TEXTURE_URLS = [
   "/assets/galaxy/korriban/diffuse.png",
   "/assets/galaxy/korriban/bump.png",
@@ -208,12 +246,20 @@ function mapPointToScene(position, map, y = BODY_Y_OFFSET) {
   );
 }
 
-function mapLocalToWorld(point) {
-  return point.clone().applyEuler(GALAXY_BASE_ROTATION);
+function galaxyRotationAt(elapsedTime = 0) {
+  return new THREE.Euler(
+    GALAXY_BASE_ROTATION_X,
+    GALAXY_BASE_ROTATION_Y + elapsedTime * GALAXY_FLOW_ROTATION_SPEED,
+    GALAXY_BASE_ROTATION_Z
+  );
 }
 
-function mapPointToWorld(position, map, y = BODY_Y_OFFSET) {
-  return mapLocalToWorld(mapPointToScene(position, map, y));
+function mapLocalToWorld(point, elapsedTime = 0) {
+  return point.clone().applyEuler(galaxyRotationAt(elapsedTime));
+}
+
+function mapPointToWorld(position, map, y = BODY_Y_OFFSET, elapsedTime = 0) {
+  return mapLocalToWorld(mapPointToScene(position, map, y), elapsedTime);
 }
 
 function sectorMidAngle(sector) {
@@ -225,7 +271,52 @@ function sectorMidRadius(sector) {
 }
 
 function sectorSceneCenter(sector, map) {
+  const cells = sectorTessellationCells(sector, map);
+  if (cells.length) {
+    const center = new THREE.Vector3();
+    let totalWeight = 0;
+    cells.forEach(cell => {
+      const angleSpan = Math.abs(cell.endAngleDeg - cell.startAngleDeg);
+      const weight = Math.max(0.01, angleSpan * (cell.outerRadius * cell.outerRadius - cell.innerRadius * cell.innerRadius));
+      center.add(polarToScene((cell.startAngleDeg + cell.endAngleDeg) / 2, (cell.innerRadius + cell.outerRadius) / 2, map).multiplyScalar(weight));
+      totalWeight += weight;
+    });
+    return center.divideScalar(totalWeight || 1);
+  }
   return polarToScene(sectorMidAngle(sector), sectorMidRadius(sector), map);
+}
+
+function getPolarTessellation(map) {
+  return map?.guide?.tessellation || DEFAULT_POLAR_TESSELLATION;
+}
+
+function sectorTessellationCells(sector, map) {
+  const tessellation = getPolarTessellation(map);
+  const cells = sector.cells || SECTOR_TESSELLATION_CELLS[sector.id] || [];
+  if (!cells.length) {
+    return [{
+      startAngleDeg: sector.startAngleDeg || 0,
+      endAngleDeg: sector.endAngleDeg || (sector.startAngleDeg || 0) + 22,
+      innerRadius: sector.innerRadius || 0.82,
+      outerRadius: sector.outerRadius || getGuideRadius(map)
+    }];
+  }
+  return cells.map(cell => {
+    const [angleStartIndex, angleEndIndex, ringStartIndex, ringEndIndex] = Array.isArray(cell)
+      ? cell
+      : [cell.angle?.[0], cell.angle?.[1], cell.ring?.[0], cell.ring?.[1]];
+    return {
+      startAngleDeg: tessellation.angles[angleStartIndex],
+      endAngleDeg: tessellation.angles[angleEndIndex],
+      innerRadius: tessellation.rings[ringStartIndex],
+      outerRadius: tessellation.rings[ringEndIndex]
+    };
+  }).filter(cell => (
+    Number.isFinite(cell.startAngleDeg)
+    && Number.isFinite(cell.endAngleDeg)
+    && Number.isFinite(cell.innerRadius)
+    && Number.isFinite(cell.outerRadius)
+  ));
 }
 
 function makeLineGeometry(points) {
@@ -485,31 +576,32 @@ function GalaxyParticles({ mode, count, seed, opacity, sizeScale = 1 }) {
   );
 }
 
-function SectorGrid({ opacity = 1 }) {
+function SectorGrid({ map, opacity = 1 }) {
+  const tessellation = getPolarTessellation(map);
   const radialLines = useMemo(() => {
-    const lines = [];
-    for (let i = 0; i < 24; i += 1) {
-      const angle = (i / 24) * TAU;
-      lines.push([
-        new THREE.Vector3(Math.cos(angle) * CORE_RADIUS, 0.018, Math.sin(angle) * CORE_RADIUS * GALAXY_FLATTEN),
-        new THREE.Vector3(Math.cos(angle) * GALAXY_RADIUS, 0.018, Math.sin(angle) * GALAXY_RADIUS * GALAXY_FLATTEN)
-      ]);
-    }
-    return lines;
-  }, []);
+    const minRadius = tessellation.rings[0] * getMapScale(map);
+    const maxRadius = tessellation.rings[tessellation.rings.length - 1] * getMapScale(map);
+    return tessellation.angles.slice(0, -1).map(angleDeg => {
+      const angle = THREE.MathUtils.degToRad(angleDeg);
+      return [
+        new THREE.Vector3(Math.cos(angle) * minRadius, 0.018, Math.sin(angle) * minRadius * GALAXY_FLATTEN),
+        new THREE.Vector3(Math.cos(angle) * maxRadius, 0.018, Math.sin(angle) * maxRadius * GALAXY_FLATTEN)
+      ];
+    });
+  }, [map, tessellation]);
 
   return (
     <group>
-      {[1.2, 2.25, 3.4, 4.6, 5.625].map((radius, index) => (
+      {tessellation.rings.slice(1).map((radius, index) => (
         <line key={radius} position={[0, 0.02 + index * 0.002, 0]}>
-          <LineGeometry points={makeEllipsePoints(radius, radius * GALAXY_FLATTEN, 260)} />
-          <lineBasicMaterial color={index === 4 ? "#ff3b4f" : "#7a1a28"} transparent opacity={(index === 4 ? 0.24 : 0.1) * opacity} blending={THREE.AdditiveBlending} depthWrite={false} />
+          <LineGeometry points={makeEllipsePoints(radius * getMapScale(map), radius * getMapScale(map) * GALAXY_FLATTEN, 260)} />
+          <lineBasicMaterial color={index >= tessellation.rings.length - 3 ? "#cfefff" : "#6ea9cc"} transparent opacity={(index >= tessellation.rings.length - 3 ? 0.2 : 0.08) * opacity} blending={THREE.AdditiveBlending} depthWrite={false} />
         </line>
       ))}
       {radialLines.map((points, index) => (
         <line key={index}>
           <LineGeometry points={points} />
-          <lineBasicMaterial color={index % 3 === 0 ? "#ff3b4f" : "#5f1b25"} transparent opacity={(index % 3 === 0 ? 0.14 : 0.06) * opacity} blending={THREE.AdditiveBlending} depthWrite={false} />
+          <lineBasicMaterial color={index % 3 === 0 ? "#dff6ff" : "#77b8dd"} transparent opacity={(index % 3 === 0 ? 0.16 : 0.075) * opacity} blending={THREE.AdditiveBlending} depthWrite={false} />
         </line>
       ))}
     </group>
@@ -534,60 +626,56 @@ function GalacticCore({ opacity = 1 }) {
   );
 }
 
-function makeSectorGeometry(sector, map) {
-  const start = sector.startAngleDeg || 0;
-  const end = sector.endAngleDeg || start + 22;
-  const inner = sector.innerRadius || 0.82;
-  const outer = sector.outerRadius || getGuideRadius(map);
-  const innerStart = sector.innerStartRadius || inner;
-  const innerEnd = sector.innerEndRadius || inner;
-  const outerStart = sector.outerStartRadius || outer;
-  const outerEnd = sector.outerEndRadius || outer;
+function makeSectorCellPoints(cell, map) {
+  const start = cell.startAngleDeg;
+  const end = cell.endAngleDeg;
+  const inner = cell.innerRadius;
+  const outer = cell.outerRadius;
   const steps = Math.max(18, Math.ceil(Math.abs(end - start) / 1.6));
   const vectors = [];
-  const radiusAt = (from, to, t, side = 1) => {
-    const eased = smoothstep(0, 1, t);
-    const bow = Math.sin(t * Math.PI) * 0.08 * side;
-    return THREE.MathUtils.lerp(from, to, eased) + bow;
-  };
 
   for (let i = 0; i <= steps; i += 1) {
     const t = i / steps;
     const angle = start + (end - start) * t;
-    const radius = radiusAt(outerStart, outerEnd, t, 1);
-    vectors.push(polarToScene(angle, radius, map));
+    vectors.push(polarToScene(angle, outer, map));
   }
 
   for (let i = steps; i >= 0; i -= 1) {
     const t = i / steps;
     const angle = start + (end - start) * t;
-    const radius = radiusAt(innerStart, innerEnd, t, -0.55);
-    vectors.push(polarToScene(angle, radius, map));
+    vectors.push(polarToScene(angle, inner, map));
   }
 
-  const shape = new THREE.Shape(vectors.map(point => new THREE.Vector2(point.x, point.z)));
-  const geometry = new THREE.ShapeGeometry(shape, 2);
-  const position = geometry.getAttribute("position");
-  for (let i = 0; i < position.count; i += 1) {
-    const x = position.getX(i);
-    const z = position.getY(i);
-    position.setXYZ(i, x, -0.055, z);
-  }
-  position.needsUpdate = true;
-  geometry.computeVertexNormals();
-  return { geometry, edgePoints: vectors.map(point => new THREE.Vector3(point.x, -0.026, point.z)) };
+  return vectors;
+}
+
+function makeSectorGeometry(sector, map) {
+  return sectorTessellationCells(sector, map).map(cell => {
+    const vectors = makeSectorCellPoints(cell, map);
+    const shape = new THREE.Shape(vectors.map(point => new THREE.Vector2(point.x, point.z)));
+    const geometry = new THREE.ShapeGeometry(shape, 2);
+    const position = geometry.getAttribute("position");
+    for (let i = 0; i < position.count; i += 1) {
+      const x = position.getX(i);
+      const z = position.getY(i);
+      position.setXYZ(i, x, -0.055, z);
+    }
+    position.needsUpdate = true;
+    geometry.computeVertexNormals();
+    return { geometry, edgePoints: vectors.map(point => new THREE.Vector3(point.x, -0.026, point.z)) };
+  });
 }
 
 function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onHover }) {
   const sectorPlanets = planetsForSector(map, sector.id);
   const hasPlanets = sectorPlanets.length > 0;
   const faction = hasPlanets ? factionById(map, sector.factionId) : factionById(map, "neutral");
-  const { geometry, edgePoints } = useMemo(() => makeSectorGeometry(sector, map), [sector, map]);
+  const tiles = useMemo(() => makeSectorGeometry(sector, map), [sector, map]);
   const fillOpacity = active ? 0.52 : dimmed ? 0.08 : hovered ? 0.42 : hasPlanets ? 0.34 : 0.24;
   const lineOpacity = active ? 0.95 : dimmed ? 0.18 : hovered ? 0.9 : hasPlanets ? 0.72 : 0.52;
   const scanOpacity = active ? 0.2 : dimmed ? 0.035 : hovered ? 0.16 : hasPlanets ? 0.12 : 0.08;
 
-  useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => tiles.forEach(tile => tile.geometry.dispose()), [tiles]);
 
   const handleClick = event => {
     event.stopPropagation();
@@ -604,47 +692,51 @@ function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onH
 
   return (
     <group>
-      <mesh geometry={geometry} onClick={handleClick} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut}>
-        <meshBasicMaterial
-          color={faction.fill || faction.color}
-          transparent
-          opacity={fillOpacity}
-          depthWrite={false}
-          side={THREE.DoubleSide}
-          polygonOffset
-          polygonOffsetFactor={1}
-        />
-      </mesh>
-      <mesh geometry={geometry} raycast={() => null}>
-        <shaderMaterial
-          transparent
-          depthWrite={false}
-          depthTest={false}
-          blending={THREE.AdditiveBlending}
-          uniforms={{
-            uColor: { value: new THREE.Color(faction.glow || faction.color) },
-            uOpacity: { value: scanOpacity }
-          }}
-          vertexShader={`
-            void main() {
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-          `}
-          fragmentShader={`
-            uniform vec3 uColor;
-            uniform float uOpacity;
-            void main() {
-              float scan = 0.55 + 0.45 * sin(gl_FragCoord.y * 1.75);
-              float band = smoothstep(0.18, 1.0, scan);
-              gl_FragColor = vec4(uColor * (0.7 + band * 0.45), uOpacity * (0.38 + band * 0.62));
-            }
-          `}
-        />
-      </mesh>
-      <line raycast={() => null}>
-        <LineGeometry points={[...edgePoints, edgePoints[0]]} />
-        <lineBasicMaterial color={faction.glow || faction.color} transparent opacity={lineOpacity} blending={THREE.AdditiveBlending} depthWrite={false} depthTest={false} />
-      </line>
+      {tiles.map((tile, index) => (
+        <group key={index}>
+          <mesh geometry={tile.geometry} onClick={handleClick} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut}>
+            <meshBasicMaterial
+              color={faction.fill || faction.color}
+              transparent
+              opacity={fillOpacity}
+              depthWrite={false}
+              side={THREE.DoubleSide}
+              polygonOffset
+              polygonOffsetFactor={1}
+            />
+          </mesh>
+          <mesh geometry={tile.geometry} raycast={() => null}>
+            <shaderMaterial
+              transparent
+              depthWrite={false}
+              depthTest={false}
+              blending={THREE.AdditiveBlending}
+              uniforms={{
+                uColor: { value: new THREE.Color(faction.glow || faction.color) },
+                uOpacity: { value: scanOpacity }
+              }}
+              vertexShader={`
+                void main() {
+                  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+              `}
+              fragmentShader={`
+                uniform vec3 uColor;
+                uniform float uOpacity;
+                void main() {
+                  float scan = 0.55 + 0.45 * sin(gl_FragCoord.y * 1.75);
+                  float band = smoothstep(0.18, 1.0, scan);
+                  gl_FragColor = vec4(uColor * (0.7 + band * 0.45), uOpacity * (0.38 + band * 0.62));
+                }
+              `}
+            />
+          </mesh>
+          <line raycast={() => null}>
+            <LineGeometry points={[...tile.edgePoints, tile.edgePoints[0]]} />
+            <lineBasicMaterial color={faction.glow || faction.color} transparent opacity={lineOpacity} blending={THREE.AdditiveBlending} depthWrite={false} depthTest={false} />
+          </line>
+        </group>
+      ))}
     </group>
   );
 }
@@ -935,7 +1027,7 @@ function GalaxyControlMap({ map, view, hoveredSectorId, onSelectSector, onHoverS
 
   return (
     <group visible={opacity > 0.001}>
-      <SectorGrid opacity={opacity} />
+      <SectorGrid map={map} opacity={opacity} />
       <group position={[0, -0.005, 0]}>
         {(map.sectors || []).map(sector => (
           <SectorControlZone
@@ -1045,14 +1137,14 @@ function HyperspaceTunnel({ active, quality, reducedMotion }) {
   );
 }
 
-function resolveFocus(view, map) {
+function resolveFocus(view, map, elapsedTime = 0) {
   if (view.mode === "planet") {
     const planet = (map.planets || []).find(item => item.id === view.planetId);
-    return planet ? mapPointToWorld(planet.position || planet.mapPosition || [0, 0], map, BODY_Y_OFFSET) : WIDE_TARGET.clone();
+    return planet ? mapPointToWorld(planet.position || planet.mapPosition || [0, 0], map, BODY_Y_OFFSET, elapsedTime) : WIDE_TARGET.clone();
   }
   if (view.mode === "sector") {
     const sector = (map.sectors || []).find(item => item.id === view.sectorId);
-    return sector ? mapLocalToWorld(sectorSceneCenter(sector, map)) : WIDE_TARGET.clone();
+    return sector ? mapLocalToWorld(sectorSceneCenter(sector, map), elapsedTime) : WIDE_TARGET.clone();
   }
   return WIDE_TARGET.clone();
 }
@@ -1063,8 +1155,8 @@ function horizontalApproachDirection(focus) {
   return direction.normalize();
 }
 
-function resolveCamera(view, map, previousCamera) {
-  const focus = resolveFocus(view, map);
+function resolveCamera(view, map, previousCamera, elapsedTime = 0) {
+  const focus = resolveFocus(view, map, elapsedTime);
   if (view.mode === "planet") {
     const outward = horizontalApproachDirection(focus);
     return focus.clone().add(outward.multiplyScalar(PLANET_APPROACH_DISTANCE));
@@ -1079,18 +1171,20 @@ function resolveCamera(view, map, previousCamera) {
 }
 
 function CameraRig({ map, view, transition, controlsRef }) {
-  const { camera } = useThree();
+  const { camera, clock } = useThree();
   const activeTransition = useRef(null);
   const lastKey = useRef(null);
   const lastStableView = useRef(view);
+  const lastFocusRef = useRef(null);
 
   useEffect(() => {
     const key = `${view.mode}:${view.sectorId || ""}:${view.planetId || ""}:${transition.token}`;
     if (key === lastKey.current) return;
     lastKey.current = key;
 
-    const focus = resolveFocus(view, map);
-    const targetCamera = resolveCamera(view, map, camera.position);
+    const elapsedTime = clock.elapsedTime;
+    const focus = resolveFocus(view, map, elapsedTime);
+    const targetCamera = resolveCamera(view, map, camera.position, elapsedTime);
     const controls = controlsRef.current;
     const kind = transition.kind || view.mode;
     const isPlanetEntry = kind === "planet" && view.mode === "planet";
@@ -1118,14 +1212,16 @@ function CameraRig({ map, view, transition, controlsRef }) {
       controls.enabled = false;
       controls.autoRotate = false;
     }
-  }, [view, transition, map, camera.position, controlsRef]);
+  }, [view, transition, map, camera.position, controlsRef, clock]);
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
     const controls = controlsRef.current;
     if (!controls) return;
+    const liveFocus = resolveFocus(view, map, clock.elapsedTime);
 
     const current = activeTransition.current;
     if (current) {
+      const liveCamera = resolveCamera(view, map, camera.position, clock.elapsedTime);
       const raw = (performance.now() - current.startedAt) / current.duration;
       const capped = Math.min(1, raw);
       const isPlanetEntry = current.kind === "planet" && view.mode === "planet";
@@ -1133,15 +1229,15 @@ function CameraRig({ map, view, transition, controlsRef }) {
       const recoil = isPlanetEntry
         ? Math.sin(capped * Math.PI * 3.1) * current.recoil * (1 - t * 0.62)
         : Math.sin(capped * Math.PI * 2.6) * current.recoil * (1 - t);
-      camera.position.copy(current.fromCamera).lerp(current.toCamera, t);
-      const recoilDirection = current.toCamera.clone().sub(current.toTarget).normalize();
+      camera.position.copy(current.fromCamera).lerp(liveCamera, t);
+      const recoilDirection = liveCamera.clone().sub(liveFocus).normalize();
       camera.position.add(recoilDirection.multiplyScalar(recoil));
       if (isPlanetEntry && !current.reducedMotion) {
         const shake = Math.sin(capped * Math.PI) * (1 - t * 0.45) * 0.075;
         camera.position.x += Math.sin(raw * 74) * shake;
         camera.position.y += Math.cos(raw * 61) * shake * 0.55;
       }
-      controls.target.copy(current.fromTarget).lerp(current.toTarget, t);
+      controls.target.copy(current.fromTarget).lerp(liveFocus, t);
       controls.update();
 
       if (raw >= 1) {
@@ -1150,13 +1246,19 @@ function CameraRig({ map, view, transition, controlsRef }) {
         controls.enabled = true;
         controls.autoRotate = true;
         controls.autoRotateSpeed = view.mode === "galaxy" ? 0.18 : view.mode === "sector" ? 0.28 : 0.2;
-        controls.target.copy(current.toTarget);
+        controls.target.copy(liveFocus);
+        lastFocusRef.current = liveFocus.clone();
         controls.update();
       }
       return;
     }
 
     if (lastStableView.current.mode !== view.mode) lastStableView.current = view;
+    const previousFocus = lastFocusRef.current || liveFocus.clone();
+    const focusDelta = liveFocus.clone().sub(previousFocus);
+    if (view.mode !== "galaxy") camera.position.add(focusDelta);
+    controls.target.copy(liveFocus);
+    lastFocusRef.current = liveFocus.clone();
     controls.autoRotate = true;
     controls.autoRotateSpeed = view.mode === "galaxy" ? 0.18 : view.mode === "sector" ? 0.28 : 0.2;
     controls.update();

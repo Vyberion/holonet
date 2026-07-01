@@ -1,5 +1,16 @@
 export const GALAXY_CONTROL_MAP = {
   title: "Galaxy",
+  sources: [],
+  regions: [
+    { id: "deep-core", name: "Deep Core", radius: [0, 0.72] },
+    { id: "core", name: "Core Worlds", radius: [0.72, 1.42] },
+    { id: "colonies", name: "Colonies", radius: [1.42, 2.05] },
+    { id: "inner-rim", name: "Inner Rim", radius: [2.05, 2.85] },
+    { id: "expansion", name: "Expansion Region", radius: [2.85, 3.72] },
+    { id: "mid-rim", name: "Mid Rim", radius: [3.72, 4.86] },
+    { id: "outer-rim", name: "Outer Rim", radius: [4.86, 6.24] },
+    { id: "wild-space", name: "Wild Space", radius: [6.24, 7.0] }
+  ],
   // Cleaned map data: sector shapes now come from polar cells only.
   // No legacy smooth edge radii or sinusoidal rim warping.
   factions: [

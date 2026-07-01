@@ -250,36 +250,100 @@ function cellKey(cell) {
   return `${cell.angleStartIndex}:${cell.ringStartIndex}`;
 }
 
-function shapedCellRadii(sectorId, cell, occupiedCells) {
-  const thickness = Math.max(0.01, cell.outerRadius - cell.innerRadius);
-  const maxDelta = Math.min(0.16, thickness * 0.34);
-  const hasInnerNeighbor = occupiedCells.has(`${cell.angleStartIndex}:${cell.ringStartIndex - 1}`);
-  const hasOuterNeighbor = occupiedCells.has(`${cell.angleStartIndex}:${cell.ringStartIndex + 1}`);
-  let innerRadius = cell.innerRadius;
-  let outerRadius = cell.outerRadius;
+function contiguousRuns(cells) {
+  const runs = [];
+  const cellsByRing = new Map();
 
-  if (!hasInnerNeighbor) {
-    const inwardBias = hashFraction(`${sectorId}:${cell.id}:inner`) - 0.74;
-    innerRadius += inwardBias * maxDelta;
-  }
+  cells.forEach(cell => {
+    if (!cellsByRing.has(cell.ringStartIndex)) cellsByRing.set(cell.ringStartIndex, []);
+    cellsByRing.get(cell.ringStartIndex).push(cell);
+  });
 
-  if (!hasOuterNeighbor) {
-    const outwardBias = hashFraction(`${sectorId}:${cell.id}:outer`) - 0.34;
-    outerRadius += outwardBias * maxDelta;
-  }
+  cellsByRing.forEach(ringCells => {
+    const sorted = [...ringCells].sort((a, b) => a.angleStartIndex - b.angleStartIndex);
+    const ringRuns = [];
+    let run = [];
 
-  innerRadius = Math.max(MIN_CORE_RADIUS, roundRadius(innerRadius));
-  outerRadius = roundRadius(Math.max(innerRadius + 0.045, outerRadius));
+    sorted.forEach(cell => {
+      const previous = run[run.length - 1];
+      if (!previous || cell.angleStartIndex <= previous.angleEndIndex) {
+        run.push(cell);
+      } else {
+        ringRuns.push(run);
+        run = [cell];
+      }
+    });
+
+    if (run.length) ringRuns.push(run);
+
+    if (
+      ringRuns.length > 1
+      && ringRuns[0][0].angleStartIndex === 0
+      && ringRuns[ringRuns.length - 1][ringRuns[ringRuns.length - 1].length - 1].angleEndIndex === ANGLE_LATTICE_STEPS
+    ) {
+      const wrapped = [...ringRuns.pop(), ...ringRuns.shift()];
+      ringRuns.unshift(wrapped);
+    }
+
+    runs.push(...ringRuns);
+  });
+
+  return runs;
+}
+
+function makeSectorEdgeRadii(sectorId, cells, occupiedCells) {
+  const radiiByCell = new Map();
+  const setRadius = (cell, edge, radius) => {
+    const key = cellKey(cell);
+    const existing = radiiByCell.get(key) || {};
+    radiiByCell.set(key, { ...existing, [edge]: radius });
+  };
+
+  const applyEdgeRuns = (edge, edgeCells) => {
+    contiguousRuns(edgeCells).forEach(run => {
+      const first = run[0];
+      const last = run[run.length - 1];
+      const thickness = Math.max(0.01, first.outerRadius - first.innerRadius);
+      const maxDelta = Math.min(0.045, thickness * 0.1);
+      const hashKey = `${sectorId}:${edge}:${first.ringStartIndex}:${first.angleStartIndex}-${last.angleEndIndex}`;
+      const bias = edge === "innerRadius"
+        ? -0.72 + hashFraction(hashKey) * 0.34
+        : 0.24 + hashFraction(hashKey) * 0.46;
+      const baseRadius = edge === "innerRadius" ? first.innerRadius : first.outerRadius;
+      const radius = roundRadius(Math.max(MIN_CORE_RADIUS, baseRadius + bias * maxDelta));
+
+      run.forEach(cell => setRadius(cell, edge, radius));
+    });
+  };
+
+  applyEdgeRuns(
+    "innerRadius",
+    cells.filter(cell => !occupiedCells.has(`${cell.angleStartIndex}:${cell.ringStartIndex - 1}`))
+  );
+  applyEdgeRuns(
+    "outerRadius",
+    cells.filter(cell => !occupiedCells.has(`${cell.angleStartIndex}:${cell.ringStartIndex + 1}`))
+  );
+
+  return radiiByCell;
+}
+
+function shapedCellRadii(cell, edgeRadii) {
+  const edgeRadius = edgeRadii.get(cellKey(cell)) || {};
+  const innerRadius = Math.max(MIN_CORE_RADIUS, roundRadius(edgeRadius.innerRadius ?? cell.innerRadius));
+  const outerRadius = roundRadius(Math.max(innerRadius + 0.045, edgeRadius.outerRadius ?? cell.outerRadius));
+
   return { innerRadius, outerRadius };
 }
 
 function serializeSectorCells(sectorId, cells) {
   const occupiedCells = new Set(cells.map(cellKey));
+  const edgeRadii = makeSectorEdgeRadii(sectorId, cells, occupiedCells);
 
   return cells
     .sort((a, b) => a.ringStartIndex - b.ringStartIndex || a.angleStartIndex - b.angleStartIndex)
     .map(cell => {
-      const { innerRadius, outerRadius } = shapedCellRadii(sectorId, cell, occupiedCells);
+      const { innerRadius, outerRadius } = shapedCellRadii(cell, edgeRadii);
 
       return {
         angle: [cell.angleStartIndex, cell.angleEndIndex],

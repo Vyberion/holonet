@@ -6,9 +6,15 @@ import { syncClockPanels } from "./services/clock-panels.js";
 import { syncVerifiedRoleForLinkedUsers } from "./services/roles.js";
 import { startShiftReminderLoop } from "./services/shift-reminders.js";
 
+const holonetPresence = {
+  status: "online",
+  activities: [{ name: "Torreto do his Hell Jacks", type: ActivityType.Watching }]
+};
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages],
-  partials: [Partials.GuildMember]
+  partials: [Partials.GuildMember],
+  presence: holonetPresence
 });
 
 let lastCheekyResponseAt = 0;

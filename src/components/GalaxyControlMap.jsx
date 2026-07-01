@@ -29,6 +29,8 @@ const SPIRAL_ARM_PROFILES = [
 // is what should account for any apparent ellipse, not a baked-in squash.
 const GALAXY_VISUAL_FLATTEN = 1;
 const CORE_RADIUS = 1.08;
+const CORE_STAR_INNER_RADIUS = 0.34;
+const CORE_STAR_OUTER_RADIUS = 1.38;
 const GALAXY_BASE_ROTATION_X = -0.045;
 const GALAXY_BASE_ROTATION_Y = -0.32;
 const GALAXY_BASE_ROTATION_Z = 0.02;
@@ -41,9 +43,9 @@ const PLANET_APPROACH_DISTANCE = 2.15;
 const PLANET_ENTRY_DISTANCE = 54;
 const BODY_Y_OFFSET = 0.05;
 const PARTICLE_COUNTS = {
-  high: { stars: 18000, dust: 42000, clouds: 96, sky: 14000, sparkles: 460, streaks: 2200 },
-  balanced: { stars: 14000, dust: 30000, clouds: 72, sky: 8000, sparkles: 220, streaks: 1350 },
-  reduced: { stars: 10000, dust: 18000, clouds: 46, sky: 4600, sparkles: 130, streaks: 720 }
+  high: { stars: 26000, dust: 52000, clouds: 180, sky: 16000, sparkles: 460, streaks: 2200 },
+  balanced: { stars: 20000, dust: 38000, clouds: 140, sky: 10000, sparkles: 220, streaks: 1350 },
+  reduced: { stars: 14000, dust: 24000, clouds: 90, sky: 5600, sparkles: 130, streaks: 720 }
 };
 const GALAXY_RANDOMNESS = 0.3;
 const GALAXY_RANDOMNESS_POWER_XZ = 2.468;
@@ -373,7 +375,7 @@ function drawableSectorCells(sector, map) {
     if (cell.innerRadius < cutoutRadius) return { ...cell, innerRadius: cutoutRadius };
     return cell;
   }).filter(Boolean);
-} 
+}
 
 function visibleSectors(map) {
   return (map?.sectors || []).filter(sector => drawableSectorCells(sector, map).length > 0);
@@ -425,17 +427,18 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
   const color = new THREE.Color();
 
   for (let i = 0; i < count; i += 1) {
-    const coreChance = mode === "stars" ? 0.01 : mode === "dust" ? 0.018 : 0.11;
-    const isCore = mode === "core" || rnd() < coreChance;
-    const isInterArm = !isCore && rnd() < (mode === "dust" ? 0.58 : 0.52);
+    const coreChance = mode === "stars" ? 0.12 : mode === "dust" ? 0.06 : 0.18;
+    const isCoreHalo = mode === "core" || rnd() < coreChance;
+    const isInterArm = !isCoreHalo && rnd() < (mode === "dust" ? 0.46 : 0.4);
     const arm = i % SPIRAL_ARM_COUNT;
     const profile = spiralArmProfile(arm);
-    const armStart = Math.max(profile.radiusStart, mode === "dust" ? CORE_RADIUS * 1.16 : CORE_RADIUS * 1.24);
-    const radius = isCore
-      ? Math.pow(rnd(), 1.9) * CORE_RADIUS
+    const armStart = Math.max(profile.radiusStart, mode === "dust" ? CORE_RADIUS * 0.86 : CORE_RADIUS * 0.78);
+
+    const radius = isCoreHalo
+      ? CORE_STAR_INNER_RADIUS + Math.pow(rnd(), 1.65) * (CORE_STAR_OUTER_RADIUS - CORE_STAR_INNER_RADIUS)
       : Math.min(
         GALAXY_RADIUS,
-        Math.pow(rnd(), isInterArm ? 0.72 : mode === "dust" ? 0.62 : 0.58) * (GALAXY_RADIUS - armStart) + armStart
+        Math.pow(rnd(), isInterArm ? 0.92 : mode === "dust" ? 0.84 : 1.08) * (GALAXY_RADIUS - armStart) + armStart
       );
     const armProgress = clamp((radius - profile.radiusStart) / Math.max(0.01, profile.radiusEnd - profile.radiusStart), 0, 1);
     const rimTaper = 1 - smoothstep(0.72, 1, armProgress) * profile.tailCurl;
@@ -451,20 +454,20 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
       armWidth * (mode === "dust" ? 2.15 : 2.45),
       interArmGap * (mode === "dust" ? 0.5 : 0.46)
     );
-    const jitter = isCore
+    const jitter = isCoreHalo
       ? randRange(rnd, -TAU, TAU)
       : isInterArm
         ? interArmOffset
         : randRange(rnd, -armWidth, armWidth);
-    const angle = isCore ? rnd() * TAU : armAngle + jitter;
+    const angle = isCoreHalo ? rnd() * TAU : armAngle + jitter;
     const x = Math.cos(angle) * radius;
     const z = Math.sin(angle) * radius * GALAXY_VISUAL_FLATTEN;
     const y = randRange(rnd, -0.018, 0.018) * (1 + radius * 0.025);
     const rimFade = Math.min(1, radius / GALAXY_RADIUS);
     const randomSign = () => (rnd() < 0.5 ? -1 : 1);
     const fieldSpread = isInterArm
-      ? (mode === "dust" ? 0.72 : 0.58)
-      : (mode === "dust" ? 0.24 : 0.15);
+      ? (mode === "dust" ? 0.92 : 0.78)
+      : (mode === "dust" ? 0.28 : 0.18);
     const randomX = Math.pow(rnd(), GALAXY_RANDOMNESS_POWER_XZ) * randomSign() * GALAXY_RANDOMNESS * radius * fieldSpread;
     const randomY = Math.pow(rnd(), GALAXY_RANDOMNESS_POWER_Y) * randomSign() * GALAXY_VERTICAL_RANDOMNESS * radius;
     const randomZ = Math.pow(rnd(), GALAXY_RANDOMNESS_POWER_XZ) * randomSign() * GALAXY_RANDOMNESS * radius * fieldSpread;
@@ -479,15 +482,15 @@ function makeSpiralGalaxyGeometry(count, seed, mode = "stars") {
     color.copy(colorInside).lerp(colorOutside, rimFade);
     if (isInterArm) color.lerp(new THREE.Color("#d8efff"), mode === "dust" ? 0.36 : 0.44);
     if (rimFade > 0.76) color.lerp(colorRim, smoothstep(0.76, 1, rimFade) * (mode === "dust" ? 0.62 : 0.78));
-    if (isCore) color.lerp(new THREE.Color("#ffffff"), 0.58);
-    if (!isCore && !isInterArm) color.lerp(new THREE.Color("#ffffff"), mode === "dust" ? 0.16 : 0.24);
-    if (!isCore && !isInterArm && rnd() > 0.88) color.lerp(new THREE.Color("#f7fcff"), 0.34);
+    if (isCoreHalo) color.lerp(new THREE.Color("#ffffff"), 0.58);
+    if (!isCoreHalo && !isInterArm) color.lerp(new THREE.Color("#ffffff"), mode === "dust" ? 0.16 : 0.24);
+    if (!isCoreHalo && !isInterArm && rnd() > 0.88) color.lerp(new THREE.Color("#f7fcff"), 0.34);
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
     sizes[i] = mode === "dust"
       ? randRange(rnd, 0.026, 0.095) * (1.04 + rimFade * 0.22) * (isInterArm ? 0.7 : 1.18)
-      : randRange(rnd, 0.01, 0.045) * (isCore ? 0.82 : isInterArm ? 0.7 : 1.24) * (1 + smoothstep(0.78, 1, rimFade) * 0.26);
+      : randRange(rnd, 0.01, 0.045) * (isCoreHalo ? 0.82 : isInterArm ? 0.7 : 1.24) * (1 + smoothstep(0.78, 1, rimFade) * 0.26);
     scales[i] = randRange(rnd, 0.58, 1.36) * (rimFade > 0.78 ? 1.18 : 1);
   }
 
@@ -519,7 +522,7 @@ function makeNebulaCloudTexture(hex) {
 // Soft, irregular gas-cloud clumps scattered along the spiral arms - the "nebulaic"
 // haze real galaxy photos show around star-forming regions. Cheap (one sprite each),
 // additively blended so overlap only adds glow rather than causing z-fighting.
-function NebulaClouds({ opacity = 1, count = 46, seed = 6410, renderOrder = -6 }) {
+function NebulaClouds({ opacity = 1, count = 140, seed = 6410, renderOrder = -6 }) {
   const textures = useMemo(() => NEBULA_PALETTE.map(hex => makeNebulaCloudTexture(hex)), []);
   useEffect(() => () => textures.forEach(texture => texture.dispose()), [textures]);
 
@@ -528,21 +531,25 @@ function NebulaClouds({ opacity = 1, count = 46, seed = 6410, renderOrder = -6 }
     const rows = [];
     for (let i = 0; i < count; i += 1) {
       const arm = i % SPIRAL_ARM_COUNT;
-      const radius = randRange(rnd, CORE_RADIUS * 1.5, GALAXY_RADIUS * 0.92);
+      const radius = randRange(rnd, CORE_RADIUS * 1.05, GALAXY_RADIUS * 1.02);
       const profile = spiralArmProfile(arm);
       const armProgress = clamp((radius - profile.radiusStart) / Math.max(0.01, profile.radiusEnd - profile.radiusStart), 0, 1);
-      const angle = spiralAngle(radius, arm) + Math.pow(armProgress, 2.1) * profile.tailCurl * 0.42 + randRange(rnd, -0.14, 0.14);
-      const wobble = randRange(rnd, -0.22, 0.22);
-      const x = Math.cos(angle) * radius + wobble;
-      const z = Math.sin(angle) * radius * GALAXY_VISUAL_FLATTEN + wobble;
-      const scale = randRange(rnd, 0.78, 2.35) * (0.62 + (radius / GALAXY_RADIUS) * 0.58);
+      const offArm = rnd() < 0.24;
+      const angle = offArm
+        ? rnd() * TAU
+        : spiralAngle(radius, arm) + Math.pow(armProgress, 2.1) * profile.tailCurl * 0.42 + randRange(rnd, -0.36, 0.36);
+      const wobbleX = randRange(rnd, -0.75, 0.75);
+      const wobbleZ = randRange(rnd, -0.75, 0.75);
+      const x = Math.cos(angle) * radius + wobbleX;
+      const z = Math.sin(angle) * radius * GALAXY_VISUAL_FLATTEN + wobbleZ;
+      const scale = randRange(rnd, 1.15, 3.4) * (0.78 + (radius / GALAXY_RADIUS) * 0.7);
       rows.push({
         position: [x, randRange(rnd, -0.02, 0.05), z],
         scaleX: scale * randRange(rnd, 0.85, 1.5),
         scaleY: scale,
         rotation: randRange(rnd, 0, TAU),
         textureIndex: Math.floor(rnd() * NEBULA_PALETTE.length),
-        baseOpacity: randRange(rnd, 0.12, 0.24)
+        baseOpacity: randRange(rnd, 0.08, 0.2)
       });
     }
     return rows;
@@ -650,11 +657,11 @@ function GalacticCore({ opacity = 1 }) {
 
   return (
     <group>
-      <sprite position={[0, 0.08, 0]} scale={[5.45, 5.45, 1]} renderOrder={6}>
+      <sprite position={[0, 0.08, 0]} scale={[3.2, 3.2, 1]} renderOrder={6}>
         <spriteMaterial map={glow} color="#e8f9ff" transparent opacity={0.38 * opacity} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
       <mesh position={[0, 0.05, 0]} renderOrder={7}>
-        <sphereGeometry args={[0.46, 48, 24]} />
+        <sphereGeometry args={[0.23, 48, 24]} />
         <meshBasicMaterial color="#ffffff" transparent opacity={0.94 * opacity} blending={THREE.AdditiveBlending} />
       </mesh>
       <Sparkles count={120} scale={[3.2, 0.55, 3.2]} size={3.8} speed={0.35} color="#d8f5ff" opacity={0.88 * opacity} />
@@ -1047,7 +1054,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
   const sectorMarkerVisible = !hidden && mode === "sector";
 
   useEffect(() => () => {
-  haloTexture.dispose();
+    haloTexture.dispose();
   }, [haloTexture]);
 
   useFrame(({ clock }, delta) => {
@@ -1074,33 +1081,33 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
   });
 
   const handlePointerOver = event => {
-  event.stopPropagation();
-  if (!interactive || hidden) return;
-  onHover(body.id);
+    event.stopPropagation();
+    if (!interactive || hidden) return;
+    onHover(body.id);
   };
 
   const handlePointerOut = event => {
-  event.stopPropagation();
-  if (!interactive || hidden) return;
-  onHover(null);
+    event.stopPropagation();
+    if (!interactive || hidden) return;
+    onHover(null);
   };
 
   const handleClick = event => {
-  event.stopPropagation();
-  if (!interactive || hidden) return;
-  onSelect(body.id);
+    event.stopPropagation();
+    if (!interactive || hidden) return;
+    onSelect(body.id);
   };
 
   return (
     <group ref={groupRef} position={body.scenePosition.toArray()} renderOrder={30}>
       <mesh
-  ref={planetRef}
-  renderOrder={30}
-  raycast={interactive && !hidden ? undefined : () => null}
-  onPointerOver={handlePointerOver}
-  onPointerOut={handlePointerOut}
-  onClick={handleClick}
->
+        ref={planetRef}
+        renderOrder={30}
+        raycast={interactive && !hidden ? undefined : () => null}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+        onClick={handleClick}
+      >
         <sphereGeometry args={[body.visualRadius, 96, 48]} />
         {hasKorribanTextures ? (
           <meshStandardMaterial
@@ -1503,10 +1510,10 @@ function CameraAnchoredStars({ count, mode }) {
           size={mode === "planet" ? 1.35 : 1.05}
           sizeAttenuation={false}
           depthWrite={false}
-          depthTest={false}
+          depthTest
           blending={THREE.AdditiveBlending}
           toneMapped={false}
-      />
+        />
       </points>
     </group>
   );
@@ -1517,7 +1524,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
   const galaxyRef = useRef(null);
   const selectedPlanet = useMemo(() => (map.planets || []).find(planet => planet.id === view.planetId), [map.planets, view.planetId]);
   const selectedPlanetScenePosition = useMemo(() => selectedPlanet ? mapPointToWorld(selectedPlanet.position || selectedPlanet.mapPosition || [0, 0], map, BODY_Y_OFFSET) : null, [selectedPlanet, map]);
-  const hyperspaceActive = transition.kind === "planet" && transition.active && transition.phase === "hyperspace";
+  const hyperspaceActive = transition.kind === "planet" && transition.active;
   const counts = PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced;
 
   useFrame(({ clock }) => {
@@ -1713,42 +1720,45 @@ export function GalaxyMapExperience({ map }) {
 
   const selectPlanet = useCallback(planetId => {
     if (transition.active) return;
+
     const planet = (normalizedMap.planets || []).find(item => item.id === planetId);
     if (!planet) return;
     if (view.mode === "planet" && view.planetId === planetId) return;
+
     clearTransitionTimers();
     setHoveredSectorId(null);
     setHoveredPlanetId(null);
-    const wipeDuration = reducedMotion ? 450 : 900;
-    const revealDuration = reducedMotion ? 220 : 440;
+
+    const flightDuration = reducedMotion ? 900 : 1850;
+
+    setView({ mode: "planet", sectorId: planet.sectorId, planetId });
 
     setTransition(current => ({
       kind: "planet",
-      token: current.token,
+      token: current.token + 1,
       active: true,
-      phase: "wipe",
-      wipeDuration,
+      phase: "hyperspace",
+      duration: flightDuration,
+      flightDuration,
+      snap: false,
       reducedMotion
     }));
 
     queueTransitionTimer(() => {
-      setView({ mode: "planet", sectorId: planet.sectorId, planetId });
-      setTransition(current => ({
-        ...current,
-        kind: "planet",
-        token: current.token + 1,
-        active: true,
-        phase: "reveal",
-        duration: revealDuration,
-        snap: true,
-        reducedMotion
-      }));
-    }, wipeDuration);
-
-    queueTransitionTimer(() => {
-      setTransition(current => current.kind === "planet" ? { ...current, active: false, phase: "idle", snap: false } : current);
-    }, wipeDuration + revealDuration);
-  }, [transition.active, normalizedMap.planets, view.mode, view.planetId, clearTransitionTimers, queueTransitionTimer, reducedMotion]);
+      setTransition(current => current.kind === "planet"
+        ? { ...current, active: false, phase: "idle", snap: false }
+        : current
+      );
+    }, flightDuration);
+  }, [
+    transition.active,
+    normalizedMap.planets,
+    view.mode,
+    view.planetId,
+    clearTransitionTimers,
+    queueTransitionTimer,
+    reducedMotion
+  ]);
 
   const zoomOut = useCallback(() => {
     if (view.mode === "planet") {

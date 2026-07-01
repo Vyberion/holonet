@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+const MAIN_SITE_ORIGIN = "https://www.thesithorder.org";
+
 export default function NotFound() {
   return (
     <div style={{
@@ -17,7 +19,7 @@ export default function NotFound() {
         <h1 style={{ fontFamily: "'Orbitron', sans-serif", margin: "16px 0", letterSpacing: "0.18em" }}>NODE NOT FOUND</h1>
         <p style={{ color: "var(--text-dim, #b99591)" }}>The requested Holonet resource is unavailable or has not been provisioned.</p>
         <div style={{ marginTop: 28 }}>
-          <Link href="/" style={{ color: "var(--theme-accent, #ff3b4f)", textDecoration: "none", border: "1px solid currentColor", padding: "12px 22px", display: "inline-block" }}>
+          <Link href={`${MAIN_SITE_ORIGIN}/`} style={{ color: "var(--theme-accent, #ff3b4f)", textDecoration: "none", border: "1px solid currentColor", padding: "12px 22px", display: "inline-block" }}>
             RETURN HOME
           </Link>
         </div>

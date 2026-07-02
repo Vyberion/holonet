@@ -178,7 +178,7 @@ export const GALAXY_CONTROL_MAP = {
       objectives: [],
       locations: ["Kaas City", "Dark Temple"],
       summary: "Sith Empire capital hidden within the storm-wrapped Sith Worlds.",
-      textures: onlyPlanetTextures("dromund-kaas", [])
+      textures: onlyPlanetTextures("dromund-kaas", ["diffuse", "bump", "roughness", "specular", "water", "lights", "clouds", "cloudColor", "cloudBump"])
     },
     {
       id: "ziost",

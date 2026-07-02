@@ -1554,7 +1554,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
   const lightsRef = useRef(null);
   const cloudsRef = useRef(null);
   const scanRef = useRef(null);
-  const assetTextures = usePlanetTextureSet(body, mode === "planet" && active);
+  const assetTextures = usePlanetTextureSet(body, mode === "sector" || (mode === "planet" && active));
   const generatedTextures = useMemo(() => getGeneratedPlanetTextures(body), [body]);
   const textures = useMemo(() => ({
     map: assetTextures.diffuse || assetTextures.color || generatedTextures.map,

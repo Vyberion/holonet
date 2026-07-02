@@ -42,11 +42,12 @@ const SECTOR_CAMERA_PULLBACK = 6.6;
 const PLANET_APPROACH_DISTANCE = 2.15;
 const PLANET_ENTRY_DISTANCE = 96;
 const PLANET_LOADING_DISTANCE = 132;
+const SURFACE_REVEAL_TIMEOUT_MS = 1600;
 const BODY_Y_OFFSET = 0.05;
 const PARTICLE_COUNTS = {
-  high: { stars: 26000, dust: 52000, clouds: 180, sky: 16000, sparkles: 460, streaks: 2200 },
-  balanced: { stars: 20000, dust: 38000, clouds: 140, sky: 10000, sparkles: 220, streaks: 1350 },
-  reduced: { stars: 14000, dust: 24000, clouds: 90, sky: 5600, sparkles: 130, streaks: 720 }
+  high: { stars: 26000, dust: 52000, clouds: 180, sky: 16000, sparkles: 460, streaks: 1650 },
+  balanced: { stars: 20000, dust: 38000, clouds: 140, sky: 10000, sparkles: 220, streaks: 1000 },
+  reduced: { stars: 14000, dust: 24000, clouds: 90, sky: 5600, sparkles: 130, streaks: 540 }
 };
 const GALAXY_RANDOMNESS = 0.3;
 const GALAXY_RANDOMNESS_POWER_XZ = 2.468;
@@ -122,7 +123,7 @@ const PLANET_TEXTURE_KEYS = [
   ["cloudColor", true],
   ["cloudBump", false]
 ];
-const CRITICAL_PLANET_TEXTURE_KEYS = new Set(["diffuse", "color", "bump", "roughness", "specular"]);
+const SURFACE_PLANET_TEXTURE_KEYS = new Set(["diffuse", "color"]);
 const DEFAULT_FACTIONS = [
   {
     id: "sith-empire",
@@ -152,6 +153,7 @@ const DEFAULT_FACTIONS = [
 
 const PLANET_TEXTURE_CACHE = new Map();
 const PLANET_ASSET_TEXTURE_CACHE = new Map();
+const PLANET_ASSET_TEXTURE_STATUS = new Map();
 
 function seededRandom(seed) {
   let state = seed >>> 0;
@@ -278,18 +280,41 @@ function planetTextureEntries(body) {
     .filter(entry => entry.url);
 }
 
+function surfaceTextureEntriesForPlanet(planet) {
+  return planetTextureEntries(planet).filter(entry => SURFACE_PLANET_TEXTURE_KEYS.has(entry.key));
+}
+
 function maxTextureSizeForLayer() {
   return KORRIBAN_MAX_TEXTURE_SIZE;
 }
 
+function planetTextureCacheKey(entry) {
+  const maxSize = maxTextureSizeForLayer(entry.key);
+  return `${entry.url}|${entry.color ? "color" : "data"}|${maxSize}`;
+}
+
+function planetTextureIsSettled(entry) {
+  const status = PLANET_ASSET_TEXTURE_STATUS.get(planetTextureCacheKey(entry));
+  return status === "loaded" || status === "failed";
+}
+
+function planetSurfaceTexturesSettled(planet) {
+  const entries = surfaceTextureEntriesForPlanet(planet);
+  return !entries.length || entries.every(planetTextureIsSettled);
+}
+
 function loadPlanetAssetTexture(entry, anisotropy) {
   const maxSize = maxTextureSizeForLayer(entry.key);
-  const cacheKey = `${entry.url}|${entry.color ? "color" : "data"}|${maxSize}`;
+  const cacheKey = planetTextureCacheKey(entry);
   if (!PLANET_ASSET_TEXTURE_CACHE.has(cacheKey)) {
     const loader = new THREE.TextureLoader();
+    PLANET_ASSET_TEXTURE_STATUS.set(cacheKey, "pending");
     PLANET_ASSET_TEXTURE_CACHE.set(
       cacheKey,
-      loadOptionalPlanetTexture(loader, entry.url, { color: entry.color, anisotropy, maxSize })
+      loadOptionalPlanetTexture(loader, entry.url, { color: entry.color, anisotropy, maxSize }).then(texture => {
+        PLANET_ASSET_TEXTURE_STATUS.set(cacheKey, texture ? "loaded" : "failed");
+        return texture;
+      })
     );
   }
   return PLANET_ASSET_TEXTURE_CACHE.get(cacheKey);
@@ -1373,12 +1398,18 @@ function usePlanetTextureSet(body, enabled = true) {
 
     let cancelled = false;
     setTextures({});
-    entries.forEach(entry => {
+    const loadAndApply = entry => (
       loadPlanetAssetTexture(entry, maxAnisotropy).then(texture => {
         if (!cancelled && texture) {
           setTextures(current => ({ ...current, [entry.key]: texture }));
         }
-      });
+        return texture;
+      })
+    );
+    const surfaceEntries = entries.filter(entry => SURFACE_PLANET_TEXTURE_KEYS.has(entry.key));
+    const optionalEntries = entries.filter(entry => !SURFACE_PLANET_TEXTURE_KEYS.has(entry.key));
+    Promise.all(surfaceEntries.map(loadAndApply)).finally(() => {
+      if (!cancelled) optionalEntries.forEach(loadAndApply);
     });
 
     return () => {
@@ -1396,8 +1427,7 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
     if (view.mode === "sector") return [];
     const preloadPlanets = (map?.planets || []).filter(planet => planet.id === view.planetId);
     const seen = new Set();
-    return preloadPlanets.flatMap(planet => planetTextureEntries(planet)).filter(entry => {
-      if (!CRITICAL_PLANET_TEXTURE_KEYS.has(entry.key)) return false;
+    return preloadPlanets.flatMap(planet => surfaceTextureEntriesForPlanet(planet)).filter(entry => {
       const key = `${entry.key}:${entry.url}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -1407,16 +1437,70 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
 
   useEffect(() => {
     let cancelled = false;
+    let fallbackTimer = null;
+    if (entries.length && entries.every(planetTextureIsSettled)) {
+      onProgress?.({ loaded: entries.length, total: entries.length });
+      onReady?.();
+      return () => {};
+    }
+
+    if (entries.length) {
+      fallbackTimer = window.setTimeout(() => {
+        if (!cancelled) onReady?.();
+      }, SURFACE_REVEAL_TIMEOUT_MS);
+    }
+
     loadPlanetTextureEntries(entries, maxAnisotropy, progress => {
       if (!cancelled) onProgress?.(progress);
     }).then(() => {
+      if (fallbackTimer) window.clearTimeout(fallbackTimer);
       if (!cancelled) onReady?.();
     });
 
     return () => {
       cancelled = true;
+      if (fallbackTimer) window.clearTimeout(fallbackTimer);
     };
   }, [entries, maxAnisotropy, onProgress, onReady]);
+
+  return null;
+}
+
+function BackgroundPlanetTextureLoader({ map }) {
+  const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
+  const entries = useMemo(() => {
+    const seen = new Set();
+    return (map?.planets || [])
+      .flatMap(planet => planetTextureEntries(planet))
+      .filter(entry => {
+        const key = `${entry.key}:${entry.url}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((left, right) => {
+        const leftPriority = SURFACE_PLANET_TEXTURE_KEYS.has(left.key) ? 0 : 1;
+        const rightPriority = SURFACE_PLANET_TEXTURE_KEYS.has(right.key) ? 0 : 1;
+        return leftPriority - rightPriority;
+      });
+  }, [map]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let cursor = 0;
+    const workers = Array.from({ length: 2 }, async () => {
+      while (!cancelled && cursor < entries.length) {
+        const entry = entries[cursor];
+        cursor += 1;
+        await loadPlanetAssetTexture(entry, maxAnisotropy);
+      }
+    });
+
+    Promise.all(workers).catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [entries, maxAnisotropy]);
 
   return null;
 }
@@ -2038,7 +2122,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
   const galaxySpinTimeRef = useRef(0);
   const selectedPlanet = useMemo(() => (map.planets || []).find(planet => planet.id === view.planetId), [map.planets, view.planetId]);
   const selectedPlanetScenePosition = useMemo(() => selectedPlanet ? mapPointToWorld(planetMapPosition(map, selectedPlanet), map, BODY_Y_OFFSET) : null, [selectedPlanet, map]);
-  const hyperspaceActive = transition.kind === "planet" && transition.active && ["loading", "reveal"].includes(transition.phase);
+  const hyperspaceActive = transition.kind === "planet" && transition.active && transition.hyperspace && ["loading", "reveal"].includes(transition.phase);
   const hideActivePlanet = transition.kind === "planet" && transition.active && transition.phase === "loading";
   const counts = PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced;
 
@@ -2055,6 +2139,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
   return (
     <>
       <color attach="background" args={["#030105"]} />
+      <BackgroundPlanetTextureLoader map={map} />
       <PlanetTexturePreloader map={map} view={view} onProgress={onAssetsProgress} onReady={onAssetsReady} />
       <fogExp2 attach="fog" args={["#050107", view.mode === "planet" ? 0.00042 : 0.003]} />
       <ambientLight intensity={view.mode === "planet" ? 0.14 : 0.2} color="#4d1b20" />
@@ -2301,7 +2386,31 @@ export function GalaxyMapExperience({ map }) {
     }));
 
     queueTransitionTimer(() => {
+      const surfaceReady = planetSurfaceTexturesSettled(planet);
       setView({ mode: "planet", sectorId: planet.sectorId, planetId });
+
+      if (surfaceReady) {
+        setAssetsReady(true);
+        setTransition(current => ({
+          kind: "planet",
+          token: current.token + 1,
+          active: true,
+          phase: "reveal",
+          duration: flightDuration,
+          flightDuration,
+          hyperspace: false,
+          snapTarget: true,
+          snap: false,
+          reducedMotion
+        }));
+        queueTransitionTimer(() => {
+          setTransition(current => current.kind === "planet"
+            ? { ...current, active: false, phase: "idle", snap: false, snapTarget: false, hyperspace: false }
+            : current
+          );
+        }, flightDuration);
+        return;
+      }
 
       setTransition(current => ({
         kind: "planet",
@@ -2309,6 +2418,7 @@ export function GalaxyMapExperience({ map }) {
         active: true,
         phase: "loading",
         flightDuration,
+        hyperspace: true,
         reducedMotion
       }));
     }, wipeDuration);
@@ -2346,7 +2456,7 @@ export function GalaxyMapExperience({ map }) {
 
     queueTransitionTimer(() => {
       setTransition(current => current.kind === "planet"
-        ? { ...current, active: false, phase: "idle", snap: false, snapTarget: false }
+        ? { ...current, active: false, phase: "idle", snap: false, snapTarget: false, hyperspace: false }
         : current
       );
     }, flightDuration);

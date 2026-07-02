@@ -697,8 +697,8 @@
         return;
       }
 
-      if (!pageReady) return;
       if (!galaxyReady) return;
+      if (!pageReady && !waitForGalaxyLoader) return;
 
       stopProgress();
       cleanupGalaxyListeners();

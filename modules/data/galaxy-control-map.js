@@ -1,7 +1,5 @@
-const GALAXY_LFS_ASSET_BASE = "https://media.githubusercontent.com/media/Vyberion/holonet/migration/public/assets/galaxy";
-
 const galaxyPlanetTextures = folder => {
-  const base = folder === "korriban" ? `/assets/galaxy/${folder}` : `${GALAXY_LFS_ASSET_BASE}/${folder}`;
+  const base = `/assets/galaxy/${folder}`;
   return {
     diffuse: `${base}/diffuse.png`,
     color: `${base}/color.png`,
@@ -162,23 +160,6 @@ export const GALAXY_CONTROL_MAP = {
       robloxLaunchUrl: "roblox://experiences/start?placeId=1177256329",
       summary: "Homeworld of the Sith and location of the Sith Academy.",
       textures: onlyPlanetTextures("korriban", ["diffuse", "bump", "elevation", "roughness", "clouds"])
-    },
-    {
-      id: "dromund-kaas",
-      name: "Dromund Kaas",
-      shortName: "Dromund Kaas",
-      sectorId: "esstran",
-      regionId: "outer-rim",
-      factionId: "sith-empire",
-      grid: "R-5",
-      position: [4.78, -3.18],
-      radius: 0.018,
-      placementConfidence: "Legends placement: Dromund Kaas system in the Sith Worlds of the Esstran sector.",
-      contested: false,
-      objectives: [],
-      locations: ["Kaas City", "Dark Temple"],
-      summary: "Sith Empire capital hidden within the storm-wrapped Sith Worlds.",
-      textures: onlyPlanetTextures("dromund-kaas", ["diffuse", "bump", "roughness", "specular", "water", "lights", "clouds", "cloudColor", "cloudBump"])
     },
     {
       id: "ziost",

@@ -610,6 +610,38 @@ function pointDistance2D(left, right) {
   return Math.sqrt(dx * dx + dz * dz);
 }
 
+function angleDistanceDeg(angle, target) {
+  return Math.abs(((normalizeDeg(angle) - normalizeDeg(target) + 540) % 360) - 180);
+}
+
+function distanceToSectorBorder(point, cells, planet) {
+  const x = Number(point[0]) || 0;
+  const z = Number(point[1]) || 0;
+  const radius = Math.sqrt(x * x + z * z);
+  const angle = THREE.MathUtils.radToDeg(Math.atan2(z, x));
+  let best = 0;
+
+  cells.forEach(cell => {
+    const bounds = paddedCellBounds(cell, planet);
+    if (
+      radius < bounds.inner
+      || radius > bounds.outer
+      || !angleWithinArc(angle, cell.startAngleDeg, cell.endAngleDeg, bounds.anglePadding)
+    ) {
+      return;
+    }
+
+    const radialDistance = Math.min(radius - bounds.inner, bounds.outer - radius);
+    const angularDistance = Math.min(
+      angleDistanceDeg(angle, bounds.start),
+      angleDistanceDeg(angle, bounds.end)
+    ) * (Math.PI / 180) * Math.max(radius, 0.001);
+    best = Math.max(best, Math.min(radialDistance, angularDistance));
+  });
+
+  return best;
+}
+
 function minPlanetSpacing(planet, sector) {
   const sectorWidth = Math.max(0.4, (sector.outerRadius || 6) - (sector.innerRadius || 5));
   return Math.max(0.46, Math.min(0.92, sectorWidth * 0.46 + (planet.radius || 0.018) * 12));
@@ -634,9 +666,12 @@ function pickLayoutCell(rnd, cells) {
   return cells[0];
 }
 
-function scoreLayoutCandidate(candidate, placed, sectorAnchor, requiredSpacing) {
+function scoreLayoutCandidate(candidate, placed, sectorAnchor, requiredSpacing, cells, planet) {
   const centerDistance = pointDistance2D(candidate, sectorAnchor);
-  if (!placed.length) return -centerDistance * 2.6;
+  const borderDistance = distanceToSectorBorder(candidate, cells, planet);
+  const borderTarget = requiredSpacing * 0.72;
+  const borderPenalty = borderDistance < borderTarget ? (borderTarget - borderDistance) * 42 : 0;
+  if (!placed.length) return borderDistance * 4.8 - centerDistance * 1.8 - borderPenalty;
   const distances = placed.map(item => pointDistance2D(candidate, item.position));
   const nearest = Math.min(...distances);
   const average = distances.reduce((sum, distance) => sum + distance, 0) / distances.length;
@@ -645,7 +680,8 @@ function scoreLayoutCandidate(candidate, placed, sectorAnchor, requiredSpacing) 
   centroid[1] /= placed.length;
   const centroidEscape = pointDistance2D(candidate, centroid);
   const spacingPenalty = nearest < requiredSpacing ? (requiredSpacing - nearest) * 50 : 0;
-  return nearest * 5.2 + average * 0.85 + centroidEscape * 1.2 - centerDistance * 2.4 - spacingPenalty;
+  const balancedClearance = Math.min(nearest, borderDistance * 1.35);
+  return balancedClearance * 5.8 + average * 0.85 + centroidEscape * 1.2 + borderDistance * 1.3 - centerDistance * 2.1 - spacingPenalty - borderPenalty;
 }
 
 function sectorMapCenter(cells) {
@@ -697,7 +733,7 @@ function buildPlanetLayout(map, planets) {
         }
 
         for (const candidate of candidates) {
-          const score = scoreLayoutCandidate(candidate, placed, sectorAnchor, requiredSpacing);
+          const score = scoreLayoutCandidate(candidate, placed, sectorAnchor, requiredSpacing, cells, planet);
           if (score > chosenScore) {
             chosenScore = score;
             chosen = candidate;

@@ -42,7 +42,8 @@ const SECTOR_CAMERA_PULLBACK = 6.6;
 const PLANET_APPROACH_DISTANCE = 2.15;
 const PLANET_ENTRY_DISTANCE = 96;
 const PLANET_LOADING_DISTANCE = 132;
-const SURFACE_REVEAL_TIMEOUT_MS = 1600;
+const HYPERSPACE_MIN_MS = 1500;
+const SURFACE_REVEAL_TIMEOUT_MS = 5000;
 const BODY_Y_OFFSET = 0.05;
 const PARTICLE_COUNTS = {
   high: { stars: 26000, dust: 52000, clouds: 180, sky: 16000, sparkles: 460, streaks: 1650 },
@@ -298,11 +299,6 @@ function planetTextureIsSettled(entry) {
   return status === "loaded" || status === "failed";
 }
 
-function planetSurfaceTexturesSettled(planet) {
-  const entries = surfaceTextureEntriesForPlanet(planet);
-  return !entries.length || entries.every(planetTextureIsSettled);
-}
-
 function loadPlanetAssetTexture(entry, anisotropy) {
   const maxSize = maxTextureSizeForLayer(entry.key);
   const cacheKey = planetTextureCacheKey(entry);
@@ -549,8 +545,8 @@ function mapPointFromPolar(angleDeg, radius) {
 }
 
 function randomPointInSectorCell(rnd, cell, planet) {
-  const radiusPadding = Math.max(0.2, (planet.radius || 0.018) * 12);
-  const anglePadding = 6.5;
+  const radiusPadding = Math.max(0.6, (planet.radius || 0.018) * 36);
+  const anglePadding = 19.5;
   const inner = cell.innerRadius + radiusPadding;
   const outer = cell.outerRadius - radiusPadding;
   const start = cell.startAngleDeg + anglePadding;
@@ -561,8 +557,8 @@ function randomPointInSectorCell(rnd, cell, planet) {
 }
 
 function cellCenterPoint(cell, planet, angleBias = 0.5, radiusBias = 0.5) {
-  const radiusPadding = Math.max(0.2, (planet.radius || 0.018) * 12);
-  const anglePadding = 6.5;
+  const radiusPadding = Math.max(0.6, (planet.radius || 0.018) * 36);
+  const anglePadding = 19.5;
   const inner = cell.innerRadius + radiusPadding;
   const outer = cell.outerRadius - radiusPadding;
   const start = cell.startAngleDeg + anglePadding;
@@ -580,7 +576,7 @@ function pointDistance2D(left, right) {
 
 function minPlanetSpacing(planet, sector) {
   const sectorWidth = Math.max(0.4, (sector.outerRadius || 6) - (sector.innerRadius || 5));
-  return Math.max(0.34, Math.min(0.78, sectorWidth * 0.42 + (planet.radius || 0.018) * 10));
+  return Math.max(0.62, Math.min(1.35, sectorWidth * 0.82 + (planet.radius || 0.018) * 18));
 }
 
 function largestDrawableCells(sector, map) {
@@ -713,8 +709,8 @@ function safePlanetMapPosition(map, planet) {
   const z = Number(position[1] ?? position[2]) || 0;
   const radius = Math.sqrt(x * x + z * z);
   const angle = THREE.MathUtils.radToDeg(Math.atan2(z, x));
-  const radiusPadding = Math.max(0.16, (planet.radius || 0.018) * 8);
-  const anglePadding = 5.5;
+  const radiusPadding = Math.max(0.48, (planet.radius || 0.018) * 24);
+  const anglePadding = 16.5;
 
   const safelyInside = cells.some(cell => (
     radius >= cell.innerRadius + radiusPadding
@@ -2023,15 +2019,18 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
       const isPlanetEntry = current.kind === "planet" && view.mode === "planet";
       const t = isPlanetEntry ? 1 - Math.pow(1 - capped, 3.4) : smoothstep(0, 1, raw);
       const recoil = isPlanetEntry
-        ? Math.sin(capped * Math.PI * 3.1) * current.recoil * (1 - t * 0.62)
+        ? 0
         : Math.sin(capped * Math.PI * 2.6) * current.recoil * (1 - t);
       camera.position.copy(current.fromCamera).lerp(liveCamera, t);
       const recoilDirection = liveCamera.clone().sub(liveFocus).normalize();
       camera.position.add(recoilDirection.multiplyScalar(recoil));
       if (isPlanetEntry && !current.reducedMotion) {
-        const shake = Math.sin(capped * Math.PI) * (1 - t * 0.45) * 0.075;
-        camera.position.x += Math.sin(raw * 74) * shake;
-        camera.position.y += Math.cos(raw * 61) * shake * 0.55;
+        const exitRumble = smoothstep(0.62, 1, capped) * (1 - smoothstep(0.96, 1, capped));
+        const travelRumble = Math.sin(capped * Math.PI) * 0.024;
+        const rumble = exitRumble * 0.18 + travelRumble;
+        camera.position.x += (Math.sin(raw * 211) + Math.sin(raw * 389) * 0.52) * rumble;
+        camera.position.y += (Math.cos(raw * 263) + Math.sin(raw * 421) * 0.42) * rumble * 0.58;
+        camera.position.z += Math.sin(raw * 337) * rumble * 0.44;
       }
       controls.target.copy(current.fromTarget).lerp(liveFocus, t);
       controls.update();
@@ -2398,31 +2397,7 @@ export function GalaxyMapExperience({ map }) {
     }));
 
     queueTransitionTimer(() => {
-      const surfaceReady = planetSurfaceTexturesSettled(planet);
       setView({ mode: "planet", sectorId: planet.sectorId, planetId });
-
-      if (surfaceReady) {
-        setAssetsReady(true);
-        setTransition(current => ({
-          kind: "planet",
-          token: current.token + 1,
-          active: true,
-          phase: "reveal",
-          duration: flightDuration,
-          flightDuration,
-          hyperspace: false,
-          snapTarget: true,
-          snap: false,
-          reducedMotion
-        }));
-        queueTransitionTimer(() => {
-          setTransition(current => current.kind === "planet"
-            ? { ...current, active: false, phase: "idle", snap: false, snapTarget: false, hyperspace: false }
-            : current
-          );
-        }, flightDuration);
-        return;
-      }
 
       setTransition(current => ({
         kind: "planet",
@@ -2430,6 +2405,7 @@ export function GalaxyMapExperience({ map }) {
         active: true,
         phase: "loading",
         flightDuration,
+        minHyperspaceUntil: performance.now() + (reducedMotion ? 620 : HYPERSPACE_MIN_MS),
         hyperspace: true,
         reducedMotion
       }));
@@ -2455,23 +2431,32 @@ export function GalaxyMapExperience({ map }) {
       return;
     }
 
-    const flightDuration = transition.flightDuration || (reducedMotion ? 900 : 1850);
-    setTransition(current => ({
-      ...current,
-      token: current.token + 1,
-      phase: "reveal",
-      duration: flightDuration,
-      flightDuration,
-      snapTarget: true,
-      snap: false
-    }));
+    const minDelay = Math.max(0, (transition.minHyperspaceUntil || 0) - performance.now());
+    const startReveal = () => {
+      const flightDuration = transition.flightDuration || (reducedMotion ? 900 : 1850);
+      setTransition(current => ({
+        ...current,
+        token: current.token + 1,
+        phase: "reveal",
+        duration: flightDuration,
+        flightDuration,
+        snapTarget: true,
+        snap: false
+      }));
 
-    queueTransitionTimer(() => {
-      setTransition(current => current.kind === "planet"
-        ? { ...current, active: false, phase: "idle", snap: false, snapTarget: false, hyperspace: false }
-        : current
-      );
-    }, flightDuration);
+      queueTransitionTimer(() => {
+        setTransition(current => current.kind === "planet"
+          ? { ...current, active: false, phase: "idle", snap: false, snapTarget: false, hyperspace: false, minHyperspaceUntil: 0 }
+          : current
+        );
+      }, flightDuration);
+    };
+
+    if (minDelay > 0) {
+      queueTransitionTimer(startReveal, minDelay);
+      return;
+    }
+    startReveal();
   }, [assetsReady, queueTransitionTimer, reducedMotion, transition, view.mode]);
 
   const zoomOut = useCallback(() => {

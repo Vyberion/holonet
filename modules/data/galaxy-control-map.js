@@ -1,3 +1,16 @@
+const galaxyPlanetTextures = folder => ({
+  diffuse: `/assets/galaxy/${folder}/diffuse.png`,
+  color: `/assets/galaxy/${folder}/color.png`,
+  bump: `/assets/galaxy/${folder}/bump.png`,
+  elevation: `/assets/galaxy/${folder}/elevation.png`,
+  roughness: `/assets/galaxy/${folder}/roughness.png`,
+  water: `/assets/galaxy/${folder}/water.png`,
+  lights: `/assets/galaxy/${folder}/lights.png`,
+  clouds: `/assets/galaxy/${folder}/clouds.png`,
+  cloudColor: `/assets/galaxy/${folder}/cloud-color.png`,
+  cloudBump: `/assets/galaxy/${folder}/cloud-bump.png`
+});
+
 export const GALAXY_CONTROL_MAP = {
   title: "Galaxy",
   sources: [
@@ -100,9 +113,27 @@ export const GALAXY_CONTROL_MAP = {
     { id: "minos-cluster", name: "Minos Cluster", regionId: "outer-rim", grid: "K-19", factionId: "neutral", placementConfidence: "Outer Rim Legends broad placement", innerRadius: 5.02, outerRadius: 6.44, outerStartRadius: 6.6, outerEndRadius: 6.2, startAngleDeg: 170, endAngleDeg: 202 },
     { id: "kathol", name: "Kathol Sector", regionId: "outer-rim", grid: "J-20", factionId: "neutral", placementConfidence: "Outer Rim Legends broad placement", innerRadius: 5.18, outerRadius: 6.7, innerStartRadius: 5.0, outerEndRadius: 6.52, startAngleDeg: 202, endAngleDeg: 232 },
     { id: "rishi-maze", name: "Rishi Maze Approaches", regionId: "wild-space", grid: "S-15", factionId: "neutral", placementConfidence: "Wild Space / satellite-galaxy approach approximated", innerRadius: 5.28, outerRadius: 6.74, outerStartRadius: 6.48, outerEndRadius: 6.88, startAngleDeg: 232, endAngleDeg: 262 },
-    { id: "ilum-frontier", name: "Ilum Frontier", regionId: "outer-rim", grid: "G-7", factionId: "neutral", placementConfidence: "Old Republic Ilum frontier broad placement", innerRadius: 5.06, outerRadius: 6.42, innerEndRadius: 4.84, outerStartRadius: 6.58, startAngleDeg: 262, endAngleDeg: 296 }
+    { id: "ilum-frontier", name: "Ilum Frontier", regionId: "outer-rim", grid: "G-7", factionId: "neutral", placementConfidence: "Old Republic Ilum frontier broad placement", innerRadius: 5.06, outerRadius: 6.42, innerEndRadius: 4.84, outerStartRadius: 6.58, startAngleDeg: 262, endAngleDeg: 296 },
+    { id: "raioballo", name: "Raioballo Sector", regionId: "outer-rim", grid: "L-4", factionId: "jedi-republic", placementConfidence: "Legends placement: Dantooine system in the Raioballo sector of the Outer Rim.", innerRadius: 5.0, outerRadius: 6.48, outerStartRadius: 6.32, outerEndRadius: 6.62, startAngleDeg: 296, endAngleDeg: 330 }
   ],
   planets: [
+    {
+      id: "coruscant",
+      name: "Coruscant",
+      shortName: "Coruscant",
+      sectorId: "coruscant",
+      regionId: "core",
+      factionId: "jedi-republic",
+      grid: "L-9",
+      position: [0.62, -0.58],
+      radius: 0.018,
+      placementConfidence: "Canonical broad placement: Coruscant sector / Corusca sector, Core Worlds",
+      contested: false,
+      objectives: [],
+      locations: ["Galactic Senate", "Jedi Temple"],
+      summary: "Galactic capital world and seat of Republic power.",
+      textures: galaxyPlanetTextures("coruscant")
+    },
     {
       id: "korriban",
       name: "Korriban / Moraband",
@@ -119,7 +150,93 @@ export const GALAXY_CONTROL_MAP = {
       locations: ["Sith Temple", "Dark Tombs"],
       robloxPlaceId: 1177256329,
       robloxLaunchUrl: "roblox://experiences/start?placeId=1177256329",
-      summary: "Homeworld of the Sith and location of the Sith Academy."
+      summary: "Homeworld of the Sith and location of the Sith Academy.",
+      textures: galaxyPlanetTextures("korriban")
+    },
+    {
+      id: "dromund-kaas",
+      name: "Dromund Kaas",
+      shortName: "Dromund Kaas",
+      sectorId: "esstran",
+      regionId: "outer-rim",
+      factionId: "sith-empire",
+      grid: "R-5",
+      position: [4.22, -3.7],
+      radius: 0.018,
+      placementConfidence: "Legends placement: Dromund Kaas system in the Sith Worlds of the Esstran sector.",
+      contested: false,
+      objectives: [],
+      locations: ["Kaas City", "Dark Temple"],
+      summary: "Sith Empire capital hidden within the storm-wrapped Sith Worlds.",
+      textures: galaxyPlanetTextures("dromund-kaas")
+    },
+    {
+      id: "ziost",
+      name: "Ziost",
+      shortName: "Ziost",
+      sectorId: "esstran",
+      regionId: "outer-rim",
+      factionId: "sith-empire",
+      grid: "R-4",
+      position: [3.72, -4.24],
+      radius: 0.017,
+      placementConfidence: "Canonical broad placement: ancient Sith world in the Outer Rim, grid R-4; Sith Worlds / Esstran in Legends.",
+      contested: false,
+      objectives: [],
+      locations: ["Sith Citadel", "Ancient Vaults"],
+      summary: "Ancient Sith world and former center of Sith imperial power.",
+      textures: galaxyPlanetTextures("ziost")
+    },
+    {
+      id: "mandalore",
+      name: "Mandalore",
+      shortName: "Mandalore",
+      sectorId: "mandalore",
+      regionId: "outer-rim",
+      factionId: "neutral",
+      grid: "O-7",
+      position: [3.66, -2.18],
+      radius: 0.018,
+      placementConfidence: "Canonical broad placement: Mandalore system in the Mandalore sector, Outer Rim.",
+      contested: false,
+      objectives: [],
+      locations: ["Sundari", "Dome Cities"],
+      summary: "Homeworld of the Mandalorians in the Outer Rim's Mandalore sector.",
+      textures: galaxyPlanetTextures("mandalore")
+    },
+    {
+      id: "nar-shaddaa",
+      name: "Nar Shaddaa",
+      shortName: "Nar Shaddaa",
+      sectorId: "hutt-space",
+      regionId: "outer-rim",
+      factionId: "neutral",
+      grid: "S-12",
+      position: [5.1, -0.16],
+      radius: 0.016,
+      placementConfidence: "Canonical broad placement: moon of Nal Hutta in Hutt Space, Outer Rim.",
+      contested: false,
+      objectives: [],
+      locations: ["Hutta Town", "Vertical City"],
+      summary: "The Smuggler's Moon, an ecumenopolis and major Hutt Space port.",
+      textures: galaxyPlanetTextures("nar-shaddaa")
+    },
+    {
+      id: "dantooine",
+      name: "Dantooine",
+      shortName: "Dantooine",
+      sectorId: "raioballo",
+      regionId: "outer-rim",
+      factionId: "jedi-republic",
+      grid: "L-4",
+      position: [3.88, 4.32],
+      radius: 0.017,
+      placementConfidence: "Legends placement: Dantooine system in the Raioballo sector of the Outer Rim.",
+      contested: false,
+      objectives: [],
+      locations: ["Jedi Enclave", "Khoonda Plains"],
+      summary: "Remote grassland world known for its Jedi Enclave and Rebel-era secrecy.",
+      textures: galaxyPlanetTextures("dantooine")
     }
   ]
 };

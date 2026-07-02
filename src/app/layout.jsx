@@ -621,6 +621,44 @@ const HOLONET_GLOBAL_POLISH_JS = `
     });
   }
 
+  function tierAtLeast(value) {
+    return ["member", "nco", "command", "leadership"].includes(String(value || "").toLowerCase());
+  }
+
+  let inquisitoriusAccessChecked = false;
+
+  async function syncInquisitoriusDescription() {
+    const path = window.location.pathname.replace(/\\/+$/, "") || "/";
+    if (path !== "/inquisitors" && path !== "/inquisitors/info") return;
+
+    const targets = Array.from(document.querySelectorAll(".reg-text, .hub-summary"));
+    const target = targets.find(element => /Division information can be filled in here|REDACTED|Intelligence and background oversight/i.test(element.textContent));
+    if (!target) return;
+
+    const permittedText = "Intelligence and background oversight of the group to ensure high standards.";
+    const redactedText = "REDACTED.";
+    let permitted = false;
+
+    try {
+      const raw = sessionStorage.getItem("holonet:access:global");
+      const cached = raw ? JSON.parse(raw) : null;
+      const profile = cached?.profile;
+      permitted = Boolean(profile?.isSuperUser || profile?.hasFullAccess || tierAtLeast(profile?.divisions?.inquisitors));
+    } catch {}
+
+    target.textContent = permitted ? permittedText : redactedText;
+    if (inquisitoriusAccessChecked) return;
+    inquisitoriusAccessChecked = true;
+
+    try {
+      const response = await fetch("/api/auth/check-access", { cache: "no-store" });
+      const payload = await response.json();
+      const profile = payload?.profile;
+      const allowed = Boolean(profile?.isSuperUser || profile?.hasFullAccess || tierAtLeast(profile?.divisions?.inquisitors));
+      target.textContent = allowed ? permittedText : redactedText;
+    } catch {}
+  }
+
   function sortWeeklyReportEditorRows() {
     document.querySelectorAll(".weekly-report-grid").forEach(grid => {
       const rows = Array.from(grid.querySelectorAll("[data-report-member]"));
@@ -637,6 +675,7 @@ const HOLONET_GLOBAL_POLISH_JS = `
   function bootPolish() {
     ensureMobileSearchShortcut();
     syncSurfaceText();
+    syncInquisitoriusDescription();
     sortWeeklyReportEditorRows();
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Sparkles, useProgress } from "@react-three/drei";
 import { Bloom, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -94,14 +94,20 @@ const SECTOR_TESSELLATION_CELLS = {
   "minos-cluster": [[12, 13, 7, 8]],
   kathol: [[13, 14, 7, 9]],
   "rishi-maze": [[14, 15, 7, 9]],
-  "ilum-frontier": [[15, 17, 6, 8]]
+  "ilum-frontier": [[15, 16, 6, 8]],
+  raioballo: [[16, 17, 6, 8]]
 };
-const KORRIBAN_TEXTURE_URLS = [
-  "/assets/galaxy/korriban/diffuse.png",
-  "/assets/galaxy/korriban/bump.png",
-  "/assets/galaxy/korriban/elevation.png",
-  "/assets/galaxy/korriban/roughness.png",
-  "/assets/galaxy/korriban/clouds.png"
+const PLANET_TEXTURE_KEYS = [
+  ["diffuse", true],
+  ["color", true],
+  ["bump", false],
+  ["elevation", false],
+  ["roughness", false],
+  ["water", true],
+  ["lights", true],
+  ["clouds", true],
+  ["cloudColor", true],
+  ["cloudBump", false]
 ];
 const DEFAULT_FACTIONS = [
   {
@@ -199,6 +205,22 @@ function configurePlanetTexture(texture, { color = false, anisotropy = 8 } = {})
   texture.anisotropy = anisotropy;
   texture.needsUpdate = true;
   return texture;
+}
+
+function loadOptionalPlanetTexture(loader, url, options) {
+  return new Promise(resolve => {
+    if (!url) {
+      resolve(null);
+      return;
+    }
+
+    loader.load(
+      url,
+      texture => resolve(configurePlanetTexture(texture, options)),
+      undefined,
+      () => resolve(null)
+    );
+  });
 }
 
 function factionById(map, id) {
@@ -1014,24 +1036,40 @@ function normalizePlanet(map, planet) {
   };
 }
 
-function useKorribanTextureSet() {
-  const [map, normalMap, elevationMap, roughnessMap, cloudMap] = useLoader(THREE.TextureLoader, KORRIBAN_TEXTURE_URLS);
+function usePlanetTextureSet(body) {
   const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
+  const [textures, setTextures] = useState({});
+  const texturePaths = body.textures || null;
 
   useEffect(() => {
-    configurePlanetTexture(map, { color: true, anisotropy: maxAnisotropy });
-    configurePlanetTexture(normalMap, { anisotropy: maxAnisotropy });
-    configurePlanetTexture(elevationMap, { anisotropy: maxAnisotropy });
-    configurePlanetTexture(roughnessMap, { anisotropy: maxAnisotropy });
-    configurePlanetTexture(cloudMap, { color: true, anisotropy: maxAnisotropy });
-  }, [map, normalMap, elevationMap, roughnessMap, cloudMap, maxAnisotropy]);
+    let cancelled = false;
+    const loader = new THREE.TextureLoader();
 
-  return { map, normalMap, elevationMap, roughnessMap, cloudMap };
+    Promise.all(PLANET_TEXTURE_KEYS.map(([key, color]) => (
+      loadOptionalPlanetTexture(loader, texturePaths?.[key], { color, anisotropy: maxAnisotropy })
+        .then(texture => [key, texture])
+    ))).then(entries => {
+      if (cancelled) {
+        entries.forEach(([, texture]) => texture?.dispose());
+        return;
+      }
+
+      const nextTextures = Object.fromEntries(entries.filter(([, texture]) => texture));
+      setTextures(current => {
+        Object.values(current).forEach(texture => texture?.dispose());
+        return nextTextures;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [texturePaths, maxAnisotropy]);
+
+  return textures;
 }
 
-function KorribanTexturePreloader({ onReady }) {
-  useKorribanTextureSet();
-
+function PlanetTexturePreloader({ onReady }) {
   useEffect(() => {
     onReady?.();
   }, [onReady]);
@@ -1045,10 +1083,21 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
   const planetRef = useRef(null);
   const cloudsRef = useRef(null);
   const scanRef = useRef(null);
-  const korribanTextures = useKorribanTextureSet();
-  const generatedTextures = useMemo(() => body.id === "korriban" ? null : getGeneratedPlanetTextures(body), [body]);
-  const hasKorribanTextures = body.id === "korriban";
-  const textures = hasKorribanTextures ? korribanTextures : generatedTextures;
+  const assetTextures = usePlanetTextureSet(body);
+  const generatedTextures = useMemo(() => getGeneratedPlanetTextures(body), [body]);
+  const textures = useMemo(() => ({
+    map: assetTextures.diffuse || assetTextures.color || generatedTextures.map,
+    bumpMap: assetTextures.bump || generatedTextures.bumpMap,
+    displacementMap: assetTextures.elevation || null,
+    roughnessMap: assetTextures.roughness || null,
+    waterMap: assetTextures.water || null,
+    lightsMap: assetTextures.lights || null,
+    cloudMap: assetTextures.cloudColor || assetTextures.clouds || generatedTextures.cloudMap,
+    cloudAlphaMap: assetTextures.clouds || assetTextures.cloudColor || generatedTextures.cloudMap,
+    cloudBumpMap: assetTextures.cloudBump || null,
+    hasAssetSurface: !!(assetTextures.diffuse || assetTextures.color),
+    hasAssetClouds: !!(assetTextures.cloudColor || assetTextures.clouds)
+  }), [assetTextures, generatedTextures]);
   const haloTexture = useMemo(() => makeGlowTexture("rgba(255,255,255,1)", colorWithAlpha(body.colors.glow, 0.58)), [body.colors.glow]);
   const isGalaxy = mode === "galaxy";
   const targetScale = active ? 7.4 : mode === "sector" ? (hovered ? 1.35 : 1.08) : isGalaxy ? 0.34 : 2.15;
@@ -1110,44 +1159,52 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
         onClick={handleClick}
       >
         <sphereGeometry args={[body.visualRadius, 96, 48]} />
-        {hasKorribanTextures ? (
-          <meshStandardMaterial
-            map={textures.map}
-            roughnessMap={textures.roughnessMap}
-            roughness={0.9}
-            metalness={0}
-            emissive={body.colors.surfaceDark}
-            emissiveIntensity={active ? 0.12 : 0.03}
-          />
-        ) : (
-          <meshStandardMaterial
-            map={textures.map}
-            bumpMap={textures.bumpMap}
-            bumpScale={0.04}
-            roughness={0.82}
-            metalness={0.02}
-            emissive={body.colors.surfaceDark}
-            emissiveIntensity={active ? 0.24 : 0.06}
-          />
-        )}
+        <meshStandardMaterial
+          map={textures.map}
+          bumpMap={textures.bumpMap}
+          bumpScale={textures.hasAssetSurface ? 0.026 : 0.04}
+          displacementMap={textures.displacementMap}
+          displacementScale={textures.displacementMap ? 0.008 : 0}
+          roughnessMap={textures.roughnessMap}
+          roughness={textures.roughnessMap ? 0.9 : 0.82}
+          metalness={0.02}
+          emissive={textures.lightsMap ? "#fff0b8" : body.colors.surfaceDark}
+          emissiveMap={textures.lightsMap}
+          emissiveIntensity={textures.lightsMap ? (active ? 0.95 : 0.62) : (active ? 0.24 : 0.06)}
+        />
       </mesh>
-      <mesh ref={cloudsRef} renderOrder={31}>
-        <sphereGeometry args={[body.visualRadius * (hasKorribanTextures ? 1.0015 : 1.004), 96, 48]} />
-        {hasKorribanTextures ? (
+      {textures.waterMap ? (
+        <mesh renderOrder={30.5}>
+          <sphereGeometry args={[body.visualRadius * 1.0008, 96, 48]} />
           <meshStandardMaterial
-            map={textures.cloudMap}
-            alphaMap={textures.cloudMap}
-            color="#fff7ef"
+            map={textures.waterMap}
+            alphaMap={textures.waterMap}
+            color="#8fdcff"
             transparent
-            opacity={0.42}
-            alphaTest={0.035}
-            roughness={1}
-            metalness={0}
+            opacity={0.34}
+            alphaTest={0.025}
+            roughness={0.18}
+            metalness={0.04}
             depthWrite={false}
           />
-        ) : (
-          <meshStandardMaterial map={textures.cloudMap} transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
-        )}
+        </mesh>
+      ) : null}
+      <mesh ref={cloudsRef} renderOrder={31}>
+        <sphereGeometry args={[body.visualRadius * (textures.hasAssetClouds ? 1.0015 : 1.004), 96, 48]} />
+        <meshStandardMaterial
+          map={textures.cloudMap}
+          alphaMap={textures.cloudAlphaMap}
+          bumpMap={textures.cloudBumpMap}
+          bumpScale={textures.cloudBumpMap ? 0.018 : 0}
+          color={textures.hasAssetClouds ? "#fff7ef" : "#ffffff"}
+          transparent
+          opacity={textures.hasAssetClouds ? 0.42 : 0.2}
+          alphaTest={textures.hasAssetClouds ? 0.035 : 0}
+          roughness={1}
+          metalness={0}
+          depthWrite={false}
+          blending={textures.hasAssetClouds ? THREE.NormalBlending : THREE.AdditiveBlending}
+        />
       </mesh>
       {sectorMarkerVisible ? (
         <>
@@ -1542,7 +1599,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
   return (
     <>
       <color attach="background" args={["#030105"]} />
-      <KorribanTexturePreloader onReady={onAssetsReady} />
+      <PlanetTexturePreloader onReady={onAssetsReady} />
       <fogExp2 attach="fog" args={["#050107", view.mode === "planet" ? 0.00042 : 0.003]} />
       <ambientLight intensity={view.mode === "planet" ? 0.14 : 0.2} color="#4d1b20" />
       <directionalLight position={[5.6, 3.2, 4.4]} intensity={view.mode === "planet" ? 4.4 : 3.2} color="#ffd8a8" />

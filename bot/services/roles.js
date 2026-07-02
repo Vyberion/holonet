@@ -30,6 +30,14 @@ function rolesFromRanges(rank, ranges = []) {
   });
 }
 
+function envTrue(value) {
+  return String(value || "").toLowerCase() === "true";
+}
+
+function shouldAutoSyncUnlinkedMembers() {
+  return envTrue(process.env.DISCORD_SYNC_UNLINKED_MEMBERS) || config.roles?.syncUnlinkedMembers === true;
+}
+
 function isMainGroupMember(profile) {
   return Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0) > 0;
 }
@@ -276,11 +284,12 @@ async function loadLinkedDiscordUserIds() {
 export async function syncVerifiedRoleForLinkedUsers(client) {
   const roleId = config.roles?.verified;
   const guildId = config.discord?.guildId;
-  if (!roleId || !guildId) return { checked: 0, added: 0, removed: 0, unlinkedAdded: 0, verifiedRemoved: 0, failed: 0 };
+  if (!roleId || !guildId) return { checked: 0, added: 0, removed: 0, unlinkedAdded: 0, verifiedRemoved: 0, autoUnlinkedSyncEnabled: false, failed: 0 };
 
   const guild = await client.guilds.fetch(guildId);
   const linkedDiscordIds = await loadLinkedDiscordUserIds();
   const linkedDiscordIdSet = new Set(linkedDiscordIds);
+  const autoUnlinkedSyncEnabled = shouldAutoSyncUnlinkedMembers();
   let added = 0;
   let removed = 0;
   let unlinkedAdded = 0;
@@ -307,6 +316,10 @@ export async function syncVerifiedRoleForLinkedUsers(client) {
     }
   }
 
+  if (!autoUnlinkedSyncEnabled) {
+    return { checked: linkedDiscordIds.length, added, removed, unlinkedAdded, verifiedRemoved, autoUnlinkedSyncEnabled, failed };
+  }
+
   const members = await guild.members.fetch();
   for (const member of members.values()) {
     if (member.user?.bot || linkedDiscordIdSet.has(member.id)) continue;
@@ -329,7 +342,7 @@ export async function syncVerifiedRoleForLinkedUsers(client) {
     }
   }
 
-  return { checked: linkedDiscordIds.length, added, removed, unlinkedAdded, verifiedRemoved, failed };
+  return { checked: linkedDiscordIds.length, added, removed, unlinkedAdded, verifiedRemoved, autoUnlinkedSyncEnabled, failed };
 }
 
 export function divisionTierWeight(tier) {

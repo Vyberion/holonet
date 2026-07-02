@@ -213,11 +213,39 @@ function makeGlowTexture(inner = "rgba(255,255,255,1)", mid = "rgba(255,61,68,.4
   }, 512, 512);
 }
 
-function configurePlanetTexture(texture, { color = false, anisotropy = 8 } = {}) {
+function resizeTextureImage(texture, maxSize) {
+  const image = texture.image;
+  if (!image || !maxSize) return texture;
+  const width = image.naturalWidth || image.videoWidth || image.width || 0;
+  const height = image.naturalHeight || image.videoHeight || image.height || 0;
+  const largest = Math.max(width, height);
+  if (!width || !height || largest <= maxSize) return texture;
+
+  const scale = maxSize / largest;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  try {
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    texture.image = canvas;
+  } catch {
+    return texture;
+  }
+  return texture;
+}
+
+function configurePlanetTexture(texture, { color = false, anisotropy = 8, maxSize = null } = {}) {
+  resizeTextureImage(texture, maxSize);
   texture.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
-  texture.anisotropy = anisotropy;
+  texture.anisotropy = Math.min(anisotropy, 4);
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = true;
   texture.needsUpdate = true;
   return texture;
 }
@@ -250,13 +278,21 @@ function planetTextureEntries(body) {
     .filter(entry => entry.url);
 }
 
+function maxTextureSizeForLayer(key) {
+  if (key === "diffuse" || key === "color") return 3072;
+  if (key === "clouds" || key === "cloudColor") return 2048;
+  if (key === "lights" || key === "water") return 2048;
+  return 1024;
+}
+
 function loadPlanetAssetTexture(entry, anisotropy) {
-  const cacheKey = `${entry.url}|${entry.color ? "color" : "data"}|${anisotropy}`;
+  const maxSize = maxTextureSizeForLayer(entry.key);
+  const cacheKey = `${entry.url}|${entry.color ? "color" : "data"}|${maxSize}`;
   if (!PLANET_ASSET_TEXTURE_CACHE.has(cacheKey)) {
     const loader = new THREE.TextureLoader();
     PLANET_ASSET_TEXTURE_CACHE.set(
       cacheKey,
-      loadOptionalPlanetTexture(loader, entry.url, { color: entry.color, anisotropy })
+      loadOptionalPlanetTexture(loader, entry.url, { color: entry.color, anisotropy, maxSize })
     );
   }
   return PLANET_ASSET_TEXTURE_CACHE.get(cacheKey);
@@ -487,8 +523,98 @@ function mapPointFromPolar(angleDeg, radius) {
   return [Math.cos(angle) * radius, Math.sin(angle) * radius];
 }
 
+function randomPointInSectorCell(rnd, cell, planet) {
+  const radiusPadding = Math.max(0.2, (planet.radius || 0.018) * 12);
+  const anglePadding = 6.5;
+  const inner = cell.innerRadius + radiusPadding;
+  const outer = cell.outerRadius - radiusPadding;
+  const start = cell.startAngleDeg + anglePadding;
+  const end = cell.endAngleDeg - anglePadding;
+  const radius = outer > inner ? randRange(rnd, inner, outer) : (cell.innerRadius + cell.outerRadius) / 2;
+  const angle = end > start ? randRange(rnd, start, end) : (cell.startAngleDeg + cell.endAngleDeg) / 2;
+  return mapPointFromPolar(angle, radius);
+}
+
+function pointDistance2D(left, right) {
+  const dx = left[0] - right[0];
+  const dz = left[1] - right[1];
+  return Math.sqrt(dx * dx + dz * dz);
+}
+
+function minPlanetSpacing(planet, sector) {
+  const sectorWidth = Math.max(0.4, (sector.outerRadius || 6) - (sector.innerRadius || 5));
+  return Math.max(0.34, Math.min(0.78, sectorWidth * 0.42 + (planet.radius || 0.018) * 10));
+}
+
+function largestDrawableCells(sector, map) {
+  return drawableSectorCells(sector, map)
+    .map(cell => ({
+      ...cell,
+      area: Math.max(0.001, Math.abs(cell.endAngleDeg - cell.startAngleDeg) * (cell.outerRadius * cell.outerRadius - cell.innerRadius * cell.innerRadius))
+    }))
+    .sort((left, right) => right.area - left.area);
+}
+
+function pickLayoutCell(rnd, cells) {
+  const total = cells.reduce((sum, cell) => sum + cell.area, 0);
+  let cursor = rnd() * total;
+  for (const cell of cells) {
+    cursor -= cell.area;
+    if (cursor <= 0) return cell;
+  }
+  return cells[0];
+}
+
+function buildPlanetLayout(map, planets) {
+  const layout = new Map();
+  const sectorsById = new Map((map?.sectors || []).map(sector => [sector.id, sector]));
+  const planetsBySector = new Map();
+  planets.forEach(planet => {
+    const list = planetsBySector.get(planet.sectorId) || [];
+    list.push(planet);
+    planetsBySector.set(planet.sectorId, list);
+  });
+
+  planetsBySector.forEach((sectorPlanets, sectorId) => {
+    const sector = sectorsById.get(sectorId);
+    if (!sector) return;
+    const cells = largestDrawableCells(sector, map);
+    if (!cells.length) return;
+    const placed = [];
+
+    sectorPlanets
+      .slice()
+      .sort((left, right) => String(left.id).localeCompare(String(right.id)))
+      .forEach((planet, index) => {
+        const rnd = seededRandom(idSeed(`${sector.id}:${planet.id}:${index}`) + 8191);
+        let chosen = null;
+        let chosenScore = -Infinity;
+        const requiredSpacing = minPlanetSpacing(planet, sector);
+
+        for (let attempt = 0; attempt < 96; attempt += 1) {
+          const cell = pickLayoutCell(rnd, cells);
+          const candidate = randomPointInSectorCell(rnd, cell, planet);
+          const nearest = placed.length ? Math.min(...placed.map(item => pointDistance2D(candidate, item.position))) : Infinity;
+          if (nearest >= requiredSpacing) {
+            chosen = candidate;
+            break;
+          }
+          if (nearest > chosenScore) {
+            chosenScore = nearest;
+            chosen = candidate;
+          }
+        }
+
+        placed.push({ planet, position: chosen });
+        layout.set(planet.id, chosen);
+      });
+  });
+
+  return layout;
+}
+
 function safePlanetMapPosition(map, planet) {
-  const position = planet.position || planet.mapPosition || [0, 0];
+  const position = planet.layoutPosition || planet.position || planet.mapPosition || [0, 0];
   const sector = (map?.sectors || []).find(item => item.id === planet.sectorId);
   if (!sector) return position;
 
@@ -1911,13 +2037,22 @@ function normalizeMap(map) {
     endAngleDeg: -30
   }];
 
-  return {
+  const baseMap = {
     ...map,
     factions,
     sectors: fallbackSector,
     planets,
     guide: map?.guide || { radius: 6.74, spokeStepDeg: 15, spokeOffsetDeg: 0 },
     title: map?.title || "Galaxy"
+  };
+  const planetLayout = buildPlanetLayout(baseMap, planets);
+
+  return {
+    ...baseMap,
+    planets: planets.map(planet => ({
+      ...planet,
+      layoutPosition: planetLayout.get(planet.id) || planet.position || planet.mapPosition || [0, 0]
+    }))
   };
 }
 

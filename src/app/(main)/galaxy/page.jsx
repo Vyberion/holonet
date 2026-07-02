@@ -84,6 +84,7 @@ const GALAXY_INTRO_SCRIPT = `
     var loader = document.getElementById("loader");
     if (!loader) return;
 
+    window.HOLONET_FORCE_RELEASE_INTRO = true;
     window.HOLONET_ALTERNATIVE_INTRO_ENABLED = true;
     requestIntroRun();
     document.documentElement.classList.add("holonet-release-intro");

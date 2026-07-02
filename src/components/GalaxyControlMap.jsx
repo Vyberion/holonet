@@ -1438,28 +1438,40 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
   useEffect(() => {
     let cancelled = false;
     let fallbackTimer = null;
-    if (entries.length && entries.every(planetTextureIsSettled)) {
-      onProgress?.({ loaded: entries.length, total: entries.length });
+    let settledPoll = null;
+    let readySent = false;
+    const sendReady = () => {
+      if (cancelled || readySent) return;
+      readySent = true;
+      if (fallbackTimer) window.clearTimeout(fallbackTimer);
+      if (settledPoll) window.clearInterval(settledPoll);
       onReady?.();
+    };
+
+    if (!entries.length || entries.every(planetTextureIsSettled)) {
+      onProgress?.({ loaded: entries.length, total: entries.length });
+      sendReady();
       return () => {};
     }
 
-    if (entries.length) {
-      fallbackTimer = window.setTimeout(() => {
-        if (!cancelled) onReady?.();
-      }, SURFACE_REVEAL_TIMEOUT_MS);
-    }
+    fallbackTimer = window.setTimeout(sendReady, SURFACE_REVEAL_TIMEOUT_MS);
+    settledPoll = window.setInterval(() => {
+      if (entries.every(planetTextureIsSettled)) {
+        onProgress?.({ loaded: entries.length, total: entries.length });
+        sendReady();
+      }
+    }, 80);
 
     loadPlanetTextureEntries(entries, maxAnisotropy, progress => {
       if (!cancelled) onProgress?.(progress);
     }).then(() => {
-      if (fallbackTimer) window.clearTimeout(fallbackTimer);
-      if (!cancelled) onReady?.();
+      sendReady();
     });
 
     return () => {
       cancelled = true;
       if (fallbackTimer) window.clearTimeout(fallbackTimer);
+      if (settledPoll) window.clearInterval(settledPoll);
     };
   }, [entries, maxAnisotropy, onProgress, onReady]);
 

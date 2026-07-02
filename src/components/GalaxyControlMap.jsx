@@ -126,6 +126,7 @@ const PLANET_TEXTURE_KEYS = [
   ["cloudBump", false]
 ];
 const SURFACE_PLANET_TEXTURE_KEYS = new Set(["diffuse", "color"]);
+const REQUIRED_PREVIEW_TEXTURE_KEYS = new Set(["diffuse"]);
 const DEFAULT_FACTIONS = [
   {
     id: "sith-empire",
@@ -295,7 +296,7 @@ function previewUrlForTextureUrl(url) {
 function textureUrlForQuality(entry, quality = "full") {
   if (quality !== "preview") return entry.url;
   if (entry.previewUrl) return entry.previewUrl;
-  return SURFACE_PLANET_TEXTURE_KEYS.has(entry.key) ? previewUrlForTextureUrl(entry.url) : null;
+  return previewUrlForTextureUrl(entry.url);
 }
 
 function planetTextureCacheKey(entry, quality = "full") {
@@ -366,6 +367,10 @@ function uniquePlanetTextureEntries(planets = []) {
 
 function uniqueSurfacePlanetTextureEntries(planets = []) {
   return uniquePlanetTextureEntries(planets).filter(entry => SURFACE_PLANET_TEXTURE_KEYS.has(entry.key));
+}
+
+function uniqueRequiredPreviewTextureEntries(planets = []) {
+  return uniquePlanetTextureEntries(planets).filter(entry => REQUIRED_PREVIEW_TEXTURE_KEYS.has(entry.key));
 }
 
 function factionById(map, id) {
@@ -1443,42 +1448,49 @@ function normalizePlanet(map, planet) {
 function usePlanetTextureSet(body, enabled = true, allowFull = false) {
   const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
   const [textures, setTextures] = useState({});
+  const textureQualityRef = useRef({});
   const entries = useMemo(() => planetTextureEntries(body), [body]);
   const cachedReadyTextures = useMemo(() => Object.fromEntries(entries.map(entry => [
     entry.key,
     (allowFull ? getResolvedPlanetAssetTexture(entry, "full") : null) || getResolvedPlanetAssetTexture(entry, "preview")
   ]).filter(([, texture]) => texture)), [allowFull, entries]);
+  const cachedReadyQualities = useMemo(() => Object.fromEntries(entries.map(entry => {
+    if (allowFull && getResolvedPlanetAssetTexture(entry, "full")) return [entry.key, "full"];
+    if (getResolvedPlanetAssetTexture(entry, "preview")) return [entry.key, "preview"];
+    return null;
+  }).filter(Boolean)), [allowFull, entries]);
 
   useEffect(() => {
     if (!enabled) {
       setTextures({});
+      textureQualityRef.current = {};
       return undefined;
     }
 
     let cancelled = false;
+    textureQualityRef.current = cachedReadyQualities;
     setTextures(cachedReadyTextures);
+    const qualityRank = quality => quality === "full" ? 2 : 1;
     const loadAndApply = (entry, quality) => (
       loadPlanetAssetTexture(entry, maxAnisotropy, quality).then(texture => {
         if (!cancelled && texture) {
-          setTextures(current => ({ ...current, [entry.key]: texture }));
+          const currentQuality = textureQualityRef.current[entry.key];
+          if (qualityRank(quality) >= qualityRank(currentQuality)) {
+            textureQualityRef.current = { ...textureQualityRef.current, [entry.key]: quality };
+            setTextures(current => ({ ...current, [entry.key]: texture }));
+          }
         }
         return texture;
       })
     );
-    const surfaceEntries = entries.filter(entry => SURFACE_PLANET_TEXTURE_KEYS.has(entry.key));
-    const optionalEntries = entries.filter(entry => !SURFACE_PLANET_TEXTURE_KEYS.has(entry.key));
 
-    Promise.all(surfaceEntries.map(entry => loadAndApply(entry, "preview"))).finally(() => {
-      if (!cancelled) {
-        optionalEntries.forEach(entry => loadAndApply(entry, "preview"));
-        if (allowFull) entries.forEach(entry => loadAndApply(entry, "full"));
-      }
-    });
+    entries.forEach(entry => loadAndApply(entry, "preview"));
+    if (allowFull) entries.forEach(entry => loadAndApply(entry, "full"));
 
     return () => {
       cancelled = true;
     };
-  }, [enabled, entries, maxAnisotropy, cachedReadyTextures, allowFull]);
+  }, [enabled, entries, maxAnisotropy, cachedReadyTextures, cachedReadyQualities, allowFull]);
 
   return textures;
 }
@@ -1489,7 +1501,7 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
     if (view.mode === "galaxy") return [];
     if (view.mode === "sector") return [];
     const preloadPlanets = (map?.planets || []).filter(planet => planet.id === view.planetId);
-    return uniqueSurfacePlanetTextureEntries(preloadPlanets);
+    return uniqueRequiredPreviewTextureEntries(preloadPlanets);
   }, [map, view.mode, view.planetId, view.sectorId]);
 
   useEffect(() => {
@@ -1540,7 +1552,10 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
 function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
   const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
   const entries = useMemo(() => {
-    return uniqueSurfacePlanetTextureEntries(map?.planets || []);
+    return uniqueRequiredPreviewTextureEntries(map?.planets || []);
+  }, [map]);
+  const warmEntries = useMemo(() => {
+    return uniquePlanetTextureEntries(map?.planets || []);
   }, [map]);
 
   useEffect(() => {
@@ -1581,11 +1596,21 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
       }
     });
 
+    window.setTimeout(() => {
+      if (cancelled) return;
+      warmEntries.forEach(entry => {
+        if (!REQUIRED_PREVIEW_TEXTURE_KEYS.has(entry.key)) {
+          loadPlanetAssetTexture(entry, maxAnisotropy, "preview").catch(() => {});
+        }
+        loadPlanetAssetTexture(entry, maxAnisotropy, "full").catch(() => {});
+      });
+    }, 0);
+
     Promise.all(workers).catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [entries, maxAnisotropy, onProgress, onReady]);
+  }, [entries, warmEntries, maxAnisotropy, onProgress, onReady]);
 
   return null;
 }

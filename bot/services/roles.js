@@ -258,12 +258,15 @@ async function loadLinkedDiscordUserIds() {
 export async function syncVerifiedRoleForLinkedUsers(client) {
   const roleId = config.roles?.verified;
   const guildId = config.discord?.guildId;
-  if (!roleId || !guildId) return { checked: 0, added: 0, removed: 0, failed: 0 };
+  if (!roleId || !guildId) return { checked: 0, added: 0, removed: 0, unlinkedAdded: 0, verifiedRemoved: 0, failed: 0 };
 
   const guild = await client.guilds.fetch(guildId);
   const linkedDiscordIds = await loadLinkedDiscordUserIds();
+  const linkedDiscordIdSet = new Set(linkedDiscordIds);
   let added = 0;
   let removed = 0;
+  let unlinkedAdded = 0;
+  let verifiedRemoved = 0;
   let failed = 0;
 
   for (const discordUserId of linkedDiscordIds) {
@@ -286,7 +289,29 @@ export async function syncVerifiedRoleForLinkedUsers(client) {
     }
   }
 
-  return { checked: linkedDiscordIds.length, added, removed, failed };
+  const members = await guild.members.fetch();
+  for (const member of members.values()) {
+    if (member.user?.bot || linkedDiscordIdSet.has(member.id)) continue;
+
+    try {
+      if (member.roles.cache.has(roleId)) {
+        await member.roles.remove(roleId, "Holonet unlinked Discord account");
+        verifiedRemoved += 1;
+      }
+      if (!member.roles.cache.has(UNLINKED_ROLE_ID)) {
+        await member.roles.add(UNLINKED_ROLE_ID, "Holonet unlinked Discord account");
+        unlinkedAdded += 1;
+      }
+    } catch (error) {
+      failed += 1;
+      console.warn("Failed to apply unlinked role", {
+        discordUserId: member.id,
+        reason: error.message || String(error)
+      });
+    }
+  }
+
+  return { checked: linkedDiscordIds.length, added, removed, unlinkedAdded, verifiedRemoved, failed };
 }
 
 export function divisionTierWeight(tier) {

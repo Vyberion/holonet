@@ -1866,21 +1866,22 @@ function makeHyperspaceGeometry(count, seed) {
   return { geometry, streaks };
 }
 
-function HyperspaceTunnel({ active, phase = "idle", quality, reducedMotion }) {
+function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0, quality, reducedMotion }) {
   const count = (PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced).streaks;
   const { geometry, streaks } = useMemo(() => makeHyperspaceGeometry(count, 7717), [count]);
   const ref = useRef(null);
   const materialRef = useRef(null);
   const opacityRef = useRef(0);
-  const exitFadeRef = useRef(0);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   useFrame(({ camera, clock }, delta) => {
     if (!ref.current || !materialRef.current) return;
-    const exitTarget = active && phase === "reveal" ? 1 : 0;
-    exitFadeRef.current = THREE.MathUtils.lerp(exitFadeRef.current, exitTarget, exitTarget ? 0.22 : 0.14);
-    const tunnelIntensity = 1 - exitFadeRef.current;
+    const elapsedMs = startedAt ? performance.now() - startedAt : 0;
+    const exitProgress = active && phase === "reveal" && duration
+      ? smoothstep(Math.max(0, duration - 500), duration, elapsedMs)
+      : 0;
+    const tunnelIntensity = 1 - exitProgress;
     const targetOpacity = active ? (reducedMotion ? 0.48 : 0.88) * tunnelIntensity : 0;
     opacityRef.current = THREE.MathUtils.lerp(opacityRef.current, targetOpacity, active ? 0.18 : 0.12);
     ref.current.visible = opacityRef.current > 0.01;
@@ -2056,7 +2057,8 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
       if (isPlanetEntry && !current.reducedMotion) {
         const exitRumble = smoothstep(0.78, 1, capped) * (1 - smoothstep(0.95, 1, capped));
         const travelRumble = Math.sin(capped * Math.PI) * 0.024;
-        const rumble = exitRumble * 0.18 + travelRumble;
+        const finalFade = 1 - smoothstep(Math.max(0, current.duration - 500), current.duration, performance.now() - current.startedAt);
+        const rumble = (exitRumble * 0.18 + travelRumble) * (0.34 + finalFade * 0.66);
         camera.position.x += (Math.sin(raw * 211) + Math.sin(raw * 389) * 0.52) * rumble;
         camera.position.y += (Math.cos(raw * 263) + Math.sin(raw * 421) * 0.42) * rumble * 0.58;
         camera.position.z += Math.sin(raw * 337) * rumble * 0.44;
@@ -2191,7 +2193,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
 
       <CameraAnchoredStars count={counts.sky} mode={view.mode} hyperspaceActive={hyperspaceActive} />
       <Sparkles count={view.mode === "planet" ? 0 : counts.sparkles} scale={[24, 5.4, 18]} size={1.55} speed={0.44} color="#ff9a3d" opacity={0.72} />
-      <HyperspaceTunnel active={hyperspaceActive} phase={transition.phase} quality={quality} reducedMotion={reducedMotion} />
+      <HyperspaceTunnel active={hyperspaceActive} phase={transition.phase} startedAt={transition.startedAt} duration={transition.duration} quality={quality} reducedMotion={reducedMotion} />
 
       <group ref={galaxyRef} rotation={[GALAXY_BASE_ROTATION_X, GALAXY_BASE_ROTATION_Y, GALAXY_BASE_ROTATION_Z]}>
         <GalaxyControlMap
@@ -2478,6 +2480,7 @@ export function GalaxyMapExperience({ map }) {
         token: current.token + 1,
         phase: "reveal",
         revealQueued: false,
+        startedAt: performance.now(),
         duration: flightDuration,
         flightDuration,
         snapTarget: true,

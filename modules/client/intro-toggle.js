@@ -3,6 +3,8 @@ import { HOLONET_ALTERNATIVE_INTRO_ENABLED } from "../config/intro.js";
 (function () {
   const INTRO_COMPLETE_COOKIE = "holonet_intro_v1_complete";
   const INTRO_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+  const forceReleaseIntro = Boolean(window.HOLONET_FORCE_RELEASE_INTRO);
+  const releaseIntroEnabled = HOLONET_ALTERNATIVE_INTRO_ENABLED || forceReleaseIntro;
 
   function writeCookie(name, value, maxAge = INTRO_COOKIE_MAX_AGE_SECONDS) {
     try {
@@ -13,9 +15,9 @@ import { HOLONET_ALTERNATIVE_INTRO_ENABLED } from "../config/intro.js";
     }
   }
 
-  window.HOLONET_ALTERNATIVE_INTRO_ENABLED = HOLONET_ALTERNATIVE_INTRO_ENABLED;
+  window.HOLONET_ALTERNATIVE_INTRO_ENABLED = releaseIntroEnabled;
 
-  if (HOLONET_ALTERNATIVE_INTRO_ENABLED) return;
+  if (releaseIntroEnabled) return;
 
   try {
     localStorage.setItem("holonet:intro:v1:complete", "true");

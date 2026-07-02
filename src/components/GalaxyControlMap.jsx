@@ -2340,6 +2340,12 @@ export function GalaxyMapExperience({ map }) {
   }, []);
 
   useEffect(() => {
+    if (view.mode !== "planet") {
+      setAssetsReady(true);
+      setPlanetTextureProgress({ loaded: 1, total: 1 });
+      return;
+    }
+
     setPlanetTextureProgress({ loaded: 0, total: 1 });
   }, [view.mode, view.sectorId, view.planetId]);
 
@@ -2429,6 +2435,7 @@ export function GalaxyMapExperience({ map }) {
   useEffect(() => {
     if (
       view.mode !== "planet"
+      || !view.planetId
       || !assetsReady
       || transition.kind !== "planet"
       || !transition.active

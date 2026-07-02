@@ -533,6 +533,18 @@ function randomPointInSectorCell(rnd, cell, planet) {
   return mapPointFromPolar(angle, radius);
 }
 
+function cellCenterPoint(cell, planet, angleBias = 0.5, radiusBias = 0.5) {
+  const radiusPadding = Math.max(0.2, (planet.radius || 0.018) * 12);
+  const anglePadding = 6.5;
+  const inner = cell.innerRadius + radiusPadding;
+  const outer = cell.outerRadius - radiusPadding;
+  const start = cell.startAngleDeg + anglePadding;
+  const end = cell.endAngleDeg - anglePadding;
+  const radius = outer > inner ? THREE.MathUtils.lerp(inner, outer, clamp(radiusBias, 0, 1)) : (cell.innerRadius + cell.outerRadius) / 2;
+  const angle = end > start ? THREE.MathUtils.lerp(start, end, clamp(angleBias, 0, 1)) : (cell.startAngleDeg + cell.endAngleDeg) / 2;
+  return mapPointFromPolar(angle, radius);
+}
+
 function pointDistance2D(left, right) {
   const dx = left[0] - right[0];
   const dz = left[1] - right[1];
@@ -563,6 +575,53 @@ function pickLayoutCell(rnd, cells) {
   return cells[0];
 }
 
+function sectorSpreadPoint(cells, planet, index, count) {
+  const total = cells.reduce((sum, cell) => sum + cell.area, 0);
+  if (!total) return cellCenterPoint(cells[0], planet);
+  const ordinal = count <= 1 ? 0.5 : index / (count - 1);
+  let cursor = ordinal * total;
+  let chosen = cells[0];
+  for (const cell of cells) {
+    if (cursor <= cell.area) {
+      chosen = cell;
+      break;
+    }
+    cursor -= cell.area;
+  }
+  const cellAngleBias = chosen.area > 0 ? cursor / chosen.area : 0.5;
+  const radiusBias = count <= 2
+    ? 0.5
+    : 0.28 + (((index * 7) % count) / Math.max(1, count - 1)) * 0.44;
+  return cellCenterPoint(chosen, planet, cellAngleBias, radiusBias);
+}
+
+function scoreLayoutCandidate(candidate, placed, sectorAnchor, requiredSpacing) {
+  if (!placed.length) return pointDistance2D(candidate, sectorAnchor) * 0.2;
+  const distances = placed.map(item => pointDistance2D(candidate, item.position));
+  const nearest = Math.min(...distances);
+  const average = distances.reduce((sum, distance) => sum + distance, 0) / distances.length;
+  const centroid = placed.reduce((sum, item) => [sum[0] + item.position[0], sum[1] + item.position[1]], [0, 0]);
+  centroid[0] /= placed.length;
+  centroid[1] /= placed.length;
+  const centroidEscape = pointDistance2D(candidate, centroid);
+  const spacingPenalty = nearest < requiredSpacing ? (requiredSpacing - nearest) * 4.5 : 0;
+  return nearest * 3.8 + average * 0.75 + centroidEscape * 1.35 - spacingPenalty;
+}
+
+function sectorMapCenter(cells) {
+  const center = [0, 0];
+  let totalWeight = 0;
+  cells.forEach(cell => {
+    const angleSpan = Math.abs(cell.endAngleDeg - cell.startAngleDeg);
+    const weight = Math.max(0.01, angleSpan * (cell.outerRadius * cell.outerRadius - cell.innerRadius * cell.innerRadius));
+    const point = mapPointFromPolar((cell.startAngleDeg + cell.endAngleDeg) / 2, (cell.innerRadius + cell.outerRadius) / 2);
+    center[0] += point[0] * weight;
+    center[1] += point[1] * weight;
+    totalWeight += weight;
+  });
+  return totalWeight ? [center[0] / totalWeight, center[1] / totalWeight] : [0, 0];
+}
+
 function buildPlanetLayout(map, planets) {
   const layout = new Map();
   const sectorsById = new Map((map?.sectors || []).map(sector => [sector.id, sector]));
@@ -579,6 +638,7 @@ function buildPlanetLayout(map, planets) {
     const cells = largestDrawableCells(sector, map);
     if (!cells.length) return;
     const placed = [];
+    const sectorAnchor = sectorMapCenter(cells);
 
     sectorPlanets
       .slice()
@@ -588,17 +648,20 @@ function buildPlanetLayout(map, planets) {
         let chosen = null;
         let chosenScore = -Infinity;
         const requiredSpacing = minPlanetSpacing(planet, sector);
+        const spreadTarget = sectorSpreadPoint(cells, planet, index, sectorPlanets.length);
+        const candidateCount = Math.max(144, sectorPlanets.length * 64);
+        const candidates = [spreadTarget];
 
-        for (let attempt = 0; attempt < 96; attempt += 1) {
+        for (let attempt = 0; attempt < candidateCount; attempt += 1) {
           const cell = pickLayoutCell(rnd, cells);
-          const candidate = randomPointInSectorCell(rnd, cell, planet);
-          const nearest = placed.length ? Math.min(...placed.map(item => pointDistance2D(candidate, item.position))) : Infinity;
-          if (nearest >= requiredSpacing) {
-            chosen = candidate;
-            break;
-          }
-          if (nearest > chosenScore) {
-            chosenScore = nearest;
+          candidates.push(randomPointInSectorCell(rnd, cell, planet));
+        }
+
+        for (const candidate of candidates) {
+          const targetPull = Math.max(0, 1.2 - pointDistance2D(candidate, spreadTarget)) * 0.65;
+          const score = scoreLayoutCandidate(candidate, placed, sectorAnchor, requiredSpacing) + targetPull;
+          if (score > chosenScore) {
+            chosenScore = score;
             chosen = candidate;
           }
         }

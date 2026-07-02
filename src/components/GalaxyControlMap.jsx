@@ -1843,18 +1843,22 @@ function makeHyperspaceGeometry(count, seed) {
   return { geometry, streaks };
 }
 
-function HyperspaceTunnel({ active, quality, reducedMotion }) {
+function HyperspaceTunnel({ active, phase = "idle", quality, reducedMotion }) {
   const count = (PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced).streaks;
   const { geometry, streaks } = useMemo(() => makeHyperspaceGeometry(count, 7717), [count]);
   const ref = useRef(null);
   const materialRef = useRef(null);
   const opacityRef = useRef(0);
+  const exitFadeRef = useRef(0);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   useFrame(({ camera, clock }, delta) => {
     if (!ref.current || !materialRef.current) return;
-    const targetOpacity = active ? (reducedMotion ? 0.48 : 0.88) : 0;
+    const exitTarget = active && phase === "reveal" ? 1 : 0;
+    exitFadeRef.current = THREE.MathUtils.lerp(exitFadeRef.current, exitTarget, exitTarget ? 0.22 : 0.14);
+    const tunnelIntensity = 1 - exitFadeRef.current;
+    const targetOpacity = active ? (reducedMotion ? 0.48 : 0.88) * tunnelIntensity : 0;
     opacityRef.current = THREE.MathUtils.lerp(opacityRef.current, targetOpacity, active ? 0.18 : 0.12);
     ref.current.visible = opacityRef.current > 0.01;
     ref.current.position.copy(camera.position);
@@ -1871,11 +1875,11 @@ function HyperspaceTunnel({ active, quality, reducedMotion }) {
         streak.z = randRange(seededRandom(i + 919), -112, -72);
       }
 
-      const stretch = streak.length * (1 + opacityRef.current * (reducedMotion ? 0.9 : 2.7));
+      const stretch = streak.length * (0.32 + tunnelIntensity * (0.68 + opacityRef.current * (reducedMotion ? 0.9 : 2.7)));
       const tunnelDepth = THREE.MathUtils.clamp((streak.z + 112) / 114, 0, 1);
       const tunnelScale = 0.38 + tunnelDepth * 1.18;
       const pulse = 1 + Math.sin(clock.elapsedTime * 1.8 + i) * 0.024;
-      const tailSpread = 0.025 + opacityRef.current * 0.018;
+      const tailSpread = (0.025 + opacityRef.current * 0.018) * (0.42 + tunnelIntensity * 0.58);
       const idx = i * 6;
       array[idx] = streak.x * tunnelScale * pulse;
       array[idx + 1] = streak.y * tunnelScale * pulse;
@@ -1886,7 +1890,7 @@ function HyperspaceTunnel({ active, quality, reducedMotion }) {
     }
     position.needsUpdate = true;
     materialRef.current.opacity = opacityRef.current;
-    materialRef.current.linewidth = active ? 1.35 : 1;
+    materialRef.current.linewidth = active ? 1 + tunnelIntensity * 0.35 : 1;
   });
 
   return (
@@ -2164,7 +2168,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
 
       <CameraAnchoredStars count={counts.sky} mode={view.mode} hyperspaceActive={hyperspaceActive} />
       <Sparkles count={view.mode === "planet" ? 0 : counts.sparkles} scale={[24, 5.4, 18]} size={1.55} speed={0.44} color="#ff9a3d" opacity={0.72} />
-      <HyperspaceTunnel active={hyperspaceActive} quality={quality} reducedMotion={reducedMotion} />
+      <HyperspaceTunnel active={hyperspaceActive} phase={transition.phase} quality={quality} reducedMotion={reducedMotion} />
 
       <group ref={galaxyRef} rotation={[GALAXY_BASE_ROTATION_X, GALAXY_BASE_ROTATION_Y, GALAXY_BASE_ROTATION_Z]}>
         <GalaxyControlMap

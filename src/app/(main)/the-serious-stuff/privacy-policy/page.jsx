@@ -42,14 +42,10 @@ export default function PrivacyPage() {
         </p>
         <h2>Analytics</h2>
         <p>
-          The site may use Vercel Analytics to understand basic usage and performance. Analytics are
+          The site may use Analytics to understand basic usage and performance. Analytics are
           used for maintenance and improvement, not for selling personal data.
         </p>
         <h2>Data Sharing</h2>
-        <p>
-          The site is hosted on Vercel and stores site data in Supabase. Roblox is used for identity
-          and group-rank checks. Data is not sold.
-        </p>
         <h2>Retention</h2>
         <p>
           User records are kept so repeat logins do not create duplicate accounts. Sessions expire

@@ -1421,6 +1421,8 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
   }, [map, view.mode, view.planetId, view.sectorId]);
 
   useEffect(() => {
+    if (view.mode !== "planet") return undefined;
+
     let cancelled = false;
     let fallbackTimer = null;
     let settledPoll = null;
@@ -1463,7 +1465,7 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
   return null;
 }
 
-function BackgroundPlanetTextureLoader({ map }) {
+function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
   const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
   const entries = useMemo(() => {
     const seen = new Set();
@@ -1485,11 +1487,32 @@ function BackgroundPlanetTextureLoader({ map }) {
   useEffect(() => {
     let cancelled = false;
     let cursor = 0;
+    let loaded = entries.filter(planetTextureIsSettled).length;
+    const total = entries.length;
+    onProgress?.({ loaded, total });
+
+    if (!total || loaded >= total) {
+      onReady?.();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const markLoaded = () => {
+      loaded += 1;
+      onProgress?.({ loaded, total });
+      if (loaded >= total) onReady?.();
+    };
+
     const workers = Array.from({ length: 2 }, async () => {
       while (!cancelled && cursor < entries.length) {
         const entry = entries[cursor];
         cursor += 1;
+        if (planetTextureIsSettled(entry)) {
+          continue;
+        }
         await loadPlanetAssetTexture(entry, maxAnisotropy);
+        if (!cancelled) markLoaded();
       }
     });
 
@@ -1497,7 +1520,7 @@ function BackgroundPlanetTextureLoader({ map }) {
     return () => {
       cancelled = true;
     };
-  }, [entries, maxAnisotropy]);
+  }, [entries, maxAnisotropy, onProgress, onReady]);
 
   return null;
 }
@@ -2156,7 +2179,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
   return (
     <>
       <color attach="background" args={["#030105"]} />
-      <BackgroundPlanetTextureLoader map={map} />
+      <BackgroundPlanetTextureLoader map={map} onProgress={onAssetsProgress} onReady={onAssetsReady} />
       <PlanetTexturePreloader map={map} view={view} onProgress={onAssetsProgress} onReady={onAssetsReady} />
       <fogExp2 attach="fog" args={["#050107", view.mode === "planet" ? 0.00042 : 0.003]} />
       <ambientLight intensity={view.mode === "planet" ? 0.14 : 0.2} color="#4d1b20" />
@@ -2344,13 +2367,7 @@ export function GalaxyMapExperience({ map }) {
   }, []);
 
   useEffect(() => {
-    if (view.mode !== "planet") {
-      setAssetsReady(true);
-      setPlanetTextureProgress({ loaded: 1, total: 1 });
-      return;
-    }
-
-    setPlanetTextureProgress({ loaded: 0, total: 1 });
+    if (view.mode === "planet") setPlanetTextureProgress({ loaded: 0, total: 1 });
   }, [view.mode, view.sectorId, view.planetId]);
 
   useEffect(() => {

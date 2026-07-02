@@ -1,16 +1,26 @@
-const galaxyPlanetTextures = folder => ({
-  diffuse: `/assets/galaxy/${folder}/diffuse.png`,
-  color: `/assets/galaxy/${folder}/color.png`,
-  bump: `/assets/galaxy/${folder}/bump.png`,
-  elevation: `/assets/galaxy/${folder}/elevation.png`,
-  roughness: `/assets/galaxy/${folder}/roughness.png`,
-  specular: `/assets/galaxy/${folder}/specular.png`,
-  water: `/assets/galaxy/${folder}/water.png`,
-  lights: `/assets/galaxy/${folder}/lights.png`,
-  clouds: `/assets/galaxy/${folder}/clouds.png`,
-  cloudColor: `/assets/galaxy/${folder}/cloud-color.png`,
-  cloudBump: `/assets/galaxy/${folder}/cloud-bump.png`
-});
+const GALAXY_LFS_ASSET_BASE = "https://media.githubusercontent.com/media/Vyberion/holonet/migration/public/assets/galaxy";
+
+const galaxyPlanetTextures = folder => {
+  const base = folder === "korriban" ? `/assets/galaxy/${folder}` : `${GALAXY_LFS_ASSET_BASE}/${folder}`;
+  return {
+    diffuse: `${base}/diffuse.png`,
+    color: `${base}/color.png`,
+    bump: `${base}/bump.png`,
+    elevation: `${base}/elevation.png`,
+    roughness: `${base}/roughness.png`,
+    specular: `${base}/specular.png`,
+    water: `${base}/water.png`,
+    lights: `${base}/lights.png`,
+    clouds: `${base}/clouds.png`,
+    cloudColor: `${base}/cloud-color.png`,
+    cloudBump: `${base}/cloud-bump.png`
+  };
+};
+
+const onlyPlanetTextures = (folder, keys) => {
+  const textures = galaxyPlanetTextures(folder);
+  return Object.fromEntries(keys.map(key => [key, textures[key]]));
+};
 
 export const GALAXY_CONTROL_MAP = {
   title: "Galaxy",
@@ -132,7 +142,7 @@ export const GALAXY_CONTROL_MAP = {
       objectives: [],
       locations: ["Galactic Senate", "Jedi Temple"],
       summary: "Galactic capital world and seat of Republic power.",
-      textures: galaxyPlanetTextures("coruscant")
+      textures: onlyPlanetTextures("coruscant", ["diffuse", "bump", "specular", "lights", "clouds", "cloudBump"])
     },
     {
       id: "korriban",
@@ -151,7 +161,7 @@ export const GALAXY_CONTROL_MAP = {
       robloxPlaceId: 1177256329,
       robloxLaunchUrl: "roblox://experiences/start?placeId=1177256329",
       summary: "Homeworld of the Sith and location of the Sith Academy.",
-      textures: galaxyPlanetTextures("korriban")
+      textures: onlyPlanetTextures("korriban", ["diffuse", "bump", "elevation", "roughness", "clouds"])
     },
     {
       id: "dromund-kaas",
@@ -168,7 +178,7 @@ export const GALAXY_CONTROL_MAP = {
       objectives: [],
       locations: ["Kaas City", "Dark Temple"],
       summary: "Sith Empire capital hidden within the storm-wrapped Sith Worlds.",
-      textures: galaxyPlanetTextures("dromund-kaas")
+      textures: onlyPlanetTextures("dromund-kaas", [])
     },
     {
       id: "ziost",
@@ -185,7 +195,7 @@ export const GALAXY_CONTROL_MAP = {
       objectives: [],
       locations: ["Sith Citadel", "Ancient Vaults"],
       summary: "Ancient Sith world and former center of Sith imperial power.",
-      textures: galaxyPlanetTextures("ziost")
+      textures: onlyPlanetTextures("ziost", ["diffuse", "bump", "specular", "clouds"])
     },
     {
       id: "mandalore",
@@ -202,7 +212,7 @@ export const GALAXY_CONTROL_MAP = {
       objectives: [],
       locations: ["Sundari", "Dome Cities"],
       summary: "Homeworld of the Mandalorians in the Outer Rim's Mandalore sector.",
-      textures: galaxyPlanetTextures("mandalore")
+      textures: onlyPlanetTextures("mandalore", ["diffuse", "bump", "elevation", "roughness", "water", "lights", "clouds"])
     },
     {
       id: "nar-shaddaa",
@@ -219,7 +229,7 @@ export const GALAXY_CONTROL_MAP = {
       objectives: [],
       locations: ["Hutta Town", "Vertical City"],
       summary: "The Smuggler's Moon, an ecumenopolis and major Hutt Space port.",
-      textures: galaxyPlanetTextures("nar-shaddaa")
+      textures: onlyPlanetTextures("nar-shaddaa", ["diffuse", "bump", "elevation", "roughness", "water", "lights", "clouds", "cloudColor"])
     },
     {
       id: "dantooine",
@@ -236,7 +246,7 @@ export const GALAXY_CONTROL_MAP = {
       objectives: [],
       locations: ["Jedi Enclave", "Khoonda Plains"],
       summary: "Remote grassland world known for its Jedi Enclave and Rebel-era secrecy.",
-      textures: galaxyPlanetTextures("dantooine")
+      textures: onlyPlanetTextures("dantooine", ["diffuse", "bump", "specular", "lights", "clouds", "cloudBump"])
     }
   ]
 };

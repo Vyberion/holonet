@@ -228,6 +228,7 @@ function loadOptionalPlanetTexture(loader, url, options) {
       return;
     }
 
+    loader.setCrossOrigin("anonymous");
     loader.load(
       url,
       texture => resolve(configurePlanetTexture(texture, options)),

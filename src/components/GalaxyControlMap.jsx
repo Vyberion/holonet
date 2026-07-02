@@ -99,22 +99,19 @@ const SECTOR_TESSELLATION_CELLS = {
 const KORRIBAN_TEXTURE_URLS = [
   "/assets/galaxy/korriban/diffuse.png",
   "/assets/galaxy/korriban/bump.png",
-  "/assets/galaxy/korriban/elevation.png",
   "/assets/galaxy/korriban/roughness.png",
   "/assets/galaxy/korriban/clouds.png"
 ];
 const KORRIBAN_TEXTURE_PATHS = {
   diffuse: KORRIBAN_TEXTURE_URLS[0],
   bump: KORRIBAN_TEXTURE_URLS[1],
-  elevation: KORRIBAN_TEXTURE_URLS[2],
-  roughness: KORRIBAN_TEXTURE_URLS[3],
-  clouds: KORRIBAN_TEXTURE_URLS[4]
+  roughness: KORRIBAN_TEXTURE_URLS[2],
+  clouds: KORRIBAN_TEXTURE_URLS[3]
 };
 const PLANET_TEXTURE_KEYS = [
   ["diffuse", true],
   ["color", true],
   ["bump", false],
-  ["elevation", false],
   ["roughness", false],
   ["specular", false],
   ["water", true],
@@ -503,7 +500,10 @@ function drawableSectorCells(sector, map) {
 }
 
 function visibleSectors(map) {
-  return (map?.sectors || []).filter(sector => drawableSectorCells(sector, map).length > 0);
+  return (map?.sectors || []).filter(sector => (
+    drawableSectorCells(sector, map).length > 0
+    && planetsForSector(map, sector.id).length > 0
+  ));
 }
 
 function normalizeDeg(angle) {
@@ -1410,7 +1410,6 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
   const textures = useMemo(() => ({
     map: assetTextures.diffuse || assetTextures.color || generatedTextures.map,
     bumpMap: assetTextures.bump || generatedTextures.bumpMap,
-    displacementMap: assetTextures.elevation || null,
     roughnessMap: assetTextures.roughness || assetTextures.specular || null,
     waterMap: assetTextures.water || null,
     lightsMap: assetTextures.lights || null,
@@ -1486,14 +1485,12 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
         <meshStandardMaterial
           map={textures.map}
           bumpMap={textures.bumpMap}
-          bumpScale={textures.hasAssetSurface ? 0.026 : 0.04}
-          displacementMap={textures.displacementMap}
-          displacementScale={textures.displacementMap ? 0.008 : 0}
+          bumpScale={textures.hasAssetSurface ? 0.12 : 0.055}
           roughnessMap={textures.roughnessMap}
-          roughness={textures.roughnessMap ? 0.9 : 0.82}
+          roughness={textures.roughnessMap ? 0.72 : 0.78}
           metalness={0.02}
           emissive={body.colors.surfaceDark}
-          emissiveIntensity={active ? 0.24 : 0.06}
+          emissiveIntensity={active ? 0.12 : 0.035}
         />
       </mesh>
       {textures.waterMap ? (

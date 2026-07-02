@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Sparkles, useProgress } from "@react-three/drei";
+import { OrbitControls, Sparkles } from "@react-three/drei";
 import { Bloom, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -151,6 +151,7 @@ const DEFAULT_FACTIONS = [
 ];
 
 const PLANET_TEXTURE_CACHE = new Map();
+const PLANET_ASSET_TEXTURE_CACHE = new Map();
 
 function seededRandom(seed) {
   let state = seed >>> 0;
@@ -236,6 +237,47 @@ function loadOptionalPlanetTexture(loader, url, options) {
       () => resolve(null)
     );
   });
+}
+
+function planetTextureEntries(body) {
+  const texturePaths = body.id === "korriban" ? KORRIBAN_TEXTURE_PATHS : body.textures || null;
+  const textureKeys = body.id === "korriban"
+    ? PLANET_TEXTURE_KEYS.filter(([key]) => Object.prototype.hasOwnProperty.call(KORRIBAN_TEXTURE_PATHS, key))
+    : PLANET_TEXTURE_KEYS;
+
+  return textureKeys
+    .map(([key, color]) => ({ key, color, url: texturePaths?.[key] }))
+    .filter(entry => entry.url);
+}
+
+function loadPlanetAssetTexture(entry, anisotropy) {
+  const cacheKey = `${entry.url}|${entry.color ? "color" : "data"}|${anisotropy}`;
+  if (!PLANET_ASSET_TEXTURE_CACHE.has(cacheKey)) {
+    const loader = new THREE.TextureLoader();
+    PLANET_ASSET_TEXTURE_CACHE.set(
+      cacheKey,
+      loadOptionalPlanetTexture(loader, entry.url, { color: entry.color, anisotropy })
+    );
+  }
+  return PLANET_ASSET_TEXTURE_CACHE.get(cacheKey);
+}
+
+function loadPlanetTextureEntries(entries, anisotropy, onProgress) {
+  const total = entries.length;
+  if (!total) {
+    onProgress?.({ loaded: 0, total: 0 });
+    return Promise.resolve({});
+  }
+
+  let loaded = 0;
+  onProgress?.({ loaded, total });
+  return Promise.all(entries.map(entry => (
+    loadPlanetAssetTexture(entry, anisotropy).then(texture => {
+      loaded += 1;
+      onProgress?.({ loaded, total });
+      return [entry.key, texture];
+    })
+  ))).then(results => Object.fromEntries(results.filter(([, texture]) => texture)));
 }
 
 function factionById(map, id) {
@@ -1132,45 +1174,46 @@ function normalizePlanet(map, planet) {
 function usePlanetTextureSet(body) {
   const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
   const [textures, setTextures] = useState({});
-  const texturePaths = body.id === "korriban" ? KORRIBAN_TEXTURE_PATHS : body.textures || null;
-  const textureKeys = useMemo(() => (
-    body.id === "korriban"
-      ? PLANET_TEXTURE_KEYS.filter(([key]) => Object.prototype.hasOwnProperty.call(KORRIBAN_TEXTURE_PATHS, key))
-      : PLANET_TEXTURE_KEYS
-  ), [body.id]);
+  const entries = useMemo(() => planetTextureEntries(body), [body]);
 
   useEffect(() => {
     let cancelled = false;
-    const loader = new THREE.TextureLoader();
-
-    Promise.all(textureKeys.map(([key, color]) => (
-      loadOptionalPlanetTexture(loader, texturePaths?.[key], { color, anisotropy: maxAnisotropy })
-        .then(texture => [key, texture])
-    ))).then(entries => {
-      if (cancelled) {
-        entries.forEach(([, texture]) => texture?.dispose());
-        return;
-      }
-
-      const nextTextures = Object.fromEntries(entries.filter(([, texture]) => texture));
-      setTextures(current => {
-        Object.values(current).forEach(texture => texture?.dispose());
-        return nextTextures;
-      });
+    loadPlanetTextureEntries(entries, maxAnisotropy).then(nextTextures => {
+      if (!cancelled) setTextures(nextTextures);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [texturePaths, textureKeys, maxAnisotropy]);
+  }, [entries, maxAnisotropy]);
 
   return textures;
 }
 
-function PlanetTexturePreloader({ onReady }) {
+function PlanetTexturePreloader({ map, onProgress, onReady }) {
+  const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
+  const entries = useMemo(() => {
+    const seen = new Set();
+    return (map?.planets || []).flatMap(planet => planetTextureEntries(planet)).filter(entry => {
+      const key = `${entry.key}:${entry.url}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [map]);
+
   useEffect(() => {
-    onReady?.();
-  }, [onReady]);
+    let cancelled = false;
+    loadPlanetTextureEntries(entries, maxAnisotropy, progress => {
+      if (!cancelled) onProgress?.(progress);
+    }).then(() => {
+      if (!cancelled) onReady?.();
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [entries, maxAnisotropy, onProgress, onReady]);
 
   return null;
 }
@@ -1757,7 +1800,7 @@ function CameraAnchoredStars({ count, mode }) {
   );
 }
 
-function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSector, onHoverSector, onSelectPlanet, onHoverPlanet, onAssetsReady, transition, quality, reducedMotion }) {
+function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSector, onHoverSector, onSelectPlanet, onHoverPlanet, onAssetsProgress, onAssetsReady, transition, quality, reducedMotion }) {
   const controlsRef = useRef(null);
   const galaxyRef = useRef(null);
   const galaxySpinTimeRef = useRef(0);
@@ -1779,7 +1822,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
   return (
     <>
       <color attach="background" args={["#030105"]} />
-      <PlanetTexturePreloader onReady={onAssetsReady} />
+      <PlanetTexturePreloader map={map} onProgress={onAssetsProgress} onReady={onAssetsReady} />
       <fogExp2 attach="fog" args={["#050107", view.mode === "planet" ? 0.00042 : 0.003]} />
       <ambientLight intensity={view.mode === "planet" ? 0.14 : 0.2} color="#4d1b20" />
       <directionalLight position={[5.6, 3.2, 4.4]} intensity={view.mode === "planet" ? 4.4 : 3.2} color="#ffd8a8" />
@@ -1896,9 +1939,9 @@ function getPlanetSummary(map, planetId) {
 
 export function GalaxyMapExperience({ map }) {
   const normalizedMap = useMemo(() => normalizeMap(map || {}), [map]);
-  const loadingState = useProgress();
   const [canvasReady, setCanvasReady] = useState(false);
   const [assetsReady, setAssetsReady] = useState(false);
+  const [planetTextureProgress, setPlanetTextureProgress] = useState({ loaded: 0, total: 1 });
   const [view, setView] = useState({ mode: "galaxy", sectorId: null, planetId: null });
   const [hoveredSectorId, setHoveredSectorId] = useState(null);
   const [hoveredPlanetId, setHoveredPlanetId] = useState(null);
@@ -1914,15 +1957,18 @@ export function GalaxyMapExperience({ map }) {
   const displayedPlanetSummary = hoveredPlanetSummary || planetSummary;
   const panelFaction = displayedPlanetSummary?.faction || displayedSectorSummary?.faction || null;
   const ready = canvasReady && assetsReady;
-  const assetProgress = loadingState.total > 0 ? loadingState.progress : assetsReady ? 100 : 0;
-  const galaxyLoaderProgress = ready ? 100 : Math.min(98, Math.round((canvasReady ? 18 : 4) + assetProgress * 0.78));
+  const textureProgress = planetTextureProgress.total > 0
+    ? (planetTextureProgress.loaded / planetTextureProgress.total) * 100
+    : 100;
+  const assetProgress = textureProgress;
+  const galaxyLoaderProgress = ready ? 100 : Math.min(99, Math.round((canvasReady ? 12 : 3) + assetProgress * 0.86));
   const galaxyLoaderDetail = useMemo(() => ({
     active: !ready,
     progress: galaxyLoaderProgress,
     ready,
-    loaded: loadingState.loaded,
-    total: loadingState.total
-  }), [galaxyLoaderProgress, loadingState.loaded, loadingState.total, ready]);
+    loaded: planetTextureProgress.loaded,
+    total: planetTextureProgress.total
+  }), [galaxyLoaderProgress, planetTextureProgress.loaded, planetTextureProgress.total, ready]);
 
   const clearTransitionTimers = useCallback(() => {
     transitionTimersRef.current.forEach(timer => window.clearTimeout(timer));
@@ -1939,6 +1985,13 @@ export function GalaxyMapExperience({ map }) {
 
   const markGalaxyAssetsReady = useCallback(() => {
     setAssetsReady(true);
+  }, []);
+
+  const markGalaxyAssetsProgress = useCallback(progress => {
+    setPlanetTextureProgress({
+      loaded: progress?.loaded || 0,
+      total: progress?.total || 0
+    });
   }, []);
 
   useEffect(() => {
@@ -2086,6 +2139,7 @@ export function GalaxyMapExperience({ map }) {
             onHoverSector={setHoveredSectorId}
             onSelectPlanet={selectPlanet}
             onHoverPlanet={setHoveredPlanetId}
+            onAssetsProgress={markGalaxyAssetsProgress}
             onAssetsReady={markGalaxyAssetsReady}
             transition={transition}
             quality={quality}

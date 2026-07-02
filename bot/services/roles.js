@@ -203,9 +203,7 @@ export async function getVerifiedProfile(discordUserId) {
 
 export async function syncMemberRoles(member, actorDiscordId = member.id) {
   const verified = await getVerifiedProfile(member.id);
-  if (!verified) throw new Error("DISCORD_NOT_LINKED");
-
-  const wanted = roleIdsForProfile(verified.profile);
+  const wanted = verified ? roleIdsForProfile(verified.profile) : [UNLINKED_ROLE_ID];
   const managed = managedRoleIds();
   const currentManaged = member.roles.cache.filter(role => managed.includes(role.id)).map(role => role.id);
   const remove = currentManaged.filter(id => !wanted.includes(id));
@@ -213,6 +211,26 @@ export async function syncMemberRoles(member, actorDiscordId = member.id) {
 
   if (remove.length) await member.roles.remove(remove, "Holonet role sync");
   if (add.length) await member.roles.add(add, "Holonet role sync");
+
+  if (!verified) {
+    await audit("roles.sync", {
+      actorDiscordId,
+      targetDiscordId: member.id,
+      robloxUserId: null,
+      metadata: { added: add, removed: remove, unlinked: true }
+    });
+
+    return {
+      link: null,
+      profile: null,
+      added: add,
+      removed: remove,
+      roleIds: wanted,
+      nickname: "",
+      nicknameUpdated: false,
+      unlinked: true
+    };
+  }
 
   const nickname = await nicknameForProfile(verified.profile, verified.link);
   let nicknameUpdated = false;

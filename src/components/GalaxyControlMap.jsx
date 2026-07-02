@@ -294,7 +294,8 @@ function previewUrlForTextureUrl(url) {
 
 function textureUrlForQuality(entry, quality = "full") {
   if (quality !== "preview") return entry.url;
-  return entry.previewUrl || previewUrlForTextureUrl(entry.url) || entry.url;
+  if (entry.previewUrl) return entry.previewUrl;
+  return SURFACE_PLANET_TEXTURE_KEYS.has(entry.key) ? previewUrlForTextureUrl(entry.url) : null;
 }
 
 function planetTextureCacheKey(entry, quality = "full") {
@@ -315,6 +316,11 @@ function loadPlanetAssetTexture(entry, anisotropy, quality = "full") {
   const maxSize = maxTextureSizeForLayer(quality);
   const url = textureUrlForQuality(entry, quality);
   const cacheKey = planetTextureCacheKey(entry, quality);
+  if (!url) {
+    PLANET_ASSET_TEXTURE_STATUS.set(cacheKey, "failed");
+    PLANET_ASSET_TEXTURE_CACHE.set(cacheKey, Promise.resolve(null));
+    return PLANET_ASSET_TEXTURE_CACHE.get(cacheKey);
+  }
   if (!PLANET_ASSET_TEXTURE_CACHE.has(cacheKey)) {
     const loader = new THREE.TextureLoader();
     PLANET_ASSET_TEXTURE_STATUS.set(cacheKey, "pending");
@@ -356,6 +362,10 @@ function uniquePlanetTextureEntries(planets = []) {
     seen.add(key);
     return true;
   });
+}
+
+function uniqueSurfacePlanetTextureEntries(planets = []) {
+  return uniquePlanetTextureEntries(planets).filter(entry => SURFACE_PLANET_TEXTURE_KEYS.has(entry.key));
 }
 
 function factionById(map, id) {
@@ -1479,7 +1489,7 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
     if (view.mode === "galaxy") return [];
     if (view.mode === "sector") return [];
     const preloadPlanets = (map?.planets || []).filter(planet => planet.id === view.planetId);
-    return uniquePlanetTextureEntries(preloadPlanets);
+    return uniqueSurfacePlanetTextureEntries(preloadPlanets);
   }, [map, view.mode, view.planetId, view.sectorId]);
 
   useEffect(() => {
@@ -1530,12 +1540,7 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
 function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
   const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
   const entries = useMemo(() => {
-    return uniquePlanetTextureEntries(map?.planets || [])
-      .sort((left, right) => {
-        const leftPriority = SURFACE_PLANET_TEXTURE_KEYS.has(left.key) ? 0 : 1;
-        const rightPriority = SURFACE_PLANET_TEXTURE_KEYS.has(right.key) ? 0 : 1;
-        return leftPriority - rightPriority;
-      });
+    return uniqueSurfacePlanetTextureEntries(map?.planets || []);
   }, [map]);
 
   useEffect(() => {
@@ -2582,7 +2587,7 @@ export function GalaxyMapExperience({ map }) {
     ? `${displayedPlanetSummary.sector?.name || "Sector"} - ${displayedPlanetSummary.planet.grid || "R-5"}`
     : displayedSectorSummary
       ? `${displayedSectorSummary.sector.grid || "Sector"} - ${displayedSectorSummary.sector.regionId || "Outer Rim"}`
-      : "Strategic Control Map";
+      : "Interactive galactic map.";
   const panelSummary = displayedPlanetSummary?.planet?.summary
     || displayedSectorSummary?.sector?.objectives?.[0]
     || (displayedSectorSummary ? `${displayedSectorSummary.planets.length || "No"} planets logged in this sector.` : "Hover a sector or planet to inspect it.");

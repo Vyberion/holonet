@@ -24,18 +24,18 @@ const GALAXY_INTRO_SCRIPT = `
   }
 
   function setIntroCopy() {
-    setText(".loader-gate-kicker", "SITH CARTOGRAPHIC COMMAND");
-    setText(".loader-gate-title", "GALACTIC CONTROL NET");
-    setText("[data-loader-establish] span", "Open Star Map");
-    setText(".loader-gate-meta span:first-child", "SECTORAL ARRAY READY");
-    setText(".loader-gate-meta span:last-child", "ASTROGRAPHIC FEED: LIVE");
+    setText(".loader-gate-kicker", "GALACTIC NAVIGATION");
+    setText(".loader-gate-title", "INTERACTIVE MAP");
+    setText("[data-loader-establish] span", "CONNECT");
+    setText(".loader-gate-meta span:first-child", "IMPERIAL INTELLIGENCE");
+    setText(".loader-gate-meta span:last-child", "MINISTRY OF LOGISTICS");
 
     var loadingLines = document.querySelectorAll(".loader-intro-loading .loader-terminal-line");
-    ["Charting hyperspace lanes", "Synchronising sector telemetry", "Priming galactic projection"].forEach(function(text, index){
+    ["Relay aligning", "Request received", "Transmission initializing"].forEach(function(text, index){
       if (loadingLines[index]) loadingLines[index].textContent = text;
     });
 
-    setText(".loader-intro-ready .loader-terminal-line", "Array aligned");
+    setText(".loader-intro-ready .loader-terminal-line", "Transmission established");
     setText(".loader-intro-ready .loader-terminal-status", "Opening Galaxy");
   }
 

@@ -2114,6 +2114,7 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
     if (isPlanetEntry && transition.phase === "wipe") {
       camera.position.copy(focus).add(entryDirection.multiplyScalar(entryDistance));
       if (controls) {
+        controls.maxDistance = Math.max(entryDistance + 80, 34);
         controls.target.copy(focus);
         controls.enabled = false;
         controls.autoRotate = false;
@@ -2142,6 +2143,7 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
       reducedMotion: !!transition.reducedMotion
     };
     if (controls) {
+      if (isPlanetEntry) controls.maxDistance = Math.max(entryDistance + 80, 34);
       controls.enabled = false;
       controls.autoRotate = false;
     }
@@ -2177,12 +2179,14 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
         camera.position.y += (Math.cos(raw * 263) + Math.sin(raw * 421) * 0.42) * rumble * 0.58;
         camera.position.z += Math.sin(raw * 337) * rumble * 0.44;
       }
+      if (isPlanetEntry) controls.maxDistance = Math.max(current.fromCamera.distanceTo(liveFocus) + 80, 34);
       controls.target.copy(current.fromTarget).lerp(liveFocus, t);
       controls.update();
 
       if (raw >= 1) {
         activeTransition.current = null;
         lastStableView.current = view;
+        controls.maxDistance = 10.5;
         controls.enabled = true;
         controls.autoRotate = false;
         controls.autoRotateSpeed = 0;
@@ -2279,6 +2283,9 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
   const selectedPlanet = useMemo(() => (map.planets || []).find(planet => planet.id === view.planetId), [map.planets, view.planetId]);
   const selectedPlanetScenePosition = useMemo(() => selectedPlanet ? mapPointToWorld(planetMapPosition(map, selectedPlanet), map, BODY_Y_OFFSET) : null, [selectedPlanet, map]);
   const hyperspaceActive = transition.kind === "planet" && transition.active && transition.hyperspace && ["loading", "reveal"].includes(transition.phase);
+  const planetEntryMaxDistance = transition.kind === "planet" && transition.active
+    ? Math.max((transition.fromDistance || PLANET_ENTRY_DISTANCE) + 80, 34)
+    : 10.5;
   const hideActivePlanet = false;
   const counts = PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced;
 
@@ -2336,7 +2343,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
         dampingFactor={0.07}
         enablePan={false}
         minDistance={view.mode === "planet" ? 1.2 : view.mode === "sector" ? 2.2 : 4.2}
-        maxDistance={view.mode === "planet" ? 10.5 : view.mode === "sector" ? 9.2 : 34}
+        maxDistance={view.mode === "planet" ? planetEntryMaxDistance : view.mode === "sector" ? 9.2 : 34}
         autoRotate={false}
         autoRotateSpeed={0}
         target={WIDE_TARGET}
@@ -2470,9 +2477,17 @@ export function GalaxyMapExperience({ map }) {
       callback();
     }, delay);
     transitionTimersRef.current.push(timer);
+    return timer;
   }, []);
 
-  const playHyperspaceArrivalSound = useCallback(() => {
+  const playHyperspaceAudio = useCallback(audio => {
+    if (hyperspaceAudioRef.current !== audio) return;
+    audio.currentTime = 0;
+    const playAttempt = audio.play();
+    if (playAttempt?.catch) playAttempt.catch(() => {});
+  }, []);
+
+  const scheduleHyperspaceArrivalSound = useCallback(targetEndDelay => {
     try {
       if (hyperspaceAudioRef.current) {
         hyperspaceAudioRef.current.pause();
@@ -2480,12 +2495,30 @@ export function GalaxyMapExperience({ map }) {
       }
 
       const audio = new Audio(PLANET_HYPERSPACE_SFX_SRC);
+      const targetEndAt = performance.now() + targetEndDelay;
+      let scheduled = false;
+      audio.preload = "auto";
       audio.volume = 0.74;
       hyperspaceAudioRef.current = audio;
-      const playAttempt = audio.play();
-      if (playAttempt?.catch) playAttempt.catch(() => {});
+
+      const queueAccuratePlay = () => {
+        if (scheduled || hyperspaceAudioRef.current !== audio) return;
+        scheduled = true;
+        const durationMs = Number.isFinite(audio.duration) && audio.duration > 0
+          ? audio.duration * 1000
+          : PLANET_HYPERSPACE_SFX_MS;
+        queueTransitionTimer(() => playHyperspaceAudio(audio), Math.max(0, targetEndAt - performance.now() - durationMs));
+      };
+
+      audio.addEventListener("loadedmetadata", queueAccuratePlay, { once: true });
+      queueTransitionTimer(() => {
+        if (scheduled || hyperspaceAudioRef.current !== audio) return;
+        scheduled = true;
+        playHyperspaceAudio(audio);
+      }, Math.max(0, targetEndDelay - PLANET_HYPERSPACE_SFX_MS));
+      audio.load();
     } catch {}
-  }, []);
+  }, [playHyperspaceAudio, queueTransitionTimer]);
 
   const markGalaxyAssetsReady = useCallback(() => {
     setAssetsReady(true);
@@ -2555,9 +2588,6 @@ export function GalaxyMapExperience({ map }) {
     const wipeDuration = reducedMotion ? 360 : 760;
     const flightDuration = reducedMotion ? 1200 : PLANET_HYPERSPACE_FLIGHT_MS;
 
-    setAssetsReady(false);
-    setPlanetTextureProgress({ loaded: 0, total: 1 });
-    setView({ mode: "planet", sectorId: planet.sectorId, planetId });
     setTransition(current => ({
       kind: "planet",
       token: current.token + 1,
@@ -2573,8 +2603,11 @@ export function GalaxyMapExperience({ map }) {
       hyperspace: false,
       reducedMotion
     }));
+    setAssetsReady(false);
+    setPlanetTextureProgress({ loaded: 0, total: 1 });
 
     queueTransitionTimer(() => {
+      setView({ mode: "planet", sectorId: planet.sectorId, planetId });
       setTransition(current => current.kind === "planet"
         ? {
             ...current,
@@ -2590,7 +2623,7 @@ export function GalaxyMapExperience({ map }) {
     }, wipeDuration);
 
     if (!reducedMotion) {
-      queueTransitionTimer(playHyperspaceArrivalSound, wipeDuration + Math.max(0, flightDuration - PLANET_HYPERSPACE_SFX_MS));
+      scheduleHyperspaceArrivalSound(wipeDuration + flightDuration);
     }
 
     queueTransitionTimer(() => {
@@ -2606,7 +2639,7 @@ export function GalaxyMapExperience({ map }) {
     view.planetId,
     clearTransitionTimers,
     queueTransitionTimer,
-    playHyperspaceArrivalSound,
+    scheduleHyperspaceArrivalSound,
     reducedMotion
   ]);
 
@@ -2871,7 +2904,6 @@ const STYLES = `
   }
 
   .gm-wipe {
-    background: #000;
     opacity: 0;
     overflow: hidden;
     pointer-events: none;
@@ -2879,9 +2911,15 @@ const STYLES = `
   }
 
   .gm-wipe::before {
+    background: #000;
+    bottom: -76vmax;
     content: "";
-    inset: 0;
+    height: 220vmax;
     position: absolute;
+    right: -76vmax;
+    transform: translate(72%, 72%) rotate(45deg);
+    transform-origin: center;
+    width: 220vmax;
   }
 
   .gm-wipe.is-wiping {
@@ -2889,7 +2927,7 @@ const STYLES = `
   }
 
   .gm-wipe.is-wiping::before {
-    animation: none;
+    animation: gm-wipe-in var(--wipe-duration, 900ms) cubic-bezier(.77,0,.18,1) both;
   }
 
   .gm-wipe.is-revealing {
@@ -2898,7 +2936,7 @@ const STYLES = `
   }
 
   .gm-wipe.is-revealing::before {
-    transform: none;
+    transform: translate(0, 0) rotate(45deg);
   }
 
   .gm-topbar {
@@ -3226,6 +3264,11 @@ const STYLES = `
   @keyframes gm-wipe-reveal {
     0% { opacity: 1; }
     100% { opacity: 0; }
+  }
+
+  @keyframes gm-wipe-in {
+    0% { transform: translate(72%, 72%) rotate(45deg); }
+    100% { transform: translate(0, 0) rotate(45deg); }
   }
 
   @media (max-width: 760px) {

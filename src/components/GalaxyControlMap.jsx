@@ -37,8 +37,8 @@ const GALAXY_BASE_ROTATION_Z = 0.02;
 const GALAXY_BASE_ROTATION = new THREE.Euler(GALAXY_BASE_ROTATION_X, GALAXY_BASE_ROTATION_Y, GALAXY_BASE_ROTATION_Z);
 const WIDE_CAMERA = new THREE.Vector3(0, 16.8, 15.4);
 const WIDE_TARGET = new THREE.Vector3(0.18, 0, -0.36);
-const SECTOR_CAMERA_LIFT = 5.7;
-const SECTOR_CAMERA_PULLBACK = 6.6;
+const SECTOR_CAMERA_LIFT = 2.95;
+const SECTOR_CAMERA_PULLBACK = 3.65;
 const PLANET_APPROACH_DISTANCE = 2.15;
 const PLANET_ENTRY_DISTANCE = 96;
 const PLANET_LOADING_DISTANCE = 132;
@@ -1583,6 +1583,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
   const isGalaxy = mode === "galaxy";
   const targetScale = active ? 7.4 : mode === "sector" ? (hovered ? 1.35 : 1.08) : isGalaxy ? 0.34 : 2.15;
   const sectorMarkerVisible = !hidden && mode === "sector";
+  const sectorHitRadius = Math.max(body.visualRadius * 2.65, 0.19);
 
   useEffect(() => () => {
     haloTexture.dispose();
@@ -1633,10 +1634,22 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
 
   return (
     <group ref={groupRef} position={body.scenePosition.toArray()} renderOrder={30}>
+      {mode === "sector" ? (
+        <mesh
+          renderOrder={36}
+          raycast={interactive && !hidden ? undefined : () => null}
+          onPointerOver={handlePointerOver}
+          onPointerOut={handlePointerOut}
+          onClick={handleClick}
+        >
+          <sphereGeometry args={[sectorHitRadius, 32, 16]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} depthTest={false} />
+        </mesh>
+      ) : null}
       <mesh
         ref={planetRef}
         renderOrder={30}
-        raycast={interactive && !hidden ? undefined : () => null}
+        raycast={interactive && !hidden && mode !== "sector" ? undefined : () => null}
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
         onClick={handleClick}
@@ -2190,8 +2203,8 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
         enableDamping
         dampingFactor={0.07}
         enablePan={false}
-        minDistance={view.mode === "planet" ? 1.2 : view.mode === "sector" ? 3.2 : 4.2}
-        maxDistance={view.mode === "planet" ? 10.5 : view.mode === "sector" ? 18 : 34}
+        minDistance={view.mode === "planet" ? 1.2 : view.mode === "sector" ? 2.2 : 4.2}
+        maxDistance={view.mode === "planet" ? 10.5 : view.mode === "sector" ? 9.2 : 34}
         autoRotate={false}
         autoRotateSpeed={0}
         target={WIDE_TARGET}
@@ -2292,8 +2305,12 @@ export function GalaxyMapExperience({ map }) {
   const planetSummary = getPlanetSummary(normalizedMap, view.planetId);
   const hoveredSectorSummary = getSectorSummary(normalizedMap, hoveredSectorId);
   const hoveredPlanetSummary = getPlanetSummary(normalizedMap, hoveredPlanetId);
-  const displayedSectorSummary = hoveredSectorSummary || sectorSummary;
-  const displayedPlanetSummary = hoveredPlanetSummary || planetSummary;
+  const displayedSectorSummary = view.mode === "galaxy"
+    ? hoveredSectorSummary || sectorSummary
+    : sectorSummary;
+  const displayedPlanetSummary = view.mode === "galaxy"
+    ? hoveredPlanetSummary || planetSummary
+    : planetSummary;
   const panelFaction = displayedPlanetSummary?.faction || displayedSectorSummary?.faction || null;
   const ready = canvasReady && assetsReady;
   const textureProgress = planetTextureProgress.total > 0

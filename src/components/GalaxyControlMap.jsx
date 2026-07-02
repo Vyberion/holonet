@@ -44,6 +44,7 @@ const PLANET_ENTRY_DISTANCE = 96;
 const PLANET_LOADING_DISTANCE = 132;
 const HYPERSPACE_MIN_MS = 1500;
 const SURFACE_REVEAL_TIMEOUT_MS = 5000;
+const PAGE_PREVIEW_TEXTURE_TIMEOUT_MS = 2600;
 const BODY_Y_OFFSET = 0.05;
 const PARTICLE_COUNTS = {
   high: { stars: 26000, dust: 52000, clouds: 180, sky: 16000, sparkles: 460, streaks: 1650 },
@@ -1475,7 +1476,7 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
   const entries = useMemo(() => {
     const seen = new Set();
     return (map?.planets || [])
-      .flatMap(planet => planetTextureEntries(planet))
+      .flatMap(planet => surfaceTextureEntriesForPlanet(planet))
       .filter(entry => {
         const key = `${entry.key}:${entry.url}`;
         if (seen.has(key)) return false;
@@ -1492,21 +1493,48 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
   useEffect(() => {
     let cancelled = false;
     let cursor = 0;
+    let readySent = false;
+    let fullStarted = false;
+    let fallbackTimer = null;
     let loaded = entries.filter(entry => planetTextureIsSettled(entry, "preview")).length;
     const total = entries.length;
     onProgress?.({ loaded, total });
+    const sendReady = () => {
+      if (cancelled || readySent) return;
+      readySent = true;
+      onReady?.();
+    };
+    const startFullQueue = () => {
+      if (fullStarted) return;
+      fullStarted = true;
+      const fullEntries = [];
+      const seen = new Set();
+      (map?.planets || []).forEach(planet => {
+        planetTextureEntries(planet).forEach(entry => {
+          const key = `${entry.key}:${entry.url}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          fullEntries.push(entry);
+        });
+      });
+      fullEntries.forEach(entry => {
+        loadPlanetAssetTexture(entry, maxAnisotropy, "full").catch(() => {});
+      });
+    };
 
     if (!total || loaded >= total) {
-      onReady?.();
+      sendReady();
       return () => {
         cancelled = true;
       };
     }
 
+    fallbackTimer = window.setTimeout(sendReady, PAGE_PREVIEW_TEXTURE_TIMEOUT_MS);
+
     const markLoaded = () => {
       loaded += 1;
       onProgress?.({ loaded, total });
-      if (loaded >= total) onReady?.();
+      if (loaded >= total) sendReady();
     };
 
     const workers = Array.from({ length: 2 }, async () => {
@@ -1522,14 +1550,11 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
     });
 
     Promise.all(workers).then(() => {
-      if (!cancelled) {
-        entries.forEach(entry => {
-          loadPlanetAssetTexture(entry, maxAnisotropy, "full").catch(() => {});
-        });
-      }
+      if (!cancelled) startFullQueue();
     }).catch(() => {});
     return () => {
       cancelled = true;
+      if (fallbackTimer) window.clearTimeout(fallbackTimer);
     };
   }, [entries, maxAnisotropy, onProgress, onReady]);
 
@@ -2071,7 +2096,7 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
         const exitRumble = smoothstep(0.78, 1, capped) * (1 - smoothstep(0.95, 1, capped));
         const travelRumble = Math.sin(capped * Math.PI) * 0.024;
         const finalFade = 1 - smoothstep(Math.max(0, current.duration - 500), current.duration, performance.now() - current.startedAt);
-        const rumble = (exitRumble * 0.18 + travelRumble) * (0.34 + finalFade * 0.66);
+        const rumble = (exitRumble * 0.13 + travelRumble) * (0.12 + finalFade * 0.88);
         camera.position.x += (Math.sin(raw * 211) + Math.sin(raw * 389) * 0.52) * rumble;
         camera.position.y += (Math.cos(raw * 263) + Math.sin(raw * 421) * 0.42) * rumble * 0.58;
         camera.position.z += Math.sin(raw * 337) * rumble * 0.44;

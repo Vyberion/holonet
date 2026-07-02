@@ -1297,12 +1297,17 @@ function normalizePlanet(map, planet) {
   };
 }
 
-function usePlanetTextureSet(body) {
+function usePlanetTextureSet(body, enabled = true) {
   const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
   const [textures, setTextures] = useState({});
   const entries = useMemo(() => planetTextureEntries(body), [body]);
 
   useEffect(() => {
+    if (!enabled) {
+      setTextures({});
+      return undefined;
+    }
+
     let cancelled = false;
     loadPlanetTextureEntries(entries, maxAnisotropy).then(nextTextures => {
       if (!cancelled) setTextures(nextTextures);
@@ -1311,22 +1316,26 @@ function usePlanetTextureSet(body) {
     return () => {
       cancelled = true;
     };
-  }, [entries, maxAnisotropy]);
+  }, [enabled, entries, maxAnisotropy]);
 
   return textures;
 }
 
-function PlanetTexturePreloader({ map, onProgress, onReady }) {
+function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
   const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
   const entries = useMemo(() => {
+    if (view.mode === "galaxy") return [];
+    const preloadPlanets = view.mode === "planet"
+      ? (map?.planets || []).filter(planet => planet.id === view.planetId)
+      : (map?.planets || []).filter(planet => planet.sectorId === view.sectorId);
     const seen = new Set();
-    return (map?.planets || []).flatMap(planet => planetTextureEntries(planet)).filter(entry => {
+    return preloadPlanets.flatMap(planet => planetTextureEntries(planet)).filter(entry => {
       const key = `${entry.key}:${entry.url}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-  }, [map]);
+  }, [map, view.mode, view.planetId, view.sectorId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1396,7 +1405,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
   const lightsRef = useRef(null);
   const cloudsRef = useRef(null);
   const scanRef = useRef(null);
-  const assetTextures = usePlanetTextureSet(body);
+  const assetTextures = usePlanetTextureSet(body, mode !== "galaxy");
   const generatedTextures = useMemo(() => getGeneratedPlanetTextures(body), [body]);
   const textures = useMemo(() => ({
     map: assetTextures.diffuse || assetTextures.color || generatedTextures.map,
@@ -1948,7 +1957,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
   return (
     <>
       <color attach="background" args={["#030105"]} />
-      <PlanetTexturePreloader map={map} onProgress={onAssetsProgress} onReady={onAssetsReady} />
+      <PlanetTexturePreloader map={map} view={view} onProgress={onAssetsProgress} onReady={onAssetsReady} />
       <fogExp2 attach="fog" args={["#050107", view.mode === "planet" ? 0.00042 : 0.003]} />
       <ambientLight intensity={view.mode === "planet" ? 0.14 : 0.2} color="#4d1b20" />
       <directionalLight position={[5.6, 3.2, 4.4]} intensity={view.mode === "planet" ? 4.4 : 3.2} color="#ffd8a8" />
@@ -2128,6 +2137,11 @@ export function GalaxyMapExperience({ map }) {
       total: progress?.total || 0
     });
   }, []);
+
+  useEffect(() => {
+    setAssetsReady(false);
+    setPlanetTextureProgress({ loaded: 0, total: 1 });
+  }, [view.mode, view.sectorId, view.planetId]);
 
   useEffect(() => {
     window.__holonetGalaxyLoaderDetail = galaxyLoaderDetail;

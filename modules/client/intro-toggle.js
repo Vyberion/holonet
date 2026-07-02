@@ -1,1 +1,5 @@
-test
+import { HOLONET_ALTERNATIVE_INTRO_ENABLED } from "../config/intro.js";
+
+(function () {
+  window.HOLONET_ALTERNATIVE_INTRO_ENABLED = HOLONET_ALTERNATIVE_INTRO_ENABLED || Boolean(window.HOLONET_FORCE_RELEASE_INTRO);
+})();

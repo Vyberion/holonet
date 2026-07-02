@@ -70,10 +70,30 @@ function hasDarkCouncilPlus(profile, member = null) {
   return Boolean(canManageBot(profile, member) || Object.values(profile?.authorityRoles || {}).some(Boolean));
 }
 
+function hasAnyDivisionTierAtLeast(profile, requiredTier) {
+  return Object.values(profile?.divisions || {}).some(tier => DIVISION_TIERS.indexOf(tier || "none") >= DIVISION_TIERS.indexOf(requiredTier));
+}
+
+function hasHighRankAccess(profile) {
+  const rank = Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0);
+  return Boolean(profile?.highRank && profile.highRank !== "none") || (rank >= 44 && rank <= 53);
+}
+
 function canViewScopeTime(profile, scope, member = null) {
   const roles = profile?.authorityRoles || {};
   if (scope === "all") return canManageBot(profile, member);
-  if (scope === "inquisitors") return Boolean(divisionTierAtLeast(profile, "inquisitors", "member") || roles.inquisitoriusOverseer || canManageBot(profile, member));
+  if (["dhg", "reavers", "dreadmasters"].includes(scope)) {
+    return Boolean(divisionTierAtLeast(profile, scope, "member") || hasDarkCouncilPlus(profile, member));
+  }
+  if (scope === "highranks") {
+    return Boolean(
+      hasHighRankAccess(profile) ||
+      hasAnyDivisionTierAtLeast(profile, "co") ||
+      divisionTierAtLeast(profile, "inquisitors", "member") ||
+      hasDarkCouncilPlus(profile, member)
+    );
+  }
+  if (scope === "inquisitors") return Boolean(divisionTierAtLeast(profile, "inquisitors", "member") || roles.inquisitoriusOverseer || hasDarkCouncilPlus(profile, member));
   if (scope === "darkCouncil") return hasDarkCouncilPlus(profile, member);
   return canManageBot(profile, member);
 }

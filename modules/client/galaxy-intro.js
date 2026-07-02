@@ -66,18 +66,18 @@
   }
 
   function setIntroCopy() {
-    setText(".loader-gate-kicker", "SITH CARTOGRAPHIC COMMAND");
-    setText(".loader-gate-title", "GALACTIC CONTROL NET");
-    setText("[data-loader-establish] span", "Open Star Map");
-    setText(".loader-gate-meta span:first-child", "SECTORAL ARRAY READY");
-    setText(".loader-gate-meta span:last-child", "ASTROGRAPHIC FEED: LIVE");
+    setText(".loader-gate-kicker", "MANAR'S THE SITH ORDER");
+    setText(".loader-gate-title", "THE GALAXY");
+    setText("[data-loader-establish] span", "CONNECT");
+    setText(".loader-gate-meta span:first-child", "IMPERIAL INTELLIGENCE");
+    setText(".loader-gate-meta span:last-child", "MINISTRY OF LOGISTICS");
 
     const loadingLines = document.querySelectorAll(".loader-intro-loading .loader-terminal-line");
-    ["Charting hyperspace lanes", "Synchronising sector telemetry", "Priming galactic projection"].forEach((text, index) => {
+    ["Relay aligning", "Request received", "Transmission initializing"].forEach((text, index) => {
       if (loadingLines[index]) loadingLines[index].textContent = text;
     });
 
-    setText(".loader-intro-ready .loader-terminal-line", "Array aligned");
+    setText(".loader-intro-ready .loader-terminal-line", "Transmission established");
     setText(".loader-intro-ready .loader-terminal-status", "Opening Galaxy");
   }
 

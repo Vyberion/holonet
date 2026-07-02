@@ -40,7 +40,7 @@ const WIDE_TARGET = new THREE.Vector3(0.18, 0, -0.36);
 const SECTOR_CAMERA_LIFT = 2.95;
 const SECTOR_CAMERA_PULLBACK = 3.65;
 const PLANET_APPROACH_DISTANCE = 2.15;
-const PLANET_ENTRY_DISTANCE = 158;
+const PLANET_ENTRY_DISTANCE = 780;
 const PLANET_HYPERSPACE_FLIGHT_MS = 5200;
 const PLANET_HYPERSPACE_SFX_MS = 3000;
 const PLANET_HYPERSPACE_SFX_SRC = "/assets/sounds/galaxy/hyperspace.mp3";
@@ -2537,6 +2537,7 @@ export function GalaxyMapExperience({ map }) {
     setHoveredSectorId(null);
     setHoveredPlanetId(null);
 
+    const wipeDuration = reducedMotion ? 360 : 760;
     const flightDuration = reducedMotion ? 1200 : PLANET_HYPERSPACE_FLIGHT_MS;
 
     setAssetsReady(false);
@@ -2546,19 +2547,35 @@ export function GalaxyMapExperience({ map }) {
       kind: "planet",
       token: current.token + 1,
       active: true,
-      phase: "reveal",
+      phase: "wipe",
       startedAt: performance.now(),
-      duration: flightDuration,
+      duration: wipeDuration,
       flightDuration,
+      wipeDuration,
       fromDistance: reducedMotion ? 24 : PLANET_ENTRY_DISTANCE,
       snapTarget: true,
       snap: false,
-      hyperspace: true,
+      hyperspace: false,
       reducedMotion
     }));
 
+    queueTransitionTimer(() => {
+      setTransition(current => current.kind === "planet"
+        ? {
+            ...current,
+            token: current.token + 1,
+            phase: "reveal",
+            startedAt: performance.now(),
+            duration: flightDuration,
+            flightDuration,
+            hyperspace: true
+          }
+        : current
+      );
+    }, wipeDuration);
+
     if (!reducedMotion) {
-      queueTransitionTimer(playHyperspaceArrivalSound, Math.max(0, flightDuration - PLANET_HYPERSPACE_SFX_MS));
+      queueTransitionTimer(playHyperspaceArrivalSound, wipeDuration + Math.max(0, flightDuration - PLANET_HYPERSPACE_SFX_MS));
     }
 
     queueTransitionTimer(() => {
@@ -2566,7 +2583,7 @@ export function GalaxyMapExperience({ map }) {
         ? { ...current, active: false, phase: "idle", snap: false, snapTarget: false, hyperspace: false }
         : current
       );
-    }, flightDuration);
+    }, wipeDuration + flightDuration);
   }, [
     transition.active,
     normalizedMap.planets,

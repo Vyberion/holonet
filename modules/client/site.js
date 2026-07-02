@@ -386,8 +386,44 @@
     }
   }
 
+  function getReleaseIntroConfig() {
+    const config = window.HOLONET_RELEASE_INTRO_CONFIG;
+    if (config && typeof config === "object") return config;
+
+    const loader = document.getElementById("loader");
+    if (!loader) return {};
+
+    const dataset = loader.dataset;
+    return {
+      enabled: dataset.releaseIntroEnabled === "true",
+      force: dataset.releaseIntroForce === "true",
+      waitForGalaxyReady: dataset.releaseIntroWaitForGalaxyReady === "true",
+      video: {
+        enabled: dataset.releaseIntroVideoEnabled !== "false",
+        player: dataset.releaseIntroVideoPlayer || null,
+        autoBypass: dataset.releaseIntroVideoAutoBypass === "true"
+      },
+      music: dataset.releaseIntroMusicId ? {
+        id: dataset.releaseIntroMusicId,
+        src: dataset.releaseIntroMusicSrc || "",
+        preload: dataset.releaseIntroMusicPreload || "auto",
+        loop: dataset.releaseIntroMusicLoop === "true",
+        volume: dataset.releaseIntroMusicVolume,
+        startAfterLoaderHidden: dataset.releaseIntroMusicStartAfterLoaderHidden === "true",
+        fadeInMs: dataset.releaseIntroMusicFadeInMs
+      } : null
+    };
+  }
+
+  function shouldForceReleaseIntro() {
+    return window.HOLONET_FORCE_RELEASE_INTRO === true || getReleaseIntroConfig().force === true;
+  }
+
   function shouldRunReleaseIntro() {
-    return shouldForceIntro() || !readIntroComplete();
+    const releaseIntroConfig = getReleaseIntroConfig();
+    if (shouldForceReleaseIntro() || shouldForceIntro()) return true;
+    if (releaseIntroConfig.enabled === false) return false;
+    return !readIntroComplete();
   }
 
   function clearIntroForceParam() {
@@ -399,6 +435,133 @@
     } catch {
       return null;
     }
+  }
+
+  function shouldUseIntroVideo() {
+    return getReleaseIntroConfig().video?.enabled !== false;
+  }
+
+  function shouldAutoBypassIntroVideo() {
+    const video = getReleaseIntroConfig().video;
+    return video?.enabled === false || video?.autoBypass === true;
+  }
+
+  function ensureIntroMusic() {
+    const music = getReleaseIntroConfig().music;
+    if (!music?.id) return null;
+
+    let audio = document.getElementById(music.id);
+    if (!audio && music.src) {
+      audio = document.createElement("audio");
+      audio.id = music.id;
+      audio.src = music.src;
+      audio.preload = music.preload || "auto";
+      audio.loop = Boolean(music.loop);
+      document.body.appendChild(audio);
+    }
+
+    if (!audio) return null;
+
+    if (Number.isFinite(Number(music.volume))) {
+      audio.volume = Math.max(0, Math.min(1, Number(music.volume)));
+    }
+
+    return audio;
+  }
+
+  function fadeIntroMusicIn(audio, targetVolume, duration) {
+    const startedAt = performance.now();
+    const fadeDuration = Math.max(0, Number(duration) || 0);
+
+    if (!fadeDuration) {
+      audio.volume = targetVolume;
+      return;
+    }
+
+    function frame(now) {
+      const progress = Math.min(1, (now - startedAt) / fadeDuration);
+      audio.volume = targetVolume * progress;
+      if (progress < 1) requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  function startIntroMusicAfterLoaderHidden(loader, audio, music) {
+    let started = false;
+    const targetVolume = Number.isFinite(Number(music.volume))
+      ? Math.max(0, Math.min(1, Number(music.volume)))
+      : audio.volume;
+
+    function tryStart() {
+      if (started || loader.style.display !== "none") return;
+      started = true;
+
+      try {
+        audio.volume = 0;
+        const playAttempt = audio.paused ? audio.play() : Promise.resolve();
+        Promise.resolve(playAttempt)
+          .then(() => fadeIntroMusicIn(audio, targetVolume, music.fadeInMs))
+          .catch(() => {});
+      } catch {}
+    }
+
+    const observer = new MutationObserver(tryStart);
+    observer.observe(loader, { attributes: true, attributeFilter: ["class", "style", "aria-hidden"] });
+    window.addEventListener("pagehide", () => observer.disconnect(), { once: true });
+    tryStart();
+  }
+
+  function armIntroMusic(loader) {
+    const music = getReleaseIntroConfig().music;
+    const audio = ensureIntroMusic();
+    const establishButton = loader.querySelector("[data-loader-establish]");
+    if (!audio || !establishButton) return;
+
+    if (music?.startAfterLoaderHidden) {
+      audio.volume = 0;
+      startIntroMusicAfterLoaderHidden(loader, audio, music);
+    }
+
+    establishButton.addEventListener("click", () => {
+      try {
+        if (music?.startAfterLoaderHidden) {
+          audio.volume = 0;
+          audio.load();
+        }
+        audio.currentTime = 0;
+        const playAttempt = audio.play();
+        if (playAttempt?.catch) playAttempt.catch(() => {});
+      } catch {}
+    }, { once: true });
+  }
+
+  function waitForReleaseIntroReadiness() {
+    if (!getReleaseIntroConfig().waitForGalaxyReady) return Promise.resolve();
+    if (window.__holonetGalaxyLoaderDetail?.ready) return Promise.resolve();
+
+    return new Promise(resolve => {
+      let resolved = false;
+
+      function cleanup() {
+        window.removeEventListener("holonet:galaxy-loader-progress", handleProgress);
+        window.removeEventListener("holonet:galaxy-loader-ready", finish);
+      }
+
+      function finish() {
+        if (resolved) return;
+        resolved = true;
+        cleanup();
+        resolve();
+      }
+
+      function handleProgress(event) {
+        if (event?.detail?.ready) finish();
+      }
+
+      window.addEventListener("holonet:galaxy-loader-progress", handleProgress);
+      window.addEventListener("holonet:galaxy-loader-ready", finish);
+    });
   }
 
   function ensureMuxPlayerReady() {
@@ -448,6 +611,8 @@
   }
 
   async function getIntroPlayer(loader) {
+    if (!shouldUseIntroVideo()) return null;
+
     await ensureMuxPlayerReady();
 
     const videoSlot = loader.querySelector("[data-loader-intro-video]");
@@ -529,9 +694,12 @@
 
     loader.dataset.releaseIntroReady = "true";
     setLoaderPhase(loader, "intro-prompt");
+    armIntroMusic(loader);
 
     const establishButton = loader.querySelector("[data-loader-establish]");
-    const playerPromise = getIntroPlayer(loader)
+    const useIntroVideo = shouldUseIntroVideo();
+    const autoBypassIntroVideo = shouldAutoBypassIntroVideo();
+    const playerPromise = useIntroVideo ? getIntroPlayer(loader)
       .then(player => {
         resetIntroPlayer(player);
         return player;
@@ -539,7 +707,7 @@
       .catch(error => {
         console.warn("Old Guard intro unavailable:", error);
         return null;
-      });
+      }) : Promise.resolve(null);
 
     async function startIntro() {
       if (loader.dataset.releaseIntroRunning === "true") return;
@@ -550,7 +718,7 @@
       setLoaderPhase(loader, "intro-loading");
       const stopIntroProgress = startLoaderProgress(loader, { start: 12, cap: 88 });
 
-      await Promise.all([waitForWindowLoad(), wait(2300)]);
+      await Promise.all([waitForWindowLoad(), waitForReleaseIntroReadiness(), wait(2300)]);
 
       stopIntroProgress();
       setLoaderProgress(loader, 92);
@@ -584,6 +752,7 @@
 
       if (videoSlot) videoSlot.setAttribute("aria-hidden", "false");
       setLoaderPhase(loader, "intro-video");
+      if (autoBypassIntroVideo) requestSkip();
       await Promise.race([wait(650), skipPromise]);
 
       if (player && !skipRequested) {

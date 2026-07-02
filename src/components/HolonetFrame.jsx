@@ -3,11 +3,34 @@ import { HolonetNav } from "./HolonetNav.jsx";
 import { OldGuardPlayer } from "./OldGuardPlayer.jsx";
 
 const alternativeIntroEnabled = HOLONET_ALTERNATIVE_INTRO_ENABLED;
-const alternativeIntroEnabledScriptValue = alternativeIntroEnabled ? "true" : "false";
 const themeClasses = ["theme-reavers", "theme-dhg", "theme-dreadmasters", "theme-inquisitors", "theme-highranks", "theme-dark-council"];
 const INTRO_COMPLETE_KEY = "holonet:intro:v1:complete";
 const INTRO_COMPLETE_COOKIE = "holonet_intro_v1_complete";
 const INTRO_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+const defaultReleaseIntroConfig = {
+  enabled: alternativeIntroEnabled,
+  force: false,
+  waitForGalaxyReady: false,
+  prompt: {
+    kicker: "MANAR'S THE SITH ORDER",
+    title: "THE NEW HOLONET",
+    action: "Establish Link",
+    meta: ["MADE BY: VYBERON", "WITH HELP FROM: THE OLD GUARD"]
+  },
+  loadingLines: ["Relay aligning", "Request received", "Transmission initializing"],
+  ready: {
+    line: "Relay aligned",
+    status: "Transmitting"
+  },
+  video: {
+    enabled: true,
+    player: "old-guard",
+    skipLabel: "Skip Transmission",
+    skipHidden: false,
+    autoBypass: false
+  },
+  music: null
+};
 const initialThemeTokens = {
   default: {
     bg: "#170609",
@@ -162,10 +185,55 @@ function initialThemeCssValue(theme) {
   `;
 }
 
-function initialBootScript(theme) {
+function resolveReleaseIntroConfig(releaseIntro) {
+  const config = releaseIntro || {};
+
+  return {
+    ...defaultReleaseIntroConfig,
+    ...config,
+    prompt: {
+      ...defaultReleaseIntroConfig.prompt,
+      ...(config.prompt || {})
+    },
+    loadingLines: config.loadingLines || defaultReleaseIntroConfig.loadingLines,
+    ready: {
+      ...defaultReleaseIntroConfig.ready,
+      ...(config.ready || {})
+    },
+    video: {
+      ...defaultReleaseIntroConfig.video,
+      ...(config.video || {})
+    },
+    music: config.music || defaultReleaseIntroConfig.music
+  };
+}
+
+function releaseIntroRuntimeConfig(releaseIntro) {
+  const video = releaseIntro.video || {};
+
+  return {
+    enabled: Boolean(releaseIntro.enabled),
+    force: Boolean(releaseIntro.force),
+    waitForGalaxyReady: Boolean(releaseIntro.waitForGalaxyReady),
+    video: {
+      enabled: video.enabled !== false,
+      player: video.player || null,
+      autoBypass: Boolean(video.autoBypass)
+    },
+    music: releaseIntro.music || null
+  };
+}
+
+function initialBootScript(theme, releaseIntro) {
+  const releaseIntroEnabledScriptValue = releaseIntro.enabled ? "true" : "false";
+  const forceReleaseIntroScriptValue = releaseIntro.force ? "true" : "false";
+  const releaseIntroConfigScriptValue = JSON.stringify(releaseIntroRuntimeConfig(releaseIntro));
+
   return `
     (function(){
-      var alternativeIntroEnabled=${alternativeIntroEnabledScriptValue};
+      var releaseIntroEnabled=${releaseIntroEnabledScriptValue};
+      var forceReleaseIntro=${forceReleaseIntroScriptValue};
+      var releaseIntroConfig=${releaseIntroConfigScriptValue};
       var initialTheme=${initialThemeScriptValue(theme)};
       var themeClasses=${JSON.stringify(themeClasses)};
       var introCompleteKey=${JSON.stringify(INTRO_COMPLETE_KEY)};
@@ -217,16 +285,18 @@ function initialBootScript(theme) {
           themeClasses.forEach(function(className){ document.body.classList.remove(className); });
           document.body.classList.add(initialTheme);
         }
-        window.HOLONET_ALTERNATIVE_INTRO_ENABLED = alternativeIntroEnabled;
-        if (!alternativeIntroEnabled) {
+        window.HOLONET_ALTERNATIVE_INTRO_ENABLED = releaseIntroEnabled;
+        window.HOLONET_FORCE_RELEASE_INTRO = forceReleaseIntro;
+        window.HOLONET_RELEASE_INTRO_CONFIG = releaseIntroConfig;
+        if (!releaseIntroEnabled) {
           writeFlag(introCompleteKey, introCompleteCookie);
         }
         var q = new URLSearchParams(window.location.search);
-        var intro = alternativeIntroEnabled && (q.get("intro") === "1" || !readFlag(introCompleteKey, introCompleteCookie));
+        var intro = releaseIntroEnabled && (forceReleaseIntro || q.get("intro") === "1" || !readFlag(introCompleteKey, introCompleteCookie));
         document.documentElement.style.setProperty("--loader-progress", "0%");
         document.documentElement.classList.add(intro ? "holonet-release-intro" : "holonet-standard-loader");
       } catch (e) {
-        document.documentElement.classList.add(alternativeIntroEnabled ? "holonet-release-intro" : "holonet-standard-loader");
+        document.documentElement.classList.add(releaseIntroEnabled ? "holonet-release-intro" : "holonet-standard-loader");
       }
     })();
   `;
@@ -245,8 +315,29 @@ export function HolonetFrame({
   mainClassName = "",
   includeSearchOverlay = false,
   showHeader = true,
-  theme = ""
+  theme = "",
+  releaseIntro = null
 }) {
+  const releaseIntroConfig = resolveReleaseIntroConfig(releaseIntro);
+  const releaseIntroVideoEnabled = releaseIntroConfig.video.enabled !== false;
+  const releaseIntroVideoAttributes = releaseIntroVideoEnabled ? { "data-loader-intro-video": "" } : {};
+  const shouldRenderIntroPlayer = releaseIntroConfig.enabled && releaseIntroVideoEnabled && releaseIntroConfig.video.player === "old-guard";
+  const releaseIntroLoaderAttributes = {
+    "data-release-intro-enabled": releaseIntroConfig.enabled ? "true" : "false",
+    "data-release-intro-force": releaseIntroConfig.force ? "true" : "false",
+    "data-release-intro-wait-for-galaxy-ready": releaseIntroConfig.waitForGalaxyReady ? "true" : "false",
+    "data-release-intro-video-enabled": releaseIntroVideoEnabled ? "true" : "false",
+    "data-release-intro-video-player": releaseIntroConfig.video.player || "",
+    "data-release-intro-video-auto-bypass": releaseIntroConfig.video.autoBypass ? "true" : "false",
+    "data-release-intro-music-id": releaseIntroConfig.music?.id || undefined,
+    "data-release-intro-music-src": releaseIntroConfig.music?.src || undefined,
+    "data-release-intro-music-preload": releaseIntroConfig.music?.preload || undefined,
+    "data-release-intro-music-loop": releaseIntroConfig.music?.loop ? "true" : undefined,
+    "data-release-intro-music-volume": Number.isFinite(Number(releaseIntroConfig.music?.volume)) ? String(releaseIntroConfig.music.volume) : undefined,
+    "data-release-intro-music-start-after-loader-hidden": releaseIntroConfig.music?.startAfterLoaderHidden ? "true" : undefined,
+    "data-release-intro-music-fade-in-ms": Number.isFinite(Number(releaseIntroConfig.music?.fadeInMs)) ? String(releaseIntroConfig.music.fadeInMs) : undefined
+  };
+
   return (
     <>
       <style id="holonet-initial-theme" dangerouslySetInnerHTML={{ __html: initialThemeCssValue(theme) }} />
@@ -255,11 +346,11 @@ export function HolonetFrame({
 
       <script
         dangerouslySetInnerHTML={{
-          __html: initialBootScript(theme)
+          __html: initialBootScript(theme, releaseIntroConfig)
         }}
       />
 
-      <div id="loader" role="status" aria-label="Establishing connection">
+      <div id="loader" role="status" aria-label="Establishing connection" {...releaseIntroLoaderAttributes}>
         <div className="loader-intro-prompt" data-loader-intro-prompt>
           <section className="loader-terminal-panel loader-terminal-panel--prompt loader-holonet-gate" aria-labelledby="loader-intro-command">
             <div className="loader-terminal-topbar">
@@ -268,15 +359,16 @@ export function HolonetFrame({
             </div>
             <div className="loader-terminal-body loader-gate-body">
               <div className="loader-gate-copy">
-                <p className="loader-gate-kicker">MANAR&apos;S THE SITH ORDER</p>
-                <h2 id="loader-intro-command" className="loader-gate-title">THE NEW HOLONET</h2>
+                <p className="loader-gate-kicker">{releaseIntroConfig.prompt.kicker}</p>
+                <h2 id="loader-intro-command" className="loader-gate-title">{releaseIntroConfig.prompt.title}</h2>
               </div>
               <button className="loader-terminal-button loader-terminal-button--gate" type="button" data-loader-establish>
-                <span>Establish Link</span>
+                <span>{releaseIntroConfig.prompt.action}</span>
               </button>
               <div className="loader-gate-meta" aria-hidden="true">
-                <span>MADE BY: VYBERON</span>
-                <span>WITH HELP FROM: THE OLD GUARD</span>
+                {releaseIntroConfig.prompt.meta.map(item => (
+                  <span key={item}>{item}</span>
+                ))}
               </div>
             </div>
           </section>
@@ -317,9 +409,9 @@ export function HolonetFrame({
               <span>THE HOLONET</span>
             </div>
             <div className="loader-terminal-body">
-              <p className="loader-terminal-line">Relay aligning</p>
-              <p className="loader-terminal-line">Request received</p>
-              <p className="loader-terminal-line">Transmission initializing</p>
+              {releaseIntroConfig.loadingLines.map(line => (
+                <p className="loader-terminal-line" key={line}>{line}</p>
+              ))}
               <div className="loader-terminal-progress" aria-hidden="true">
                 <span />
               </div>
@@ -334,16 +426,22 @@ export function HolonetFrame({
               <span>THE HOLONET</span>
             </div>
             <div className="loader-terminal-body">
-              <p className="loader-terminal-line">Relay aligned</p>
-              <p className="loader-terminal-status">Transmitting</p>
+              <p className="loader-terminal-line">{releaseIntroConfig.ready.line}</p>
+              <p className="loader-terminal-status">{releaseIntroConfig.ready.status}</p>
             </div>
           </section>
         </div>
 
-        <div className="loader-intro-video" data-loader-intro-video aria-hidden="true">
-          {alternativeIntroEnabled ? <OldGuardPlayer mode="intro" /> : null}
-          <button className="loader-intro-skip" type="button" data-loader-skip-intro>
-            Skip Transmission
+        <div className="loader-intro-video" {...releaseIntroVideoAttributes} aria-hidden="true">
+          {shouldRenderIntroPlayer ? <OldGuardPlayer mode="intro" /> : null}
+          <button
+            className="loader-intro-skip"
+            type="button"
+            data-loader-skip-intro
+            hidden={releaseIntroConfig.video.skipHidden}
+            aria-hidden={releaseIntroConfig.video.skipHidden ? "true" : undefined}
+          >
+            {releaseIntroConfig.video.skipLabel}
           </button>
         </div>
 

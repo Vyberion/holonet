@@ -20,6 +20,14 @@ const SCOPE_CHOICES = [
   { name: "Dark Council", value: "darkCouncil" }
 ];
 const DIVISION_TIERS = ["none", "member", "nco", "co", "2ic", "1ic", "overseer"];
+const OVERSEER_ROLE_KEYS = [
+  "highRankOverseer",
+  "darkHonorGuardOverseer",
+  "reaverOverseer",
+  "dreadMasterOverseer",
+  "inquisitoriusOverseer"
+];
+const OVERSEER_VISIBLE_SCOPES = ["reavers", "dhg", "dreadmasters", "highranks"];
 
 export const commands = [
   new SlashCommandBuilder().setName("clockin").setDescription("Start a shift").addBooleanOption(option => option.setName("late").setDescription("Clock in late")),
@@ -66,36 +74,37 @@ function divisionTierAtLeast(profile, division, requiredTier) {
   return DIVISION_TIERS.indexOf(profile?.divisions?.[division] || "none") >= DIVISION_TIERS.indexOf(requiredTier);
 }
 
-function hasDarkCouncilPlus(profile, member = null) {
-  return Boolean(canManageBot(profile, member) || Object.values(profile?.authorityRoles || {}).some(Boolean));
+function hasDarkCouncilRank(profile, roleKey) {
+  const rank = Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0);
+  const allowedRanks = ROBLOX_GROUPS.DARK_COUNCIL.ranks?.[roleKey] || [];
+  return Boolean(profile?.authorityRoles?.[roleKey] || allowedRanks.includes(rank));
 }
 
-function hasAnyDivisionTierAtLeast(profile, requiredTier) {
-  return Object.values(profile?.divisions || {}).some(tier => DIVISION_TIERS.indexOf(tier || "none") >= DIVISION_TIERS.indexOf(requiredTier));
+function hasAnyOverseer(profile) {
+  return OVERSEER_ROLE_KEYS.some(roleKey => hasDarkCouncilRank(profile, roleKey));
 }
 
-function hasHighRankAccess(profile) {
-  const rank = Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0);
-  return Boolean(profile?.highRank && profile.highRank !== "none") || (rank >= 44 && rank <= 53);
+function hasInquisitoriusOverseer(profile) {
+  return hasDarkCouncilRank(profile, "inquisitoriusOverseer");
+}
+
+function hasHighCommandTimeAccess(profile, member = null) {
+  return canManageBot(profile, member);
 }
 
 function canViewScopeTime(profile, scope, member = null) {
-  const roles = profile?.authorityRoles || {};
-  if (scope === "all") return canManageBot(profile, member);
-  if (["dhg", "reavers", "dreadmasters"].includes(scope)) {
-    return Boolean(divisionTierAtLeast(profile, scope, "member") || hasDarkCouncilPlus(profile, member));
+  if (hasHighCommandTimeAccess(profile, member)) return true;
+  if (scope === "all" || scope === "darkCouncil") return false;
+
+  if (OVERSEER_VISIBLE_SCOPES.includes(scope)) {
+    return Boolean(hasAnyOverseer(profile) || divisionTierAtLeast(profile, scope, "co"));
   }
-  if (scope === "highranks") {
-    return Boolean(
-      hasHighRankAccess(profile) ||
-      hasAnyDivisionTierAtLeast(profile, "co") ||
-      divisionTierAtLeast(profile, "inquisitors", "member") ||
-      hasDarkCouncilPlus(profile, member)
-    );
+
+  if (scope === "inquisitors") {
+    return Boolean(hasInquisitoriusOverseer(profile) || divisionTierAtLeast(profile, "inquisitors", "co"));
   }
-  if (scope === "inquisitors") return Boolean(divisionTierAtLeast(profile, "inquisitors", "member") || roles.inquisitoriusOverseer || hasDarkCouncilPlus(profile, member));
-  if (scope === "darkCouncil") return hasDarkCouncilPlus(profile, member);
-  return canManageBot(profile, member);
+
+  return false;
 }
 
 async function requireScopeTimeAccess(interaction, scope) {

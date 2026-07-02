@@ -1890,11 +1890,13 @@ function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0,
     if (!ref.current || !materialRef.current) return;
     const elapsedMs = startedAt ? performance.now() - startedAt : 0;
     const exitProgress = active && phase === "reveal" && duration
-      ? smoothstep(Math.max(0, duration - 500), duration, elapsedMs)
+      ? smoothstep(Math.max(0, duration - 1100), Math.max(0, duration - 600), elapsedMs)
       : 0;
     const tunnelIntensity = 1 - exitProgress;
     const targetOpacity = active ? (reducedMotion ? 0.48 : 0.88) * tunnelIntensity : 0;
-    opacityRef.current = THREE.MathUtils.lerp(opacityRef.current, targetOpacity, active ? 0.18 : 0.12);
+    opacityRef.current = exitProgress >= 1
+      ? 0
+      : THREE.MathUtils.lerp(opacityRef.current, targetOpacity, active ? 0.18 : 0.12);
     ref.current.visible = opacityRef.current > 0.01;
     ref.current.position.copy(camera.position);
     ref.current.quaternion.copy(camera.quaternion);

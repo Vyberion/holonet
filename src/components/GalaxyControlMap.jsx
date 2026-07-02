@@ -156,6 +156,7 @@ const DEFAULT_FACTIONS = [
 
 const PLANET_TEXTURE_CACHE = new Map();
 const PLANET_ASSET_TEXTURE_CACHE = new Map();
+const PLANET_ASSET_TEXTURE_RESOLVED = new Map();
 const PLANET_ASSET_TEXTURE_STATUS = new Map();
 
 function seededRandom(seed) {
@@ -301,6 +302,10 @@ function planetTextureIsSettled(entry, quality = "full") {
   return status === "loaded" || status === "failed";
 }
 
+function getResolvedPlanetAssetTexture(entry, quality = "full") {
+  return PLANET_ASSET_TEXTURE_RESOLVED.get(planetTextureCacheKey(entry, quality)) || null;
+}
+
 function loadPlanetAssetTexture(entry, anisotropy, quality = "full") {
   const maxSize = maxTextureSizeForLayer(quality);
   const cacheKey = planetTextureCacheKey(entry, quality);
@@ -311,6 +316,7 @@ function loadPlanetAssetTexture(entry, anisotropy, quality = "full") {
       cacheKey,
       loadOptionalPlanetTexture(loader, entry.url, { color: entry.color, anisotropy, maxSize }).then(texture => {
         PLANET_ASSET_TEXTURE_STATUS.set(cacheKey, texture ? "loaded" : "failed");
+        if (texture) PLANET_ASSET_TEXTURE_RESOLVED.set(cacheKey, texture);
         return texture;
       })
     );
@@ -1376,6 +1382,10 @@ function usePlanetTextureSet(body, enabled = true) {
   const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
   const [textures, setTextures] = useState({});
   const entries = useMemo(() => planetTextureEntries(body), [body]);
+  const cachedPreviewTextures = useMemo(() => Object.fromEntries(entries.map(entry => [
+    entry.key,
+    getResolvedPlanetAssetTexture(entry, "preview")
+  ]).filter(([, texture]) => texture)), [entries]);
 
   useEffect(() => {
     if (!enabled) {
@@ -1384,7 +1394,7 @@ function usePlanetTextureSet(body, enabled = true) {
     }
 
     let cancelled = false;
-    setTextures({});
+    setTextures(cachedPreviewTextures);
     const loadAndApply = (entry, quality) => (
       loadPlanetAssetTexture(entry, maxAnisotropy, quality).then(texture => {
         if (!cancelled && texture) {
@@ -1406,7 +1416,7 @@ function usePlanetTextureSet(body, enabled = true) {
     return () => {
       cancelled = true;
     };
-  }, [enabled, entries, maxAnisotropy]);
+  }, [enabled, entries, maxAnisotropy, cachedPreviewTextures]);
 
   return textures;
 }
@@ -1523,6 +1533,7 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
     };
 
     if (!total || loaded >= total) {
+      startFullQueue();
       sendReady();
       return () => {
         cancelled = true;

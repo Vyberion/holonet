@@ -40,7 +40,7 @@ const WIDE_TARGET = new THREE.Vector3(0.18, 0, -0.36);
 const SECTOR_CAMERA_LIFT = 2.95;
 const SECTOR_CAMERA_PULLBACK = 3.65;
 const PLANET_APPROACH_DISTANCE = 2.15;
-const PLANET_ENTRY_DISTANCE = 780;
+const PLANET_ENTRY_DISTANCE = 2400;
 const PLANET_HYPERSPACE_FLIGHT_MS = 5200;
 const PLANET_HYPERSPACE_SFX_MS = 3000;
 const PLANET_HYPERSPACE_SFX_SRC = "/assets/sounds/galaxy/hyperspace.mp3";
@@ -2111,6 +2111,21 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
     entryDirection.normalize();
 
     const entryDistance = transition.fromDistance || (transition.reducedMotion ? 18 : PLANET_ENTRY_DISTANCE);
+    if (isPlanetEntry && transition.phase === "wipe") {
+      camera.position.copy(focus).add(entryDirection.multiplyScalar(entryDistance));
+      if (controls) {
+        controls.target.copy(focus);
+        controls.enabled = false;
+        controls.autoRotate = false;
+        controls.autoRotateSpeed = 0;
+        controls.update();
+      }
+      activeTransition.current = null;
+      lastStableView.current = view;
+      lastFocusRef.current = focus.clone();
+      return;
+    }
+
     const fromCamera = isPlanetEntry
       ? focus.clone().add(entryDirection.multiplyScalar(entryDistance))
       : camera.position.clone();
@@ -2627,7 +2642,7 @@ export function GalaxyMapExperience({ map }) {
     <section className={`gm-root${ready ? " gm-root--ready" : ""}${transition.active ? " is-transitioning" : ""}`} aria-label="Hidden Archives Galaxy Map">
       <div className="gm-stage" aria-hidden="true">
         <Canvas
-          camera={{ position: WIDE_CAMERA.toArray(), fov: 45, near: 0.04, far: 180 }}
+          camera={{ position: WIDE_CAMERA.toArray(), fov: 45, near: 0.04, far: 3200 }}
           dpr={dpr}
           gl={{ antialias: true, alpha: false, powerPreference: "high-performance", stencil: false }}
           onPointerMissed={() => {
@@ -2856,6 +2871,7 @@ const STYLES = `
   }
 
   .gm-wipe {
+    background: #000;
     opacity: 0;
     overflow: hidden;
     pointer-events: none;
@@ -2863,15 +2879,9 @@ const STYLES = `
   }
 
   .gm-wipe::before {
-    background: #000;
-    bottom: -76vmax;
     content: "";
-    height: 220vmax;
+    inset: 0;
     position: absolute;
-    right: -76vmax;
-    transform: translate(72%, 72%) rotate(45deg);
-    transform-origin: center;
-    width: 220vmax;
   }
 
   .gm-wipe.is-wiping {
@@ -2879,7 +2889,7 @@ const STYLES = `
   }
 
   .gm-wipe.is-wiping::before {
-    animation: gm-wipe-in var(--wipe-duration, 900ms) cubic-bezier(.77,0,.18,1) both;
+    animation: none;
   }
 
   .gm-wipe.is-revealing {
@@ -2888,7 +2898,7 @@ const STYLES = `
   }
 
   .gm-wipe.is-revealing::before {
-    transform: translate(0, 0) rotate(45deg);
+    transform: none;
   }
 
   .gm-topbar {
@@ -3211,11 +3221,6 @@ const STYLES = `
 
   .gm-sector-label.is-dimmed {
     opacity: .24;
-  }
-
-  @keyframes gm-wipe-in {
-    0% { transform: translate(72%, 72%) rotate(45deg); }
-    100% { transform: translate(0, 0) rotate(45deg); }
   }
 
   @keyframes gm-wipe-reveal {

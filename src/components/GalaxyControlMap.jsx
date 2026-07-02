@@ -41,7 +41,7 @@ const SECTOR_CAMERA_LIFT = 2.95;
 const SECTOR_CAMERA_PULLBACK = 3.65;
 const PLANET_APPROACH_DISTANCE = 2.15;
 const PLANET_ENTRY_DISTANCE = 2400;
-const PLANET_HYPERSPACE_FLIGHT_MS = 5200;
+const PLANET_HYPERSPACE_FLIGHT_MS = 6600;
 const PLANET_HYPERSPACE_SFX_MS = 3000;
 const PLANET_HYPERSPACE_SFX_SRC = "/assets/sounds/galaxy/hyperspace.mp3";
 const SURFACE_REVEAL_TIMEOUT_MS = 5000;
@@ -1982,7 +1982,7 @@ function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0,
     if (!ref.current || !materialRef.current) return;
     const elapsedMs = startedAt ? performance.now() - startedAt : 0;
     const exitProgress = active && phase === "reveal" && duration
-      ? smoothstep(Math.max(0, duration - 1100), Math.max(0, duration - 600), elapsedMs)
+      ? smoothstep(duration, duration + 220, elapsedMs)
       : 0;
     const tunnelIntensity = 1 - exitProgress;
     const targetOpacity = active ? (reducedMotion ? 0.48 : 0.88) * tunnelIntensity : 0;
@@ -2049,12 +2049,12 @@ function horizontalApproachDirection(focus) {
 
 function planetApproachEase(progress) {
   const capped = THREE.MathUtils.clamp(progress, 0, 1);
-  const brakeStart = 0.72;
-  if (capped < brakeStart) return capped * 0.84;
+  const brakeStart = 0.46;
+  if (capped < brakeStart) return capped * 0.7;
 
   const brakeProgress = (capped - brakeStart) / (1 - brakeStart);
-  const brakeEase = 1 - Math.pow(1 - brakeProgress, 3.2);
-  return 0.84 * brakeStart + (1 - 0.84 * brakeStart) * brakeEase;
+  const brakeEase = 1 - Math.pow(1 - brakeProgress, 2.55);
+  return 0.7 * brakeStart + (1 - 0.7 * brakeStart) * brakeEase;
 }
 
 function resolveCamera(view, map, previousCamera, elapsedTime = 0) {
@@ -2169,12 +2169,11 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
       const recoilDirection = liveCamera.clone().sub(liveFocus).normalize();
       camera.position.add(recoilDirection.multiplyScalar(recoil));
       if (isPlanetEntry && !current.reducedMotion) {
-        const arrivalWindow = THREE.MathUtils.clamp(PLANET_HYPERSPACE_SFX_MS / current.duration, 0.36, 0.78);
-        const arrivalStart = 1 - arrivalWindow;
-        const arrival = smoothstep(arrivalStart, 0.92, capped);
-        const exitRumble = arrival * (1 - smoothstep(0.96, 1, capped));
-        const travelRumble = Math.sin(capped * Math.PI) * 0.012;
-        const rumble = exitRumble * 0.18 + travelRumble;
+        const brakeRumble = smoothstep(0.46, 0.74, capped);
+        const finalRumble = smoothstep(0.68, 0.9, capped);
+        const rumbleFalloff = 1 - smoothstep(0.992, 1, capped);
+        const travelRumble = Math.sin(capped * Math.PI) * 0.016;
+        const rumble = (brakeRumble * 0.055 + finalRumble * 0.15 + travelRumble) * rumbleFalloff;
         camera.position.x += (Math.sin(raw * 211) + Math.sin(raw * 389) * 0.52) * rumble;
         camera.position.y += (Math.cos(raw * 263) + Math.sin(raw * 421) * 0.42) * rumble * 0.58;
         camera.position.z += Math.sin(raw * 337) * rumble * 0.44;
@@ -2482,7 +2481,11 @@ export function GalaxyMapExperience({ map }) {
 
   const playHyperspaceAudio = useCallback(audio => {
     if (hyperspaceAudioRef.current !== audio) return;
-    audio.currentTime = 0;
+    if (Number.isFinite(audio.duration) && audio.duration > PLANET_HYPERSPACE_SFX_MS / 1000) {
+      audio.currentTime = Math.max(0, audio.duration - PLANET_HYPERSPACE_SFX_MS / 1000);
+    } else {
+      audio.currentTime = 0;
+    }
     const playAttempt = audio.play();
     if (playAttempt?.catch) playAttempt.catch(() => {});
   }, []);
@@ -2501,21 +2504,11 @@ export function GalaxyMapExperience({ map }) {
       audio.volume = 0.74;
       hyperspaceAudioRef.current = audio;
 
-      const queueAccuratePlay = () => {
-        if (scheduled || hyperspaceAudioRef.current !== audio) return;
-        scheduled = true;
-        const durationMs = Number.isFinite(audio.duration) && audio.duration > 0
-          ? audio.duration * 1000
-          : PLANET_HYPERSPACE_SFX_MS;
-        queueTransitionTimer(() => playHyperspaceAudio(audio), Math.max(0, targetEndAt - performance.now() - durationMs));
-      };
-
-      audio.addEventListener("loadedmetadata", queueAccuratePlay, { once: true });
       queueTransitionTimer(() => {
         if (scheduled || hyperspaceAudioRef.current !== audio) return;
         scheduled = true;
         playHyperspaceAudio(audio);
-      }, Math.max(0, targetEndDelay - PLANET_HYPERSPACE_SFX_MS));
+      }, Math.max(0, targetEndAt - performance.now() - PLANET_HYPERSPACE_SFX_MS));
       audio.load();
     } catch {}
   }, [playHyperspaceAudio, queueTransitionTimer]);

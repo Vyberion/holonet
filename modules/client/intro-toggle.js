@@ -1,5 +1,12 @@
 import { HOLONET_ALTERNATIVE_INTRO_ENABLED } from "../config/intro.js";
 
-(function () {
-  window.HOLONET_ALTERNATIVE_INTRO_ENABLED = HOLONET_ALTERNATIVE_INTRO_ENABLED || Boolean(window.HOLONET_FORCE_RELEASE_INTRO);
-})();
+const path = typeof window !== "undefined" ? window.location.pathname : "";
+const isGalaxyPage = path === "/galaxy" || path === "/galaxy/";
+
+if (isGalaxyPage) {
+  window.HOLONET_FORCE_RELEASE_INTRO = true;
+  window.HOLONET_ALTERNATIVE_INTRO_ENABLED = true;
+  await import("./galaxy-intro.js");
+} else {
+  window.HOLONET_ALTERNATIVE_INTRO_ENABLED = HOLONET_ALTERNATIVE_INTRO_ENABLED;
+}

@@ -44,6 +44,7 @@ const PLANET_ENTRY_DISTANCE = 96;
 const PLANET_LOADING_DISTANCE = 132;
 const HYPERSPACE_MIN_MS = 1500;
 const SURFACE_REVEAL_TIMEOUT_MS = 5000;
+const PAGE_DIFFUSE_PREVIEW_TIMEOUT_MS = 4500;
 const BODY_Y_OFFSET = 0.05;
 const PARTICLE_COUNTS = {
   high: { stars: 26000, dust: 52000, clouds: 180, sky: 16000, sparkles: 460, streaks: 1650 },
@@ -1562,12 +1563,14 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
     let cancelled = false;
     let cursor = 0;
     let readySent = false;
+    let fallbackTimer = null;
     let loaded = entries.filter(entry => planetTextureIsSettled(entry, "preview")).length;
     const total = entries.length;
     onProgress?.({ loaded, total });
     const sendReady = () => {
       if (cancelled || readySent) return;
       readySent = true;
+      if (fallbackTimer) window.clearTimeout(fallbackTimer);
       onReady?.();
     };
 
@@ -1583,6 +1586,13 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
       onProgress?.({ loaded, total });
       if (loaded >= total) sendReady();
     };
+
+    fallbackTimer = window.setTimeout(() => {
+      if (cancelled || readySent) return;
+      loaded = total;
+      onProgress?.({ loaded, total });
+      sendReady();
+    }, PAGE_DIFFUSE_PREVIEW_TIMEOUT_MS);
 
     const workers = Array.from({ length: 2 }, async () => {
       while (!cancelled && cursor < entries.length) {
@@ -1609,6 +1619,7 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
     Promise.all(workers).catch(() => {});
     return () => {
       cancelled = true;
+      if (fallbackTimer) window.clearTimeout(fallbackTimer);
     };
   }, [entries, warmEntries, maxAnisotropy, onProgress, onReady]);
 

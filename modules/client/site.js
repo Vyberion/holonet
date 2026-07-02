@@ -564,6 +564,12 @@
     });
   }
 
+  function waitForReleaseIntroLoadGate() {
+    return getReleaseIntroConfig().waitForGalaxyReady
+      ? waitForReleaseIntroReadiness()
+      : waitForWindowLoad();
+  }
+
   function ensureMuxPlayerReady() {
     if (window.customElements?.get("mux-player")) {
       return Promise.resolve();
@@ -718,7 +724,7 @@
       setLoaderPhase(loader, "intro-loading");
       const stopIntroProgress = startLoaderProgress(loader, { start: 12, cap: 88 });
 
-      await Promise.all([waitForWindowLoad(), waitForReleaseIntroReadiness(), wait(2300)]);
+      await Promise.all([waitForReleaseIntroLoadGate(), wait(2300)]);
 
       stopIntroProgress();
       setLoaderProgress(loader, 92);

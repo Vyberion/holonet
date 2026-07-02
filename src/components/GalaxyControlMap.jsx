@@ -41,9 +41,13 @@ const SECTOR_CAMERA_LIFT = 2.95;
 const SECTOR_CAMERA_PULLBACK = 3.65;
 const PLANET_APPROACH_DISTANCE = 2.15;
 const PLANET_ENTRY_DISTANCE = 2400;
-const PLANET_HYPERSPACE_FLIGHT_MS = 6600;
+const PLANET_HYPERSPACE_FLIGHT_MS = 7600;
 const PLANET_HYPERSPACE_SFX_MS = 3000;
 const PLANET_HYPERSPACE_SFX_SRC = "/assets/sounds/galaxy/hyperspace.mp3";
+const PLANET_PRELOAD_MIN_MS = 1200;
+const PLANET_PRELOAD_MAX_MS = 2600;
+const PLANET_HYPERSPACE_LINE_EXIT_DELAY_MS = 400;
+const PLANET_HYPERSPACE_LINE_FADE_MS = 360;
 const SURFACE_REVEAL_TIMEOUT_MS = 5000;
 const PAGE_DIFFUSE_PREVIEW_TIMEOUT_MS = 4500;
 const BODY_Y_OFFSET = 0.05;
@@ -1969,7 +1973,7 @@ function makeHyperspaceGeometry(count, seed) {
   return { geometry, streaks };
 }
 
-function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0, quality, reducedMotion }) {
+function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0, exitDelay = 0, exitFade = 220, quality, reducedMotion }) {
   const count = (PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced).streaks;
   const { geometry, streaks } = useMemo(() => makeHyperspaceGeometry(count, 7717), [count]);
   const ref = useRef(null);
@@ -1982,7 +1986,7 @@ function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0,
     if (!ref.current || !materialRef.current) return;
     const elapsedMs = startedAt ? performance.now() - startedAt : 0;
     const exitProgress = active && phase === "reveal" && duration
-      ? smoothstep(duration, duration + 220, elapsedMs)
+      ? smoothstep(duration + exitDelay, duration + exitDelay + exitFade, elapsedMs)
       : 0;
     const tunnelIntensity = 1 - exitProgress;
     const targetOpacity = active ? (reducedMotion ? 0.48 : 0.88) * tunnelIntensity : 0;
@@ -2049,12 +2053,13 @@ function horizontalApproachDirection(focus) {
 
 function planetApproachEase(progress) {
   const capped = THREE.MathUtils.clamp(progress, 0, 1);
-  const brakeStart = 0.46;
-  if (capped < brakeStart) return capped * 0.7;
+  const brakeStart = 0.62;
+  const brakeStartDistanceProgress = brakeStart * 0.92;
+  if (capped < brakeStart) return capped * 0.92;
 
   const brakeProgress = (capped - brakeStart) / (1 - brakeStart);
-  const brakeEase = 1 - Math.pow(1 - brakeProgress, 2.55);
-  return 0.7 * brakeStart + (1 - 0.7 * brakeStart) * brakeEase;
+  const brakeEase = 1 - Math.pow(1 - brakeProgress, 1.85);
+  return brakeStartDistanceProgress + (1 - brakeStartDistanceProgress) * brakeEase;
 }
 
 function resolveCamera(view, map, previousCamera, elapsedTime = 0) {
@@ -2165,15 +2170,26 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
       const recoil = isPlanetEntry
         ? 0
         : Math.sin(capped * Math.PI * 2.6) * current.recoil * (1 - t);
-      camera.position.copy(current.fromCamera).lerp(liveCamera, t);
+      if (isPlanetEntry) {
+        const approachDirection = current.fromCamera.clone().sub(current.fromTarget);
+        if (approachDirection.lengthSq() < 0.01) approachDirection.copy(liveCamera).sub(liveFocus);
+        if (approachDirection.lengthSq() < 0.01) approachDirection.set(0, 0, 1);
+        approachDirection.normalize();
+        const startDistance = Math.max(current.fromCamera.distanceTo(current.fromTarget), 0.001);
+        const endDistance = Math.max(liveCamera.distanceTo(liveFocus), 0.001);
+        const distance = Math.exp(THREE.MathUtils.lerp(Math.log(startDistance), Math.log(endDistance), t));
+        camera.position.copy(liveFocus).add(approachDirection.multiplyScalar(distance));
+      } else {
+        camera.position.copy(current.fromCamera).lerp(liveCamera, t);
+      }
       const recoilDirection = liveCamera.clone().sub(liveFocus).normalize();
       camera.position.add(recoilDirection.multiplyScalar(recoil));
       if (isPlanetEntry && !current.reducedMotion) {
-        const brakeRumble = smoothstep(0.46, 0.74, capped);
-        const finalRumble = smoothstep(0.68, 0.9, capped);
-        const rumbleFalloff = 1 - smoothstep(0.992, 1, capped);
-        const travelRumble = Math.sin(capped * Math.PI) * 0.016;
-        const rumble = (brakeRumble * 0.055 + finalRumble * 0.15 + travelRumble) * rumbleFalloff;
+        const brakeRumble = smoothstep(0.52, 0.78, capped);
+        const finalRumble = smoothstep(0.72, 0.92, capped);
+        const rumbleFalloff = 1 - smoothstep(0.996, 1, capped);
+        const travelRumble = Math.sin(capped * Math.PI) * 0.014;
+        const rumble = (brakeRumble * 0.05 + finalRumble * 0.16 + travelRumble) * rumbleFalloff;
         camera.position.x += (Math.sin(raw * 211) + Math.sin(raw * 389) * 0.52) * rumble;
         camera.position.y += (Math.cos(raw * 263) + Math.sin(raw * 421) * 0.42) * rumble * 0.58;
         camera.position.z += Math.sin(raw * 337) * rumble * 0.44;
@@ -2313,7 +2329,16 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
 
       <CameraAnchoredStars count={counts.sky} mode={view.mode} hyperspaceActive={hyperspaceActive} />
       <Sparkles count={view.mode === "planet" ? 0 : counts.sparkles} scale={[24, 5.4, 18]} size={1.55} speed={0.44} color="#ff9a3d" opacity={0.72} />
-      <HyperspaceTunnel active={hyperspaceActive} phase={transition.phase} startedAt={transition.startedAt} duration={transition.duration} quality={quality} reducedMotion={reducedMotion} />
+      <HyperspaceTunnel
+        active={hyperspaceActive}
+        phase={transition.phase}
+        startedAt={transition.startedAt}
+        duration={transition.duration}
+        exitDelay={transition.lineExitDelay || 0}
+        exitFade={transition.lineFadeDuration || PLANET_HYPERSPACE_LINE_FADE_MS}
+        quality={quality}
+        reducedMotion={reducedMotion}
+      />
 
       <group ref={galaxyRef} rotation={[GALAXY_BASE_ROTATION_X, GALAXY_BASE_ROTATION_Y, GALAXY_BASE_ROTATION_Z]}>
         <GalaxyControlMap
@@ -2440,6 +2465,7 @@ export function GalaxyMapExperience({ map }) {
   const [transition, setTransition] = useState({ kind: "galaxy", token: 0, active: false, phase: "idle" });
   const transitionTimersRef = useRef([]);
   const hyperspaceAudioRef = useRef(null);
+  const planetTransitionRunRef = useRef(0);
   const sectorSummary = getSectorSummary(normalizedMap, view.sectorId);
   const planetSummary = getPlanetSummary(normalizedMap, view.planetId);
   const hoveredSectorSummary = getSectorSummary(normalizedMap, hoveredSectorId);
@@ -2577,9 +2603,54 @@ export function GalaxyMapExperience({ map }) {
     clearTransitionTimers();
     setHoveredSectorId(null);
     setHoveredPlanetId(null);
+    planetTransitionRunRef.current += 1;
+    const transitionRun = planetTransitionRunRef.current;
 
     const wipeDuration = reducedMotion ? 360 : 760;
     const flightDuration = reducedMotion ? 1200 : PLANET_HYPERSPACE_FLIGHT_MS;
+    const preloadMinDuration = reducedMotion ? 260 : PLANET_PRELOAD_MIN_MS;
+    const preloadMaxDuration = reducedMotion ? 420 : PLANET_PRELOAD_MAX_MS;
+    const lineExitDelay = reducedMotion ? 0 : PLANET_HYPERSPACE_LINE_EXIT_DELAY_MS;
+    const lineFadeDuration = reducedMotion ? 120 : PLANET_HYPERSPACE_LINE_FADE_MS;
+    const revealEndDelay = flightDuration + lineExitDelay + lineFadeDuration;
+    const previewEntries = uniqueRequiredPreviewTextureEntries([planet]);
+    let revealStarted = false;
+
+    const preloadPlanet = previewEntries.length
+      ? loadPlanetTextureEntries(previewEntries, 8, progress => {
+          if (planetTransitionRunRef.current === transitionRun) setPlanetTextureProgress(progress);
+        }, "preview").catch(() => {})
+      : Promise.resolve();
+
+    const startReveal = () => {
+      if (revealStarted || planetTransitionRunRef.current !== transitionRun) return;
+      revealStarted = true;
+      const revealStartedAt = performance.now();
+      setTransition(current => current.kind === "planet"
+        ? {
+            ...current,
+            token: current.token + 1,
+            phase: "reveal",
+            startedAt: revealStartedAt,
+            duration: flightDuration,
+            flightDuration,
+            lineExitDelay,
+            lineFadeDuration,
+            hyperspace: true
+          }
+        : current
+      );
+
+      if (!reducedMotion) scheduleHyperspaceArrivalSound(revealEndDelay);
+
+      queueTransitionTimer(() => {
+        if (planetTransitionRunRef.current !== transitionRun) return;
+        setTransition(current => current.kind === "planet"
+          ? { ...current, active: false, phase: "idle", snap: false, snapTarget: false, hyperspace: false }
+          : current
+        );
+      }, revealEndDelay);
+    };
 
     setTransition(current => ({
       kind: "planet",
@@ -2597,34 +2668,29 @@ export function GalaxyMapExperience({ map }) {
       reducedMotion
     }));
     setAssetsReady(false);
-    setPlanetTextureProgress({ loaded: 0, total: 1 });
+    setPlanetTextureProgress({ loaded: previewEntries.filter(entry => planetTextureIsSettled(entry, "preview")).length, total: Math.max(1, previewEntries.length) });
 
     queueTransitionTimer(() => {
+      if (planetTransitionRunRef.current !== transitionRun) return;
       setView({ mode: "planet", sectorId: planet.sectorId, planetId });
       setTransition(current => current.kind === "planet"
         ? {
             ...current,
             token: current.token + 1,
-            phase: "reveal",
+            phase: "preload",
             startedAt: performance.now(),
-            duration: flightDuration,
-            flightDuration,
-            hyperspace: true
+            duration: preloadMaxDuration,
+            hyperspace: false
           }
         : current
       );
     }, wipeDuration);
 
-    if (!reducedMotion) {
-      scheduleHyperspaceArrivalSound(wipeDuration + flightDuration);
-    }
-
-    queueTransitionTimer(() => {
-      setTransition(current => current.kind === "planet"
-        ? { ...current, active: false, phase: "idle", snap: false, snapTarget: false, hyperspace: false }
-        : current
-      );
-    }, wipeDuration + flightDuration);
+    Promise.all([
+      preloadPlanet,
+      new Promise(resolve => queueTransitionTimer(resolve, wipeDuration + preloadMinDuration))
+    ]).then(startReveal);
+    queueTransitionTimer(startReveal, wipeDuration + preloadMaxDuration);
   }, [
     transition.active,
     normalizedMap.planets,
@@ -2659,6 +2725,8 @@ export function GalaxyMapExperience({ map }) {
     || (displayedSectorSummary ? `${displayedSectorSummary.planets.length || "No"} planets logged in this sector.` : "Hover a sector or planet to inspect it.");
   const wipeClass = transition.kind === "planet" && transition.active && transition.phase === "wipe"
     ? " is-wiping"
+    : transition.kind === "planet" && transition.active && transition.phase === "preload"
+      ? " is-covered"
     : transition.kind === "planet" && transition.active && transition.phase === "reveal"
       ? " is-revealing"
       : "";
@@ -2921,6 +2989,14 @@ const STYLES = `
 
   .gm-wipe.is-wiping::before {
     animation: gm-wipe-in var(--wipe-duration, 900ms) cubic-bezier(.77,0,.18,1) both;
+  }
+
+  .gm-wipe.is-covered {
+    opacity: 1;
+  }
+
+  .gm-wipe.is-covered::before {
+    transform: translate(0, 0) rotate(45deg);
   }
 
   .gm-wipe.is-revealing {

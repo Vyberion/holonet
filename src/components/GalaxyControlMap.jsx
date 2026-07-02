@@ -1451,11 +1451,14 @@ function normalizePlanet(map, planet) {
   };
 }
 
-function usePlanetTextureSet(body, enabled = true, allowFull = false) {
+function usePlanetTextureSet(body, enabled = true, allowFull = false, previewKeys = null) {
   const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
   const [textures, setTextures] = useState({});
   const textureQualityRef = useRef({});
-  const entries = useMemo(() => planetTextureEntries(body), [body]);
+  const entries = useMemo(() => {
+    const allEntries = planetTextureEntries(body);
+    return previewKeys ? allEntries.filter(entry => previewKeys.has(entry.key)) : allEntries;
+  }, [body, previewKeys]);
   const cachedReadyTextures = useMemo(() => Object.fromEntries(entries.map(entry => [
     entry.key,
     (allowFull ? getResolvedPlanetAssetTexture(entry, "full") : null) || getResolvedPlanetAssetTexture(entry, "preview")
@@ -1684,7 +1687,8 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
   const cloudsRef = useRef(null);
   const scanRef = useRef(null);
   const allowFullTextures = mode === "planet" && active;
-  const assetTextures = usePlanetTextureSet(body, true, allowFullTextures);
+  const previewTextureKeys = allowFullTextures ? null : SURFACE_PLANET_TEXTURE_KEYS;
+  const assetTextures = usePlanetTextureSet(body, true, allowFullTextures, previewTextureKeys);
   const generatedTextures = useMemo(() => getGeneratedPlanetTextures(body), [body]);
   const textures = useMemo(() => ({
     map: assetTextures.diffuse || assetTextures.color || generatedTextures.map,
@@ -1985,8 +1989,9 @@ function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0,
   useFrame(({ camera, clock }, delta) => {
     if (!ref.current || !materialRef.current) return;
     const elapsedMs = startedAt ? performance.now() - startedAt : 0;
+    const lineFadeStartMs = Math.max(0, duration - 1200);
     const exitProgress = active && phase === "reveal" && duration
-      ? smoothstep(duration + exitDelay, duration + exitDelay + exitFade, elapsedMs)
+      ? smoothstep(lineFadeStartMs, lineFadeStartMs + exitFade, elapsedMs)
       : 0;
     const tunnelIntensity = 1 - exitProgress;
     const targetOpacity = active ? (reducedMotion ? 0.48 : 0.88) * tunnelIntensity : 0;

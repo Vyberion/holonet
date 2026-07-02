@@ -17,7 +17,7 @@ const galaxyPlanetTextures = folder => {
   };
 };
 
-const REMOTE_PLANET_TEXTURES_ENABLED = false;
+const REMOTE_PLANET_TEXTURES_ENABLED = true;
 
 const onlyPlanetTextures = (folder, keys) => {
   if (!REMOTE_PLANET_TEXTURES_ENABLED && folder !== "korriban") return {};

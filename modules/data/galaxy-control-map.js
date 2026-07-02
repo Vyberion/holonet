@@ -1,5 +1,7 @@
+const GALAXY_LFS_ASSET_BASE = "https://media.githubusercontent.com/media/Vyberion/holonet/migration/public/assets/galaxy";
+
 const galaxyPlanetTextures = folder => {
-  const base = `/assets/galaxy/${folder}`;
+  const base = folder === "korriban" ? `/assets/galaxy/${folder}` : `${GALAXY_LFS_ASSET_BASE}/${folder}`;
   return {
     diffuse: `${base}/diffuse.png`,
     color: `${base}/color.png`,

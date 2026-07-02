@@ -1430,14 +1430,14 @@ function normalizePlanet(map, planet) {
   };
 }
 
-function usePlanetTextureSet(body, enabled = true) {
+function usePlanetTextureSet(body, enabled = true, allowFull = false) {
   const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
   const [textures, setTextures] = useState({});
   const entries = useMemo(() => planetTextureEntries(body), [body]);
   const cachedReadyTextures = useMemo(() => Object.fromEntries(entries.map(entry => [
     entry.key,
-    getResolvedPlanetAssetTexture(entry, "full") || getResolvedPlanetAssetTexture(entry, "preview")
-  ]).filter(([, texture]) => texture)), [entries]);
+    (allowFull ? getResolvedPlanetAssetTexture(entry, "full") : null) || getResolvedPlanetAssetTexture(entry, "preview")
+  ]).filter(([, texture]) => texture)), [allowFull, entries]);
 
   useEffect(() => {
     if (!enabled) {
@@ -1461,14 +1461,14 @@ function usePlanetTextureSet(body, enabled = true) {
     Promise.all(surfaceEntries.map(entry => loadAndApply(entry, "preview"))).finally(() => {
       if (!cancelled) {
         optionalEntries.forEach(entry => loadAndApply(entry, "preview"));
-        entries.forEach(entry => loadAndApply(entry, "full"));
+        if (allowFull) entries.forEach(entry => loadAndApply(entry, "full"));
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [enabled, entries, maxAnisotropy, cachedReadyTextures]);
+  }, [enabled, entries, maxAnisotropy, cachedReadyTextures, allowFull]);
 
   return textures;
 }
@@ -1542,7 +1542,6 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
     let cancelled = false;
     let cursor = 0;
     let readySent = false;
-    let fullStarted = false;
     let loaded = entries.filter(entry => planetTextureIsSettled(entry, "preview")).length;
     const total = entries.length;
     onProgress?.({ loaded, total });
@@ -1551,26 +1550,8 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
       readySent = true;
       onReady?.();
     };
-    const startFullQueue = () => {
-      if (fullStarted) return;
-      fullStarted = true;
-      const fullEntries = [];
-      const seen = new Set();
-      (map?.planets || []).forEach(planet => {
-        planetTextureEntries(planet).forEach(entry => {
-          const key = `${entry.key}:${entry.url}`;
-          if (seen.has(key)) return;
-          seen.add(key);
-          fullEntries.push(entry);
-        });
-      });
-      fullEntries.forEach(entry => {
-        loadPlanetAssetTexture(entry, maxAnisotropy, "full").catch(() => {});
-      });
-    };
 
     if (!total || loaded >= total) {
-      startFullQueue();
       sendReady();
       return () => {
         cancelled = true;
@@ -1595,9 +1576,7 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
       }
     });
 
-    Promise.all(workers).then(() => {
-      if (!cancelled) startFullQueue();
-    }).catch(() => {});
+    Promise.all(workers).catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -1658,7 +1637,8 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
   const lightsRef = useRef(null);
   const cloudsRef = useRef(null);
   const scanRef = useRef(null);
-  const assetTextures = usePlanetTextureSet(body, mode === "sector" || (mode === "planet" && active));
+  const allowFullTextures = mode === "planet" && active;
+  const assetTextures = usePlanetTextureSet(body, true, allowFullTextures);
   const generatedTextures = useMemo(() => getGeneratedPlanetTextures(body), [body]);
   const textures = useMemo(() => ({
     map: assetTextures.diffuse || assetTextures.color || generatedTextures.map,

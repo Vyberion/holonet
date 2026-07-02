@@ -88,20 +88,30 @@ function hasInquisitoriusOverseer(profile) {
   return hasDarkCouncilRank(profile, "inquisitoriusOverseer");
 }
 
+function hasHighRankAccess(profile) {
+  return Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0) > 0;
+}
+
+function hasDarkCouncilAccess(profile) {
+  return Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) > 0;
+}
+
 function hasHighCommandTimeAccess(profile, member = null) {
   return canManageBot(profile, member);
 }
 
 function canViewScopeTime(profile, scope, member = null) {
   if (hasHighCommandTimeAccess(profile, member)) return true;
-  if (scope === "all" || scope === "darkCouncil") return false;
+  if (scope === "all") return false;
+  if (scope === "darkCouncil") return hasDarkCouncilAccess(profile);
+  if (scope === "highranks") return Boolean(hasHighRankAccess(profile) || hasAnyOverseer(profile));
 
   if (OVERSEER_VISIBLE_SCOPES.includes(scope)) {
-    return Boolean(hasAnyOverseer(profile) || divisionTierAtLeast(profile, scope, "co"));
+    return Boolean(hasAnyOverseer(profile) || divisionTierAtLeast(profile, scope, "member"));
   }
 
   if (scope === "inquisitors") {
-    return Boolean(hasInquisitoriusOverseer(profile) || divisionTierAtLeast(profile, "inquisitors", "co"));
+    return Boolean(hasInquisitoriusOverseer(profile) || divisionTierAtLeast(profile, "inquisitors", "member"));
   }
 
   return false;

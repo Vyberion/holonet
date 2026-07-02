@@ -2340,7 +2340,6 @@ export function GalaxyMapExperience({ map }) {
   }, []);
 
   useEffect(() => {
-    setAssetsReady(false);
     setPlanetTextureProgress({ loaded: 0, total: 1 });
   }, [view.mode, view.sectorId, view.planetId]);
 

@@ -112,6 +112,7 @@ const KORRIBAN_TEXTURE_PATHS = {
   clouds: KORRIBAN_TEXTURE_URLS[3]
 };
 const KORRIBAN_MAX_TEXTURE_SIZE = 4096;
+const PREVIEW_MAX_TEXTURE_SIZE = 1024;
 const PLANET_TEXTURE_KEYS = [
   ["diffuse", true],
   ["color", true],
@@ -285,23 +286,23 @@ function surfaceTextureEntriesForPlanet(planet) {
   return planetTextureEntries(planet).filter(entry => SURFACE_PLANET_TEXTURE_KEYS.has(entry.key));
 }
 
-function maxTextureSizeForLayer() {
-  return KORRIBAN_MAX_TEXTURE_SIZE;
+function maxTextureSizeForLayer(quality = "full") {
+  return quality === "preview" ? PREVIEW_MAX_TEXTURE_SIZE : KORRIBAN_MAX_TEXTURE_SIZE;
 }
 
-function planetTextureCacheKey(entry) {
-  const maxSize = maxTextureSizeForLayer(entry.key);
+function planetTextureCacheKey(entry, quality = "full") {
+  const maxSize = maxTextureSizeForLayer(quality);
   return `${entry.url}|${entry.color ? "color" : "data"}|${maxSize}`;
 }
 
-function planetTextureIsSettled(entry) {
-  const status = PLANET_ASSET_TEXTURE_STATUS.get(planetTextureCacheKey(entry));
+function planetTextureIsSettled(entry, quality = "full") {
+  const status = PLANET_ASSET_TEXTURE_STATUS.get(planetTextureCacheKey(entry, quality));
   return status === "loaded" || status === "failed";
 }
 
-function loadPlanetAssetTexture(entry, anisotropy) {
-  const maxSize = maxTextureSizeForLayer(entry.key);
-  const cacheKey = planetTextureCacheKey(entry);
+function loadPlanetAssetTexture(entry, anisotropy, quality = "full") {
+  const maxSize = maxTextureSizeForLayer(quality);
+  const cacheKey = planetTextureCacheKey(entry, quality);
   if (!PLANET_ASSET_TEXTURE_CACHE.has(cacheKey)) {
     const loader = new THREE.TextureLoader();
     PLANET_ASSET_TEXTURE_STATUS.set(cacheKey, "pending");
@@ -316,7 +317,7 @@ function loadPlanetAssetTexture(entry, anisotropy) {
   return PLANET_ASSET_TEXTURE_CACHE.get(cacheKey);
 }
 
-function loadPlanetTextureEntries(entries, anisotropy, onProgress) {
+function loadPlanetTextureEntries(entries, anisotropy, onProgress, quality = "full") {
   const total = entries.length;
   if (!total) {
     onProgress?.({ loaded: 0, total: 0 });
@@ -326,7 +327,7 @@ function loadPlanetTextureEntries(entries, anisotropy, onProgress) {
   let loaded = 0;
   onProgress?.({ loaded, total });
   return Promise.all(entries.map(entry => (
-    loadPlanetAssetTexture(entry, anisotropy).then(texture => {
+    loadPlanetAssetTexture(entry, anisotropy, quality).then(texture => {
       loaded += 1;
       onProgress?.({ loaded, total });
       return [entry.key, texture];
@@ -1383,8 +1384,8 @@ function usePlanetTextureSet(body, enabled = true) {
 
     let cancelled = false;
     setTextures({});
-    const loadAndApply = entry => (
-      loadPlanetAssetTexture(entry, maxAnisotropy).then(texture => {
+    const loadAndApply = (entry, quality) => (
+      loadPlanetAssetTexture(entry, maxAnisotropy, quality).then(texture => {
         if (!cancelled && texture) {
           setTextures(current => ({ ...current, [entry.key]: texture }));
         }
@@ -1393,8 +1394,12 @@ function usePlanetTextureSet(body, enabled = true) {
     );
     const surfaceEntries = entries.filter(entry => SURFACE_PLANET_TEXTURE_KEYS.has(entry.key));
     const optionalEntries = entries.filter(entry => !SURFACE_PLANET_TEXTURE_KEYS.has(entry.key));
-    Promise.all(surfaceEntries.map(loadAndApply)).finally(() => {
-      if (!cancelled) optionalEntries.forEach(loadAndApply);
+
+    Promise.all(surfaceEntries.map(entry => loadAndApply(entry, "preview"))).finally(() => {
+      if (!cancelled) {
+        optionalEntries.forEach(entry => loadAndApply(entry, "preview"));
+        entries.forEach(entry => loadAndApply(entry, "full"));
+      }
     });
 
     return () => {
@@ -1435,7 +1440,7 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
       onReady?.();
     };
 
-    if (!entries.length || entries.every(planetTextureIsSettled)) {
+    if (!entries.length || entries.every(entry => planetTextureIsSettled(entry, "preview"))) {
       onProgress?.({ loaded: entries.length, total: entries.length });
       sendReady();
       return () => {};
@@ -1443,7 +1448,7 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
 
     fallbackTimer = window.setTimeout(sendReady, SURFACE_REVEAL_TIMEOUT_MS);
     settledPoll = window.setInterval(() => {
-      if (entries.every(planetTextureIsSettled)) {
+      if (entries.every(entry => planetTextureIsSettled(entry, "preview"))) {
         onProgress?.({ loaded: entries.length, total: entries.length });
         sendReady();
       }
@@ -1451,7 +1456,7 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
 
     loadPlanetTextureEntries(entries, maxAnisotropy, progress => {
       if (!cancelled) onProgress?.(progress);
-    }).then(() => {
+    }, "preview").then(() => {
       sendReady();
     });
 
@@ -1487,7 +1492,7 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
   useEffect(() => {
     let cancelled = false;
     let cursor = 0;
-    let loaded = entries.filter(planetTextureIsSettled).length;
+    let loaded = entries.filter(entry => planetTextureIsSettled(entry, "preview")).length;
     const total = entries.length;
     onProgress?.({ loaded, total });
 
@@ -1508,15 +1513,21 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
       while (!cancelled && cursor < entries.length) {
         const entry = entries[cursor];
         cursor += 1;
-        if (planetTextureIsSettled(entry)) {
+        if (planetTextureIsSettled(entry, "preview")) {
           continue;
         }
-        await loadPlanetAssetTexture(entry, maxAnisotropy);
+        await loadPlanetAssetTexture(entry, maxAnisotropy, "preview");
         if (!cancelled) markLoaded();
       }
     });
 
-    Promise.all(workers).catch(() => {});
+    Promise.all(workers).then(() => {
+      if (!cancelled) {
+        entries.forEach(entry => {
+          loadPlanetAssetTexture(entry, maxAnisotropy, "full").catch(() => {});
+        });
+      }
+    }).catch(() => {});
     return () => {
       cancelled = true;
     };

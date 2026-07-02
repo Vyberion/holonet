@@ -109,6 +109,7 @@ const KORRIBAN_TEXTURE_PATHS = {
   roughness: KORRIBAN_TEXTURE_URLS[2],
   clouds: KORRIBAN_TEXTURE_URLS[3]
 };
+const KORRIBAN_MAX_TEXTURE_SIZE = 4096;
 const PLANET_TEXTURE_KEYS = [
   ["diffuse", true],
   ["color", true],
@@ -121,6 +122,7 @@ const PLANET_TEXTURE_KEYS = [
   ["cloudColor", true],
   ["cloudBump", false]
 ];
+const CRITICAL_PLANET_TEXTURE_KEYS = new Set(["diffuse", "color", "bump", "roughness", "specular"]);
 const DEFAULT_FACTIONS = [
   {
     id: "sith-empire",
@@ -277,7 +279,7 @@ function planetTextureEntries(body) {
 }
 
 function maxTextureSizeForLayer() {
-  return null;
+  return KORRIBAN_MAX_TEXTURE_SIZE;
 }
 
 function loadPlanetAssetTexture(entry, anisotropy) {
@@ -1370,8 +1372,13 @@ function usePlanetTextureSet(body, enabled = true) {
     }
 
     let cancelled = false;
-    loadPlanetTextureEntries(entries, maxAnisotropy).then(nextTextures => {
-      if (!cancelled) setTextures(nextTextures);
+    setTextures({});
+    entries.forEach(entry => {
+      loadPlanetAssetTexture(entry, maxAnisotropy).then(texture => {
+        if (!cancelled && texture) {
+          setTextures(current => ({ ...current, [entry.key]: texture }));
+        }
+      });
     });
 
     return () => {
@@ -1386,11 +1393,11 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
   const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
   const entries = useMemo(() => {
     if (view.mode === "galaxy") return [];
-    const preloadPlanets = view.mode === "planet"
-      ? (map?.planets || []).filter(planet => planet.id === view.planetId)
-      : (map?.planets || []).filter(planet => planet.sectorId === view.sectorId);
+    if (view.mode === "sector") return [];
+    const preloadPlanets = (map?.planets || []).filter(planet => planet.id === view.planetId);
     const seen = new Set();
     return preloadPlanets.flatMap(planet => planetTextureEntries(planet)).filter(entry => {
+      if (!CRITICAL_PLANET_TEXTURE_KEYS.has(entry.key)) return false;
       const key = `${entry.key}:${entry.url}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -1466,7 +1473,7 @@ function PlanetBody({ map, planet, mode, active, hovered, onSelect, onHover, int
   const lightsRef = useRef(null);
   const cloudsRef = useRef(null);
   const scanRef = useRef(null);
-  const assetTextures = usePlanetTextureSet(body, mode !== "galaxy");
+  const assetTextures = usePlanetTextureSet(body, mode === "planet" && active);
   const generatedTextures = useMemo(() => getGeneratedPlanetTextures(body), [body]);
   const textures = useMemo(() => ({
     map: assetTextures.diffuse || assetTextures.color || generatedTextures.map,
@@ -1710,12 +1717,13 @@ function makeHyperspaceGeometry(count, seed) {
 
   for (let i = 0; i < count; i += 1) {
     const angle = rnd() * TAU;
-    const radius = randRange(rnd, 0.75, 19);
+    const tunnelBand = Math.pow(rnd(), 0.55);
+    const radius = THREE.MathUtils.lerp(1.2, 16.5, tunnelBand);
     const x = Math.cos(angle) * radius;
-    const y = Math.sin(angle) * radius * randRange(rnd, 0.52, 0.9);
-    const z = randRange(rnd, -86, -3);
-    const length = randRange(rnd, 3.8, 12.5);
-    const speed = randRange(rnd, 34, 72);
+    const y = Math.sin(angle) * radius * randRange(rnd, 0.7, 1.02);
+    const z = randRange(rnd, -102, -4);
+    const length = randRange(rnd, 6.2, 18.5);
+    const speed = randRange(rnd, 48, 92);
     const idx = i * 6;
     streaks.push({ x, y, z, length, speed, radius });
 
@@ -1726,11 +1734,11 @@ function makeHyperspaceGeometry(count, seed) {
     positions[idx + 4] = y;
     positions[idx + 5] = z - length;
 
-    colors[idx] = 1;
-    colors[idx + 1] = 1;
+    colors[idx] = 0.72;
+    colors[idx + 1] = 0.9;
     colors[idx + 2] = 1;
-    colors[idx + 3] = 1;
-    colors[idx + 4] = 1;
+    colors[idx + 3] = 0.48;
+    colors[idx + 4] = 0.72;
     colors[idx + 5] = 1;
   }
 
@@ -1766,26 +1774,30 @@ function HyperspaceTunnel({ active, quality, reducedMotion }) {
       const streak = streaks[i];
       streak.z += streak.speed * delta * speedScale;
       if (streak.z > 2) {
-        streak.z = randRange(seededRandom(i + 919), -92, -62);
+        streak.z = randRange(seededRandom(i + 919), -112, -72);
       }
 
-      const stretch = streak.length * (1 + opacityRef.current * (reducedMotion ? 0.7 : 2.15));
-      const pulse = 1 + Math.sin(clock.elapsedTime * 1.8 + i) * 0.018;
+      const stretch = streak.length * (1 + opacityRef.current * (reducedMotion ? 0.9 : 2.7));
+      const tunnelDepth = THREE.MathUtils.clamp((streak.z + 112) / 114, 0, 1);
+      const tunnelScale = 0.38 + tunnelDepth * 1.18;
+      const pulse = 1 + Math.sin(clock.elapsedTime * 1.8 + i) * 0.024;
+      const tailSpread = 0.025 + opacityRef.current * 0.018;
       const idx = i * 6;
-      array[idx] = streak.x * pulse;
-      array[idx + 1] = streak.y * pulse;
+      array[idx] = streak.x * tunnelScale * pulse;
+      array[idx + 1] = streak.y * tunnelScale * pulse;
       array[idx + 2] = streak.z;
-      array[idx + 3] = streak.x * (pulse + 0.015);
-      array[idx + 4] = streak.y * (pulse + 0.015);
+      array[idx + 3] = streak.x * (tunnelScale + tailSpread) * pulse;
+      array[idx + 4] = streak.y * (tunnelScale + tailSpread) * pulse;
       array[idx + 5] = streak.z - stretch;
     }
     position.needsUpdate = true;
     materialRef.current.opacity = opacityRef.current;
+    materialRef.current.linewidth = active ? 1.35 : 1;
   });
 
   return (
     <lineSegments ref={ref} geometry={geometry} visible={false}>
-      <lineBasicMaterial ref={materialRef} vertexColors transparent opacity={0} depthWrite={false} depthTest={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      <lineBasicMaterial ref={materialRef} vertexColors transparent opacity={0} linewidth={1.35} depthWrite={false} depthTest={false} blending={THREE.AdditiveBlending} toneMapped={false} />
     </lineSegments>
   );
 }
@@ -1983,8 +1995,9 @@ function makeBackdropStarGeometry(count, seed, radius) {
   return geometry;
 }
 
-function CameraAnchoredStars({ count, mode }) {
+function CameraAnchoredStars({ count, mode, hyperspaceActive = false }) {
   const ref = useRef(null);
+  const materialRef = useRef(null);
   const radius = mode === "planet" ? 92 : 70;
   const geometry = useMemo(() => makeBackdropStarGeometry(mode === "planet" ? count * 3 : count * 2, mode === "planet" ? 9917 : 7163, radius), [count, mode, radius]);
 
@@ -1992,12 +2005,18 @@ function CameraAnchoredStars({ count, mode }) {
 
   useFrame(({ camera }) => {
     if (ref.current) ref.current.position.copy(camera.position);
+    if (materialRef.current) {
+      const baseOpacity = mode === "planet" ? 0.92 : 0.72;
+      const targetOpacity = hyperspaceActive ? 0.06 : baseOpacity;
+      materialRef.current.opacity = THREE.MathUtils.lerp(materialRef.current.opacity, targetOpacity, hyperspaceActive ? 0.22 : 0.08);
+    }
   });
 
   return (
     <group ref={ref}>
       <points geometry={geometry} frustumCulled={false} renderOrder={-100}>
         <pointsMaterial
+          ref={materialRef}
           vertexColors
           transparent
           opacity={mode === "planet" ? 0.92 : 0.72}
@@ -2019,7 +2038,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
   const galaxySpinTimeRef = useRef(0);
   const selectedPlanet = useMemo(() => (map.planets || []).find(planet => planet.id === view.planetId), [map.planets, view.planetId]);
   const selectedPlanetScenePosition = useMemo(() => selectedPlanet ? mapPointToWorld(planetMapPosition(map, selectedPlanet), map, BODY_Y_OFFSET) : null, [selectedPlanet, map]);
-  const hyperspaceActive = transition.kind === "planet" && transition.active && ["wipe", "loading", "reveal"].includes(transition.phase);
+  const hyperspaceActive = transition.kind === "planet" && transition.active && ["loading", "reveal"].includes(transition.phase);
   const hideActivePlanet = transition.kind === "planet" && transition.active && transition.phase === "loading";
   const counts = PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced;
 
@@ -2045,7 +2064,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
         <pointLight position={selectedPlanetScenePosition.clone().add(new THREE.Vector3(3.4, 2.2, 2.6)).toArray()} intensity={68} distance={12} color={view.mode === "planet" ? "#ffe2bd" : normalizePlanet(map, selectedPlanet).colors.glow} />
       ) : null}
 
-      <CameraAnchoredStars count={counts.sky} mode={view.mode} />
+      <CameraAnchoredStars count={counts.sky} mode={view.mode} hyperspaceActive={hyperspaceActive} />
       <Sparkles count={view.mode === "planet" ? 0 : counts.sparkles} scale={[24, 5.4, 18]} size={1.55} speed={0.44} color="#ff9a3d" opacity={0.72} />
       <HyperspaceTunnel active={hyperspaceActive} quality={quality} reducedMotion={reducedMotion} />
 

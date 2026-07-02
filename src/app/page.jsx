@@ -95,9 +95,9 @@ export default function HomePage() {
             CLEARANCE: UNCLASSIFIED<br />
             DESIGNATION: LEVEL 1<br />
           </div>
-          <span className="card-category">Section 02.2 &mdash; Control Map</span>
+          <span className="card-category">Section 02.2 &mdash; Control</span>
           <h2 className="card-title">Galaxy</h2>
-          <p className="card-desc">Strategic control map.</p>
+          <p className="card-desc">Interactive map.</p>
           <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
         </a>
 

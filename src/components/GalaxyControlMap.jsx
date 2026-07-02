@@ -112,7 +112,6 @@ const KORRIBAN_TEXTURE_PATHS = {
   roughness: KORRIBAN_TEXTURE_URLS[2],
   clouds: KORRIBAN_TEXTURE_URLS[3]
 };
-const GALAXY_MUSIC_VOLUME = 0.56;
 const KORRIBAN_MAX_TEXTURE_SIZE = 4096;
 const PREVIEW_MAX_TEXTURE_SIZE = 1024;
 const PLANET_TEXTURE_KEYS = [
@@ -1251,7 +1250,7 @@ function makeSectorBoundarySegments(sector, map) {
   return segments;
 }
 
-function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onHover, interactive = true }) {
+function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onHover }) {
   const { winner: faction } = sectorControlSummary(map, sector);
   const geometry = useMemo(() => makeSectorGeometry(sector, map), [sector, map]);
   const boundarySegments = useMemo(() => makeSectorBoundarySegments(sector, map), [sector, map]);
@@ -1265,32 +1264,22 @@ function SectorControlZone({ map, sector, active, dimmed, hovered, onSelect, onH
 
   const handleClick = event => {
     event.stopPropagation();
-    if (!interactive) return;
     onSelect(sector.id);
   };
 
   const handlePointerOver = event => {
     event.stopPropagation();
-    if (!interactive) return;
     onHover(sector.id);
   };
 
   const handlePointerOut = event => {
     event.stopPropagation();
-    if (!interactive) return;
     onHover(null);
   };
 
   return (
     <group>
-      <mesh
-        geometry={geometry}
-        renderOrder={10}
-        raycast={interactive ? undefined : () => null}
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
+      <mesh geometry={geometry} renderOrder={10} onClick={handleClick} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut}>
         <meshBasicMaterial
           color={faction.fill || faction.color}
           transparent
@@ -1877,7 +1866,7 @@ function SectorHyperspaceRoutes({ map, planets, visible }) {
   );
 }
 
-function SectorPlanetField({ map, view, hoveredPlanetId, onSelectPlanet, onHoverPlanet, hideActivePlanet = false, interactive = true }) {
+function SectorPlanetField({ map, view, hoveredPlanetId, onSelectPlanet, onHoverPlanet, hideActivePlanet = false }) {
   const visiblePlanets = useMemo(() => {
     if (view.mode === "galaxy") return map.planets || [];
     if (view.mode === "planet") {
@@ -1898,7 +1887,7 @@ function SectorPlanetField({ map, view, hoveredPlanetId, onSelectPlanet, onHover
           mode={view.mode}
           active={view.planetId === planet.id}
           hovered={hoveredPlanetId === planet.id}
-          interactive={interactive && view.mode === "sector"}
+          interactive={view.mode === "sector"}
           hidden={hideActivePlanet && view.planetId === planet.id}
           onSelect={onSelectPlanet}
           onHover={onHoverPlanet}
@@ -1908,7 +1897,7 @@ function SectorPlanetField({ map, view, hoveredPlanetId, onSelectPlanet, onHover
   );
 }
 
-function GalaxyControlMap({ map, view, hoveredSectorId, onSelectSector, onHoverSector, quality, interactive = true }) {
+function GalaxyControlMap({ map, view, hoveredSectorId, onSelectSector, onHoverSector, quality }) {
   const mode = view.mode;
   const opacity = mode === "galaxy" ? 1 : mode === "sector" ? 0.28 : 0;
   const sectorOpacity = mode === "galaxy" ? 1 : mode === "sector" ? 0.58 : 0;
@@ -1932,7 +1921,6 @@ function GalaxyControlMap({ map, view, hoveredSectorId, onSelectSector, onHoverS
             dimmed={mode !== "galaxy" && view.sectorId !== sector.id}
             onSelect={onSelectSector}
             onHover={onHoverSector}
-            interactive={interactive}
           />
         ))}
       </group>
@@ -2274,7 +2262,7 @@ function CameraAnchoredStars({ count, mode, hyperspaceActive = false }) {
   );
 }
 
-function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSector, onHoverSector, onSelectPlanet, onHoverPlanet, onAssetsProgress, onAssetsReady, transition, quality, reducedMotion, interactive = true }) {
+function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSector, onHoverSector, onSelectPlanet, onHoverPlanet, onAssetsProgress, onAssetsReady, transition, quality, reducedMotion }) {
   const controlsRef = useRef(null);
   const galaxyRef = useRef(null);
   const galaxySpinTimeRef = useRef(0);
@@ -2319,7 +2307,6 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
           onSelectSector={onSelectSector}
           onHoverSector={onHoverSector}
           quality={quality}
-          interactive={interactive}
         />
         <SectorPlanetField
           map={map}
@@ -2328,7 +2315,6 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
           onSelectPlanet={onSelectPlanet}
           onHoverPlanet={onHoverPlanet}
           hideActivePlanet={hideActivePlanet}
-          interactive={interactive}
         />
       </group>
 
@@ -2425,12 +2411,8 @@ function getPlanetSummary(map, planetId) {
   return { planet, faction, sector };
 }
 
-export function GalaxyMapExperience({ map, musicTracks = [] }) {
+export function GalaxyMapExperience({ map }) {
   const normalizedMap = useMemo(() => normalizeMap(map || {}), [map]);
-  const normalizedMusicTracks = useMemo(
-    () => (Array.isArray(musicTracks) ? musicTracks.filter(Boolean) : []),
-    [musicTracks]
-  );
   const [canvasReady, setCanvasReady] = useState(false);
   const [assetsReady, setAssetsReady] = useState(false);
   const [planetTextureProgress, setPlanetTextureProgress] = useState({ loaded: 0, total: 1 });
@@ -2440,13 +2422,7 @@ export function GalaxyMapExperience({ map, musicTracks = [] }) {
   const [quality, setQuality] = useState("high");
   const [reducedMotion, setReducedMotion] = useState(false);
   const [transition, setTransition] = useState({ kind: "galaxy", token: 0, active: false, phase: "idle" });
-  const [launched, setLaunched] = useState(false);
-  const [musicState, setMusicState] = useState(normalizedMusicTracks.length ? "armed" : "offline");
-  const [musicTrackIndex, setMusicTrackIndex] = useState(0);
   const transitionTimersRef = useRef([]);
-  const audioRef = useRef(null);
-  const musicTrackIndexRef = useRef(0);
-  const musicTrackCount = normalizedMusicTracks.length;
   const sectorSummary = getSectorSummary(normalizedMap, view.sectorId);
   const planetSummary = getPlanetSummary(normalizedMap, view.planetId);
   const hoveredSectorSummary = getSectorSummary(normalizedMap, hoveredSectorId);
@@ -2496,80 +2472,6 @@ export function GalaxyMapExperience({ map, musicTracks = [] }) {
     });
   }, []);
 
-  const playMusicTrack = useCallback((trackIndex = 0) => {
-    if (!normalizedMusicTracks.length) {
-      setMusicState("offline");
-      return;
-    }
-
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const nextIndex = ((trackIndex % normalizedMusicTracks.length) + normalizedMusicTracks.length) % normalizedMusicTracks.length;
-    musicTrackIndexRef.current = nextIndex;
-    setMusicTrackIndex(nextIndex);
-    setMusicState("syncing");
-
-    audio.src = normalizedMusicTracks[nextIndex];
-    audio.volume = GALAXY_MUSIC_VOLUME;
-    audio.loop = normalizedMusicTracks.length === 1;
-    audio.currentTime = 0;
-
-    const playAttempt = audio.play();
-    if (playAttempt && typeof playAttempt.then === "function") {
-      playAttempt
-        .then(() => setMusicState("live"))
-        .catch(() => setMusicState("blocked"));
-      return;
-    }
-
-    setMusicState("live");
-  }, [normalizedMusicTracks]);
-
-  const handleLaunch = useCallback(() => {
-    setLaunched(true);
-    playMusicTrack(0);
-  }, [playMusicTrack]);
-
-  useEffect(() => {
-    musicTrackIndexRef.current = musicTrackIndex;
-  }, [musicTrackIndex]);
-
-  useEffect(() => {
-    if (launched) return;
-    setMusicState(normalizedMusicTracks.length ? "armed" : "offline");
-  }, [launched, normalizedMusicTracks.length]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return undefined;
-
-    const handleEnded = () => {
-      if (!launched || normalizedMusicTracks.length < 2) return;
-      playMusicTrack(musicTrackIndexRef.current + 1);
-    };
-
-    const handleError = () => {
-      setMusicState(normalizedMusicTracks.length ? "blocked" : "offline");
-    };
-
-    audio.addEventListener("ended", handleEnded);
-    audio.addEventListener("error", handleError);
-
-    return () => {
-      audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("error", handleError);
-    };
-  }, [launched, normalizedMusicTracks.length, playMusicTrack]);
-
-  useEffect(() => () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.pause();
-    audio.removeAttribute("src");
-    audio.load();
-  }, []);
-
   useEffect(() => {
     if (view.mode === "planet") setPlanetTextureProgress({ loaded: 0, total: 1 });
   }, [view.mode, view.sectorId, view.planetId]);
@@ -2600,15 +2502,15 @@ export function GalaxyMapExperience({ map, musicTracks = [] }) {
   }, [clearTransitionTimers, queueTransitionTimer, reducedMotion]);
 
   const selectSector = useCallback(sectorId => {
-    if (!launched || view.mode === "planet" || transition.active) return;
+    if (view.mode === "planet" || transition.active) return;
     setHoveredSectorId(null);
     setHoveredPlanetId(null);
     setView({ mode: "sector", sectorId, planetId: null });
     beginTransition("sector");
-  }, [launched, view.mode, transition.active, beginTransition]);
+  }, [view.mode, transition.active, beginTransition]);
 
   const selectPlanet = useCallback(planetId => {
-    if (!launched || transition.active) return;
+    if (transition.active) return;
 
     const planet = (normalizedMap.planets || []).find(item => item.id === planetId);
     if (!planet) return;
@@ -2648,7 +2550,6 @@ export function GalaxyMapExperience({ map, musicTracks = [] }) {
       }));
     }, wipeDuration);
   }, [
-    launched,
     transition.active,
     normalizedMap.planets,
     view.mode,
@@ -2706,7 +2607,6 @@ export function GalaxyMapExperience({ map, musicTracks = [] }) {
   }, [assetsReady, queueTransitionTimer, reducedMotion, transition, view.mode]);
 
   const zoomOut = useCallback(() => {
-    if (!launched) return;
     if (view.mode === "planet") {
       setView({ mode: "sector", sectorId: view.sectorId, planetId: null });
       beginTransition("sector");
@@ -2716,7 +2616,7 @@ export function GalaxyMapExperience({ map, musicTracks = [] }) {
     setHoveredSectorId(null);
     setHoveredPlanetId(null);
     beginTransition("galaxy");
-  }, [launched, view.mode, view.sectorId, beginTransition]);
+  }, [view.mode, view.sectorId, beginTransition]);
 
   const panelTitle = displayedPlanetSummary?.planet?.shortName || displayedPlanetSummary?.planet?.name || displayedSectorSummary?.sector?.name || normalizedMap.title;
   const panelKicker = displayedPlanetSummary
@@ -2733,26 +2633,16 @@ export function GalaxyMapExperience({ map, musicTracks = [] }) {
       ? " is-revealing"
       : "";
   const dpr = quality === "high" ? [1, 2] : quality === "balanced" ? [1, 1.5] : [1, 1.15];
-  const musicStatusLabel = {
-    armed: "Audio Bus Armed",
-    syncing: "Audio Bus Syncing",
-    live: "Audio Bus Live",
-    blocked: "Audio Bus Blocked",
-    offline: "Audio Bus Offline"
-  }[musicState] || "Audio Bus Standby";
-  const musicTrackLabel = musicTrackCount
-    ? `${String(Math.min(musicTrackIndex + 1, musicTrackCount)).padStart(2, "0")} / ${String(musicTrackCount).padStart(2, "0")}`
-    : "No MP3s";
 
   return (
-    <section className={`gm-root${ready ? " gm-root--ready" : ""}${launched ? " gm-root--launched" : " gm-root--locked"}${transition.active ? " is-transitioning" : ""}`} aria-label="Hidden Archives Galaxy Map">
+    <section className={`gm-root${ready ? " gm-root--ready" : ""}${transition.active ? " is-transitioning" : ""}`} aria-label="Hidden Archives Galaxy Map">
       <div className="gm-stage" aria-hidden="true">
         <Canvas
           camera={{ position: WIDE_CAMERA.toArray(), fov: 45, near: 0.04, far: 180 }}
           dpr={dpr}
           gl={{ antialias: true, alpha: false, powerPreference: "high-performance", stencil: false }}
           onPointerMissed={() => {
-            if (launched && view.mode === "sector") zoomOut();
+            if (view.mode === "sector") zoomOut();
           }}
           onCreated={({ gl, scene }) => {
             gl.setClearColor(new THREE.Color("#030105"), 1);
@@ -2778,7 +2668,6 @@ export function GalaxyMapExperience({ map, musicTracks = [] }) {
             transition={transition}
             quality={quality}
             reducedMotion={reducedMotion}
-            interactive={launched}
           />
         </Canvas>
       </div>
@@ -2786,50 +2675,8 @@ export function GalaxyMapExperience({ map, musicTracks = [] }) {
       <div className={`gm-wipe${wipeClass}`} aria-hidden="true" style={{ "--wipe-duration": `${transition.wipeDuration || 900}ms` }} />
       <div className="gm-scan" aria-hidden="true" />
       <div className="gm-vignette" aria-hidden="true" />
-      <audio ref={audioRef} preload="auto" hidden />
 
-      {!launched ? (
-        <div className={`gm-splash${ready ? " is-ready" : " is-loading"}`} role="dialog" aria-modal="true" aria-labelledby="gm-splash-title">
-          <div className="gm-splash-grid" aria-hidden="true" />
-          <div className="gm-terminal">
-            <div className="gm-terminal-topbar">
-              <span>SITH ARCHIVE CARTOGRAPHY NODE</span>
-              <span>{ready ? "SIGNAL LOCK" : "BUFFERING"}</span>
-            </div>
-            <div className="gm-terminal-body">
-              <div className="gm-terminal-sigil" aria-hidden="true">
-                <span />
-                <i />
-              </div>
-              <div className="gm-terminal-copy">
-                <p className="gm-terminal-kicker">Restricted tactical theatre</p>
-                <h1 id="gm-splash-title">Galaxy Control</h1>
-              </div>
-              <div className="gm-terminal-readout" aria-label="Launch status">
-                <div>
-                  <span>Map Buffer</span>
-                  <strong>{ready ? "Calibrated" : "Calibrating"}</strong>
-                </div>
-                <div>
-                  <span>{musicStatusLabel}</span>
-                  <strong>{musicTrackLabel}</strong>
-                </div>
-                <div>
-                  <span>Interaction Layer</span>
-                  <strong>Awaiting Touch</strong>
-                </div>
-              </div>
-              <button className="gm-terminal-launch" type="button" onClick={handleLaunch} autoFocus>
-                <span>Initiate Galaxy Link</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {launched ? (
-        <>
-          <header className="gm-topbar">
+      <header className="gm-topbar">
         <button className="gm-back" type="button" aria-label="Step back" onClick={zoomOut}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 12h16" />
@@ -2921,9 +2768,7 @@ export function GalaxyMapExperience({ map, musicTracks = [] }) {
         {view.mode === "planet" && planetSummary?.planet?.robloxLaunchUrl ? (
           <a className="gm-launch" href={planetSummary.planet.robloxLaunchUrl}>Launch world</a>
         ) : null}
-          </aside>
-        </>
-      ) : null}
+      </aside>
 
       <style>{STYLES}</style>
     </section>
@@ -2985,16 +2830,6 @@ const STYLES = `
     z-index: 1;
   }
 
-  .gm-root--locked .gm-stage {
-    filter: blur(1.15px) brightness(.54) saturate(.86);
-    transform: scale(1.025);
-    transition: filter .7s ease, transform .7s ease;
-  }
-
-  .gm-root--launched .gm-stage {
-    transition: filter .7s ease, transform .7s ease;
-  }
-
   .gm-stage canvas {
     background: #030105;
     cursor: grab;
@@ -3006,320 +2841,6 @@ const STYLES = `
 
   .gm-stage canvas:active {
     cursor: grabbing;
-  }
-
-  .gm-splash {
-    align-items: center;
-    background:
-      linear-gradient(90deg, rgba(0, 0, 0, .9), rgba(4, 1, 4, .48) 48%, rgba(0, 0, 0, .9)),
-      linear-gradient(180deg, rgba(255, 59, 79, .08), transparent 28%, rgba(255, 154, 61, .05) 100%);
-    display: grid;
-    inset: 0;
-    justify-items: center;
-    overflow: hidden;
-    padding: clamp(18px, 4vw, 48px);
-    pointer-events: auto;
-    position: absolute;
-    z-index: 18;
-  }
-
-  .gm-splash-grid {
-    background:
-      linear-gradient(90deg, rgba(255, 59, 79, .14), transparent 18%, transparent 82%, rgba(255, 154, 61, .09)),
-      repeating-linear-gradient(90deg, rgba(255, 59, 79, .075) 0 1px, transparent 1px 56px),
-      repeating-linear-gradient(0deg, rgba(131, 201, 255, .055) 0 1px, transparent 1px 42px);
-    inset: -1px;
-    mask-image: radial-gradient(ellipse 78% 70% at 50% 50%, #000 0%, #000 54%, transparent 100%);
-    opacity: .44;
-    pointer-events: none;
-    position: absolute;
-  }
-
-  .gm-splash::before,
-  .gm-splash::after {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-  }
-
-  .gm-splash::before {
-    animation: gm-splash-scan 4.4s linear infinite;
-    background: linear-gradient(180deg, transparent, rgba(255, 244, 244, .18), transparent);
-    height: 22vh;
-    left: 0;
-    right: 0;
-    top: -24vh;
-  }
-
-  .gm-splash::after {
-    background:
-      radial-gradient(ellipse 92% 100% at 50% 50%, transparent 34%, rgba(0, 0, 0, .76) 100%),
-      linear-gradient(180deg, rgba(255, 255, 255, .035), transparent 24%, transparent 76%, rgba(255, 59, 79, .065));
-    inset: 0;
-  }
-
-  .gm-terminal {
-    animation: gm-terminal-in .72s cubic-bezier(.22, .8, .22, 1) both;
-    background:
-      radial-gradient(ellipse 90% 52% at 50% 116%, rgba(255, 59, 79, .18), transparent 68%),
-      linear-gradient(145deg, rgba(52, 10, 18, .88), rgba(5, 1, 5, .96) 52%, rgba(10, 7, 8, .98));
-    border: 1px solid color-mix(in srgb, var(--theme-accent, #ff3b4f) 62%, #2a050b);
-    box-shadow:
-      0 0 42px rgba(255, 0, 34, .18),
-      0 24px 90px rgba(0, 0, 0, .82),
-      inset 0 0 34px rgba(255, 255, 255, .026);
-    clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
-    max-height: calc(100dvh - 36px);
-    max-width: 100%;
-    overflow: hidden;
-    position: relative;
-    width: min(720px, 100%);
-    z-index: 1;
-  }
-
-  .gm-terminal::before {
-    background:
-      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255, 210, 210, .024) 3px, rgba(255, 210, 210, .024) 5px),
-      linear-gradient(90deg, rgba(255, 59, 79, .09), transparent 18%, transparent 82%, rgba(255, 154, 61, .08));
-    content: "";
-    inset: 0;
-    opacity: .7;
-    pointer-events: none;
-    position: absolute;
-  }
-
-  .gm-terminal::after {
-    background: linear-gradient(90deg, transparent, var(--theme-accent, #ff3b4f), #ff9a3d, transparent);
-    bottom: 0;
-    box-shadow: 0 0 22px rgba(255, 59, 79, .38);
-    content: "";
-    height: 1px;
-    left: 22px;
-    opacity: .88;
-    position: absolute;
-    right: 22px;
-  }
-
-  .gm-terminal-topbar {
-    align-items: center;
-    background:
-      linear-gradient(90deg, rgba(255, 59, 79, .14), transparent 70%),
-      rgba(0, 0, 0, .24);
-    border-bottom: 1px solid rgba(255, 59, 79, .24);
-    display: flex;
-    gap: 18px;
-    justify-content: space-between;
-    min-height: 48px;
-    padding: 13px 17px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .gm-terminal-topbar span,
-  .gm-terminal-kicker,
-  .gm-terminal-readout span,
-  .gm-terminal-readout strong,
-  .gm-terminal-launch {
-    font-family: var(--gm-display-font);
-    text-transform: uppercase;
-  }
-
-  .gm-terminal-topbar span {
-    color: rgba(255, 255, 255, .68);
-    font-size: .62rem;
-    font-weight: 800;
-    letter-spacing: .2em;
-    line-height: 1.35;
-  }
-
-  .gm-terminal-topbar span:last-child {
-    color: #ff9a3d;
-    text-shadow: 0 0 12px rgba(255, 154, 61, .34);
-    white-space: nowrap;
-  }
-
-  .gm-terminal-body {
-    display: grid;
-    gap: 22px;
-    justify-items: center;
-    padding: 34px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .gm-terminal-sigil {
-    align-items: center;
-    aspect-ratio: 1;
-    display: grid;
-    justify-items: center;
-    position: relative;
-    width: 138px;
-  }
-
-  .gm-terminal-sigil::before,
-  .gm-terminal-sigil::after,
-  .gm-terminal-sigil span,
-  .gm-terminal-sigil i {
-    content: "";
-    inset: 0;
-    position: absolute;
-  }
-
-  .gm-terminal-sigil::before {
-    animation: gm-terminal-radar 8s linear infinite;
-    background:
-      conic-gradient(from 0deg, rgba(255, 59, 79, 0), rgba(255, 59, 79, .7), rgba(255, 154, 61, .22), rgba(255, 59, 79, 0) 34%),
-      radial-gradient(circle, transparent 0 54%, rgba(255, 59, 79, .24) 55% 56%, transparent 57%);
-    clip-path: polygon(50% 0, 91% 24%, 91% 76%, 50% 100%, 9% 76%, 9% 24%);
-    opacity: .92;
-  }
-
-  .gm-terminal-sigil::after {
-    border: 1px solid rgba(255, 59, 79, .5);
-    box-shadow:
-      0 0 24px rgba(255, 59, 79, .22),
-      inset 0 0 22px rgba(255, 59, 79, .08);
-    clip-path: polygon(50% 0, 91% 24%, 91% 76%, 50% 100%, 9% 76%, 9% 24%);
-  }
-
-  .gm-terminal-sigil span {
-    animation: gm-terminal-radar 12s linear infinite reverse;
-    border: 1px solid rgba(131, 201, 255, .28);
-    clip-path: polygon(50% 8%, 85% 28%, 85% 72%, 50% 92%, 15% 72%, 15% 28%);
-    inset: 18px;
-  }
-
-  .gm-terminal-sigil i {
-    background:
-      linear-gradient(90deg, transparent 0 45%, rgba(255, 244, 244, .72) 45% 55%, transparent 55%),
-      linear-gradient(0deg, transparent 0 45%, rgba(255, 244, 244, .72) 45% 55%, transparent 55%);
-    filter: drop-shadow(0 0 9px rgba(255, 59, 79, .5));
-    inset: 42px;
-  }
-
-  .gm-terminal-copy {
-    display: grid;
-    gap: 8px;
-    justify-items: center;
-    text-align: center;
-  }
-
-  .gm-terminal-kicker {
-    color: rgba(255, 255, 255, .68);
-    font-size: .7rem;
-    letter-spacing: .24em;
-    line-height: 1.4;
-  }
-
-  .gm-terminal h1 {
-    color: #fff6e8;
-    font-family: var(--gm-serif-font);
-    font-size: 2.75rem;
-    font-weight: 900;
-    letter-spacing: .14em;
-    line-height: 1;
-    margin: 0;
-    text-shadow:
-      0 0 18px rgba(255, 59, 79, .42),
-      0 0 48px rgba(255, 154, 61, .12);
-    text-transform: uppercase;
-  }
-
-  .gm-terminal-readout {
-    border: 1px solid rgba(255, 59, 79, .24);
-    display: grid;
-    gap: 1px;
-    max-width: 560px;
-    overflow: hidden;
-    width: 100%;
-  }
-
-  .gm-terminal-readout div {
-    align-items: center;
-    background:
-      linear-gradient(90deg, rgba(255, 59, 79, .08), transparent 62%),
-      rgba(0, 0, 0, .34);
-    display: flex;
-    gap: 18px;
-    justify-content: space-between;
-    min-height: 41px;
-    padding: 10px 13px;
-  }
-
-  .gm-terminal-readout span,
-  .gm-terminal-readout strong {
-    font-size: .68rem;
-    letter-spacing: .14em;
-    line-height: 1.35;
-  }
-
-  .gm-terminal-readout span {
-    color: rgba(255, 255, 255, .68);
-  }
-
-  .gm-terminal-readout strong {
-    color: var(--theme-accent, #ff3b4f);
-    text-align: right;
-    text-shadow: 0 0 10px rgba(255, 59, 79, .28);
-  }
-
-  .gm-terminal-launch {
-    appearance: none;
-    background:
-      linear-gradient(90deg, rgba(255, 59, 79, .22), rgba(255, 154, 61, .12)),
-      rgba(13, 2, 6, .84);
-    border: 1px solid rgba(255, 59, 79, .62);
-    box-shadow:
-      0 0 26px rgba(255, 0, 34, .22),
-      inset 0 0 24px rgba(255, 59, 79, .08);
-    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-    color: #fff6e8;
-    cursor: crosshair;
-    font-size: .8rem;
-    font-weight: 900;
-    justify-self: center;
-    letter-spacing: .24em;
-    min-height: 52px;
-    overflow: hidden;
-    padding: 15px 24px;
-    position: relative;
-    text-shadow: 0 0 12px rgba(255, 59, 79, .48);
-    transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease;
-    width: min(380px, 100%);
-  }
-
-  .gm-terminal-launch::before {
-    background: linear-gradient(90deg, transparent, rgba(255, 244, 244, .28), transparent);
-    content: "";
-    inset: 0;
-    opacity: 0;
-    position: absolute;
-    transform: translateX(-80%);
-    transition: opacity .18s ease, transform .38s ease;
-  }
-
-  .gm-terminal-launch span {
-    display: inline-block;
-    position: relative;
-    transform: translateX(.12em);
-  }
-
-  .gm-terminal-launch:hover,
-  .gm-terminal-launch:focus-visible {
-    border-color: #ff9a3d;
-    box-shadow:
-      0 0 34px rgba(255, 154, 61, .22),
-      0 0 44px rgba(255, 0, 34, .24),
-      inset 0 0 28px rgba(255, 59, 79, .12);
-    color: #ffffff;
-    outline: none;
-    transform: translateY(-1px);
-  }
-
-  .gm-terminal-launch:hover::before,
-  .gm-terminal-launch:focus-visible::before {
-    opacity: 1;
-    transform: translateX(80%);
   }
 
 .gm-scan {
@@ -3703,36 +3224,6 @@ const STYLES = `
     opacity: .24;
   }
 
-  @keyframes gm-splash-scan {
-    to { transform: translateY(132vh); }
-  }
-
-  @keyframes gm-terminal-in {
-    0% {
-      clip-path: polygon(0 50%, calc(100% - 18px) 50%, 100% 50%, 100% 50%, 18px 50%, 0 50%);
-      filter: brightness(2.7) contrast(1.42) blur(1.4px);
-      opacity: 0;
-      transform: scaleX(.94) scaleY(.08);
-    }
-
-    42% {
-      filter: brightness(1.55) contrast(1.18) blur(.4px);
-      opacity: 1;
-      transform: scaleX(1.02) scaleY(.72);
-    }
-
-    100% {
-      clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
-      filter: brightness(1) contrast(1) blur(0);
-      opacity: 1;
-      transform: none;
-    }
-  }
-
-  @keyframes gm-terminal-radar {
-    to { transform: rotate(360deg); }
-  }
-
   @keyframes gm-wipe-in {
     0% { transform: translate(72%, 72%) rotate(45deg); }
     100% { transform: translate(0, 0) rotate(45deg); }
@@ -3744,52 +3235,6 @@ const STYLES = `
   }
 
   @media (max-width: 760px) {
-    .gm-splash {
-      padding: 14px;
-    }
-
-    .gm-terminal {
-      max-height: calc(100dvh - 28px);
-    }
-
-    .gm-terminal-topbar {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: 6px;
-      padding: 12px 14px;
-    }
-
-    .gm-terminal-body {
-      gap: 18px;
-      padding: 24px 18px;
-    }
-
-    .gm-terminal-sigil {
-      width: 112px;
-    }
-
-    .gm-terminal h1 {
-      font-size: 2rem;
-      letter-spacing: .1em;
-    }
-
-    .gm-terminal-readout div {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .gm-terminal-readout strong {
-      text-align: left;
-    }
-
-    .gm-terminal-launch {
-      font-size: .72rem;
-      letter-spacing: .18em;
-      padding-left: 16px;
-      padding-right: 16px;
-    }
-
     .gm-topbar {
       --gm-topbar-inset: clamp(10px, 3vw, 14px);
       --gm-topbar-card-size: 50px;
@@ -3859,22 +3304,6 @@ const STYLES = `
   }
 
   @media (max-width: 420px) {
-    .gm-terminal-topbar span,
-    .gm-terminal-kicker,
-    .gm-terminal-readout span,
-    .gm-terminal-readout strong {
-      font-size: .58rem;
-    }
-
-    .gm-terminal h1 {
-      font-size: 1.62rem;
-    }
-
-    .gm-terminal-launch {
-      font-size: .64rem;
-      letter-spacing: .14em;
-    }
-
     .gm-lockup span,
     .gm-kicker,
     .gm-kind {
@@ -3892,15 +3321,6 @@ const STYLES = `
 
     .gm-selectors {
       grid-template-columns: 1fr;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .gm-splash::before,
-    .gm-terminal,
-    .gm-terminal-sigil::before,
-    .gm-terminal-sigil span {
-      animation: none !important;
     }
   }
 `;

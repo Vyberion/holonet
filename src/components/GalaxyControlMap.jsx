@@ -544,25 +544,37 @@ function mapPointFromPolar(angleDeg, radius) {
   return [Math.cos(angle) * radius, Math.sin(angle) * radius];
 }
 
+function planetSectorPadding(planet) {
+  return {
+    radius: Math.max(0.42, (planet.radius || 0.018) * 24),
+    angle: 13.5
+  };
+}
+
+function paddedCellBounds(cell, planet) {
+  const desiredPadding = planetSectorPadding(planet);
+  const radiusSpan = Math.max(0.001, cell.outerRadius - cell.innerRadius);
+  const angleSpan = Math.max(0.001, Math.abs(cell.endAngleDeg - cell.startAngleDeg));
+  const radiusPadding = Math.min(desiredPadding.radius, radiusSpan * 0.28);
+  const anglePadding = Math.min(desiredPadding.angle, Math.max(2.5, angleSpan * 0.24));
+  return {
+    inner: cell.innerRadius + radiusPadding,
+    outer: cell.outerRadius - radiusPadding,
+    start: cell.startAngleDeg + anglePadding,
+    end: cell.endAngleDeg - anglePadding,
+    anglePadding
+  };
+}
+
 function randomPointInSectorCell(rnd, cell, planet) {
-  const radiusPadding = Math.max(0.6, (planet.radius || 0.018) * 36);
-  const anglePadding = 19.5;
-  const inner = cell.innerRadius + radiusPadding;
-  const outer = cell.outerRadius - radiusPadding;
-  const start = cell.startAngleDeg + anglePadding;
-  const end = cell.endAngleDeg - anglePadding;
+  const { inner, outer, start, end } = paddedCellBounds(cell, planet);
   const radius = outer > inner ? randRange(rnd, inner, outer) : (cell.innerRadius + cell.outerRadius) / 2;
   const angle = end > start ? randRange(rnd, start, end) : (cell.startAngleDeg + cell.endAngleDeg) / 2;
   return mapPointFromPolar(angle, radius);
 }
 
 function cellCenterPoint(cell, planet, angleBias = 0.5, radiusBias = 0.5) {
-  const radiusPadding = Math.max(0.6, (planet.radius || 0.018) * 36);
-  const anglePadding = 19.5;
-  const inner = cell.innerRadius + radiusPadding;
-  const outer = cell.outerRadius - radiusPadding;
-  const start = cell.startAngleDeg + anglePadding;
-  const end = cell.endAngleDeg - anglePadding;
+  const { inner, outer, start, end } = paddedCellBounds(cell, planet);
   const radius = outer > inner ? THREE.MathUtils.lerp(inner, outer, clamp(radiusBias, 0, 1)) : (cell.innerRadius + cell.outerRadius) / 2;
   const angle = end > start ? THREE.MathUtils.lerp(start, end, clamp(angleBias, 0, 1)) : (cell.startAngleDeg + cell.endAngleDeg) / 2;
   return mapPointFromPolar(angle, radius);
@@ -576,7 +588,7 @@ function pointDistance2D(left, right) {
 
 function minPlanetSpacing(planet, sector) {
   const sectorWidth = Math.max(0.4, (sector.outerRadius || 6) - (sector.innerRadius || 5));
-  return Math.max(0.62, Math.min(1.35, sectorWidth * 0.82 + (planet.radius || 0.018) * 18));
+  return Math.max(0.46, Math.min(0.92, sectorWidth * 0.46 + (planet.radius || 0.018) * 12));
 }
 
 function largestDrawableCells(sector, map) {
@@ -598,28 +610,9 @@ function pickLayoutCell(rnd, cells) {
   return cells[0];
 }
 
-function sectorSpreadPoint(cells, planet, index, count) {
-  const total = cells.reduce((sum, cell) => sum + cell.area, 0);
-  if (!total) return cellCenterPoint(cells[0], planet);
-  const ordinal = count <= 1 ? 0.5 : index / (count - 1);
-  let cursor = ordinal * total;
-  let chosen = cells[0];
-  for (const cell of cells) {
-    if (cursor <= cell.area) {
-      chosen = cell;
-      break;
-    }
-    cursor -= cell.area;
-  }
-  const cellAngleBias = chosen.area > 0 ? cursor / chosen.area : 0.5;
-  const radiusBias = count <= 2
-    ? 0.5
-    : 0.28 + (((index * 7) % count) / Math.max(1, count - 1)) * 0.44;
-  return cellCenterPoint(chosen, planet, cellAngleBias, radiusBias);
-}
-
 function scoreLayoutCandidate(candidate, placed, sectorAnchor, requiredSpacing) {
-  if (!placed.length) return pointDistance2D(candidate, sectorAnchor) * 0.2;
+  const centerDistance = pointDistance2D(candidate, sectorAnchor);
+  if (!placed.length) return -centerDistance * 2.6;
   const distances = placed.map(item => pointDistance2D(candidate, item.position));
   const nearest = Math.min(...distances);
   const average = distances.reduce((sum, distance) => sum + distance, 0) / distances.length;
@@ -627,8 +620,8 @@ function scoreLayoutCandidate(candidate, placed, sectorAnchor, requiredSpacing) 
   centroid[0] /= placed.length;
   centroid[1] /= placed.length;
   const centroidEscape = pointDistance2D(candidate, centroid);
-  const spacingPenalty = nearest < requiredSpacing ? (requiredSpacing - nearest) * 4.5 : 0;
-  return nearest * 3.8 + average * 0.75 + centroidEscape * 1.35 - spacingPenalty;
+  const spacingPenalty = nearest < requiredSpacing ? (requiredSpacing - nearest) * 50 : 0;
+  return nearest * 5.2 + average * 0.85 + centroidEscape * 1.2 - centerDistance * 2.4 - spacingPenalty;
 }
 
 function sectorMapCenter(cells) {
@@ -671,9 +664,8 @@ function buildPlanetLayout(map, planets) {
         let chosen = null;
         let chosenScore = -Infinity;
         const requiredSpacing = minPlanetSpacing(planet, sector);
-        const spreadTarget = sectorSpreadPoint(cells, planet, index, sectorPlanets.length);
-        const candidateCount = Math.max(144, sectorPlanets.length * 64);
-        const candidates = [spreadTarget];
+        const candidateCount = Math.max(220, sectorPlanets.length * 90);
+        const candidates = [cellCenterPoint(pickLayoutCell(rnd, cells), planet, 0.5, 0.5)];
 
         for (let attempt = 0; attempt < candidateCount; attempt += 1) {
           const cell = pickLayoutCell(rnd, cells);
@@ -681,8 +673,7 @@ function buildPlanetLayout(map, planets) {
         }
 
         for (const candidate of candidates) {
-          const targetPull = Math.max(0, 1.2 - pointDistance2D(candidate, spreadTarget)) * 0.65;
-          const score = scoreLayoutCandidate(candidate, placed, sectorAnchor, requiredSpacing) + targetPull;
+          const score = scoreLayoutCandidate(candidate, placed, sectorAnchor, requiredSpacing);
           if (score > chosenScore) {
             chosenScore = score;
             chosen = candidate;
@@ -709,23 +700,21 @@ function safePlanetMapPosition(map, planet) {
   const z = Number(position[1] ?? position[2]) || 0;
   const radius = Math.sqrt(x * x + z * z);
   const angle = THREE.MathUtils.radToDeg(Math.atan2(z, x));
-  const radiusPadding = Math.max(0.48, (planet.radius || 0.018) * 24);
-  const anglePadding = 16.5;
 
-  const safelyInside = cells.some(cell => (
-    radius >= cell.innerRadius + radiusPadding
-    && radius <= cell.outerRadius - radiusPadding
-    && angleWithinArc(angle, cell.startAngleDeg, cell.endAngleDeg, anglePadding)
-  ));
+  const safelyInside = cells.some(cell => {
+    const bounds = paddedCellBounds(cell, planet);
+    return radius >= bounds.inner
+      && radius <= bounds.outer
+      && angleWithinArc(angle, cell.startAngleDeg, cell.endAngleDeg, bounds.anglePadding);
+  });
   if (safelyInside) return [x, z];
 
   const bestCell = cells.slice().sort((left, right) => (
     (right.endAngleDeg - right.startAngleDeg) * (right.outerRadius - right.innerRadius)
     - (left.endAngleDeg - left.startAngleDeg) * (left.outerRadius - left.innerRadius)
   ))[0];
-  const safeInner = bestCell.innerRadius + radiusPadding;
-  const safeOuter = bestCell.outerRadius - radiusPadding;
-  const safeRadius = safeOuter > safeInner ? (safeInner + safeOuter) / 2 : (bestCell.innerRadius + bestCell.outerRadius) / 2;
+  const safeBounds = paddedCellBounds(bestCell, planet);
+  const safeRadius = safeBounds.outer > safeBounds.inner ? (safeBounds.inner + safeBounds.outer) / 2 : (bestCell.innerRadius + bestCell.outerRadius) / 2;
   const safeAngle = (bestCell.startAngleDeg + bestCell.endAngleDeg) / 2;
   return mapPointFromPolar(safeAngle, safeRadius);
 }
@@ -2423,6 +2412,7 @@ export function GalaxyMapExperience({ map }) {
         phase: "loading",
         flightDuration,
         minHyperspaceUntil: performance.now() + (reducedMotion ? 620 : HYPERSPACE_MIN_MS),
+        revealQueued: false,
         hyperspace: true,
         reducedMotion
       }));
@@ -2444,17 +2434,23 @@ export function GalaxyMapExperience({ map }) {
       || transition.kind !== "planet"
       || !transition.active
       || transition.phase !== "loading"
+      || transition.revealQueued
     ) {
       return;
     }
 
     const minDelay = Math.max(0, (transition.minHyperspaceUntil || 0) - performance.now());
+    setTransition(current => current.kind === "planet" && current.phase === "loading"
+      ? { ...current, revealQueued: true }
+      : current
+    );
     const startReveal = () => {
       const flightDuration = transition.flightDuration || (reducedMotion ? 900 : 1850);
       setTransition(current => ({
         ...current,
         token: current.token + 1,
         phase: "reveal",
+        revealQueued: false,
         duration: flightDuration,
         flightDuration,
         snapTarget: true,
@@ -2463,7 +2459,7 @@ export function GalaxyMapExperience({ map }) {
 
       queueTransitionTimer(() => {
         setTransition(current => current.kind === "planet"
-          ? { ...current, active: false, phase: "idle", snap: false, snapTarget: false, hyperspace: false, minHyperspaceUntil: 0 }
+          ? { ...current, active: false, phase: "idle", snap: false, snapTarget: false, hyperspace: false, minHyperspaceUntil: 0, revealQueued: false }
           : current
         );
       }, flightDuration);

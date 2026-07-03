@@ -119,13 +119,18 @@ function cleanNickname(value) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, 32);
 }
 
+function capitalizeFirstLetter(value) {
+  const text = String(value || "").trim();
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
 async function nicknameForProfile(profile, link) {
   const rule = nicknameRuleForProfile(profile);
   if (!rule?.value) return "";
   if (rule.mode === "fixed") return cleanNickname(rule.value);
 
   const robloxUser = await loadRobloxUser(link.roblox_user_id).catch(() => null);
-  const displayName = robloxUser?.displayName || robloxUser?.name || link.roblox_user_id;
+  const displayName = capitalizeFirstLetter(robloxUser?.displayName || robloxUser?.name || link.roblox_user_id);
   return cleanNickname(`${rule.value} ${displayName}`);
 }
 

@@ -285,7 +285,7 @@ function loadOptionalPlanetTexture(loader, url, options) {
       undefined,
       () => settle(null)
     );
-  });
+  }, -1);
 }
 
 function planetTextureEntries(body) {
@@ -1978,7 +1978,7 @@ function makeHyperspaceGeometry(count, seed) {
   return { geometry, streaks };
 }
 
-function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0, exitDelay = 0, exitFade = 220, quality, reducedMotion }) {
+function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0, exitDelay = 0, exitFade = 220, quality, reducedMotion, cameraAnchorRef }) {
   const count = (PARTICLE_COUNTS[quality] || PARTICLE_COUNTS.balanced).streaks;
   const { geometry, streaks } = useMemo(() => makeHyperspaceGeometry(count, 7717), [count]);
   const ref = useRef(null);
@@ -2000,8 +2000,9 @@ function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0,
       ? 0
       : THREE.MathUtils.lerp(opacityRef.current, targetOpacity, active ? 0.18 : 0.12);
     ref.current.visible = opacityRef.current > 0.01;
-    ref.current.position.copy(camera.position);
-    ref.current.quaternion.copy(camera.quaternion);
+    const cameraAnchor = cameraAnchorRef?.current;
+    ref.current.position.copy(cameraAnchor?.position || camera.position);
+    ref.current.quaternion.copy(cameraAnchor?.quaternion || camera.quaternion);
     ref.current.rotation.z += Math.sin(clock.elapsedTime * 0.8) * 0.0008;
 
     const position = geometry.getAttribute("position");
@@ -2030,7 +2031,7 @@ function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0,
     position.needsUpdate = true;
     materialRef.current.opacity = opacityRef.current;
     materialRef.current.linewidth = active ? 1 + tunnelIntensity * 0.35 : 1;
-  });
+  }, 0);
 
   return (
     <lineSegments ref={ref} geometry={geometry} visible={false}>
@@ -2083,12 +2084,23 @@ function resolveCamera(view, map, previousCamera, elapsedTime = 0) {
   return WIDE_CAMERA.clone();
 }
 
-function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
+function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef, hyperspaceCameraAnchorRef }) {
   const { camera, clock } = useThree();
   const activeTransition = useRef(null);
   const lastKey = useRef(null);
   const lastStableView = useRef(view);
   const lastFocusRef = useRef(null);
+  const anchorObject = useMemo(() => new THREE.Object3D(), []);
+  const updateHyperspaceAnchor = useCallback((position, target) => {
+    const anchor = hyperspaceCameraAnchorRef?.current;
+    if (!anchor) return;
+    anchorObject.position.copy(position);
+    anchorObject.up.copy(camera.up);
+    anchorObject.lookAt(target);
+    anchorObject.updateMatrixWorld();
+    anchor.position.copy(position);
+    anchor.quaternion.copy(anchorObject.quaternion);
+  }, [anchorObject, camera.up, hyperspaceCameraAnchorRef]);
 
   useEffect(() => {
     const key = `${view.mode}:${view.sectorId || ""}:${view.planetId || ""}:${transition.token}`;
@@ -2104,6 +2116,7 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
 
     if (transition.snap) {
       camera.position.copy(targetCamera);
+      updateHyperspaceAnchor(targetCamera, focus);
       if (controls) {
         controls.target.copy(focus);
         controls.enabled = true;
@@ -2124,6 +2137,7 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
     const entryDistance = transition.fromDistance || (transition.reducedMotion ? 18 : PLANET_ENTRY_DISTANCE);
     if (isPlanetEntry && transition.phase === "wipe") {
       camera.position.copy(focus).add(entryDirection.multiplyScalar(entryDistance));
+      updateHyperspaceAnchor(camera.position, focus);
       if (controls) {
         controls.maxDistance = Math.max(entryDistance + 80, 34);
         controls.target.copy(focus);
@@ -2158,7 +2172,7 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
       controls.enabled = false;
       controls.autoRotate = false;
     }
-  }, [view, transition, map, camera.position, controlsRef, clock, galaxySpinTimeRef]);
+  }, [view, transition, map, camera.position, controlsRef, clock, galaxySpinTimeRef, updateHyperspaceAnchor]);
 
   useFrame(({ clock }) => {
     const controls = controlsRef.current;
@@ -2190,6 +2204,9 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
       }
       const recoilDirection = liveCamera.clone().sub(liveFocus).normalize();
       camera.position.add(recoilDirection.multiplyScalar(recoil));
+      const stableCameraPosition = camera.position.clone();
+      const stableTarget = current.fromTarget.clone().lerp(liveFocus, t);
+      updateHyperspaceAnchor(stableCameraPosition, stableTarget);
       if (isPlanetEntry && !current.reducedMotion) {
         const brakeRumble = smoothstep(0.52, 0.78, capped);
         const rumbleFalloff = 1 - smoothstep(0.94, 1, capped);
@@ -2200,7 +2217,7 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
         camera.position.z += Math.sin(raw * 337) * rumble * 0.44;
       }
       if (isPlanetEntry) controls.maxDistance = Math.max(current.fromCamera.distanceTo(liveFocus) + 80, 34);
-      controls.target.copy(current.fromTarget).lerp(liveFocus, t);
+      controls.target.copy(stableTarget);
       controls.update();
 
       if (raw >= 1) {
@@ -2222,11 +2239,12 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
     const focusDelta = liveFocus.clone().sub(previousFocus);
     if (view.mode !== "galaxy") camera.position.add(focusDelta);
     controls.target.copy(liveFocus);
+    updateHyperspaceAnchor(camera.position, liveFocus);
     lastFocusRef.current = liveFocus.clone();
     controls.autoRotate = false;
     controls.autoRotateSpeed = 0;
     controls.update();
-  });
+  }, -1);
 
   return null;
 }
@@ -2300,6 +2318,10 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
   const controlsRef = useRef(null);
   const galaxyRef = useRef(null);
   const galaxySpinTimeRef = useRef(0);
+  const hyperspaceCameraAnchorRef = useRef({
+    position: new THREE.Vector3(),
+    quaternion: new THREE.Quaternion()
+  });
   const selectedPlanet = useMemo(() => (map.planets || []).find(planet => planet.id === view.planetId), [map.planets, view.planetId]);
   const selectedPlanetScenePosition = useMemo(() => selectedPlanet ? mapPointToWorld(planetMapPosition(map, selectedPlanet), map, BODY_Y_OFFSET) : null, [selectedPlanet, map]);
   const hyperspaceActive = transition.kind === "planet" && transition.active && transition.hyperspace && ["loading", "reveal"].includes(transition.phase);
@@ -2343,6 +2365,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
         exitFade={transition.lineFadeDuration || PLANET_HYPERSPACE_LINE_FADE_MS}
         quality={quality}
         reducedMotion={reducedMotion}
+        cameraAnchorRef={hyperspaceCameraAnchorRef}
       />
 
       <group ref={galaxyRef} rotation={[GALAXY_BASE_ROTATION_X, GALAXY_BASE_ROTATION_Y, GALAXY_BASE_ROTATION_Z]}>
@@ -2364,7 +2387,14 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
         />
       </group>
 
-      <CameraRig map={map} view={view} transition={transition} controlsRef={controlsRef} galaxySpinTimeRef={galaxySpinTimeRef} />
+      <CameraRig
+        map={map}
+        view={view}
+        transition={transition}
+        controlsRef={controlsRef}
+        galaxySpinTimeRef={galaxySpinTimeRef}
+        hyperspaceCameraAnchorRef={hyperspaceCameraAnchorRef}
+      />
       <OrbitControls
         ref={controlsRef}
         makeDefault

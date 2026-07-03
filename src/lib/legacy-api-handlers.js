@@ -1,4 +1,6 @@
 import { getAuthContext } from "../../modules/auth/auth-context.js";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import {
   canAccessAdmin,
   canAccessNexus,
@@ -35,7 +37,6 @@ import { LIBRARY_SEED } from "../../modules/data/library-seed.js";
 import { getHandbookSlot, getHandbookSlots } from "../../modules/data/handbook-slots.js";
 import { divisionLockedHref, getDivision, listDivisions } from "../../modules/data/divisions/index.js";
 import { extractGoogleFileId, extractGoogleTabId, googleWorkspaceKindFromUrl } from "./google-drive.js";
-import { config as botConfig } from "../../bot/config/index.js";
 
 const VERIFICATION_LOG_COLOR = 0xff3348;
 const VERIFICATION_WARNING_COLOR = 0x8f1d2c;
@@ -44,6 +45,8 @@ const VERIFICATION_WARNING_ROLE_IDS = [
   "1046451364965920848",
   "1302790774458552331"
 ];
+let cachedDiscordToken = "";
+let cachedVerificationLogChannelId = "";
 
 function getQueryParam(req, name) {
   return String(req?.query?.[name] || "").trim();
@@ -59,12 +62,36 @@ function authAuthorName(auth) {
   return requireString(user.roblox_username || user.roblox_display_name || user.roblox_id, fallback);
 }
 
+function readTextFileIfExists(filePath) {
+  try {
+    return existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
+  } catch {
+    return "";
+  }
+}
+
+function readEnvValue(filePath, key) {
+  const text = readTextFileIfExists(filePath);
+  const line = text.split(/\r?\n/).find(item => item.trim().startsWith(`${key}=`));
+  if (!line) return "";
+
+  const value = line.slice(line.indexOf("=") + 1).trim();
+  return value.replace(/^['"]|['"]$/g, "");
+}
+
 function discordToken() {
-  return process.env.DISCORD_TOKEN || "";
+  if (process.env.DISCORD_TOKEN) return process.env.DISCORD_TOKEN;
+  if (!cachedDiscordToken) cachedDiscordToken = readEnvValue(path.join(process.cwd(), "bot", ".env"), "DISCORD_TOKEN");
+  return cachedDiscordToken;
 }
 
 function verificationLogChannelId() {
-  const channelId = String(botConfig.channels?.verificationLog || "").trim();
+  if (!cachedVerificationLogChannelId) {
+    const localConfig = readTextFileIfExists(path.join(process.cwd(), "bot", "config", "config.local.js"));
+    cachedVerificationLogChannelId = localConfig.match(/verificationLog\s*:\s*["'](\d+)["']/)?.[1] || "";
+  }
+
+  const channelId = String(cachedVerificationLogChannelId).trim();
   return channelId && !channelId.includes("CHANNEL_ID") ? channelId : "";
 }
 

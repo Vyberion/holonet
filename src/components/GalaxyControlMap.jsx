@@ -163,6 +163,7 @@ const PLANET_TEXTURE_CACHE = new Map();
 const PLANET_ASSET_TEXTURE_CACHE = new Map();
 const PLANET_ASSET_TEXTURE_RESOLVED = new Map();
 const PLANET_ASSET_TEXTURE_STATUS = new Map();
+const PLANET_ASSET_TEXTURE_SETTLE_MS = 9000;
 
 function seededRandom(seed) {
   let state = seed >>> 0;
@@ -268,12 +269,21 @@ function loadOptionalPlanetTexture(loader, url, options) {
       return;
     }
 
+    let settled = false;
+    const settle = texture => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      resolve(texture);
+    };
+    const timeout = window.setTimeout(() => settle(null), PLANET_ASSET_TEXTURE_SETTLE_MS);
+
     loader.setCrossOrigin("anonymous");
     loader.load(
       url,
-      texture => resolve(configurePlanetTexture(texture, options)),
+      texture => settle(configurePlanetTexture(texture, options)),
       undefined,
-      () => resolve(null)
+      () => settle(null)
     );
   });
 }
@@ -2660,7 +2670,6 @@ export function GalaxyMapExperience({ map }) {
       hyperspace: false,
       reducedMotion
     }));
-    setAssetsReady(false);
     setPlanetTextureProgress({ loaded: previewEntries.filter(entry => planetTextureIsSettled(entry, "preview")).length, total: Math.max(1, previewEntries.length) });
 
     queueTransitionTimer(() => {

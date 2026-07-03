@@ -807,10 +807,10 @@
   function runStandardLoader(loader) {
     const loaderAlreadyShown = sessionStorage.getItem(LOADER_SHOWN_KEY);
     const accessPending = document.documentElement.classList.contains("access-pending");
-    const galaxyLoaderRoot = document.querySelector(".gm-root");
-    const waitForGalaxyLoader = Boolean(galaxyLoaderRoot);
+    const path = window.location.pathname.replace(/\/+$/, "") || "/";
+    const waitForGalaxyLoader = path === "/galaxy" || Boolean(document.querySelector(".gm-root"));
     let galaxyReady = !waitForGalaxyLoader;
-    let pageReady = document.readyState === "complete";
+    let pageReady = waitForGalaxyLoader || document.readyState === "complete";
 
     if (!loaderAlreadyShown) {
       sessionStorage.setItem(LOADER_SHOWN_KEY, "true");
@@ -886,7 +886,7 @@
       window.addEventListener("load", () => {
         pageReady = true;
         waitForAccessAndHide();
-      });
+      }, { once: true });
     }
   }
 

@@ -24,7 +24,7 @@ export default {
     }
   },
   cheekyResponder: {
-    enabled: true,
+    enabled: false,
     channelId: "1406487804413739059",
     chance: 1 / 2000,
     cooldownMs: 4 * 60 * 60 * 1000,

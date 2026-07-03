@@ -1990,6 +1990,7 @@ function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0,
   const ref = useRef(null);
   const materialRef = useRef(null);
   const opacityRef = useRef(0);
+  const forwardRef = useRef(new THREE.Vector3());
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
@@ -2006,9 +2007,9 @@ function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0,
       ? 0
       : THREE.MathUtils.lerp(opacityRef.current, targetOpacity, active ? 0.18 : 0.12);
     ref.current.visible = opacityRef.current > 0.01;
-    const cameraAnchor = cameraAnchorRef?.current;
-    ref.current.position.copy(cameraAnchor?.position || camera.position);
-    ref.current.quaternion.copy(cameraAnchor?.quaternion || camera.quaternion);
+    ref.current.position.copy(camera.position);
+    ref.current.quaternion.copy(camera.quaternion);
+    ref.current.position.add(forwardRef.current.set(0, 0, -0.35).applyQuaternion(camera.quaternion));
     ref.current.rotation.z += Math.sin(clock.elapsedTime * 0.8) * 0.0008;
 
     const position = geometry.getAttribute("position");
@@ -2040,7 +2041,7 @@ function HyperspaceTunnel({ active, phase = "idle", startedAt = 0, duration = 0,
   }, 0);
 
   return (
-    <lineSegments ref={ref} geometry={geometry} visible={false}>
+    <lineSegments ref={ref} geometry={geometry} visible={false} frustumCulled={false} renderOrder={900}>
       <lineBasicMaterial ref={materialRef} vertexColors transparent opacity={0} linewidth={1.35} depthWrite={false} depthTest={false} blending={THREE.AdditiveBlending} toneMapped={false} />
     </lineSegments>
   );

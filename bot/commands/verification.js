@@ -67,14 +67,6 @@ async function replyLink(interaction) {
   await interaction.reply(ephemeral({
     embeds: [embed("Holonet Verification", `Open the Holonet Account page and log in with Roblox to finish linking.\n\n${link.url}`)]
   }));
-  await postVerificationLog(interaction.client, {
-    title: "Verification Started",
-    description: `<@${interaction.user.id}> created a Discord link token.`,
-    fields: [
-      { name: "User", value: `<@${interaction.user.id}>`, inline: true },
-      { name: "Expires", value: `<t:${Math.floor(new Date(link.expiresAt).getTime() / 1000)}:R>`, inline: true }
-    ]
-  });
 }
 
 export async function handleCommand(interaction) {

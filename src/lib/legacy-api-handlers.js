@@ -149,6 +149,20 @@ function warnVerificationLog(message, context = {}) {
   });
 }
 
+function tokenFingerprint(token) {
+  const value = String(token || "");
+  if (value.length <= 10) return value ? `${value.length} chars` : "";
+  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+}
+
+function logVerificationConfirm(message, context = {}) {
+  console.info("Discord link confirm", {
+    message,
+    cwd: process.cwd(),
+    ...context
+  });
+}
+
 async function postVerificationLog({ title, description, fields = [], color = VERIFICATION_LOG_COLOR, content = "", allowedRoleIds = [] }) {
   const token = discordToken();
   const channelId = verificationLogChannelId();
@@ -531,30 +545,63 @@ async function resolveRobloxId(username) {
 }
 
 async function confirmDiscordLink(req) {
+  const requestHost = requireString(req?.headers?.host);
+  logVerificationConfirm("Received confirm request.", { host: requestHost });
+
   const auth = await getAuthContext(req);
   if (!auth.authenticated || !auth.user?.roblox_id) {
+    logVerificationConfirm("Rejected confirm request.", {
+      host: requestHost,
+      reason: "LOGIN_WITH_ROBLOX_FIRST"
+    });
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "LOGIN_WITH_ROBLOX_FIRST" } };
   }
 
   const body = readJsonBody(req);
   const token = requireString(body.token || getQueryParam(req, "token"));
   if (!token) {
+    logVerificationConfirm("Rejected confirm request.", {
+      host: requestHost,
+      robloxId: auth.user.roblox_id,
+      reason: "TOKEN_REQUIRED"
+    });
     return { ok: false, status: 400, payload: { ok: false, reason: "TOKEN_REQUIRED" } };
   }
+  const tokenId = tokenFingerprint(token);
 
   const [pending] = await supabaseRest(
     `discord_link_tokens?token=eq.${encodeURIComponent(token)}&select=*`
   );
 
   if (!pending) {
+    logVerificationConfirm("Rejected confirm request.", {
+      host: requestHost,
+      robloxId: auth.user.roblox_id,
+      token: tokenId,
+      reason: "LINK_TOKEN_NOT_FOUND"
+    });
     return { ok: false, status: 404, payload: { ok: false, reason: "LINK_TOKEN_NOT_FOUND" } };
   }
 
   if (pending.consumed_at) {
+    logVerificationConfirm("Rejected confirm request.", {
+      host: requestHost,
+      robloxId: auth.user.roblox_id,
+      discordUserId: pending.discord_user_id,
+      token: tokenId,
+      reason: "LINK_TOKEN_USED"
+    });
     return { ok: false, status: 200, payload: { ok: false, reason: "LINK_TOKEN_USED" } };
   }
 
   if (new Date(pending.expires_at) <= new Date()) {
+    logVerificationConfirm("Rejected confirm request.", {
+      host: requestHost,
+      robloxId: auth.user.roblox_id,
+      discordUserId: pending.discord_user_id,
+      token: tokenId,
+      reason: "LINK_TOKEN_EXPIRED"
+    });
     return { ok: false, status: 200, payload: { ok: false, reason: "LINK_TOKEN_EXPIRED" } };
   }
 
@@ -590,6 +637,13 @@ async function confirmDiscordLink(req) {
     body: JSON.stringify({ consumed_at: now })
   });
 
+  logVerificationConfirm("Stored Discord link.", {
+    host: requestHost,
+    robloxId,
+    discordUserId: pending.discord_user_id,
+    token: tokenId
+  });
+
   await supabaseRest("bot_audit_logs", {
     method: "POST",
     body: JSON.stringify({
@@ -601,7 +655,7 @@ async function confirmDiscordLink(req) {
     })
   }).catch(() => null);
 
-  await postVerificationLogSafely({
+  const linkedLogSent = await postVerificationLogSafely({
     title: "Discord Linked",
     description: `<@${pending.discord_user_id}> linked their Discord account.`,
     fields: [
@@ -610,17 +664,31 @@ async function confirmDiscordLink(req) {
       { name: "Source", value: "Account page", inline: true }
     ]
   });
+  logVerificationConfirm("Discord linked log processed.", {
+    host: requestHost,
+    robloxId,
+    discordUserId: pending.discord_user_id,
+    sent: linkedLogSent
+  });
 
   const warningSummary = await loadRobloxProfileSummary(robloxId)
     .then(summary => ({
       ...summary,
       warnings: personnelLookupWarnings(summary)
     }))
-    .catch(() => null);
+    .catch(error => {
+      logVerificationConfirm("Warning lookup failed.", {
+        host: requestHost,
+        robloxId,
+        discordUserId: pending.discord_user_id,
+        error: error?.message || String(error)
+      });
+      return null;
+    });
 
   if (warningSummary?.warnings?.length) {
     const warningMentions = VERIFICATION_WARNING_ROLE_IDS.map(roleId => `<@&${roleId}>`).join(" ");
-    await postVerificationLogSafely({
+    const warningLogSent = await postVerificationLogSafely({
       title: "Verification Warning",
       description: `<@${pending.discord_user_id}> linked a Roblox account with personnel lookup warnings.`,
       color: VERIFICATION_WARNING_COLOR,
@@ -632,6 +700,19 @@ async function confirmDiscordLink(req) {
         { name: "Warnings", value: warningSummary.warnings.map(item => `**${item.label}:** ${item.detail}`).join("\n"), inline: false },
         { name: "Lookup", value: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.HOLONET_BASE_URL || ""}/lookup?username=${encodeURIComponent(auth.user.roblox_username || robloxId)}`.replace(/^\/lookup/, "/lookup"), inline: false }
       ]
+    });
+    logVerificationConfirm("Verification warning log processed.", {
+      host: requestHost,
+      robloxId,
+      discordUserId: pending.discord_user_id,
+      warnings: warningSummary.warnings.map(item => item.label),
+      sent: warningLogSent
+    });
+  } else {
+    logVerificationConfirm("No verification warnings found.", {
+      host: requestHost,
+      robloxId,
+      discordUserId: pending.discord_user_id
     });
   }
 

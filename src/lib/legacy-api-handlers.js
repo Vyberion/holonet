@@ -36,6 +36,8 @@ import { getHandbookSlot, getHandbookSlots } from "../../modules/data/handbook-s
 import { divisionLockedHref, getDivision, listDivisions } from "../../modules/data/divisions/index.js";
 import { extractGoogleFileId, extractGoogleTabId, googleWorkspaceKindFromUrl } from "./google-drive.js";
 
+const VERIFICATION_LOG_COLOR = 0xff3348;
+
 function getQueryParam(req, name) {
   return String(req?.query?.[name] || "").trim();
 }
@@ -48,6 +50,53 @@ function authAuthorName(auth) {
   const user = auth?.user || {};
   const fallback = auth?.profile?.isSuperUser ? "Preview Operator" : "";
   return requireString(user.roblox_username || user.roblox_display_name || user.roblox_id, fallback);
+}
+
+function discordToken() {
+  return process.env.DISCORD_TOKEN || "";
+}
+
+function verificationLogChannelId() {
+  return process.env.DISCORD_VERIFICATION_LOG_CHANNEL_ID || "";
+}
+
+async function postVerificationLog({ title, description, fields = [] }) {
+  const token = discordToken();
+  const channelId = verificationLogChannelId();
+  if (!token || !channelId) return false;
+
+  const embed = {
+    title,
+    description,
+    color: VERIFICATION_LOG_COLOR,
+    timestamp: new Date().toISOString(),
+    fields: fields
+      .filter(field => field?.name && field?.value !== undefined && field?.value !== null && String(field.value).trim())
+      .map(field => ({
+        name: String(field.name),
+        value: String(field.value),
+        inline: Boolean(field.inline)
+      }))
+  };
+
+  const response = await fetch(`https://discord.com/api/v10/channels/${encodeURIComponent(channelId)}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bot ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      embeds: [embed],
+      allowed_mentions: { parse: [] }
+    })
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Verification log post failed: ${detail || response.status}`);
+  }
+
+  return true;
 }
 
 function slugify(value) {
@@ -439,6 +488,16 @@ async function confirmDiscordLink(req) {
       roblox_user_id: robloxId,
       metadata: { source: "account_page" }
     })
+  }).catch(() => null);
+
+  await postVerificationLog({
+    title: "Discord Linked",
+    description: `<@${pending.discord_user_id}> linked their Discord account.`,
+    fields: [
+      { name: "Discord", value: `<@${pending.discord_user_id}>`, inline: true },
+      { name: "Roblox", value: `${auth.user.roblox_username || auth.user.roblox_display_name || robloxId} (${robloxId})`, inline: true },
+      { name: "Source", value: "Account page", inline: true }
+    ]
   }).catch(() => null);
 
   return {

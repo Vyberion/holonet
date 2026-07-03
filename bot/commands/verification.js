@@ -3,6 +3,7 @@ import { config } from "../config/index.js";
 import { botErrorPayload } from "../services/bot-errors.js";
 import { createLinkToken, unlinkDiscordUser } from "../services/verification.js";
 import { embed, ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
+import { postVerificationLog } from "../services/activity-log.js";
 import { canManageBot, canUpdateMemberRoles, getVerifiedProfile, syncMemberRoles } from "../services/roles.js";
 import { loadGroupRoles, loadRobloxUser } from "../services/roblox.js";
 import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
@@ -66,6 +67,14 @@ async function replyLink(interaction) {
   await interaction.reply(ephemeral({
     embeds: [embed("Holonet Verification", `Open the Holonet Account page and log in with Roblox to finish linking.\n\n${link.url}`)]
   }));
+  await postVerificationLog(interaction.client, {
+    title: "Verification Started",
+    description: `<@${interaction.user.id}> created a Discord link token.`,
+    fields: [
+      { name: "User", value: `<@${interaction.user.id}>`, inline: true },
+      { name: "Expires", value: `<t:${Math.floor(new Date(link.expiresAt).getTime() / 1000)}:R>`, inline: true }
+    ]
+  });
 }
 
 export async function handleCommand(interaction) {
@@ -119,6 +128,16 @@ export async function handleCommand(interaction) {
       const result = await syncMemberRoles(targetMember, interaction.user.id);
       const targetLabel = sameUser ? "" : ` for <@${targetUser.id}>`;
       await interaction.reply(ephemeral({ embeds: [successEmbed("Roles Updated", `Updated roles${targetLabel}. Added ${result.added.length} role(s), removed ${result.removed.length} role(s).${result.nickname ? `\nNickname: ${result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`}` : ""}`)] }));
+      await postVerificationLog(interaction.client, {
+        title: "Roles Updated",
+        description: `<@${interaction.user.id}> updated roles${targetLabel}.`,
+        fields: [
+          { name: "Target", value: `<@${targetUser.id}>`, inline: true },
+          { name: "Added", value: String(result.added.length), inline: true },
+          { name: "Removed", value: String(result.removed.length), inline: true },
+          result.nickname ? { name: "Nickname", value: result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`, inline: false } : null
+        ].filter(Boolean)
+      });
     } catch (error) {
       await interaction.reply(botErrorPayload(error, { interaction, fallback: "Role update failed." }));
     }
@@ -164,6 +183,14 @@ export async function handleCommand(interaction) {
     const user = interaction.options.getUser("user", true);
     await unlinkDiscordUser(user.id, interaction.user.id);
     await interaction.reply(ephemeral({ embeds: [successEmbed("Unlinked", `<@${user.id}> has been unlinked.`)] }));
+    await postVerificationLog(interaction.client, {
+      title: "Discord Unlinked",
+      description: `<@${interaction.user.id}> unlinked <@${user.id}>.`,
+      fields: [
+        { name: "Actor", value: `<@${interaction.user.id}>`, inline: true },
+        { name: "Target", value: `<@${user.id}>`, inline: true }
+      ]
+    });
     return true;
   }
 
@@ -185,6 +212,16 @@ export async function handleButton(interaction) {
     try {
       const result = await syncMemberRoles(interaction.member);
       await interaction.reply(ephemeral({ embeds: [successEmbed("Roles Updated", `Added ${result.added.length} role(s), removed ${result.removed.length} role(s).${result.nickname ? `\nNickname: ${result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`}` : ""}`)] }));
+      await postVerificationLog(interaction.client, {
+        title: "Roles Updated",
+        description: `<@${interaction.user.id}> updated their roles from the verification panel.`,
+        fields: [
+          { name: "Target", value: `<@${interaction.user.id}>`, inline: true },
+          { name: "Added", value: String(result.added.length), inline: true },
+          { name: "Removed", value: String(result.removed.length), inline: true },
+          result.nickname ? { name: "Nickname", value: result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`, inline: false } : null
+        ].filter(Boolean)
+      });
     } catch (error) {
       await interaction.reply(botErrorPayload(error, { interaction, fallback: "Role update failed." }));
     }

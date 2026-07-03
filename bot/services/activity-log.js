@@ -3,12 +3,17 @@ import { embed } from "./discord-ui.js";
 
 const DEFAULT_ACTIVITY_LOG_CHANNEL_ID = "1455303713701757138";
 
-function activityLogChannelId() {
-  return String(config.channels?.activityLog || DEFAULT_ACTIVITY_LOG_CHANNEL_ID).trim();
+function activityLogChannelId(channelKey = "activityLog") {
+  if (channelKey === "verificationLog") {
+    const channelId = String(config.channels?.verificationLog || process.env.DISCORD_VERIFICATION_LOG_CHANNEL_ID || "").trim();
+    return channelId && !channelId.includes("CHANNEL_ID") ? channelId : "";
+  }
+
+  return String(config.channels?.[channelKey] || config.channels?.activityLog || DEFAULT_ACTIVITY_LOG_CHANNEL_ID).trim();
 }
 
-export async function postActivityLog(client, { title, description, fields = [] }) {
-  const channelId = activityLogChannelId();
+export async function postActivityLog(client, { title, description, fields = [], channelKey = "activityLog" }) {
+  const channelId = activityLogChannelId(channelKey);
   if (!client || !channelId) return false;
 
   try {
@@ -33,4 +38,8 @@ export async function postActivityLog(client, { title, description, fields = [] 
     console.warn("Activity log post failed", { channelId, error: error?.message || error });
     return false;
   }
+}
+
+export async function postVerificationLog(client, payload) {
+  return postActivityLog(client, { ...payload, channelKey: "verificationLog" });
 }

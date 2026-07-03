@@ -16,6 +16,7 @@ export async function createLinkToken(user) {
 
   return {
     token,
+    expiresAt,
     url: `${config.holonet.baseUrl.replace(/\/$/, "")}/account?discordLink=${encodeURIComponent(token)}`
   };
 }

@@ -96,6 +96,13 @@ export function missingBotPermissionsError(permissions) {
   return error;
 }
 
+export function roleManagementBlockedError(blockedRoles) {
+  const error = new Error("ROLE_MANAGEMENT_BLOCKED");
+  error.code = "ROLE_MANAGEMENT_BLOCKED";
+  error.blockedRoles = blockedRoles || [];
+  return error;
+}
+
 function permissionsFromError(error) {
   const array = value => Array.isArray(value) ? value : value ? [value] : [];
   return unique([
@@ -187,6 +194,19 @@ function requiredPermissionsFor(error, interaction) {
 
 export function botErrorMessage(error, options = {}) {
   const fallback = options.fallback || "Unexpected bot error.";
+  if (error?.code === "ROLE_MANAGEMENT_BLOCKED") {
+    const blockedRoles = (error.blockedRoles || []).map(role => {
+      const reason = role.managed
+        ? "managed by an integration"
+        : "not below the bot's highest role";
+      return `${role.name || role.id} (${reason})`;
+    });
+
+    return blockedRoles.length
+      ? `Discord denied role management for: ${blockedRoles.join(", ")}. Move the bot's highest role above those role(s), or remove integration-managed roles from the sync list.`
+      : "Discord denied role management. Move the bot's highest role above the role(s) it needs to add/remove.";
+  }
+
   if (!isMissingPermissionsError(error)) return error?.message || fallback;
 
   const required = requiredPermissionsFor(error, options.interaction);

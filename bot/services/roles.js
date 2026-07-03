@@ -1,6 +1,6 @@
 import { PermissionFlagsBits } from "discord.js";
 import { config } from "../config/index.js";
-import { botErrorMessage, missingBotPermissionsError } from "./bot-errors.js";
+import { botErrorMessage, missingBotPermissionsError, roleManagementBlockedError } from "./bot-errors.js";
 import { ROBLOX_GROUPS, SUPER_USER_IDS } from "../../modules/auth/roblox-groups.js";
 import { hasCoreAccess } from "../../modules/auth/permissions.js";
 import { loadProfileForRoblox, loadRobloxUser, rawRanksFromProfile } from "./roblox.js";
@@ -138,6 +138,22 @@ function assertBotGuildPermissions(member, permissions) {
   if (missing.length) throw missingBotPermissionsError(missing);
 }
 
+function assertBotCanManageRoleIds(member, roleIds) {
+  assertBotGuildPermissions(member, ["ManageRoles"]);
+
+  const guild = member?.guild;
+  const blockedRoles = [...new Set(roleIds)]
+    .map(roleId => guild?.roles?.cache?.get(roleId))
+    .filter(role => role && !role.editable)
+    .map(role => ({
+      id: role.id,
+      name: role.name,
+      managed: Boolean(role.managed)
+    }));
+
+  if (blockedRoles.length) throw roleManagementBlockedError(blockedRoles);
+}
+
 export function canManageBot(profile, member = null) {
   const roles = profile?.authorityRoles || {};
   return Boolean(
@@ -223,7 +239,7 @@ export async function syncMemberRoles(member, actorDiscordId = member.id) {
   const remove = currentManaged.filter(id => !wanted.includes(id));
   const add = wanted.filter(id => !member.roles.cache.has(id));
 
-  if (remove.length || add.length) assertBotGuildPermissions(member, ["ManageRoles"]);
+  if (remove.length || add.length) assertBotCanManageRoleIds(member, [...remove, ...add]);
 
   if (remove.length) await member.roles.remove(remove, "Holonet role sync");
   if (add.length) await member.roles.add(add, "Holonet role sync");
@@ -308,8 +324,10 @@ export async function syncVerifiedRoleForLinkedUsers(client) {
   for (const discordUserId of linkedDiscordIds) {
     try {
       const member = await guild.members.fetch(discordUserId);
-      const needsRoleChange = member.roles.cache.has(UNLINKED_ROLE_ID) || !member.roles.cache.has(roleId);
-      if (needsRoleChange) assertBotGuildPermissions(member, ["ManageRoles"]);
+      const roleIdsToChange = [];
+      if (member.roles.cache.has(UNLINKED_ROLE_ID)) roleIdsToChange.push(UNLINKED_ROLE_ID);
+      if (!member.roles.cache.has(roleId)) roleIdsToChange.push(roleId);
+      if (roleIdsToChange.length) assertBotCanManageRoleIds(member, roleIdsToChange);
 
       if (member.roles.cache.has(UNLINKED_ROLE_ID)) {
         await member.roles.remove(UNLINKED_ROLE_ID, "Holonet verified Discord link");
@@ -337,8 +355,10 @@ export async function syncVerifiedRoleForLinkedUsers(client) {
     if (member.user?.bot || linkedDiscordIdSet.has(member.id)) continue;
 
     try {
-      const needsRoleChange = member.roles.cache.has(roleId) || !member.roles.cache.has(UNLINKED_ROLE_ID);
-      if (needsRoleChange) assertBotGuildPermissions(member, ["ManageRoles"]);
+      const roleIdsToChange = [];
+      if (member.roles.cache.has(roleId)) roleIdsToChange.push(roleId);
+      if (!member.roles.cache.has(UNLINKED_ROLE_ID)) roleIdsToChange.push(UNLINKED_ROLE_ID);
+      if (roleIdsToChange.length) assertBotCanManageRoleIds(member, roleIdsToChange);
 
       if (member.roles.cache.has(roleId)) {
         await member.roles.remove(roleId, "Holonet unlinked Discord account");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 const GALAXY_MUSIC_SRC = "/assets/music/galaxy/suspense.mp3";
@@ -32,6 +32,11 @@ function fadeAudio(audio, targetVolume, duration, frameRef) {
   frameRef.current = requestAnimationFrame(frame);
 }
 
+function loaderIsHidden() {
+  const loader = document.getElementById("loader");
+  return !loader || loader.style.display === "none" || window.__holonetLoaderHidden === true;
+}
+
 export function HolonetAudioController() {
   const router = useRouter();
   const pathname = usePathname();
@@ -39,6 +44,18 @@ export function HolonetAudioController() {
   const unlockedRef = useRef(false);
   const fadeFrameRef = useRef(null);
   const isGalaxy = pathname === "/galaxy" || pathname?.startsWith("/galaxy/");
+
+  const syncAudioTarget = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || !unlockedRef.current) return;
+
+    const targetVolume = isGalaxy && loaderIsHidden() ? GALAXY_MUSIC_VOLUME : 0;
+    if (targetVolume > 0 && audio.paused) {
+      const playAttempt = audio.play();
+      if (playAttempt?.catch) playAttempt.catch(() => {});
+    }
+    fadeAudio(audio, targetVolume, GALAXY_MUSIC_FADE_MS, fadeFrameRef);
+  }, [isGalaxy]);
 
   useEffect(() => {
     const audio = new Audio(GALAXY_MUSIC_SRC);
@@ -62,7 +79,7 @@ export function HolonetAudioController() {
       audio.volume = 0;
       const markUnlocked = () => {
         unlockedRef.current = true;
-        if (isGalaxy) fadeAudio(audio, GALAXY_MUSIC_VOLUME, GALAXY_MUSIC_FADE_MS, fadeFrameRef);
+        syncAudioTarget();
       };
 
       try {
@@ -86,19 +103,13 @@ export function HolonetAudioController() {
       window.removeEventListener("pointerdown", unlockAudio);
       window.removeEventListener("keydown", unlockAudio);
     };
-  }, [isGalaxy]);
+  }, [syncAudioTarget]);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !unlockedRef.current) return;
-
-    const targetVolume = isGalaxy ? GALAXY_MUSIC_VOLUME : 0;
-    if (audio.paused) {
-      const playAttempt = audio.play();
-      if (playAttempt?.catch) playAttempt.catch(() => {});
-    }
-    fadeAudio(audio, targetVolume, GALAXY_MUSIC_FADE_MS, fadeFrameRef);
-  }, [isGalaxy]);
+    syncAudioTarget();
+    window.addEventListener("holonet:loader-hidden", syncAudioTarget);
+    return () => window.removeEventListener("holonet:loader-hidden", syncAudioTarget);
+  }, [syncAudioTarget]);
 
   useEffect(() => {
     function handleInternalLinkClick(event) {

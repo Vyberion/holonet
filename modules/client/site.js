@@ -270,6 +270,7 @@
   }
 
   function setLoaderPhase(loader, phase) {
+    window.__holonetLoaderHidden = false;
     loader.dataset.loaderPhase = phase;
     loader.classList.remove("hidden");
     loader.style.display = "";
@@ -317,6 +318,8 @@
           loader.style.display = "none";
         }
         clearPageCrtOpen();
+        window.__holonetLoaderHidden = true;
+        window.dispatchEvent(new CustomEvent("holonet:loader-hidden"));
       }, 520);
     }, 140);
   }

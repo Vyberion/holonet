@@ -105,10 +105,10 @@ const SECTOR_TESSELLATION_CELLS = {
   "ilum-frontier": [[15, 17, 6, 8]]
 };
 const KORRIBAN_TEXTURE_URLS = [
-  "/assets/galaxy/korriban/diffuse.png",
-  "/assets/galaxy/korriban/bump.png",
-  "/assets/galaxy/korriban/roughness.png",
-  "/assets/galaxy/korriban/clouds.png"
+  "/api/galaxy-texture/korriban/diffuse.png",
+  "/api/galaxy-texture/korriban/bump.png",
+  "/api/galaxy-texture/korriban/roughness.png",
+  "/api/galaxy-texture/korriban/clouds.png"
 ];
 const KORRIBAN_TEXTURE_PATHS = {
   diffuse: KORRIBAN_TEXTURE_URLS[0],

@@ -1,4 +1,4 @@
-const GALAXY_LFS_ASSET_BASE = "https://media.githubusercontent.com/media/Vyberion/holonet/migration/public/assets/galaxy";
+const GALAXY_TEXTURE_ASSET_BASE = "/api/galaxy-texture";
 
 const TEXTURE_FILE_NAMES = {
   diffuse: "diffuse.png",
@@ -17,7 +17,7 @@ const TEXTURE_FILE_NAMES = {
 const previewFileName = fileName => fileName.replace(/\.png$/, "-preview.png");
 
 const galaxyPlanetTextures = folder => {
-  const base = `${GALAXY_LFS_ASSET_BASE}/${folder}`;
+  const base = `${GALAXY_TEXTURE_ASSET_BASE}/${folder}`;
 
   return Object.fromEntries(Object.entries(TEXTURE_FILE_NAMES).flatMap(([key, fileName]) => [
     [key, `${base}/${fileName}`],

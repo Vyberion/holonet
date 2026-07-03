@@ -208,18 +208,38 @@ async function replyScopeLeaderboard(interaction, scope, page = 0, update = fals
   else await interaction.reply(ephemeral(payload));
 }
 
+async function loadClockScopesForUser(discordUserId) {
+  const { data, error } = await supabase
+    .from("clock_shifts")
+    .select("scope")
+    .eq("discord_user_id", discordUserId);
+  if (error) throw error;
+  return [...new Set((data || []).map(row => row.scope).filter(Boolean))];
+}
+
+async function allowedClockScopesForTarget(interaction, targetUser) {
+  if (targetUser.id === interaction.user.id) return null;
+  const actor = await getVerifiedProfile(interaction.user.id).catch(() => null);
+  const targetScopes = await loadClockScopesForUser(targetUser.id);
+  return targetScopes.filter(scope => canViewScopeTime(actor?.profile, scope, interaction.member));
+}
+
 async function replyUserTime(interaction, user) {
   const verified = await getVerifiedProfile(user.id).catch(() => null);
   const scope = verified?.profile ? inferScope(verified.profile) : "";
+  let visibleScopes = null;
   if (user.id !== interaction.user.id) {
-    const access = await requireScopeTimeAccess(interaction, scope || "all");
-    if (!access.allowed) return;
+    visibleScopes = await allowedClockScopesForTarget(interaction, user);
+    if (!visibleScopes.length) {
+      await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to view that user's time.")] }));
+      return;
+    }
   }
 
-  const totals = await shiftTotals(user.id);
+  const totals = await shiftTotals(user.id, visibleScopes);
   await interaction.reply(ephemeral({ embeds: [embed("Shift Time", [
     `User: <@${user.id}>`,
-    `Scope: ${scope ? scopeLabel(scope) : "Unassigned"}`,
+    visibleScopes ? `Scopes: ${visibleScopes.map(scopeLabel).join(", ")}` : `Scope: ${scope ? scopeLabel(scope) : "Unassigned"}`,
     `Total Time: ${formatDurationLong(totals.totalSeconds)}`,
     totals.adjustmentSeconds ? `Adjustments: ${totals.adjustmentSeconds >= 0 ? "+" : "-"}${formatDurationLong(Math.abs(totals.adjustmentSeconds))}` : "",
     totals.hasActiveShift ? "Current Shift: active" : "Current Shift: none"
@@ -302,10 +322,10 @@ async function handleShiftReminderButton(interaction) {
 
 async function canViewTargetUserTime(interaction, targetUser) {
   if (targetUser.id === interaction.user.id) return true;
-  const verified = await getVerifiedProfile(targetUser.id).catch(() => null);
-  const scope = verified?.profile ? inferScope(verified.profile) : "";
-  const access = await requireScopeTimeAccess(interaction, scope || "all");
-  return access.allowed;
+  const allowedScopes = await allowedClockScopesForTarget(interaction, targetUser);
+  if (allowedScopes.length) return true;
+  await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to view that user's time.")] }));
+  return false;
 }
 
 export async function handleCommand(interaction) {
@@ -385,6 +405,10 @@ export async function handleCommand(interaction) {
       const targetUser = interaction.options.getUser("user", true);
       if (!(await canViewTargetUserTime(interaction, targetUser))) return true;
       query = query.eq("discord_user_id", targetUser.id);
+      if (targetUser.id !== interaction.user.id) {
+        const allowedScopes = await allowedClockScopesForTarget(interaction, targetUser);
+        query = query.in("scope", allowedScopes);
+      }
     } else {
       if (!(await requireManager(interaction))) {
         await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to view shift reports.")] }));

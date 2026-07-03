@@ -113,14 +113,18 @@ export async function adjustShiftTime(discordUserId, minutes) {
   return data;
 }
 
-export async function shiftTotals(discordUserId) {
-  const { data, error } = await supabase
+export async function shiftTotals(discordUserId, scopes = null) {
+  let query = supabase
     .from("clock_shifts")
     .select("duration_seconds,adjustment_seconds,status,started_at")
     .eq("discord_user_id", discordUserId);
+
+  if (Array.isArray(scopes) && scopes.length) query = query.in("scope", scopes);
+  else if (typeof scopes === "string" && scopes) query = query.eq("scope", scopes);
+
+  const { data, error } = await query;
   if (error) throw error;
 
-  const active = await activeShift(discordUserId);
   const now = Date.now();
 
   return (data || []).reduce((totals, shift) => {
@@ -137,7 +141,7 @@ export async function shiftTotals(discordUserId) {
     get totalSeconds() {
       return Math.max(0, this.rawSeconds + this.adjustmentSeconds);
     },
-    hasActiveShift: Boolean(active)
+    hasActiveShift: (data || []).some(shift => shift.status === "active")
   });
 }
 

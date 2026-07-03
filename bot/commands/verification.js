@@ -1,5 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from "discord.js";
 import { config } from "../config/index.js";
+import { botErrorPayload } from "../services/bot-errors.js";
 import { createLinkToken, unlinkDiscordUser } from "../services/verification.js";
 import { embed, ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
 import { canManageBot, canUpdateMemberRoles, getVerifiedProfile, syncMemberRoles } from "../services/roles.js";
@@ -119,7 +120,7 @@ export async function handleCommand(interaction) {
       const targetLabel = sameUser ? "" : ` for <@${targetUser.id}>`;
       await interaction.reply(ephemeral({ embeds: [successEmbed("Roles Updated", `Updated roles${targetLabel}. Added ${result.added.length} role(s), removed ${result.removed.length} role(s).${result.nickname ? `\nNickname: ${result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`}` : ""}`)] }));
     } catch (error) {
-      await interaction.reply(ephemeral({ embeds: [errorEmbed(error.message)] }));
+      await interaction.reply(botErrorPayload(error, { interaction, fallback: "Role update failed." }));
     }
     return true;
   }
@@ -185,7 +186,7 @@ export async function handleButton(interaction) {
       const result = await syncMemberRoles(interaction.member);
       await interaction.reply(ephemeral({ embeds: [successEmbed("Roles Updated", `Added ${result.added.length} role(s), removed ${result.removed.length} role(s).${result.nickname ? `\nNickname: ${result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`}` : ""}`)] }));
     } catch (error) {
-      await interaction.reply(ephemeral({ embeds: [errorEmbed(error.message)] }));
+      await interaction.reply(botErrorPayload(error, { interaction, fallback: "Role update failed." }));
     }
     return true;
   }

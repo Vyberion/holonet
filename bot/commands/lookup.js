@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from "discord.js";
 import { config } from "../config/index.js";
+import { botErrorPayload } from "../services/bot-errors.js";
 import { embed, ephemeral, errorEmbed } from "../services/discord-ui.js";
 import { loadGroupRoles, loadRobloxUser } from "../services/roblox.js";
 import { supabase } from "../services/supabase.js";
@@ -143,7 +144,7 @@ export async function handleCommand(interaction) {
     const link = await loadLinkByRobloxUserId(robloxUser.id);
     await replyLookup(interaction, { discordUser: null, link, robloxUser });
   } catch (error) {
-    await interaction.reply(ephemeral({ embeds: [errorEmbed(error.message || "Lookup failed.")] }));
+    await interaction.reply(botErrorPayload(error, { interaction, fallback: "Lookup failed." }));
   }
 
   return true;

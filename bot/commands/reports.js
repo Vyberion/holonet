@@ -2,6 +2,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } fro
 import { canViewDivisionReports, canWriteDivisionReport } from "../../modules/auth/permissions.js";
 import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
 import { postActivityLog } from "../services/activity-log.js";
+import { botErrorMessage } from "../services/bot-errors.js";
 import { embed, ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
 import { loadRobloxUser } from "../services/roblox.js";
 import { divisionTierWeight, getVerifiedProfile } from "../services/roles.js";
@@ -81,13 +82,13 @@ function assertReportScope(scope) {
   if (!ROBLOX_GROUPS.DIVISIONS[scope]) throw new Error("UNKNOWN_REPORT_SCOPE");
 }
 
-function reportErrorMessage(error) {
+function reportErrorMessage(error, interaction = null) {
   if (error?.message === "DISCORD_NOT_LINKED") return VERIFY_INSTRUCTIONS;
-  return String(error?.message || "Unexpected report error.").replace(/_/g, " ");
+  return botErrorMessage(error, { interaction, fallback: "Unexpected report error." }).replace(/_/g, " ");
 }
 
 async function replyReportError(interaction, error) {
-  await interaction.reply(ephemeral({ embeds: [errorEmbed(reportErrorMessage(error))] }));
+  await interaction.reply(ephemeral({ embeds: [errorEmbed(reportErrorMessage(error, interaction))] }));
 }
 
 function weekStartValue(date = new Date()) {
@@ -590,7 +591,7 @@ async function confirmWriteReport(interaction, scope) {
       ]
     });
   } catch (error) {
-    await interaction.editReply({ embeds: [errorEmbed(reportErrorMessage(error))], components: [] });
+    await interaction.editReply({ embeds: [errorEmbed(reportErrorMessage(error, interaction))], components: [] });
   }
 }
 
@@ -628,7 +629,7 @@ async function confirmReset(interaction, parts) {
       ]
     });
   } catch (error) {
-    await interaction.editReply({ embeds: [errorEmbed(reportErrorMessage(error))], components: [] });
+    await interaction.editReply({ embeds: [errorEmbed(reportErrorMessage(error, interaction))], components: [] });
   }
 }
 

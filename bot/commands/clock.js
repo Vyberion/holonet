@@ -2,6 +2,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } fro
 import { activeShift, adjustShiftTime, clockIn, clockOut, formatDuration, saveClockPanel, shiftTotals } from "../services/clock.js";
 import { config } from "../config/index.js";
 import { postActivityLog } from "../services/activity-log.js";
+import { botErrorMessage } from "../services/bot-errors.js";
 import { embed, ephemeral, errorEmbed, successEmbed, textModal } from "../services/discord-ui.js";
 import { canAdjustTime, canManageBot, getVerifiedProfile, inferScope } from "../services/roles.js";
 import { setShiftRemindersEnabled } from "../services/shift-reminders.js";
@@ -280,7 +281,10 @@ async function doClockOut(interaction, options = {}) {
 }
 
 async function replyClockError(interaction, error) {
-  await interaction.reply(ephemeral({ embeds: [errorEmbed(error?.message === "DISCORD_NOT_LINKED" ? VERIFY_INSTRUCTIONS : error?.message || "Unexpected clock error.")] }));
+  const message = error?.message === "DISCORD_NOT_LINKED"
+    ? VERIFY_INSTRUCTIONS
+    : botErrorMessage(error, { interaction, fallback: "Unexpected clock error." });
+  await interaction.reply(ephemeral({ embeds: [errorEmbed(message)] }));
 }
 
 async function replyShiftSummary(interaction) {

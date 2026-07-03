@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from "discord.js";
-import { ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
+import { botErrorPayload } from "../services/bot-errors.js";
+import { ephemeral, successEmbed } from "../services/discord-ui.js";
 import { syncMemberRoles } from "../services/roles.js";
 
 export const commands = [
@@ -17,7 +18,7 @@ export async function handleCommand(interaction) {
       embeds: [successEmbed("Roles Updated", `Updated your roles. Added ${result.added.length} role(s), removed ${result.removed.length} role(s).${result.nickname ? `\nNickname: ${result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`}` : ""}`)]
     }));
   } catch (error) {
-    await interaction.reply(ephemeral({ embeds: [errorEmbed(error.message || "Role update failed.")] }));
+    await interaction.reply(botErrorPayload(error, { interaction, fallback: "Role update failed." }));
   }
 
   return true;

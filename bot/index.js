@@ -1,6 +1,7 @@
 import { ActivityType, Client, GatewayIntentBits, Partials } from "discord.js";
 import { config, requireEnv } from "./config/index.js";
 import { routeInteraction } from "./commands/index.js";
+import { botErrorPayload } from "./services/bot-errors.js";
 import { ephemeral, errorEmbed } from "./services/discord-ui.js";
 import { syncClockPanels } from "./services/clock-panels.js";
 import { syncVerifiedRoleForLinkedUsers } from "./services/roles.js";
@@ -83,7 +84,7 @@ client.on("interactionCreate", async interaction => {
   } catch (error) {
     console.error(error);
     if (interaction.isRepliable()) {
-      const payload = ephemeral({ embeds: [errorEmbed(error.message || "Unexpected bot error.")] });
+      const payload = botErrorPayload(error, { interaction, fallback: "Unexpected bot error." });
       if (interaction.deferred || interaction.replied) await interaction.followUp(payload).catch(() => {});
       else await interaction.reply(payload).catch(() => {});
     }

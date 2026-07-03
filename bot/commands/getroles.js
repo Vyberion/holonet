@@ -22,7 +22,6 @@ export async function handleCommand(interaction) {
       title: "Roles Updated",
       description: `<@${interaction.user.id}> used /getroles.`,
       fields: [
-        { name: "Target", value: `<@${interaction.user.id}>`, inline: true },
         { name: "Added", value: String(result.added.length), inline: true },
         { name: "Removed", value: String(result.removed.length), inline: true },
         result.nickname ? { name: "Nickname", value: result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`, inline: false } : null

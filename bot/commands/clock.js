@@ -266,7 +266,7 @@ async function doClockIn(interaction, options = {}) {
 
 async function doClockOut(interaction, options = {}) {
   const shift = await clockOut(interaction.user.id, options);
-  const total = Number(shift.duration_seconds || 0) + Number(shift.adjustment_seconds || 0);
+  const total = Math.max(0, Number(shift.duration_seconds || 0) + Number(shift.adjustment_seconds || 0));
   await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked Out", `Duration: ${formatDuration(total)}${shift.adjustment_seconds ? `\nAdjustment: ${formatDuration(Math.abs(shift.adjustment_seconds))} ${shift.adjustment_seconds > 0 ? "added" : "removed"}` : ""}${shift.clockout_late ? `\nLate clock-out: ${shift.clockout_late_minutes || 0} minutes` : ""}`)] }));
   await postActivityLog(interaction.client, {
     title: "Clock Out",
@@ -285,9 +285,17 @@ async function replyClockError(interaction, error) {
 
 async function replyShiftSummary(interaction) {
   const [shift, totals] = await Promise.all([activeShift(interaction.user.id), shiftTotals(interaction.user.id)]);
-  const activeText = shift ? `Current Shift: ${shift.scope}, started <t:${Math.floor(new Date(shift.started_at).getTime() / 1000)}:R>` : "Current Shift: none";
+  const activeLines = shift ? [
+    `Scope: ${scopeLabel(shift.scope)}`,
+    `Current Shift: ${formatDuration(shiftTotalSeconds(shift))}`,
+    `Started: <t:${Math.floor(new Date(shift.started_at).getTime() / 1000)}:R>`
+  ] : [
+    "Scope: none",
+    "Current Shift: none",
+    "Started: none"
+  ];
   const adjustmentText = totals.adjustmentSeconds ? `\nAdjustments: ${totals.adjustmentSeconds >= 0 ? "+" : "-"}${formatDuration(Math.abs(totals.adjustmentSeconds))}` : "";
-  await interaction.reply(ephemeral({ embeds: [embed("Shift Time", `${activeText}\nTotal Time: ${formatDuration(totals.totalSeconds)}${adjustmentText}`)] }));
+  await interaction.reply(ephemeral({ embeds: [embed("Shift Time", `${activeLines.join("\n")}\nTotal Time: ${formatDuration(totals.totalSeconds)}${adjustmentText}`)] }));
 }
 
 async function canAdjustTarget(interaction, targetUser) {

@@ -660,13 +660,14 @@ async function confirmDiscordLink(req) {
     })
   }).catch(() => null);
 
+  const robloxLabel = `${auth.user.roblox_username || auth.user.roblox_display_name || robloxId} (${robloxId})`;
+
   const linkedLogSent = await postVerificationLogSafely({
-    title: "Discord Linked",
-    description: `<@${pending.discord_user_id}> linked their Discord account.`,
+    title: "Discord Linked to Roblox",
+    description: `<@${pending.discord_user_id}> linked Discord to Roblox.`,
     fields: [
       { name: "Discord", value: `<@${pending.discord_user_id}>`, inline: true },
-      { name: "Roblox", value: `${auth.user.roblox_username || auth.user.roblox_display_name || robloxId} (${robloxId})`, inline: true },
-      { name: "Source", value: "Account page", inline: true }
+      { name: "Roblox", value: robloxLabel, inline: true }
     ]
   });
   logVerificationConfirm("Discord linked log processed.", {
@@ -694,14 +695,14 @@ async function confirmDiscordLink(req) {
   if (warningSummary?.warnings?.length) {
     const warningMentions = VERIFICATION_WARNING_ROLE_IDS.map(roleId => `<@&${roleId}>`).join(" ");
     const warningLogSent = await postVerificationLogSafely({
-      title: "Verification Warning",
-      description: `<@${pending.discord_user_id}> linked a Roblox account with personnel lookup warnings.`,
+      title: "Discord Linked to Roblox - Warning",
+      description: `<@${pending.discord_user_id}> linked Discord to Roblox with personnel lookup warnings.`,
       color: VERIFICATION_WARNING_COLOR,
       content: warningMentions,
       allowedRoleIds: VERIFICATION_WARNING_ROLE_IDS,
       fields: [
         { name: "Discord", value: `<@${pending.discord_user_id}>`, inline: true },
-        { name: "Roblox", value: `${auth.user.roblox_username || auth.user.roblox_display_name || robloxId} (${robloxId})`, inline: true },
+        { name: "Roblox", value: robloxLabel, inline: true },
         { name: "Warnings", value: warningSummary.warnings.map(item => `**${item.label}:** ${item.detail}`).join("\n"), inline: false },
         { name: "Lookup", value: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.HOLONET_BASE_URL || ""}/lookup?username=${encodeURIComponent(auth.user.roblox_username || robloxId)}`.replace(/^\/lookup/, "/lookup"), inline: false }
       ]

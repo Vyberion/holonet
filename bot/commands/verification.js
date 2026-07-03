@@ -73,17 +73,16 @@ async function syncLinkedDiscordMemberRoles(client, guildId, discordUserId) {
   const guild = await client.guilds.fetch(guildId);
   const member = await guild.members.fetch({ user: discordUserId, force: true });
   const result = await syncMemberRoles(member, discordUserId);
+  const robloxId = result.link?.roblox_user_id || "Unknown";
 
   console.log(`Post-link role sync updated ${discordUserId}: added ${result.added.length}, removed ${result.removed.length}.`);
 
   await postVerificationLog(client, {
-    title: "Roles Updated",
-    description: `<@${discordUserId}> was synced automatically after linking Discord.`,
+    title: "Discord Linked to Roblox",
+    description: `<@${discordUserId}> linked Discord to Roblox.`,
     fields: [
-      { name: "Target", value: `<@${discordUserId}>`, inline: true },
-      { name: "Added", value: String(result.added.length), inline: true },
-      { name: "Removed", value: String(result.removed.length), inline: true },
-      result.nickname ? { name: "Nickname", value: result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`, inline: false } : null
+      { name: "Discord", value: `<@${discordUserId}>`, inline: true },
+      { name: "Roblox", value: robloxId, inline: true }
     ].filter(Boolean)
   });
 }

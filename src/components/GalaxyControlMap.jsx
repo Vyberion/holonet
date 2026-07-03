@@ -1575,7 +1575,8 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
     let cancelled = false;
     let cursor = 0;
     let readySent = false;
-    let loaded = entries.filter(entry => planetTextureIsSettled(entry, "preview")).length;
+    const completed = new Set(entries.filter(entry => planetTextureIsSettled(entry, "preview")).map(entry => planetTextureCacheKey(entry, "preview")));
+    let loaded = completed.size;
     const total = entries.length;
     onProgress?.({ loaded, total });
     const startWarmup = () => {
@@ -1603,7 +1604,10 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
       };
     }
 
-    const markLoaded = () => {
+    const markLoaded = entry => {
+      const cacheKey = planetTextureCacheKey(entry, "preview");
+      if (completed.has(cacheKey)) return;
+      completed.add(cacheKey);
       loaded += 1;
       onProgress?.({ loaded, total });
       if (loaded >= total) sendReady();
@@ -1614,10 +1618,11 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
         const entry = entries[cursor];
         cursor += 1;
         if (planetTextureIsSettled(entry, "preview")) {
+          markLoaded(entry);
           continue;
         }
         await loadPlanetAssetTexture(entry, maxAnisotropy, "preview");
-        if (!cancelled) markLoaded();
+        if (!cancelled) markLoaded(entry);
       }
     });
 

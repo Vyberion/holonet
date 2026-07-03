@@ -8,6 +8,7 @@ import { audit, supabase } from "./supabase.js";
 
 const ROBLOX_RANK_DELEGATE_DISCORD_IDS = new Set(["1046546991360004136"]);
 const UNLINKED_ROLE_ID = "1340850135680155674";
+const UNVERIFIED_REMOVED_ROLE_IDS = ["1340829015484928053"];
 
 function compactIds(values) {
   return values.flat().filter(value => value && !String(value).includes("ROLE_ID"));
@@ -234,7 +235,9 @@ export async function getVerifiedProfile(discordUserId) {
 export async function syncMemberRoles(member, actorDiscordId = member.id) {
   const verified = await getVerifiedProfile(member.id);
   const wanted = verified ? roleIdsForProfile(verified.profile) : [UNLINKED_ROLE_ID];
-  const managed = managedRoleIds();
+  const managed = verified
+    ? managedRoleIds()
+    : [...managedRoleIds(), ...UNVERIFIED_REMOVED_ROLE_IDS];
   const currentManaged = member.roles.cache.filter(role => managed.includes(role.id)).map(role => role.id);
   const remove = currentManaged.filter(id => !wanted.includes(id));
   const add = wanted.filter(id => !member.roles.cache.has(id));

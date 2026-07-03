@@ -35,6 +35,7 @@ import { LIBRARY_SEED } from "../../modules/data/library-seed.js";
 import { getHandbookSlot, getHandbookSlots } from "../../modules/data/handbook-slots.js";
 import { divisionLockedHref, getDivision, listDivisions } from "../../modules/data/divisions/index.js";
 import { extractGoogleFileId, extractGoogleTabId, googleWorkspaceKindFromUrl } from "./google-drive.js";
+import { config as botConfig } from "../../bot/config/index.js";
 
 const VERIFICATION_LOG_COLOR = 0xff3348;
 const VERIFICATION_WARNING_COLOR = 0x8f1d2c;
@@ -63,7 +64,8 @@ function discordToken() {
 }
 
 function verificationLogChannelId() {
-  return process.env.DISCORD_VERIFICATION_LOG_CHANNEL_ID || "";
+  const channelId = String(botConfig.channels?.verificationLog || "").trim();
+  return channelId && !channelId.includes("CHANNEL_ID") ? channelId : "";
 }
 
 async function postVerificationLog({ title, description, fields = [], color = VERIFICATION_LOG_COLOR, content = "", allowedRoleIds = [] }) {

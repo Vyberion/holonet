@@ -5,7 +5,7 @@ const DEFAULT_ACTIVITY_LOG_CHANNEL_ID = "1455303713701757138";
 
 function activityLogChannelId(channelKey = "activityLog") {
   if (channelKey === "verificationLog") {
-    const channelId = String(config.channels?.verificationLog || process.env.DISCORD_VERIFICATION_LOG_CHANNEL_ID || "").trim();
+    const channelId = String(config.channels?.verificationLog || "").trim();
     return channelId && !channelId.includes("CHANNEL_ID") ? channelId : "";
   }
 

@@ -2191,10 +2191,9 @@ function CameraRig({ map, view, transition, controlsRef, galaxySpinTimeRef }) {
       camera.position.add(recoilDirection.multiplyScalar(recoil));
       if (isPlanetEntry && !current.reducedMotion) {
         const brakeRumble = smoothstep(0.52, 0.78, capped);
-        const finalRumble = smoothstep(0.72, 0.92, capped);
-        const rumbleFalloff = 1 - smoothstep(0.996, 1, capped);
+        const rumbleFalloff = 1 - smoothstep(0.94, 1, capped);
         const travelRumble = Math.sin(capped * Math.PI) * 0.014;
-        const rumble = (brakeRumble * 0.05 + finalRumble * 0.16 + travelRumble) * rumbleFalloff;
+        const rumble = (brakeRumble * 0.065 + travelRumble) * rumbleFalloff;
         camera.position.x += (Math.sin(raw * 211) + Math.sin(raw * 389) * 0.52) * rumble;
         camera.position.y += (Math.cos(raw * 263) + Math.sin(raw * 421) * 0.42) * rumble * 0.58;
         camera.position.z += Math.sin(raw * 337) * rumble * 0.44;

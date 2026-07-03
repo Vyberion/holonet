@@ -1,11 +1,7 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const GALAXY_LFS_ASSET_BASE = "https://media.githubusercontent.com/media/Vyberion/holonet/migration/public/assets/galaxy";
-const GALAXY_TEXTURE_ROOT = path.join(process.cwd(), "public", "assets", "galaxy");
 
 const PLANETS = new Set([
   "coruscant",
@@ -39,14 +35,6 @@ const FILES = new Set([
   "water-preview.png"
 ]);
 
-function cacheHeaders(source) {
-  return {
-    "Cache-Control": "public, max-age=31536000, immutable",
-    "Content-Type": "image/png",
-    "X-Galaxy-Texture-Source": source
-  };
-}
-
 function cleanParam(value) {
   return String(value || "").trim().toLowerCase();
 }
@@ -55,16 +43,15 @@ function notFound() {
   return Response.json({ ok: false, reason: "NOT_FOUND" }, { status: 404 });
 }
 
-async function readLocalTexture(planet, file) {
-  const localPath = path.join(GALAXY_TEXTURE_ROOT, planet, file);
-  const rootWithSeparator = `${GALAXY_TEXTURE_ROOT}${path.sep}`;
-  if (!localPath.startsWith(rootWithSeparator)) return null;
-
-  try {
-    return await readFile(localPath);
-  } catch {
-    return null;
-  }
+function redirectToTexture(url) {
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: url,
+      "Cache-Control": "public, max-age=31536000, immutable",
+      "X-Galaxy-Texture-Source": "lfs-redirect"
+    }
+  });
 }
 
 export async function GET(_request, context) {
@@ -74,26 +61,5 @@ export async function GET(_request, context) {
 
   if (!PLANETS.has(planet) || !FILES.has(file)) return notFound();
 
-  const lfsUrl = `${GALAXY_LFS_ASSET_BASE}/${planet}/${file}`;
-  try {
-    const upstream = await fetch(lfsUrl, {
-      cache: "force-cache",
-      headers: {
-        Accept: "image/png,image/*;q=0.9,*/*;q=0.5",
-        "User-Agent": "holonet-galaxy-texture-loader"
-      }
-    });
-
-    if (upstream.ok) {
-      const bytes = await upstream.arrayBuffer();
-      return new Response(bytes, { status: 200, headers: cacheHeaders("lfs") });
-    }
-  } catch {}
-
-  const local = await readLocalTexture(planet, file);
-  if (local) {
-    return new Response(local, { status: 200, headers: cacheHeaders("local-fallback") });
-  }
-
-  return notFound();
+  return redirectToTexture(`${GALAXY_LFS_ASSET_BASE}/${planet}/${file}`);
 }

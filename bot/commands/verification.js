@@ -88,7 +88,7 @@ async function syncLinkedDiscordMemberRoles(client, guildId, discordUserId) {
 
   await postVerificationLog(client, {
     title: "User Verified",
-    description: `<@${discordUserId}> linked Discord to Roblox.`,
+    description: `<@${discordUserId}> linked their Discord to Roblox.`,
     fields: [
       { name: "Discord", value: `<@${discordUserId}>`, inline: true },
       { name: "Roblox", value: robloxLabel, inline: true },
@@ -115,8 +115,8 @@ async function syncLinkedDiscordMemberRoles(client, guildId, discordUserId) {
   if (warningSummary?.warnings?.length) {
     const warningMentions = VERIFICATION_WARNING_ROLE_IDS.map(roleId => `<@&${roleId}>`).join(" ");
     await postVerificationLog(client, {
-      title: "Discord Linked to Roblox - Warning",
-      description: `<@${discordUserId}> linked Discord to Roblox with personnel lookup warnings.`,
+      title: "User Verified - Warning",
+      description: `<@${discordUserId}> linked Discord to Roblox with warnings.`,
       color: VERIFICATION_WARNING_COLOR,
       content: warningMentions,
       allowedRoleIds: VERIFICATION_WARNING_ROLE_IDS,

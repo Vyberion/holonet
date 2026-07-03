@@ -37,6 +37,12 @@ import { divisionLockedHref, getDivision, listDivisions } from "../../modules/da
 import { extractGoogleFileId, extractGoogleTabId, googleWorkspaceKindFromUrl } from "./google-drive.js";
 
 const VERIFICATION_LOG_COLOR = 0xff3348;
+const VERIFICATION_WARNING_COLOR = 0x8f1d2c;
+const VERIFICATION_WARNING_ROLE_IDS = [
+  "1046451376236003359",
+  "1046451364965920848",
+  "1302790774458552331"
+];
 
 function getQueryParam(req, name) {
   return String(req?.query?.[name] || "").trim();
@@ -60,7 +66,7 @@ function verificationLogChannelId() {
   return process.env.DISCORD_VERIFICATION_LOG_CHANNEL_ID || "";
 }
 
-async function postVerificationLog({ title, description, fields = [] }) {
+async function postVerificationLog({ title, description, fields = [], color = VERIFICATION_LOG_COLOR, content = "", allowedRoleIds = [] }) {
   const token = discordToken();
   const channelId = verificationLogChannelId();
   if (!token || !channelId) return false;
@@ -68,7 +74,7 @@ async function postVerificationLog({ title, description, fields = [] }) {
   const embed = {
     title,
     description,
-    color: VERIFICATION_LOG_COLOR,
+    color,
     timestamp: new Date().toISOString(),
     fields: fields
       .filter(field => field?.name && field?.value !== undefined && field?.value !== null && String(field.value).trim())
@@ -86,8 +92,11 @@ async function postVerificationLog({ title, description, fields = [] }) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
+      content,
       embeds: [embed],
-      allowed_mentions: { parse: [] }
+      allowed_mentions: allowedRoleIds.length
+        ? { parse: [], roles: allowedRoleIds.map(String) }
+        : { parse: [] }
     })
   });
 
@@ -499,6 +508,30 @@ async function confirmDiscordLink(req) {
       { name: "Source", value: "Account page", inline: true }
     ]
   }).catch(() => null);
+
+  const warningSummary = await loadRobloxProfileSummary(robloxId)
+    .then(summary => ({
+      ...summary,
+      warnings: personnelLookupWarnings(summary)
+    }))
+    .catch(() => null);
+
+  if (warningSummary?.warnings?.length) {
+    const warningMentions = VERIFICATION_WARNING_ROLE_IDS.map(roleId => `<@&${roleId}>`).join(" ");
+    await postVerificationLog({
+      title: "Verification Warning",
+      description: `<@${pending.discord_user_id}> linked a Roblox account with personnel lookup warnings.`,
+      color: VERIFICATION_WARNING_COLOR,
+      content: warningMentions,
+      allowedRoleIds: VERIFICATION_WARNING_ROLE_IDS,
+      fields: [
+        { name: "Discord", value: `<@${pending.discord_user_id}>`, inline: true },
+        { name: "Roblox", value: `${auth.user.roblox_username || auth.user.roblox_display_name || robloxId} (${robloxId})`, inline: true },
+        { name: "Warnings", value: warningSummary.warnings.map(item => `**${item.label}:** ${item.detail}`).join("\n"), inline: false },
+        { name: "Lookup", value: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.HOLONET_BASE_URL || ""}/lookup?username=${encodeURIComponent(auth.user.roblox_username || robloxId)}`.replace(/^\/lookup/, "/lookup"), inline: false }
+      ]
+    }).catch(() => null);
+  }
 
   return {
     ok: true,
@@ -1675,6 +1708,58 @@ async function resolveUserByUsername(username) {
 
   const payload = await response.json();
   return payload.data?.[0] || null;
+}
+
+async function loadRobloxProfileSummary(robloxId) {
+  const [userResponse, groupResponse] = await Promise.all([
+    fetch(`https://users.roblox.com/v1/users/${robloxId}`),
+    fetch(`https://groups.roblox.com/v1/users/${robloxId}/groups/roles`)
+  ]);
+
+  if (!userResponse.ok || !groupResponse.ok) {
+    throw new Error("ROBLOX_PROFILE_LOOKUP_FAILED");
+  }
+
+  const user = await userResponse.json();
+  const groups = await groupResponse.json();
+  const [friendsResponse, badgeCountResult] = await Promise.all([
+    fetch(`https://friends.roblox.com/v1/users/${robloxId}/friends/count`),
+    fetchBadgeCount(robloxId).then(count => ({ ok: true, count })).catch(() => ({ ok: false, count: null }))
+  ]);
+
+  if (!friendsResponse.ok) {
+    throw new Error("ROBLOX_FRIEND_COUNT_FAILED");
+  }
+
+  const friendsPayload = await friendsResponse.json();
+  const accountCreated = user.created ? new Date(user.created) : null;
+  const accountAgeDays = accountCreated ? Math.max(0, Math.floor((Date.now() - accountCreated.getTime()) / (1000 * 60 * 60 * 24))) : null;
+
+  return {
+    user,
+    groups,
+    accountAgeDays,
+    friendsCount: friendsPayload.count ?? null,
+    badgeCount: badgeCountResult.ok ? badgeCountResult.count : null
+  };
+}
+
+function personnelLookupWarnings({ accountAgeDays, friendsCount, badgeCount }) {
+  const warnings = [];
+
+  if (accountAgeDays !== null && accountAgeDays < 30) {
+    warnings.push({ key: "low_age", label: "Low age account", detail: `Account is ${accountAgeDays} day${accountAgeDays === 1 ? "" : "s"} old.` });
+  }
+
+  if (typeof friendsCount === "number" && friendsCount < 20) {
+    warnings.push({ key: "low_friends", label: "Low number of friends", detail: `${friendsCount} friend${friendsCount === 1 ? "" : "s"} found.` });
+  }
+
+  if (typeof badgeCount === "number" && badgeCount < 10) {
+    warnings.push({ key: "low_badges", label: "Low number of badges", detail: `${badgeCount} badge${badgeCount === 1 ? "" : "s"} found.` });
+  }
+
+  return warnings;
 }
 
 async function fetchBadgeCount(userId) {
@@ -3053,27 +3138,7 @@ export const LEGACY_API_HANDLERS = {
         return res.status(200).json({ ok: false, reason: "USER_NOT_FOUND" });
       }
 
-      const [userResponse, groupResponse] = await Promise.all([
-        fetch(`https://users.roblox.com/v1/users/${resolved.id}`),
-        fetch(`https://groups.roblox.com/v1/users/${resolved.id}/groups/roles`)
-      ]);
-
-      if (!userResponse.ok || !groupResponse.ok) {
-        throw new Error("ROBLOX_PROFILE_LOOKUP_FAILED");
-      }
-
-      const user = await userResponse.json();
-      const groups = await groupResponse.json();
-      const [friendsResponse, badgeCountResult] = await Promise.all([
-        fetch(`https://friends.roblox.com/v1/users/${resolved.id}/friends/count`),
-        fetchBadgeCount(resolved.id).then(count => ({ ok: true, count })).catch(() => ({ ok: false, count: null }))
-      ]);
-
-      if (!friendsResponse.ok) {
-        throw new Error("ROBLOX_FRIEND_COUNT_FAILED");
-      }
-
-      const friendsPayload = await friendsResponse.json();
+      const { user, groups, accountAgeDays, friendsCount, badgeCount } = await loadRobloxProfileSummary(resolved.id);
       const mainGroupMembership = (groups.data || []).find(
         membership => membership?.group?.id === ROBLOX_GROUPS.HIGH_RANKS.groupId
       );
@@ -3090,21 +3155,7 @@ export const LEGACY_API_HANDLERS = {
           };
         })
         .filter(Boolean);
-      const accountCreated = user.created ? new Date(user.created) : null;
-      const accountAgeDays = accountCreated ? Math.max(0, Math.floor((Date.now() - accountCreated.getTime()) / (1000 * 60 * 60 * 24))) : null;
-      const warnings = [];
-
-      if (accountAgeDays !== null && accountAgeDays < 30) {
-        warnings.push({ key: "low_age", label: "Low age account", detail: `Account is ${accountAgeDays} day${accountAgeDays === 1 ? "" : "s"} old.` });
-      }
-
-      if (typeof friendsPayload.count === "number" && friendsPayload.count < 20) {
-        warnings.push({ key: "low_friends", label: "Low number of friends", detail: `${friendsPayload.count} friend${friendsPayload.count === 1 ? "" : "s"} found.` });
-      }
-
-      if (typeof badgeCountResult.count === "number" && badgeCountResult.count < 10) {
-        warnings.push({ key: "low_badges", label: "Low number of badges", detail: `${badgeCountResult.count} badge${badgeCountResult.count === 1 ? "" : "s"} found.` });
-      }
+      const warnings = personnelLookupWarnings({ accountAgeDays, friendsCount, badgeCount });
 
       return res.status(200).json({
         ok: true,
@@ -3115,8 +3166,8 @@ export const LEGACY_API_HANDLERS = {
           displayName: resolved.displayName || user.displayName || resolved.name || username,
           created: user.created || null,
           accountAgeDays,
-          friendsCount: friendsPayload.count ?? null,
-          badgeCount: badgeCountResult.ok ? badgeCountResult.count : null,
+          friendsCount,
+          badgeCount,
           profileUrl: `https://www.roblox.com/users/${resolved.id}/profile`,
           mainGroup: mainGroupMembership ? {
             inGroup: true,

@@ -11,7 +11,13 @@ export const metadata = holonetMetadata({
 
 export default function GalaxyPage() {
   return (
-    <HolonetFrame title="GALAXY" subtitle="CONTROL MAP" showHeader={false} footerNode="KOR-7">
+    <HolonetFrame
+      title="GALAXY"
+      subtitle="CONTROL MAP"
+      showHeader={false}
+      footerNode="KOR-7"
+      releaseIntro={{ enabled: false, waitForGalaxyReady: true }}
+    >
       <GalaxyMapExperience map={GALAXY_CONTROL_MAP} />
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} />
     </HolonetFrame>

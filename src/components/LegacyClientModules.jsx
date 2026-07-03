@@ -49,6 +49,7 @@ const moduleLoaders = {
 
 function runModuleInit(modulePath) {
   const initializers = {
+    "/modules/client/site.js": () => window.HolonetSite?.boot?.(),
     "/modules/client/library-view.js": () => window.initHolonetLibraryView?.(),
     "/modules/client/nexus.js": () => window.initHolonetNexus?.(),
     "/modules/client/report-cycle.js": () => window.initHolonetReportCycle?.(),

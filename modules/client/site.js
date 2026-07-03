@@ -8,6 +8,7 @@
   const OLD_GUARD_TITLE = "THE OLD GUARD";
   const canonCache = new Map();
   const canonFetches = new Map();
+  let editorOverlayBlurInitialized = false;
 
   function canonStorageKey(key) {
     return `holonet:canon:${key}`;
@@ -536,9 +537,11 @@
     }, { once: true });
   }
 
-  function waitForReleaseIntroReadiness() {
-    if (!getReleaseIntroConfig().waitForGalaxyReady) return Promise.resolve();
-    if (window.__holonetGalaxyLoaderDetail?.ready) return Promise.resolve();
+  function waitForGalaxyLoaderReadiness({ onProgress } = {}) {
+    if (window.__holonetGalaxyLoaderDetail) {
+      onProgress?.(window.__holonetGalaxyLoaderDetail);
+      if (window.__holonetGalaxyLoaderDetail.ready) return Promise.resolve(window.__holonetGalaxyLoaderDetail);
+    }
 
     return new Promise(resolve => {
       let resolved = false;
@@ -548,20 +551,28 @@
         window.removeEventListener("holonet:galaxy-loader-ready", finish);
       }
 
-      function finish() {
+      function finish(event) {
         if (resolved) return;
         resolved = true;
+        const detail = event?.detail || window.__holonetGalaxyLoaderDetail || { ready: true, progress: 100 };
+        onProgress?.(detail);
         cleanup();
-        resolve();
+        resolve(detail);
       }
 
       function handleProgress(event) {
+        onProgress?.(event?.detail);
         if (event?.detail?.ready) finish();
       }
 
       window.addEventListener("holonet:galaxy-loader-progress", handleProgress);
       window.addEventListener("holonet:galaxy-loader-ready", finish);
     });
+  }
+
+  function waitForReleaseIntroReadiness() {
+    if (!getReleaseIntroConfig().waitForGalaxyReady) return Promise.resolve();
+    return waitForGalaxyLoaderReadiness();
   }
 
   function waitForReleaseIntroLoadGate() {
@@ -804,18 +815,18 @@
     }
   }
 
-  function runStandardLoader(loader) {
+  async function runStandardLoader(loader) {
     const loaderAlreadyShown = sessionStorage.getItem(LOADER_SHOWN_KEY);
     const accessPending = document.documentElement.classList.contains("access-pending");
     const path = window.location.pathname.replace(/\/+$/, "") || "/";
     const waitForGalaxyLoader = path === "/galaxy" || Boolean(document.querySelector(".gm-root"));
-    let galaxyReady = !waitForGalaxyLoader;
-    let pageReady = waitForGalaxyLoader || document.readyState === "complete";
+    const loaderRunId = `${path}:${Date.now()}`;
 
     if (!loaderAlreadyShown) {
       sessionStorage.setItem(LOADER_SHOWN_KEY, "true");
     }
 
+    loader.dataset.standardLoaderRun = loaderRunId;
     setLoaderPhase(loader, "standard");
     const stopProgress = waitForGalaxyLoader
       ? () => {}
@@ -824,69 +835,41 @@
         cap: accessPending ? 93 : 88
       });
 
-    if (waitForGalaxyLoader) {
-      setLoaderProgress(loader, 4);
-    }
+    const isCurrentRun = () => loader.dataset.standardLoaderRun === loaderRunId;
 
-    function handleGalaxyProgress(event) {
-      const progress = Number(event?.detail?.progress);
+    function setGalaxyProgress(detail) {
+      if (!isCurrentRun()) return;
+      const progress = Number(detail?.progress);
       if (Number.isFinite(progress)) {
         setLoaderProgress(loader, progress);
         const loaderText = loader.querySelector(".loader-text");
         if (loaderText) {
-          loaderText.textContent = progress >= 100
+          loaderText.textContent = progress >= 100 || detail?.ready
             ? "Link Established"
             : `Establishing Link... ${Math.round(progress)}%`;
         }
       }
-      if (event?.detail?.ready) {
-        galaxyReady = true;
-        waitForAccessAndHide();
-      }
     }
 
-    function handleGalaxyReady(event) {
-      const progress = Number(event?.detail?.progress);
-      if (Number.isFinite(progress)) setLoaderProgress(loader, progress);
-      galaxyReady = true;
-      waitForAccessAndHide();
-    }
-
-    function cleanupGalaxyListeners() {
-      if (!waitForGalaxyLoader) return;
-      window.removeEventListener("holonet:galaxy-loader-progress", handleGalaxyProgress);
-      window.removeEventListener("holonet:galaxy-loader-ready", handleGalaxyReady);
-    }
-
-    if (waitForGalaxyLoader) {
-      window.addEventListener("holonet:galaxy-loader-progress", handleGalaxyProgress);
-      window.addEventListener("holonet:galaxy-loader-ready", handleGalaxyReady);
-      if (window.__holonetGalaxyLoaderDetail) {
-        handleGalaxyProgress({ detail: window.__holonetGalaxyLoaderDetail });
-      }
-    }
-
-    function waitForAccessAndHide() {
-      if (document.documentElement.classList.contains("access-pending")) {
-        setTimeout(waitForAccessAndHide, 50);
-        return;
+    try {
+      if (waitForGalaxyLoader) {
+        setLoaderProgress(loader, 4);
+        await waitForGalaxyLoaderReadiness({ onProgress: setGalaxyProgress });
+      } else {
+        await waitForWindowLoad();
       }
 
-      if (!galaxyReady) return;
-      if (!pageReady && !waitForGalaxyLoader) return;
+      await waitForAccessClear();
+      if (!isCurrentRun()) return;
 
       stopProgress();
-      cleanupGalaxyListeners();
       hideLoader(loader);
-    }
-
-    if (pageReady) {
-      waitForAccessAndHide();
-    } else {
-      window.addEventListener("load", () => {
-        pageReady = true;
-        waitForAccessAndHide();
-      }, { once: true });
+    } catch (error) {
+      console.warn("Holonet loader failed:", error);
+      if (isCurrentRun()) {
+        stopProgress();
+        hideLoader(loader);
+      }
     }
   }
 
@@ -908,6 +891,8 @@
 
   function initDirectoryCards() {
     document.querySelectorAll(".dir-card[data-href]").forEach(card => {
+      if (card.dataset.directoryCardBound === "true") return;
+      card.dataset.directoryCardBound = "true";
       card.addEventListener("click", event => {
         if (event.target.closest("a, button")) return;
         window.location.href = card.dataset.href;
@@ -916,6 +901,9 @@
   }
 
   function initEditorOverlayBlur() {
+    if (editorOverlayBlurInitialized) return;
+    editorOverlayBlurInitialized = true;
+
     const overlaySelectors = [
       "#resource-editor-overlay",
       "#library-editor-overlay",

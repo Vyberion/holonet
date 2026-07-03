@@ -285,9 +285,17 @@ async function replyClockError(interaction, error) {
 
 async function replyShiftSummary(interaction) {
   const [shift, totals] = await Promise.all([activeShift(interaction.user.id), shiftTotals(interaction.user.id)]);
-  const activeText = shift ? `Current Shift: ${shift.scope}, started <t:${Math.floor(new Date(shift.started_at).getTime() / 1000)}:R>` : "Current Shift: none";
+  const activeLines = shift ? [
+    `Scope: ${scopeLabel(shift.scope)}`,
+    `Current Shift: ${formatDuration(shiftTotalSeconds(shift))}`,
+    `Started: <t:${Math.floor(new Date(shift.started_at).getTime() / 1000)}:R>`
+  ] : [
+    "Scope: none",
+    "Current Shift: none",
+    "Started: none"
+  ];
   const adjustmentText = totals.adjustmentSeconds ? `\nAdjustments: ${totals.adjustmentSeconds >= 0 ? "+" : "-"}${formatDuration(Math.abs(totals.adjustmentSeconds))}` : "";
-  await interaction.reply(ephemeral({ embeds: [embed("Shift Time", `${activeText}\nTotal Time: ${formatDuration(totals.totalSeconds)}${adjustmentText}`)] }));
+  await interaction.reply(ephemeral({ embeds: [embed("Shift Time", `${activeLines.join("\n")}\nTotal Time: ${formatDuration(totals.totalSeconds)}${adjustmentText}`)] }));
 }
 
 async function canAdjustTarget(interaction, targetUser) {

@@ -1,4 +1,7 @@
 (function () {
+  let initInFlight = null;
+  let lastInitSignature = "";
+
   function setText(id, value) {
     const element = document.getElementById(id);
     if (element) element.textContent = value;
@@ -86,9 +89,14 @@
       sessionStorage.removeItem("holonet:discord-link-token");
       if (status) status.textContent = `Discord linked to @${payload.robloxUsername}. Return to Discord and run /update-roles.`;
       if (button) button.textContent = "LINKED";
+      console.info("Holonet Discord link confirmed", { robloxUsername: payload.robloxUsername });
     } catch (error) {
       if (status) status.textContent = error.message.replace(/_/g, " ");
-      if (button) button.disabled = false;
+      if (button) {
+        button.hidden = false;
+        button.disabled = false;
+      }
+      console.warn("Holonet Discord link confirm failed", { error: error.message });
     }
   }
 
@@ -118,17 +126,31 @@
 
       if (response.ok && data.bound) {
         updateUiBound(data.robloxId, data.robloxUsername);
+        return data;
       } else {
         clearCachedIdentity();
         updateUiUnbound();
+        return data;
       }
     } catch (error) {
       console.error("Failed looking up security clearance session:", error);
       updateUiUnbound();
+      return { bound: false, error: error.message };
     }
   }
 
-  async function initAccount() {
+  function accountInitSignature() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const incomingDiscordLink = urlParams.get("discordLink");
+    const storedDiscordLink = sessionStorage.getItem("holonet:discord-link-token");
+    return [
+      window.location.pathname,
+      window.location.search,
+      incomingDiscordLink || storedDiscordLink || ""
+    ].join("|");
+  }
+
+  async function runAccountInit() {
     const urlParams = new URLSearchParams(window.location.search);
     const status = urlParams.get("status");
     const errorMessage = urlParams.get("msg");
@@ -149,7 +171,7 @@
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    await fetchSessionStatus();
+    const sessionStatus = await fetchSessionStatus();
 
     if (discordLink && discordBox) {
       discordBox.hidden = false;
@@ -158,18 +180,35 @@
         discordButton.disabled = true;
       }
 
-      const loggedIn = localStorage.getItem("sith_roblox_id");
-      if (!loggedIn) {
+      if (!sessionStatus?.bound) {
         const statusNode = document.getElementById("discord-link-status");
         if (statusNode) statusNode.textContent = "Log in to the website with Roblox first. Discord will link automatically after login.";
+        console.info("Holonet Discord link waiting for Roblox login", {
+          reason: sessionStatus?.reason || sessionStatus?.error || "SESSION_NOT_BOUND"
+        });
       } else {
+        console.info("Holonet Discord link confirm starting", { robloxId: sessionStatus.robloxId });
         await confirmDiscordLink(discordLink);
       }
     }
   }
 
+  function initAccount() {
+    const signature = accountInitSignature();
+    if (initInFlight) return initInFlight;
+    if (lastInitSignature === signature) return Promise.resolve();
+
+    lastInitSignature = signature;
+    initInFlight = runAccountInit().finally(() => {
+      initInFlight = null;
+    });
+    return initInFlight;
+  }
+
+  window.initHolonetAccount = initAccount;
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initAccount);
+    document.addEventListener("DOMContentLoaded", initAccount, { once: true });
   } else {
     initAccount();
   }

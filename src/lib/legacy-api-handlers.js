@@ -495,6 +495,11 @@ function requestRootOrigin(req) {
   return host ? `${protocol}://${host}` : "";
 }
 
+function oauthRedirectUri(req) {
+  const origin = requestRootOrigin(req);
+  return origin ? `${origin}/api/auth/callback` : String(process.env.ROBLOX_REDIRECT_URI || "");
+}
+
 function encodeInList(values) {
   return `(${values.map(value => String(value).replace(/[(),]/g, "")).join(",")})`;
 }
@@ -2636,10 +2641,15 @@ async function writeTimelineEntry(auth, body) {
 export const LEGACY_API_HANDLERS = {
   "auth/login": async (req, res) => {
     const clientID = process.env.ROBLOX_CLIENT_ID;
-    const redirectUri = encodeURIComponent(process.env.ROBLOX_REDIRECT_URI);
+    const redirectUri = oauthRedirectUri(req);
     const state = createRandomToken();
     const scope = encodeURIComponent("openid profile");
-    const robloxAuthUrl = `https://apis.roblox.com/oauth/v1/authorize?client_id=${clientID}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&state=${encodeURIComponent(state)}`;
+    const robloxAuthUrl = `https://apis.roblox.com/oauth/v1/authorize?client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=code&state=${encodeURIComponent(state)}`;
+
+    console.info("Roblox OAuth login", {
+      host: req?.headers?.host || "",
+      redirectUri
+    });
 
     res.setHeader("Set-Cookie", serializeCookie(STATE_COOKIE, state, { maxAge: 60 * 10 }));
     return res.redirect(robloxAuthUrl);
@@ -2708,7 +2718,7 @@ export const LEGACY_API_HANDLERS = {
           client_secret: process.env.ROBLOX_CLIENT_SECRET,
           grant_type: "authorization_code",
           code,
-          redirect_uri: process.env.ROBLOX_REDIRECT_URI
+          redirect_uri: oauthRedirectUri(req)
         })
       });
 

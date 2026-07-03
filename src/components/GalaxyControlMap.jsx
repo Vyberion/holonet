@@ -1513,7 +1513,7 @@ function usePlanetTextureSet(body, enabled = true, allowFull = false, previewKey
   return textures;
 }
 
-function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
+function PlanetTexturePreloader({ map, view }) {
   const maxAnisotropy = useThree(state => Math.min(12, state.gl.capabilities.getMaxAnisotropy?.() || 8));
   const entries = useMemo(() => {
     if (view.mode === "galaxy") return [];
@@ -1534,11 +1534,9 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
       readySent = true;
       if (fallbackTimer) window.clearTimeout(fallbackTimer);
       if (settledPoll) window.clearInterval(settledPoll);
-      onReady?.();
     };
 
     if (!entries.length || entries.every(entry => planetTextureIsSettled(entry, "preview"))) {
-      onProgress?.({ loaded: entries.length, total: entries.length });
       sendReady();
       return () => {};
     }
@@ -1546,14 +1544,11 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
     fallbackTimer = window.setTimeout(sendReady, SURFACE_REVEAL_TIMEOUT_MS);
     settledPoll = window.setInterval(() => {
       if (entries.every(entry => planetTextureIsSettled(entry, "preview"))) {
-        onProgress?.({ loaded: entries.length, total: entries.length });
         sendReady();
       }
     }, 80);
 
-    loadPlanetTextureEntries(entries, maxAnisotropy, progress => {
-      if (!cancelled) onProgress?.(progress);
-    }, "preview").then(() => {
+    loadPlanetTextureEntries(entries, maxAnisotropy, null, "preview").then(() => {
       sendReady();
     });
 
@@ -1562,7 +1557,7 @@ function PlanetTexturePreloader({ map, view, onProgress, onReady }) {
       if (fallbackTimer) window.clearTimeout(fallbackTimer);
       if (settledPoll) window.clearInterval(settledPoll);
     };
-  }, [entries, maxAnisotropy, onProgress, onReady]);
+  }, [entries, maxAnisotropy]);
 
   return null;
 }
@@ -2323,7 +2318,7 @@ function GalaxyScene({ map, view, hoveredSectorId, hoveredPlanetId, onSelectSect
     <>
       <color attach="background" args={["#030105"]} />
       <BackgroundPlanetTextureLoader map={map} onProgress={onAssetsProgress} onReady={onAssetsReady} />
-      <PlanetTexturePreloader map={map} view={view} onProgress={onAssetsProgress} onReady={onAssetsReady} />
+      <PlanetTexturePreloader map={map} view={view} />
       <fogExp2 attach="fog" args={["#050107", view.mode === "planet" ? 0.00042 : 0.003]} />
       <ambientLight intensity={view.mode === "planet" ? 0.14 : 0.2} color="#4d1b20" />
       <directionalLight position={[5.6, 3.2, 4.4]} intensity={view.mode === "planet" ? 4.4 : 3.2} color="#ffd8a8" />
@@ -2554,10 +2549,6 @@ export function GalaxyMapExperience({ map }) {
   }, []);
 
   useEffect(() => {
-    if (view.mode === "planet") setPlanetTextureProgress({ loaded: 0, total: 1 });
-  }, [view.mode, view.sectorId, view.planetId]);
-
-  useEffect(() => {
     window.__holonetGalaxyLoaderDetail = galaxyLoaderDetail;
     window.dispatchEvent(new CustomEvent("holonet:galaxy-loader-progress", { detail: galaxyLoaderDetail }));
     if (ready) window.dispatchEvent(new CustomEvent("holonet:galaxy-loader-ready", { detail: galaxyLoaderDetail }));
@@ -2620,9 +2611,7 @@ export function GalaxyMapExperience({ map }) {
     let revealStarted = false;
 
     const preloadPlanet = previewEntries.length
-      ? loadPlanetTextureEntries(previewEntries, 8, progress => {
-          if (planetTransitionRunRef.current === transitionRun) setPlanetTextureProgress(progress);
-        }, "preview").catch(() => {})
+      ? loadPlanetTextureEntries(previewEntries, 8, null, "preview").catch(() => {})
       : Promise.resolve();
 
     const startReveal = () => {
@@ -2670,8 +2659,6 @@ export function GalaxyMapExperience({ map }) {
       hyperspace: false,
       reducedMotion
     }));
-    setPlanetTextureProgress({ loaded: previewEntries.filter(entry => planetTextureIsSettled(entry, "preview")).length, total: Math.max(1, previewEntries.length) });
-
     queueTransitionTimer(() => {
       if (planetTransitionRunRef.current !== transitionRun) return;
       setView({ mode: "planet", sectorId: planet.sectorId, planetId });

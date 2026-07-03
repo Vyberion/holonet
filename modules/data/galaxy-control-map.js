@@ -1,20 +1,30 @@
 const GALAXY_LFS_ASSET_BASE = "https://media.githubusercontent.com/media/Vyberion/holonet/migration/public/assets/galaxy";
+const GALAXY_LOCAL_ASSET_BASE = "/assets/galaxy";
+
+const TEXTURE_FILE_NAMES = {
+  diffuse: "diffuse.png",
+  color: "color.png",
+  bump: "bump.png",
+  elevation: "elevation.png",
+  roughness: "roughness.png",
+  specular: "specular.png",
+  water: "water.png",
+  lights: "lights.png",
+  clouds: "clouds.png",
+  cloudColor: "cloud-color.png",
+  cloudBump: "cloud-bump.png"
+};
+
+const previewFileName = fileName => fileName.replace(/\.png$/, "-preview.png");
 
 const galaxyPlanetTextures = folder => {
-  const base = folder === "korriban" ? `/assets/galaxy/${folder}` : `${GALAXY_LFS_ASSET_BASE}/${folder}`;
-  return {
-    diffuse: `${base}/diffuse.png`,
-    color: `${base}/color.png`,
-    bump: `${base}/bump.png`,
-    elevation: `${base}/elevation.png`,
-    roughness: `${base}/roughness.png`,
-    specular: `${base}/specular.png`,
-    water: `${base}/water.png`,
-    lights: `${base}/lights.png`,
-    clouds: `${base}/clouds.png`,
-    cloudColor: `${base}/cloud-color.png`,
-    cloudBump: `${base}/cloud-bump.png`
-  };
+  const localBase = `${GALAXY_LOCAL_ASSET_BASE}/${folder}`;
+  const fullBase = folder === "korriban" ? localBase : `${GALAXY_LFS_ASSET_BASE}/${folder}`;
+
+  return Object.fromEntries(Object.entries(TEXTURE_FILE_NAMES).flatMap(([key, fileName]) => [
+    [key, `${fullBase}/${fileName}`],
+    [`${key}Preview`, `${localBase}/${previewFileName(fileName)}`]
+  ]));
 };
 
 const REMOTE_PLANET_TEXTURES_ENABLED = true;
@@ -22,7 +32,10 @@ const REMOTE_PLANET_TEXTURES_ENABLED = true;
 const onlyPlanetTextures = (folder, keys) => {
   if (!REMOTE_PLANET_TEXTURES_ENABLED && folder !== "korriban") return {};
   const textures = galaxyPlanetTextures(folder);
-  return Object.fromEntries(keys.map(key => [key, textures[key]]));
+  return Object.fromEntries(keys.flatMap(key => [
+    [key, textures[key]],
+    [`${key}Preview`, textures[`${key}Preview`]]
+  ]));
 };
 
 export const GALAXY_CONTROL_MAP = {

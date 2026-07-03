@@ -670,7 +670,7 @@ async function confirmDiscordLink(req) {
   const webLink = lookupUrlForRequest(req, auth.user.roblox_username || robloxId);
 
   const linkedLogSent = await postVerificationLogSafely({
-    title: "Discord Linked to Roblox",
+    title: "User Verified",
     description: `<@${pending.discord_user_id}> linked Discord to Roblox.`,
     fields: [
       { name: "Discord", value: `<@${pending.discord_user_id}>`, inline: true },
@@ -703,8 +703,8 @@ async function confirmDiscordLink(req) {
   if (warningSummary?.warnings?.length) {
     const warningMentions = VERIFICATION_WARNING_ROLE_IDS.map(roleId => `<@&${roleId}>`).join(" ");
     const warningLogSent = await postVerificationLogSafely({
-      title: "Discord Linked to Roblox - Warning",
-      description: `<@${pending.discord_user_id}> linked Discord to Roblox with personnel lookup warnings.`,
+      title: "User Verified - Warning",
+      description: `<@${pending.discord_user_id}> linked Discord to Roblox with warnings.`,
       color: VERIFICATION_WARNING_COLOR,
       content: warningMentions,
       allowedRoleIds: VERIFICATION_WARNING_ROLE_IDS,

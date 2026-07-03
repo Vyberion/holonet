@@ -81,7 +81,7 @@ async function syncLinkedDiscordMemberRoles(client, guildId, discordUserId) {
   console.log(`Post-link role sync updated ${discordUserId}: added ${result.added.length}, removed ${result.removed.length}.`);
 
   await postVerificationLog(client, {
-    title: "Discord Linked to Roblox",
+    title: "User Verified",
     description: `<@${discordUserId}> linked Discord to Roblox.`,
     fields: [
       { name: "Discord", value: `<@${discordUserId}>`, inline: true },

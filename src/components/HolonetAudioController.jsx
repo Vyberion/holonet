@@ -7,16 +7,21 @@ const GALAXY_MUSIC_SRC = "/assets/music/galaxy/suspense.mp3";
 const GALAXY_MUSIC_VOLUME = 0.224;
 const GALAXY_MUSIC_FADE_MS = 1200;
 
+function clampVolume(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
 function fadeAudio(audio, targetVolume, duration, frameRef) {
   if (frameRef.current) cancelAnimationFrame(frameRef.current);
 
-  const fromVolume = Number(audio.volume) || 0;
+  const fromVolume = clampVolume(audio.volume);
+  const safeTargetVolume = clampVolume(targetVolume);
   const startedAt = performance.now();
   const fadeDuration = Math.max(0, Number(duration) || 0);
 
   function frame(now) {
     const progress = fadeDuration ? Math.min(1, (now - startedAt) / fadeDuration) : 1;
-    audio.volume = fromVolume + (targetVolume - fromVolume) * progress;
+    audio.volume = clampVolume(fromVolume + (safeTargetVolume - fromVolume) * progress);
     if (progress < 1) {
       frameRef.current = requestAnimationFrame(frame);
     } else {
@@ -54,15 +59,28 @@ export function HolonetAudioController() {
       const audio = audioRef.current;
       if (!audio || unlockedRef.current) return;
 
-      unlockedRef.current = true;
       audio.volume = 0;
-      const playAttempt = audio.play();
-      if (playAttempt?.catch) playAttempt.catch(() => {});
-      if (isGalaxy) fadeAudio(audio, GALAXY_MUSIC_VOLUME, GALAXY_MUSIC_FADE_MS, fadeFrameRef);
+      const markUnlocked = () => {
+        unlockedRef.current = true;
+        if (isGalaxy) fadeAudio(audio, GALAXY_MUSIC_VOLUME, GALAXY_MUSIC_FADE_MS, fadeFrameRef);
+      };
+
+      try {
+        const playAttempt = audio.play();
+        if (playAttempt?.then) {
+          playAttempt.then(markUnlocked).catch(() => {
+            unlockedRef.current = false;
+          });
+        } else {
+          markUnlocked();
+        }
+      } catch {
+        unlockedRef.current = false;
+      }
     }
 
-    window.addEventListener("pointerdown", unlockAudio, { once: true, passive: true });
-    window.addEventListener("keydown", unlockAudio, { once: true });
+    window.addEventListener("pointerdown", unlockAudio, { passive: true });
+    window.addEventListener("keydown", unlockAudio);
 
     return () => {
       window.removeEventListener("pointerdown", unlockAudio);

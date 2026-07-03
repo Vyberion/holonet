@@ -49,7 +49,6 @@ const PLANET_PRELOAD_MAX_MS = 2600;
 const PLANET_HYPERSPACE_LINE_EXIT_DELAY_MS = 400;
 const PLANET_HYPERSPACE_LINE_FADE_MS = 360;
 const SURFACE_REVEAL_TIMEOUT_MS = 5000;
-const PAGE_DIFFUSE_PREVIEW_TIMEOUT_MS = 4500;
 const BODY_Y_OFFSET = 0.05;
 const PARTICLE_COUNTS = {
   high: { stars: 26000, dust: 52000, clouds: 180, sky: 16000, sparkles: 460, streaks: 1650 },
@@ -1571,15 +1570,25 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
     let cancelled = false;
     let cursor = 0;
     let readySent = false;
-    let fallbackTimer = null;
     let loaded = entries.filter(entry => planetTextureIsSettled(entry, "preview")).length;
     const total = entries.length;
     onProgress?.({ loaded, total });
+    const startWarmup = () => {
+      window.setTimeout(() => {
+        if (cancelled) return;
+        warmEntries.forEach(entry => {
+          if (!REQUIRED_PREVIEW_TEXTURE_KEYS.has(entry.key)) {
+            loadPlanetAssetTexture(entry, maxAnisotropy, "preview").catch(() => {});
+          }
+          loadPlanetAssetTexture(entry, maxAnisotropy, "full").catch(() => {});
+        });
+      }, 0);
+    };
     const sendReady = () => {
       if (cancelled || readySent) return;
       readySent = true;
-      if (fallbackTimer) window.clearTimeout(fallbackTimer);
       onReady?.();
+      startWarmup();
     };
 
     if (!total || loaded >= total) {
@@ -1595,13 +1604,6 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
       if (loaded >= total) sendReady();
     };
 
-    fallbackTimer = window.setTimeout(() => {
-      if (cancelled || readySent) return;
-      loaded = total;
-      onProgress?.({ loaded, total });
-      sendReady();
-    }, PAGE_DIFFUSE_PREVIEW_TIMEOUT_MS);
-
     const workers = Array.from({ length: 2 }, async () => {
       while (!cancelled && cursor < entries.length) {
         const entry = entries[cursor];
@@ -1614,20 +1616,9 @@ function BackgroundPlanetTextureLoader({ map, onProgress, onReady }) {
       }
     });
 
-    window.setTimeout(() => {
-      if (cancelled) return;
-      warmEntries.forEach(entry => {
-        if (!REQUIRED_PREVIEW_TEXTURE_KEYS.has(entry.key)) {
-          loadPlanetAssetTexture(entry, maxAnisotropy, "preview").catch(() => {});
-        }
-        loadPlanetAssetTexture(entry, maxAnisotropy, "full").catch(() => {});
-      });
-    }, 0);
-
     Promise.all(workers).catch(() => {});
     return () => {
       cancelled = true;
-      if (fallbackTimer) window.clearTimeout(fallbackTimer);
     };
   }, [entries, warmEntries, maxAnisotropy, onProgress, onReady]);
 
@@ -2458,7 +2449,6 @@ function getPlanetSummary(map, planetId) {
 
 export function GalaxyMapExperience({ map }) {
   const normalizedMap = useMemo(() => normalizeMap(map || {}), [map]);
-  const [canvasReady, setCanvasReady] = useState(false);
   const [assetsReady, setAssetsReady] = useState(false);
   const [planetTextureProgress, setPlanetTextureProgress] = useState({ loaded: 0, total: 1 });
   const [view, setView] = useState({ mode: "galaxy", sectorId: null, planetId: null });
@@ -2481,12 +2471,11 @@ export function GalaxyMapExperience({ map }) {
     ? hoveredPlanetSummary || planetSummary
     : planetSummary;
   const panelFaction = displayedPlanetSummary?.faction || displayedSectorSummary?.faction || null;
-  const ready = canvasReady && assetsReady;
+  const ready = assetsReady;
   const textureProgress = planetTextureProgress.total > 0
     ? (planetTextureProgress.loaded / planetTextureProgress.total) * 100
     : 100;
-  const assetProgress = textureProgress;
-  const galaxyLoaderProgress = ready ? 100 : Math.min(99, Math.round((canvasReady ? 12 : 3) + assetProgress * 0.86));
+  const galaxyLoaderProgress = ready ? 100 : Math.min(99, Math.round(textureProgress));
   const galaxyLoaderDetail = useMemo(() => ({
     active: !ready,
     progress: galaxyLoaderProgress,
@@ -2753,7 +2742,6 @@ export function GalaxyMapExperience({ map }) {
             gl.toneMappingExposure = 0.9;
             gl.outputColorSpace = THREE.SRGBColorSpace;
             scene.background = new THREE.Color("#030105");
-            setCanvasReady(true);
           }}
         >
           <GalaxyScene

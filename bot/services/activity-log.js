@@ -12,7 +12,7 @@ function activityLogChannelId(channelKey = "activityLog") {
   return String(config.channels?.[channelKey] || config.channels?.activityLog || DEFAULT_ACTIVITY_LOG_CHANNEL_ID).trim();
 }
 
-export async function postActivityLog(client, { title, description, fields = [], channelKey = "activityLog" }) {
+export async function postActivityLog(client, { title, description, fields = [], channelKey = "activityLog", color = null, content = "", allowedRoleIds = [] }) {
   const channelId = activityLogChannelId(channelKey);
   if (!client || !channelId) return false;
 
@@ -20,7 +20,7 @@ export async function postActivityLog(client, { title, description, fields = [],
     const channel = await client.channels.fetch(channelId);
     if (!channel?.isTextBased?.() || typeof channel.send !== "function") throw new Error("ACTIVITY_LOG_CHANNEL_UNAVAILABLE");
 
-    const messageEmbed = embed(title, description);
+    const messageEmbed = embed(title, description, color ? { color } : {});
     fields
       .filter(field => field?.name && field?.value !== undefined && field?.value !== null && String(field.value).trim())
       .forEach(field => messageEmbed.addFields({
@@ -30,8 +30,11 @@ export async function postActivityLog(client, { title, description, fields = [],
       }));
 
     await channel.send({
+      content,
       embeds: [messageEmbed],
-      allowedMentions: { parse: [] }
+      allowedMentions: allowedRoleIds.length
+        ? { parse: [], roles: allowedRoleIds.map(String) }
+        : { parse: [] }
     });
     return true;
   } catch (error) {

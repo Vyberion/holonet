@@ -5,13 +5,19 @@ import { createLinkToken, isLinkTokenConsumed, unlinkDiscordUser } from "../serv
 import { embed, ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
 import { postVerificationLog } from "../services/activity-log.js";
 import { canManageBot, canUpdateMemberRoles, getVerifiedProfile, syncMemberRoles } from "../services/roles.js";
-import { loadGroupRoles, loadRobloxUser } from "../services/roblox.js";
+import { loadGroupRoles, loadRobloxProfileSummary, loadRobloxUser, personnelLookupWarnings } from "../services/roblox.js";
 import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
 
 const DISABLED_COMMANDS = new Set();
 const DISABLED_BUTTONS = new Set();
 const POST_LINK_ROLE_SYNC_POLL_MS = 5 * 1000;
 const POST_LINK_ROLE_SYNC_GRACE_MS = 30 * 1000;
+const VERIFICATION_WARNING_COLOR = 0x8f1d2c;
+const VERIFICATION_WARNING_ROLE_IDS = [
+  "1046451376236003359",
+  "1046451364965920848",
+  "1302790774458552331"
+];
 const pendingPostLinkRoleSyncs = new Map();
 
 const allCommands = [
@@ -89,6 +95,39 @@ async function syncLinkedDiscordMemberRoles(client, guildId, discordUserId) {
       { name: "Web Link", value: lookupUrl(robloxName), inline: false }
     ].filter(Boolean)
   });
+
+  const warningSummary = robloxId !== "Unknown"
+    ? await loadRobloxProfileSummary(robloxId)
+      .then(summary => ({
+        ...summary,
+        warnings: personnelLookupWarnings(summary)
+      }))
+      .catch(error => {
+        console.warn("Post-link warning lookup failed", {
+          discordUserId,
+          robloxId,
+          reason: roleSyncLogReason(error)
+        });
+        return null;
+      })
+    : null;
+
+  if (warningSummary?.warnings?.length) {
+    const warningMentions = VERIFICATION_WARNING_ROLE_IDS.map(roleId => `<@&${roleId}>`).join(" ");
+    await postVerificationLog(client, {
+      title: "Discord Linked to Roblox - Warning",
+      description: `<@${discordUserId}> linked Discord to Roblox with personnel lookup warnings.`,
+      color: VERIFICATION_WARNING_COLOR,
+      content: warningMentions,
+      allowedRoleIds: VERIFICATION_WARNING_ROLE_IDS,
+      fields: [
+        { name: "Discord", value: `<@${discordUserId}>`, inline: true },
+        { name: "Roblox", value: robloxLabel, inline: true },
+        { name: "Warnings", value: warningSummary.warnings.map(item => `**${item.label}:** ${item.detail}`).join("\n"), inline: false },
+        { name: "Web Link", value: lookupUrl(robloxName), inline: false }
+      ]
+    });
+  }
 }
 
 function schedulePostLinkRoleSync(interaction, link) {

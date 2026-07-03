@@ -163,7 +163,7 @@ const PLANET_TEXTURE_CACHE = new Map();
 const PLANET_ASSET_TEXTURE_CACHE = new Map();
 const PLANET_ASSET_TEXTURE_RESOLVED = new Map();
 const PLANET_ASSET_TEXTURE_STATUS = new Map();
-const PLANET_ASSET_TEXTURE_SETTLE_MS = 9000;
+const PREVIEW_TEXTURE_SETTLE_MS = 9000;
 
 function seededRandom(seed) {
   let state = seed >>> 0;
@@ -265,18 +265,19 @@ function configurePlanetTexture(texture, { color = false, anisotropy = 8, maxSiz
 function loadOptionalPlanetTexture(loader, url, options) {
   return new Promise(resolve => {
     if (!url) {
-      resolve(null);
+      resolve({ texture: null, timedOut: false });
       return;
     }
 
     let settled = false;
-    const settle = texture => {
+    let timeout = null;
+    const settle = (texture, timedOut = false) => {
       if (settled) return;
       settled = true;
-      window.clearTimeout(timeout);
-      resolve(texture);
+      if (timeout) window.clearTimeout(timeout);
+      resolve({ texture, timedOut });
     };
-    const timeout = window.setTimeout(() => settle(null), PLANET_ASSET_TEXTURE_SETTLE_MS);
+    if (options.timeoutMs) timeout = window.setTimeout(() => settle(null, true), options.timeoutMs);
 
     loader.setCrossOrigin("anonymous");
     loader.load(
@@ -285,7 +286,7 @@ function loadOptionalPlanetTexture(loader, url, options) {
       undefined,
       () => settle(null)
     );
-  }, -1);
+  });
 }
 
 function planetTextureEntries(body) {
@@ -342,7 +343,12 @@ function loadPlanetAssetTexture(entry, anisotropy, quality = "full") {
     PLANET_ASSET_TEXTURE_STATUS.set(cacheKey, "pending");
     PLANET_ASSET_TEXTURE_CACHE.set(
       cacheKey,
-      loadOptionalPlanetTexture(loader, url, { color: entry.color, anisotropy, maxSize }).then(texture => {
+      loadOptionalPlanetTexture(loader, url, {
+        color: entry.color,
+        anisotropy,
+        maxSize,
+        timeoutMs: quality === "preview" ? PREVIEW_TEXTURE_SETTLE_MS : null
+      }).then(({ texture }) => {
         PLANET_ASSET_TEXTURE_STATUS.set(cacheKey, texture ? "loaded" : "failed");
         if (texture) PLANET_ASSET_TEXTURE_RESOLVED.set(cacheKey, texture);
         return texture;

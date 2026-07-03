@@ -1,4 +1,3 @@
-import { GalaxyIntro, GALAXY_RELEASE_INTRO } from "../../../components/GalaxyIntro.jsx";
 import { GalaxyMapExperience } from "../../../components/GalaxyControlMap.jsx";
 import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../../components/PageScripts.jsx";
@@ -12,8 +11,7 @@ export const metadata = holonetMetadata({
 
 export default function GalaxyPage() {
   return (
-    <HolonetFrame title="GALAXY" subtitle="CONTROL MAP" showHeader={false} footerNode="KOR-7" releaseIntro={GALAXY_RELEASE_INTRO}>
-      <GalaxyIntro />
+    <HolonetFrame title="GALAXY" subtitle="CONTROL MAP" showHeader={false} footerNode="KOR-7">
       <GalaxyMapExperience map={GALAXY_CONTROL_MAP} />
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} />
     </HolonetFrame>

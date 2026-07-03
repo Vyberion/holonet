@@ -6,6 +6,7 @@ import {
   embedImageUrl,
   siteUrl
 } from "../lib/metadata.js";
+import { HolonetAudioController } from "../components/HolonetAudioController.jsx";
 import { criticalPreloadImages } from "../lib/preload-images.js";
 
 import "../../css/style.css";
@@ -724,6 +725,7 @@ export default function RootLayout({ children }) {
         <style dangerouslySetInnerHTML={{ __html: `${MOBILE_NAV_FULL_BLEED_CSS}\n${MOBILE_TRACKER_TABLE_CSS}\n${MOBILE_STATUS_BAR_CSS}\n${MID_SIZE_HOME_NAV_CSS}\n${LIBRARY_EDITOR_ADMIN_THEME_CSS}\n${HOLONET_GLOBAL_POLISH_CSS}` }} />
       </head>
       <body>
+        <HolonetAudioController />
         {children}
         <script dangerouslySetInnerHTML={{ __html: HOLONET_GLOBAL_POLISH_JS }} />
         <Analytics />

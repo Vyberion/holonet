@@ -70,35 +70,96 @@ function readTextFileIfExists(filePath) {
   }
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function candidateRepoRoots() {
+  const cwd = process.cwd();
+  return [...new Set([
+    cwd,
+    path.resolve(cwd, ".."),
+    path.resolve(cwd, "..", "..")
+  ])];
+}
+
+function candidateBotFiles(...parts) {
+  return candidateRepoRoots().map(root => path.join(root, ...parts));
+}
+
 function readEnvValue(filePath, key) {
   const text = readTextFileIfExists(filePath);
-  const line = text.split(/\r?\n/).find(item => item.trim().startsWith(`${key}=`));
+  const pattern = new RegExp(`^\\s*(?:export\\s+)?${escapeRegExp(key)}\\s*=\\s*(.*)$`);
+  const line = text.split(/\r?\n/).find(item => pattern.test(item));
   if (!line) return "";
 
-  const value = line.slice(line.indexOf("=") + 1).trim();
+  const value = line.match(pattern)?.[1]?.trim() || "";
   return value.replace(/^['"]|['"]$/g, "");
+}
+
+function readEnvValueFromCandidates(key) {
+  const candidates = [
+    ...candidateBotFiles("bot", ".env"),
+    ...candidateBotFiles(".env")
+  ];
+
+  for (const filePath of candidates) {
+    const value = readEnvValue(filePath, key);
+    if (value) return value;
+  }
+
+  return "";
 }
 
 function discordToken() {
   if (process.env.DISCORD_TOKEN) return process.env.DISCORD_TOKEN;
-  if (!cachedDiscordToken) cachedDiscordToken = readEnvValue(path.join(process.cwd(), "bot", ".env"), "DISCORD_TOKEN");
+  if (!cachedDiscordToken) cachedDiscordToken = readEnvValueFromCandidates("DISCORD_TOKEN");
   return cachedDiscordToken;
+}
+
+function parseVerificationLogChannelId(source) {
+  return source.match(/verificationLog\s*:\s*["'](\d{15,25})["']/)?.[1] || "";
 }
 
 function verificationLogChannelId() {
   if (!cachedVerificationLogChannelId) {
-    const localConfig = readTextFileIfExists(path.join(process.cwd(), "bot", "config", "config.local.js"));
-    cachedVerificationLogChannelId = localConfig.match(/verificationLog\s*:\s*["'](\d+)["']/)?.[1] || "";
+    const candidates = [
+      ...candidateBotFiles("bot", "config", "config.local.js"),
+      ...candidateBotFiles("bot", "config", "config.example.js")
+    ];
+
+    for (const filePath of candidates) {
+      const channelId = parseVerificationLogChannelId(readTextFileIfExists(filePath));
+      if (channelId) {
+        cachedVerificationLogChannelId = channelId;
+        break;
+      }
+    }
   }
 
   const channelId = String(cachedVerificationLogChannelId).trim();
   return channelId && !channelId.includes("CHANNEL_ID") ? channelId : "";
 }
 
+function warnVerificationLog(message, context = {}) {
+  console.warn("Verification log", {
+    message,
+    cwd: process.cwd(),
+    ...context
+  });
+}
+
 async function postVerificationLog({ title, description, fields = [], color = VERIFICATION_LOG_COLOR, content = "", allowedRoleIds = [] }) {
   const token = discordToken();
   const channelId = verificationLogChannelId();
-  if (!token || !channelId) return false;
+  if (!token || !channelId) {
+    warnVerificationLog("Skipped Discord post because configuration is incomplete.", {
+      title,
+      hasDiscordToken: Boolean(token),
+      hasVerificationLogChannel: Boolean(channelId)
+    });
+    return false;
+  }
 
   const embed = {
     title,
@@ -135,6 +196,18 @@ async function postVerificationLog({ title, description, fields = [], color = VE
   }
 
   return true;
+}
+
+async function postVerificationLogSafely(payload) {
+  try {
+    return await postVerificationLog(payload);
+  } catch (error) {
+    warnVerificationLog("Discord post failed.", {
+      title: payload?.title || "",
+      error: error?.message || String(error)
+    });
+    return false;
+  }
 }
 
 function slugify(value) {
@@ -528,7 +601,7 @@ async function confirmDiscordLink(req) {
     })
   }).catch(() => null);
 
-  await postVerificationLog({
+  await postVerificationLogSafely({
     title: "Discord Linked",
     description: `<@${pending.discord_user_id}> linked their Discord account.`,
     fields: [
@@ -536,7 +609,7 @@ async function confirmDiscordLink(req) {
       { name: "Roblox", value: `${auth.user.roblox_username || auth.user.roblox_display_name || robloxId} (${robloxId})`, inline: true },
       { name: "Source", value: "Account page", inline: true }
     ]
-  }).catch(() => null);
+  });
 
   const warningSummary = await loadRobloxProfileSummary(robloxId)
     .then(summary => ({
@@ -547,7 +620,7 @@ async function confirmDiscordLink(req) {
 
   if (warningSummary?.warnings?.length) {
     const warningMentions = VERIFICATION_WARNING_ROLE_IDS.map(roleId => `<@&${roleId}>`).join(" ");
-    await postVerificationLog({
+    await postVerificationLogSafely({
       title: "Verification Warning",
       description: `<@${pending.discord_user_id}> linked a Roblox account with personnel lookup warnings.`,
       color: VERIFICATION_WARNING_COLOR,
@@ -559,7 +632,7 @@ async function confirmDiscordLink(req) {
         { name: "Warnings", value: warningSummary.warnings.map(item => `**${item.label}:** ${item.detail}`).join("\n"), inline: false },
         { name: "Lookup", value: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.HOLONET_BASE_URL || ""}/lookup?username=${encodeURIComponent(auth.user.roblox_username || robloxId)}`.replace(/^\/lookup/, "/lookup"), inline: false }
       ]
-    }).catch(() => null);
+    });
   }
 
   return {

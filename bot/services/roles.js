@@ -117,12 +117,15 @@ function capitalizeFirstLetter(value) {
 }
 
 async function nicknameForProfile(profile, link) {
+  if (config.nicknames?.enabled === false) return "";
+
   const rule = nicknameRuleForProfile(profile);
-  if (!rule?.value) return "";
-  if (rule.mode === "fixed") return cleanNickname(rule.value);
+  if (rule?.mode === "fixed") return cleanNickname(rule.value);
 
   const robloxUser = await loadRobloxUser(link.roblox_user_id).catch(() => null);
   const displayName = capitalizeFirstLetter(robloxUser?.displayName || robloxUser?.name || link.roblox_user_id);
+  if (!rule?.value) return cleanNickname(displayName);
+
   return cleanNickname(`${rule.value} ${displayName}`);
 }
 

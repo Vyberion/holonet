@@ -500,6 +500,12 @@ function oauthRedirectUri(req) {
   return origin ? `${origin}/api/auth/callback` : String(process.env.ROBLOX_REDIRECT_URI || "");
 }
 
+function lookupUrlForRequest(req, username) {
+  const base = (requestRootOrigin(req) || process.env.NEXT_PUBLIC_SITE_URL || process.env.HOLONET_BASE_URL || "").replace(/\/$/, "");
+  const path = `/lookup?username=${encodeURIComponent(username)}`;
+  return base ? `${base}${path}` : path;
+}
+
 function encodeInList(values) {
   return `(${values.map(value => String(value).replace(/[(),]/g, "")).join(",")})`;
 }
@@ -661,13 +667,15 @@ async function confirmDiscordLink(req) {
   }).catch(() => null);
 
   const robloxLabel = `${auth.user.roblox_username || auth.user.roblox_display_name || robloxId} (${robloxId})`;
+  const webLink = lookupUrlForRequest(req, auth.user.roblox_username || robloxId);
 
   const linkedLogSent = await postVerificationLogSafely({
     title: "Discord Linked to Roblox",
     description: `<@${pending.discord_user_id}> linked Discord to Roblox.`,
     fields: [
       { name: "Discord", value: `<@${pending.discord_user_id}>`, inline: true },
-      { name: "Roblox", value: robloxLabel, inline: true }
+      { name: "Roblox", value: robloxLabel, inline: true },
+      { name: "Web Link", value: webLink, inline: false }
     ]
   });
   logVerificationConfirm("Discord linked log processed.", {
@@ -704,7 +712,7 @@ async function confirmDiscordLink(req) {
         { name: "Discord", value: `<@${pending.discord_user_id}>`, inline: true },
         { name: "Roblox", value: robloxLabel, inline: true },
         { name: "Warnings", value: warningSummary.warnings.map(item => `**${item.label}:** ${item.detail}`).join("\n"), inline: false },
-        { name: "Lookup", value: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.HOLONET_BASE_URL || ""}/lookup?username=${encodeURIComponent(auth.user.roblox_username || robloxId)}`.replace(/^\/lookup/, "/lookup"), inline: false }
+        { name: "Web Link", value: webLink, inline: false }
       ]
     });
     logVerificationConfirm("Verification warning log processed.", {

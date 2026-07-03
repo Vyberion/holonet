@@ -74,6 +74,9 @@ async function syncLinkedDiscordMemberRoles(client, guildId, discordUserId) {
   const member = await guild.members.fetch({ user: discordUserId, force: true });
   const result = await syncMemberRoles(member, discordUserId);
   const robloxId = result.link?.roblox_user_id || "Unknown";
+  const robloxUser = robloxId !== "Unknown" ? await loadRobloxUser(robloxId).catch(() => null) : null;
+  const robloxName = robloxUser?.name || robloxUser?.displayName || robloxId;
+  const robloxLabel = robloxName && robloxName !== robloxId ? `${robloxName} (${robloxId})` : robloxId;
 
   console.log(`Post-link role sync updated ${discordUserId}: added ${result.added.length}, removed ${result.removed.length}.`);
 
@@ -82,7 +85,8 @@ async function syncLinkedDiscordMemberRoles(client, guildId, discordUserId) {
     description: `<@${discordUserId}> linked Discord to Roblox.`,
     fields: [
       { name: "Discord", value: `<@${discordUserId}>`, inline: true },
-      { name: "Roblox", value: robloxId, inline: true }
+      { name: "Roblox", value: robloxLabel, inline: true },
+      { name: "Web Link", value: lookupUrl(robloxName), inline: false }
     ].filter(Boolean)
   });
 }

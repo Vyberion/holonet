@@ -9,6 +9,76 @@ function encodeEq(value) {
   return encodeURIComponent(String(value ?? ""));
 }
 
+function headerValue(req, name) {
+  const headers = req?.headers;
+  if (!headers) return "";
+  if (typeof headers.get === "function") return headers.get(name) || "";
+  return headers[name] || headers[name.toLowerCase()] || "";
+}
+
+function timingSafeEqualText(left, right) {
+  const a = String(left || "");
+  const b = String(right || "");
+  if (!a || !b || a.length !== b.length) return false;
+
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+function bearerToken(req) {
+  const authorization = headerValue(req, "authorization");
+  const match = /^Bearer\s+(.+)$/i.exec(String(authorization || "").trim());
+  return match?.[1]?.trim() || "";
+}
+
+function hasDarthManarToken(req) {
+  const expected = String(process.env.DARTH_MANAR_TOKEN || "").trim();
+  if (!expected) return false;
+
+  const provided = bearerToken(req) || String(headerValue(req, "x-darth-manar-token") || "").trim();
+  return timingSafeEqualText(provided, expected);
+}
+
+function darthManarAuthContext() {
+  const profile = {
+    robloxId: "darth-manar",
+    isSuperUser: true,
+    isMachine: true,
+    machineName: "darth-manar",
+    groupRanks: {},
+    authorityRoles: {
+      groupOwner: true,
+      projectManager: true,
+      emperor: true,
+      emperorPowerbase: true
+    },
+    hasFullAccess: true,
+    highRank: "overseer",
+    divisions: {
+      reavers: "overseer",
+      dhg: "overseer",
+      inquisitors: "overseer",
+      dreadmasters: "overseer",
+      dark_council: "overseer"
+    },
+    accessOverrides: []
+  };
+
+  return {
+    authenticated: true,
+    machine: true,
+    user: {
+      roblox_id: "darth-manar",
+      roblox_username: "Darth Manar",
+      roblox_display_name: "Darth Manar"
+    },
+    profile
+  };
+}
+
 async function loadActiveOverrides(robloxId) {
   const now = encodeURIComponent(new Date().toISOString());
   const rows = await supabaseRest(
@@ -50,6 +120,10 @@ async function loadGroupRoles(robloxId) {
 }
 
 export async function getAuthContext(req, { optional = false } = {}) {
+  if (hasDarthManarToken(req)) {
+    return darthManarAuthContext();
+  }
+
   const session = await getSessionUser(req);
   if (!session.authenticated) {
     const profile = buildProfile({ robloxId: "0", groupRoles: [] });

@@ -28,7 +28,7 @@ const allCommands = [
   new SlashCommandBuilder()
     .setName("unlink")
     .setDescription("Remove a Discord user's Holonet verification link")
-    .addUserOption(option => option.setName("user").setDescription("Discord user").setRequired(true))
+    .addUserOption(option => option.setName("user").setDescription("Discord user").setRequired(false))
 ];
 
 export const commands = allCommands.filter(command => !DISABLED_COMMANDS.has(command.name));
@@ -167,17 +167,21 @@ export async function handleCommand(interaction) {
   }
 
   if (interaction.commandName === "unlink") {
-    const actor = await getVerifiedProfile(interaction.user.id);
-    if (!canManageBot(actor?.profile, interaction.member)) {
-      await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to unlink users.")] }));
-      return true;
+    const user = interaction.options.getUser("user", false) || interaction.user;
+    const selfUnlink = user.id === interaction.user.id;
+    if (!selfUnlink) {
+      const actor = await getVerifiedProfile(interaction.user.id);
+      if (!canManageBot(actor?.profile, interaction.member)) {
+        await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to unlink users.")] }));
+        return true;
+      }
     }
-    const user = interaction.options.getUser("user", true);
+
     await unlinkDiscordUser(user.id, interaction.user.id);
-    await interaction.reply(ephemeral({ embeds: [successEmbed("Unlinked", `<@${user.id}> has been unlinked.`)] }));
+    await interaction.reply(ephemeral({ embeds: [successEmbed("Unlinked", selfUnlink ? "Your Discord account has been unlinked." : `<@${user.id}> has been unlinked.`)] }));
     await postVerificationLog(interaction.client, {
       title: "Discord Unlinked",
-      description: `<@${interaction.user.id}> unlinked <@${user.id}>.`,
+      description: selfUnlink ? `<@${interaction.user.id}> unlinked their Discord account.` : `<@${interaction.user.id}> unlinked <@${user.id}>.`,
       fields: [
         { name: "Actor", value: `<@${interaction.user.id}>`, inline: true },
         { name: "Target", value: `<@${user.id}>`, inline: true }

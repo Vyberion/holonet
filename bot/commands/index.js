@@ -4,8 +4,9 @@ import * as verification from "./verification.js";
 import * as reports from "./reports.js";
 import * as clock from "./clock.js";
 import * as say from "./say.js";
+import * as purge from "./purge.js";
 
-export const modules = [lookup, getroles, verification, reports, clock, say];
+export const modules = [lookup, getroles, verification, reports, clock, say, purge];
 
 export const commandData = (() => {
   const commandsByName = new Map();

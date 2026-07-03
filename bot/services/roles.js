@@ -1,6 +1,6 @@
 import { PermissionFlagsBits } from "discord.js";
 import { config } from "../config/index.js";
-import { botErrorMessage, missingBotPermissionsError, roleManagementBlockedError } from "./bot-errors.js";
+import { missingBotPermissionsError, roleManagementBlockedError } from "./bot-errors.js";
 import { ROBLOX_GROUPS, SUPER_USER_IDS } from "../../modules/auth/roblox-groups.js";
 import { hasCoreAccess } from "../../modules/auth/permissions.js";
 import { loadProfileForRoblox, loadRobloxUser, rawRanksFromProfile } from "./roblox.js";
@@ -29,14 +29,6 @@ function rolesFromRanges(rank, ranges = []) {
     const max = range.max ?? Number.POSITIVE_INFINITY;
     return numericRank >= min && numericRank <= max ? rolesFromRule(range) : [];
   });
-}
-
-function envTrue(value) {
-  return String(value || "").toLowerCase() === "true";
-}
-
-function shouldAutoSyncUnlinkedMembers() {
-  return envTrue(process.env.DISCORD_SYNC_UNLINKED_MEMBERS) || config.roles?.syncUnlinkedMembers === true;
 }
 
 function isMainGroupMember(profile) {
@@ -291,98 +283,6 @@ export async function syncMemberRoles(member, actorDiscordId = member.id) {
   });
 
   return { ...verified, added: add, removed: remove, roleIds: wanted, nickname, nicknameUpdated };
-}
-
-async function loadLinkedDiscordUserIds() {
-  const ids = [];
-  const pageSize = 1000;
-
-  for (let from = 0; ; from += pageSize) {
-    const { data, error } = await supabase
-      .from("verification_links")
-      .select("discord_user_id")
-      .range(from, from + pageSize - 1);
-
-    if (error) throw error;
-    ids.push(...(data || []).map(row => row.discord_user_id).filter(Boolean));
-    if (!data || data.length < pageSize) break;
-  }
-
-  return [...new Set(ids.map(String))];
-}
-
-export async function syncVerifiedRoleForLinkedUsers(client) {
-  const roleId = config.roles?.verified;
-  const guildId = config.discord?.guildId;
-  if (!roleId || !guildId) return { checked: 0, added: 0, removed: 0, unlinkedAdded: 0, verifiedRemoved: 0, autoUnlinkedSyncEnabled: false, failed: 0 };
-
-  const guild = await client.guilds.fetch(guildId);
-  const linkedDiscordIds = await loadLinkedDiscordUserIds();
-  const linkedDiscordIdSet = new Set(linkedDiscordIds);
-  const autoUnlinkedSyncEnabled = shouldAutoSyncUnlinkedMembers();
-  let added = 0;
-  let removed = 0;
-  let unlinkedAdded = 0;
-  let verifiedRemoved = 0;
-  let failed = 0;
-
-  for (const discordUserId of linkedDiscordIds) {
-    try {
-      const member = await guild.members.fetch(discordUserId);
-      const roleIdsToChange = [];
-      if (member.roles.cache.has(UNLINKED_ROLE_ID)) roleIdsToChange.push(UNLINKED_ROLE_ID);
-      if (!member.roles.cache.has(roleId)) roleIdsToChange.push(roleId);
-      if (roleIdsToChange.length) assertBotCanManageRoleIds(member, roleIdsToChange);
-
-      if (member.roles.cache.has(UNLINKED_ROLE_ID)) {
-        await member.roles.remove(UNLINKED_ROLE_ID, "Holonet verified Discord link");
-        removed += 1;
-      }
-      if (!member.roles.cache.has(roleId)) {
-        await member.roles.add(roleId, "Holonet verified Discord link");
-        added += 1;
-      }
-    } catch (error) {
-      failed += 1;
-      console.warn("Failed to apply verified role", {
-        discordUserId,
-        reason: botErrorMessage(error)
-      });
-    }
-  }
-
-  if (!autoUnlinkedSyncEnabled) {
-    return { checked: linkedDiscordIds.length, added, removed, unlinkedAdded, verifiedRemoved, autoUnlinkedSyncEnabled, failed };
-  }
-
-  const members = await guild.members.fetch();
-  for (const member of members.values()) {
-    if (member.user?.bot || linkedDiscordIdSet.has(member.id)) continue;
-
-    try {
-      const roleIdsToChange = [];
-      if (member.roles.cache.has(roleId)) roleIdsToChange.push(roleId);
-      if (!member.roles.cache.has(UNLINKED_ROLE_ID)) roleIdsToChange.push(UNLINKED_ROLE_ID);
-      if (roleIdsToChange.length) assertBotCanManageRoleIds(member, roleIdsToChange);
-
-      if (member.roles.cache.has(roleId)) {
-        await member.roles.remove(roleId, "Holonet unlinked Discord account");
-        verifiedRemoved += 1;
-      }
-      if (!member.roles.cache.has(UNLINKED_ROLE_ID)) {
-        await member.roles.add(UNLINKED_ROLE_ID, "Holonet unlinked Discord account");
-        unlinkedAdded += 1;
-      }
-    } catch (error) {
-      failed += 1;
-      console.warn("Failed to apply unlinked role", {
-        discordUserId: member.id,
-        reason: botErrorMessage(error)
-      });
-    }
-  }
-
-  return { checked: linkedDiscordIds.length, added, removed, unlinkedAdded, verifiedRemoved, autoUnlinkedSyncEnabled, failed };
 }
 
 export function divisionTierWeight(tier) {

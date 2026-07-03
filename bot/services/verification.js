@@ -21,6 +21,20 @@ export async function createLinkToken(user) {
   };
 }
 
+export async function isLinkTokenConsumed(token, discordUserId) {
+  let query = supabase
+    .from("discord_link_tokens")
+    .select("consumed_at")
+    .eq("token", token);
+
+  if (discordUserId) query = query.eq("discord_user_id", discordUserId);
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+
+  return Boolean(data?.consumed_at);
+}
+
 export async function unlinkDiscordUser(discordUserId, actorDiscordId) {
   const { error } = await supabase.from("verification_links").delete().eq("discord_user_id", discordUserId);
   if (error) throw error;

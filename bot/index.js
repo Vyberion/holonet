@@ -4,7 +4,6 @@ import { routeInteraction } from "./commands/index.js";
 import { botErrorPayload } from "./services/bot-errors.js";
 import { ephemeral, errorEmbed } from "./services/discord-ui.js";
 import { syncClockPanels } from "./services/clock-panels.js";
-import { syncVerifiedRoleForLinkedUsers } from "./services/roles.js";
 import { startShiftReminderLoop } from "./services/shift-reminders.js";
 
 const holonetPresence = {
@@ -41,15 +40,6 @@ async function maybeSendCheekyResponse(message) {
   await message.channel.send(phrase);
 }
 
-async function syncLinkedVerifiedRole() {
-  try {
-    const result = await syncVerifiedRoleForLinkedUsers(client);
-    console.log(`Verified role sync checked ${result.checked} linked user(s), added ${result.added}, failed ${result.failed}.`);
-  } catch (error) {
-    console.error("Verified role sync failed", error);
-  }
-}
-
 async function syncStoredClockPanels() {
   try {
     const result = await syncClockPanels(client);
@@ -65,10 +55,8 @@ client.once("clientReady", () => {
     status: "online",
     activities: [{ name: "Sith Temple on Korriban", type: ActivityType.Playing }]
   });
-  syncLinkedVerifiedRole();
   syncStoredClockPanels();
   startShiftReminderLoop(client);
-  setInterval(syncLinkedVerifiedRole, 5 * 60 * 1000);
 });
 
 client.on("interactionCreate", async interaction => {

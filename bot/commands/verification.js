@@ -1,7 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from "discord.js";
 import { config } from "../config/index.js";
 import { botErrorPayload } from "../services/bot-errors.js";
-import { createLinkToken, unlinkDiscordUser } from "../services/verification.js";
+import { createLinkToken, isLinkTokenConsumed, unlinkDiscordUser } from "../services/verification.js";
 import { embed, ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
 import { postVerificationLog } from "../services/activity-log.js";
 import { canManageBot, canUpdateMemberRoles, getVerifiedProfile, syncMemberRoles } from "../services/roles.js";
@@ -10,6 +10,9 @@ import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
 
 const DISABLED_COMMANDS = new Set();
 const DISABLED_BUTTONS = new Set();
+const POST_LINK_ROLE_SYNC_POLL_MS = 5 * 1000;
+const POST_LINK_ROLE_SYNC_GRACE_MS = 30 * 1000;
+const pendingPostLinkRoleSyncs = new Map();
 
 const allCommands = [
   new SlashCommandBuilder()
@@ -62,11 +65,92 @@ function lookupUrl(username) {
   return `${base}/lookup?username=${encodeURIComponent(username)}`;
 }
 
+function roleSyncLogReason(error) {
+  return error?.message || error?.rawError?.message || String(error);
+}
+
+async function syncLinkedDiscordMemberRoles(client, guildId, discordUserId) {
+  const guild = await client.guilds.fetch(guildId);
+  const member = await guild.members.fetch({ user: discordUserId, force: true });
+  const result = await syncMemberRoles(member, discordUserId);
+
+  console.log(`Post-link role sync updated ${discordUserId}: added ${result.added.length}, removed ${result.removed.length}.`);
+
+  await postVerificationLog(client, {
+    title: "Roles Updated",
+    description: `<@${discordUserId}> was synced automatically after linking Discord.`,
+    fields: [
+      { name: "Target", value: `<@${discordUserId}>`, inline: true },
+      { name: "Added", value: String(result.added.length), inline: true },
+      { name: "Removed", value: String(result.removed.length), inline: true },
+      result.nickname ? { name: "Nickname", value: result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`, inline: false } : null
+    ].filter(Boolean)
+  });
+}
+
+function schedulePostLinkRoleSync(interaction, link) {
+  const token = link?.token;
+  const discordUserId = interaction.user?.id;
+  const guildId = interaction.guildId || config.discord?.guildId;
+  if (!token || !discordUserId || !guildId) return;
+
+  const key = `${discordUserId}:${token}`;
+  const expiresAt = new Date(link.expiresAt).getTime();
+  const deadline = Number.isFinite(expiresAt)
+    ? expiresAt + POST_LINK_ROLE_SYNC_GRACE_MS
+    : Date.now() + 15 * 60 * 1000 + POST_LINK_ROLE_SYNC_GRACE_MS;
+
+  const clearPending = () => {
+    const timeout = pendingPostLinkRoleSyncs.get(key);
+    if (timeout) clearTimeout(timeout);
+    pendingPostLinkRoleSyncs.delete(key);
+  };
+
+  const queueCheck = () => {
+    const waitMs = Math.min(POST_LINK_ROLE_SYNC_POLL_MS, Math.max(1000, deadline - Date.now()));
+    const timeout = setTimeout(checkLinkToken, waitMs);
+    pendingPostLinkRoleSyncs.set(key, timeout);
+  };
+
+  const checkLinkToken = async () => {
+    if (Date.now() > deadline) {
+      pendingPostLinkRoleSyncs.delete(key);
+      return;
+    }
+
+    try {
+      if (await isLinkTokenConsumed(token, discordUserId)) {
+        pendingPostLinkRoleSyncs.delete(key);
+        try {
+          await syncLinkedDiscordMemberRoles(interaction.client, guildId, discordUserId);
+        } catch (error) {
+          console.warn("Post-link role sync failed", {
+            discordUserId,
+            reason: roleSyncLogReason(error)
+          });
+        }
+        return;
+      }
+    } catch (error) {
+      console.warn("Post-link role sync check failed", {
+        discordUserId,
+        reason: roleSyncLogReason(error)
+      });
+    }
+
+    queueCheck();
+  };
+
+  clearPending();
+  queueCheck();
+}
+
 async function replyLink(interaction) {
   const link = await createLinkToken(interaction.user);
   await interaction.reply(ephemeral({
     embeds: [embed("Holonet Verification", `Open the Holonet Account page and log in with Roblox to finish linking.\n\n${link.url}`)]
   }));
+  schedulePostLinkRoleSync(interaction, link);
 }
 
 export async function handleCommand(interaction) {

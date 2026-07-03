@@ -4,6 +4,7 @@ import path from "node:path";
 const root = process.cwd();
 const standaloneDir = path.join(root, ".next", "standalone");
 const standaloneNextDir = path.join(standaloneDir, ".next");
+const standaloneServer = path.join(standaloneDir, "server.js");
 
 async function exists(target) {
   try {
@@ -16,6 +17,10 @@ async function exists(target) {
 
 if (!(await exists(standaloneDir))) {
   throw new Error("Standalone output was not generated. Check next.config.mjs output: 'standalone'.");
+}
+
+if (!(await exists(standaloneServer))) {
+  throw new Error("Standalone server.js was not generated. Run next build and check the build output above for errors.");
 }
 
 const publicDir = path.join(root, "public");

@@ -266,7 +266,7 @@ async function doClockIn(interaction, options = {}) {
 
 async function doClockOut(interaction, options = {}) {
   const shift = await clockOut(interaction.user.id, options);
-  const total = Number(shift.duration_seconds || 0) + Number(shift.adjustment_seconds || 0);
+  const total = Math.max(0, Number(shift.duration_seconds || 0) + Number(shift.adjustment_seconds || 0));
   await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked Out", `Duration: ${formatDuration(total)}${shift.adjustment_seconds ? `\nAdjustment: ${formatDuration(Math.abs(shift.adjustment_seconds))} ${shift.adjustment_seconds > 0 ? "added" : "removed"}` : ""}${shift.clockout_late ? `\nLate clock-out: ${shift.clockout_late_minutes || 0} minutes` : ""}`)] }));
   await postActivityLog(interaction.client, {
     title: "Clock Out",

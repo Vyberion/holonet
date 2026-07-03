@@ -44,14 +44,17 @@ export async function clockOut(discordUserId, options = {}) {
 
   const endedAt = new Date();
   const startedAt = new Date(shift.started_at);
-  const durationSeconds = Math.max(0, Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000));
+  const isLate = Boolean(options.late);
+  const lateMinutes = isLate ? Math.max(0, Number(options.lateMinutes) || 0) : 0;
+  const elapsedSeconds = Math.max(0, Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000));
+  const durationSeconds = Math.max(0, elapsedSeconds - lateMinutes * 60);
   const { data, error } = await supabase
     .from("clock_shifts")
     .update({
       ended_at: endedAt.toISOString(),
       duration_seconds: durationSeconds,
-      clockout_late: Boolean(options.late),
-      clockout_late_minutes: options.lateMinutes ?? null,
+      clockout_late: isLate,
+      clockout_late_minutes: isLate ? lateMinutes : null,
       status: "completed"
     })
     .eq("id", shift.id)

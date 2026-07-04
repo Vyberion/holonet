@@ -81,9 +81,11 @@ export default {
           "20": { mode: "prefix", value: "Neophyte" },
           "15": { mode: "prefix", value: "Hopeful" },
           "2": { mode: "prefix", value: "Tyro" },
-          "1": { mode: "prefix", value: "Grotthu" }
-        },
-        baseRole: "1134203786328543392"
+          "1": { mode: "prefix", value: "Grotthu" },
+          ranges: [
+            { min: 1, max: 255, roles: ["1134203786328543392"] }
+          ]
+        }
       },
       DIVISIONS: {
         reavers: {
@@ -177,9 +179,7 @@ export default {
           "1": "1134203793387560960"
         },
         ranges: [
-          { min: 44, max: 53, roles: ["1134219014634229790", "1046546991360004136"] },
-          { min: 27, max: 35, roles: ["1134219075980116059"] },
-          { min: 1, max: 26, roles: ["1134219089238306886"]}
+          { min: 1, max: 255, roles: ["1134203786328543392"] }
         ]
       },
       DIVISIONS: {
@@ -213,7 +213,7 @@ export default {
             { min: 150, max: 200, roles: ["1178132079230324866"]},
             { min: 155, max: 200, roles: ["1178132079230324866", "1046546991360004136"]},
           ]
-          },
+        },
         dreadmasters: { 
           ranks: { 
             "36": ["1140373714102407291", "1130513164807708793", "1046546991360004136"],

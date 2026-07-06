@@ -1,5 +1,5 @@
 import { getDivision } from "../data/divisions/index.js";
-import { deleteDivisionResource, fetchDivisionResourcePayload, saveDivisionResource } from "./resources.js";
+import { deleteDivisionResource, fetchDivisionResourcePayload, fetchJsonWithTimeout, saveDivisionResource } from "./resources.js";
 
 let activeEntries = [];
 let activeContext = null;
@@ -59,7 +59,7 @@ function renderTimestamp(entry, section) {
 }
 
 async function fetchWeeklyReportPayload(division, draft = false) {
-  const response = await fetch(`/api/weekly-reports?division=${encodeURIComponent(division)}${draft ? "&draft=1" : ""}`);
+  const response = await fetchJsonWithTimeout(`/api/weekly-reports?division=${encodeURIComponent(division)}${draft ? "&draft=1" : ""}`);
   const payload = await response.json();
   if (!response.ok || !payload.ok) throw new Error(payload.reason || payload.error || "REPORTS_UNAVAILABLE");
   return payload;
@@ -77,7 +77,7 @@ async function saveWeeklyReport(data) {
 }
 
 async function fetchDivisionRosterPayload(division) {
-  const response = await fetch(`/api/division-roster?division=${encodeURIComponent(division)}`);
+  const response = await fetchJsonWithTimeout(`/api/division-roster?division=${encodeURIComponent(division)}`);
   const payload = await response.json();
   if (!response.ok || !payload.ok) throw new Error(payload.reason || payload.error || "ROSTER_UNAVAILABLE");
   return payload;

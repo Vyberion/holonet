@@ -53,14 +53,15 @@ function rootHostname(hostname) {
 }
 
 function setPublicRedirectHost(url, hostname) {
-  url.hostname = hostname;
+  const nextUrl = new URL(url.toString());
+  nextUrl.hostname = hostname;
 
   if (!isLocalHostname(hostname)) {
-    url.protocol = "https:";
-    url.port = "";
+    nextUrl.protocol = "https:";
+    nextUrl.port = "";
   }
 
-  return url;
+  return nextUrl;
 }
 
 function firstPathSegment(pathname) {
@@ -68,17 +69,17 @@ function firstPathSegment(pathname) {
 }
 
 function subdomainRedirectUrl(request, divisionId, section = "home") {
-  const url = request.nextUrl.clone();
+  const url = new URL(request.url);
   const subdomain = divisionSubdomainForId(divisionId);
   if (!subdomain) return url;
 
-  setPublicRedirectHost(url, `${subdomain}.${rootHostname(requestHostname(request))}`);
-  url.pathname = divisionLockedPath(section);
-  return url;
+  const nextUrl = setPublicRedirectHost(url, `${subdomain}.${rootHostname(requestHostname(request))}`);
+  nextUrl.pathname = divisionLockedPath(section);
+  return nextUrl;
 }
 
 function publicInfoRedirectUrl(request, divisionId) {
-  const url = request.nextUrl.clone();
+  const url = new URL(request.url);
   url.pathname = divisionPublicInfoPath(divisionId) || url.pathname;
   return url;
 }
@@ -114,8 +115,7 @@ function shouldBypass(pathname) {
 }
 
 function wwwRedirectUrl(request) {
-  const url = request.nextUrl.clone();
-  return setPublicRedirectHost(url, CANONICAL_HOSTNAME);
+  return setPublicRedirectHost(new URL(request.url), CANONICAL_HOSTNAME);
 }
 
 export function proxy(request) {

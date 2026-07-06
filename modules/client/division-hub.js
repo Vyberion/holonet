@@ -1,5 +1,5 @@
 import { divisionLockedHref, getDivision } from "../data/divisions/index.js";
-import { fetchDivisionResources } from "./resources.js";
+import { fetchDivisionResources, fetchJsonWithTimeout } from "./resources.js";
 
 const reportViewCache = new Map();
 let reportViewBound = false;
@@ -307,7 +307,7 @@ function renderHub(division) {
 }
 
 async function fetchDivisionRosterPayload(division) {
-  const response = await fetch(`/api/division-roster?division=${encodeURIComponent(division)}`);
+  const response = await fetchJsonWithTimeout(`/api/division-roster?division=${encodeURIComponent(division)}`);
   const payload = await response.json();
   if (!response.ok || !payload.ok) throw new Error(payload.reason || payload.error || "ROSTER_UNAVAILABLE");
   return payload;
@@ -315,7 +315,7 @@ async function fetchDivisionRosterPayload(division) {
 
 async function fetchWeeklyReportPayload(division) {
   try {
-    const response = await fetch(`/api/weekly-reports?division=${encodeURIComponent(division)}`);
+    const response = await fetchJsonWithTimeout(`/api/weekly-reports?division=${encodeURIComponent(division)}`);
     const payload = await response.json();
     if (!response.ok || !payload.ok) return { reports: [], canWrite: false };
     return {

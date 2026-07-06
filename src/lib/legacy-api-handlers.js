@@ -488,20 +488,38 @@ function publicImageUrl(path) {
   return "";
 }
 
+function normalizeSiteUrl(value) {
+  const rawValue = String(value || "").trim();
+  if (!rawValue) return "";
+
+  try {
+    const url = new URL(rawValue.startsWith("http") ? rawValue : `https://${rawValue}`);
+    const hostname = String(url.hostname || "").toLowerCase();
+    const normalizedHostname = hostname === "thesithorder.org" ? "www.thesithorder.org" : hostname;
+    const port = url.port ? `:${url.port}` : "";
+    const pathname = url.pathname && url.pathname !== "/" ? url.pathname : "";
+    return `${url.protocol}//${normalizedHostname}${port}${pathname}${url.search}${url.hash}`.replace(/\/$/, "");
+  } catch {
+    return rawValue;
+  }
+}
+
 function requestRootOrigin(req) {
   const forwardedProto = String(req?.headers?.["x-forwarded-proto"] || "").split(",")[0].trim();
   const protocol = forwardedProto || (String(req?.headers?.host || "").includes("localhost") ? "http" : "https");
   const host = String(req?.headers?.host || "").trim();
-  return host ? `${protocol}://${host}` : "";
+  const origin = host ? `${protocol}://${host}` : "";
+  return normalizeSiteUrl(origin);
 }
 
 function oauthRedirectUri(req) {
   const origin = requestRootOrigin(req);
-  return origin ? `${origin}/api/auth/callback` : String(process.env.ROBLOX_REDIRECT_URI || "");
+  if (origin) return `${origin}/api/auth/callback`;
+  return normalizeSiteUrl(String(process.env.ROBLOX_REDIRECT_URI || ""));
 }
 
 function lookupUrlForRequest(req, username) {
-  const base = (requestRootOrigin(req) || process.env.NEXT_PUBLIC_SITE_URL || process.env.HOLONET_BASE_URL || "").replace(/\/$/, "");
+  const base = normalizeSiteUrl(requestRootOrigin(req) || process.env.NEXT_PUBLIC_SITE_URL || process.env.HOLONET_BASE_URL || "").replace(/\/$/, "");
   const path = `/lookup?username=${encodeURIComponent(username)}`;
   return base ? `${base}${path}` : path;
 }

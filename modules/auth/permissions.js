@@ -32,6 +32,7 @@ const PAGE_ACCESS = {
   admin: { capability: "admin" },
   lookup: { public: true },
   personnel: { public: true },
+  home: { public: true },
   reavers_home: { division: "reavers", minimumTier: "member" },
   reavers_info: { public: true },
   reavers_handbooks: { division: "reavers", minimumTier: "member" },

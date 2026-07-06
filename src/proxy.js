@@ -20,10 +20,29 @@ const LOCKED_SECTIONS = new Set([
 const APEX_HOSTNAME = "thesithorder.org";
 const CANONICAL_HOSTNAME = "www.thesithorder.org";
 
+function firstHeaderValue(value) {
+  return String(value || "").split(",")[0].trim();
+}
+
 function requestHostname(request) {
-  return String(request.headers.get("host") || request.nextUrl.hostname || "")
+  return String(
+    firstHeaderValue(request.headers.get("x-forwarded-host")) ||
+    firstHeaderValue(request.headers.get("host")) ||
+    request.nextUrl.hostname ||
+    ""
+  )
     .split(":")[0]
     .toLowerCase();
+}
+
+function isLocalHostname(hostname) {
+  return (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    /^\d+\.\d+\.\d+\.\d+$/.test(hostname)
+  );
 }
 
 function rootHostname(hostname) {
@@ -31,6 +50,17 @@ function rootHostname(hostname) {
   if (labels.length > 2 && divisionIdFromSubdomain(labels[0])) return labels.slice(1).join(".");
   if (labels.length > 2 && labels[0] === "www") return labels.slice(1).join(".");
   return labels.join(".");
+}
+
+function setPublicRedirectHost(url, hostname) {
+  url.hostname = hostname;
+
+  if (!isLocalHostname(hostname)) {
+    url.protocol = "https:";
+    url.port = "";
+  }
+
+  return url;
 }
 
 function firstPathSegment(pathname) {
@@ -42,7 +72,7 @@ function subdomainRedirectUrl(request, divisionId, section = "home") {
   const subdomain = divisionSubdomainForId(divisionId);
   if (!subdomain) return url;
 
-  url.hostname = `${subdomain}.${rootHostname(requestHostname(request))}`;
+  setPublicRedirectHost(url, `${subdomain}.${rootHostname(requestHostname(request))}`);
   url.pathname = divisionLockedPath(section);
   return url;
 }
@@ -85,9 +115,7 @@ function shouldBypass(pathname) {
 
 function wwwRedirectUrl(request) {
   const url = request.nextUrl.clone();
-  url.protocol = "https:";
-  url.hostname = CANONICAL_HOSTNAME;
-  return url;
+  return setPublicRedirectHost(url, CANONICAL_HOSTNAME);
 }
 
 export function proxy(request) {
@@ -118,14 +146,14 @@ export function proxy(request) {
   if (isPublicInfoDivision(routeDivisionId) && (!section || section === "info")) {
     const canonicalPath = divisionPublicInfoPath(routeDivisionId);
     if (canonicalPath && pathname.replace(/\/+$/, "") !== canonicalPath) {
-      return NextResponse.redirect(publicInfoRedirectUrl(request, routeDivisionId));
+      return NextResponse.redirect(publicInfoRedirectUrl(request, routeDivisionId), 308);
     }
 
     return NextResponse.next();
   }
 
   if (!section || LOCKED_SECTIONS.has(section)) {
-    return NextResponse.redirect(subdomainRedirectUrl(request, routeDivisionId, section || "home"));
+    return NextResponse.redirect(subdomainRedirectUrl(request, routeDivisionId, section || "home"), 308);
   }
 
   return NextResponse.next();

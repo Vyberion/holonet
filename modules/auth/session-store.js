@@ -53,7 +53,12 @@ function parseCookies(req) {
 }
 
 function normalizeCookieDomain(value = "") {
-  const domain = String(value || "").trim().replace(/^https?:\/\//i, "").split("/")[0].split(":")[0].replace(/^www\./i, "");
+  const domain = String(value || "")
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .split("/")[0]
+    .split(":")[0]; // Removed the www stripper here
+    
   if (!domain || domain === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(domain) || domain.endsWith(".vercel.app")) return "";
   return domain.startsWith(".") ? domain : `.${domain}`;
 }

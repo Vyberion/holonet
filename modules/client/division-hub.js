@@ -235,6 +235,29 @@ function renderHub(division) {
   const activityPanel = renderPanel("activity", "Activity", renderActivityOverview(division));
   const reportsPanel = renderPanel("reports", "Reports", renderRows(reports, "NO REPORTS", { kind: "reports", division }));
 
+  if (division.loadError) {
+    return `
+      <section class="hub-shell" aria-label="${escapeHtml(division.name)} command hub">
+        <div class="hub-hero">
+          <div class="hub-identity">
+            <div>
+              <span class="hub-kicker">Registry Node / ${escapeHtml(division.node)}</span>
+              <h2 class="hub-title">${escapeHtml(division.name)}</h2>
+            </div>
+            <div>
+              <span class="hub-kicker">Status</span>
+              <span class="hub-value">ACTIVE</span>
+            </div>
+          </div>
+          <p class="hub-summary">${escapeHtml(division.description)}</p>
+        </div>
+        <section class="hub-panel" role="alert">
+          <p class="hub-empty">${escapeHtml(division.loadError)}</p>
+        </section>
+      </section>
+    `;
+  }
+
   return `
     <section class="hub-shell" aria-label="${escapeHtml(division.name)} command hub">
       <div class="hub-hero">
@@ -444,8 +467,20 @@ async function initDivisionHub() {
     activityMembers: []
   });
 
-  const hydratedDivision = await loadDivisionResourceSets(division);
-  mount.innerHTML = renderHub(hydratedDivision);
+  try {
+    const hydratedDivision = await loadDivisionResourceSets(division);
+    mount.innerHTML = renderHub(hydratedDivision);
+  } catch (error) {
+    console.error("Division hub failed to initialize:", error);
+    mount.innerHTML = renderHub({
+      ...division,
+      transmissions: [],
+      documents: [],
+      reports: [],
+      activityMembers: [],
+      loadError: `Unable to load ${division.name} command hub: ${String(error?.message || error || "NETWORK_UNAVAILABLE").replace(/_/g, " ")}`
+    });
+  }
 }
 
 window.initHolonetDivisionHub = initDivisionHub;

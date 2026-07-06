@@ -119,7 +119,7 @@ export default function ArchiveMapPage() {
               <a className="hub-inline-link" href="/archives">LORE ARCHIVES</a>
             </div>
           </div>
-          <p className="hub-summary">A work-in-progress top-down schematic of the temple. Room geometry is placeholder-only until a Roblox reference map is supplied.</p>
+          <p className="hub-summary">Work in-progress.</p>
         </div>
 
         <div className="archive-map-layout">

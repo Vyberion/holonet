@@ -5,52 +5,24 @@ import { ROBLOX_GROUPS, SUPER_USER_IDS } from "../../modules/auth/roblox-groups.
 import { hasCoreAccess } from "../../modules/auth/permissions.js";
 import { loadProfileForRoblox, loadRobloxUser, rawRanksFromProfile } from "./roblox.js";
 import { audit, supabase } from "./supabase.js";
+import {
+  compactRoleIds,
+  managedRoleIdsFromConfig,
+  roleIdsFromRanges,
+  roleIdsFromRule,
+  roleSyncPlan
+} from "./role-rules.js";
 
 const ROBLOX_RANK_DELEGATE_DISCORD_IDS = new Set(["1046546991360004136"]);
 const UNLINKED_ROLE_ID = "1340850135680155674";
 const UNVERIFIED_REMOVED_ROLE_IDS = ["1340829015484928053"];
-
-function compactIds(values) {
-  return values.flat().filter(value => value && !String(value).includes("ROLE_ID"));
-}
-
-function rolesFromRule(rule) {
-  if (!rule) return [];
-  if (Array.isArray(rule)) return rule;
-  if (typeof rule === "string") return [rule];
-  if (Array.isArray(rule.roles)) return rule.roles;
-  if (typeof rule.role === "string") return [rule.role];
-  return [];
-}
-
-function rolesFromRanges(rank, ranges = []) {
-  const numericRank = Number(rank) || 0;
-  return ranges.flatMap(range => {
-    const min = range.min ?? Number.NEGATIVE_INFINITY;
-    const max = range.max ?? Number.POSITIVE_INFINITY;
-    return numericRank >= min && numericRank <= max ? rolesFromRule(range) : [];
-  });
-}
 
 function isMainGroupMember(profile) {
   return Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0) > 0;
 }
 
 export function managedRoleIds() {
-  const roles = config.roles?.managed || {};
-  const ids = [config.roles?.verified, UNLINKED_ROLE_ID];
-
-  Object.values(roles.DARK_COUNCIL?.ranks || {}).forEach(id => ids.push(id));
-  (roles.DARK_COUNCIL?.ranges || []).forEach(range => ids.push(rolesFromRule(range)));
-  Object.values(roles.DARK_COUNCIL?.senior || {}).forEach(id => ids.push(id));
-  Object.values(roles.HIGH_RANKS?.ranks || {}).forEach(id => ids.push(id));
-  (roles.HIGH_RANKS?.ranges || []).forEach(range => ids.push(rolesFromRule(range)));
-  Object.values(roles.DIVISIONS || {}).forEach(group => {
-    Object.values(group.ranks || {}).forEach(id => ids.push(id));
-    (group.ranges || []).forEach(range => ids.push(rolesFromRule(range)));
-  });
-
-  return compactIds([...new Set(ids)]);
+  return managedRoleIdsFromConfig(config, { unlinkedRoleId: UNLINKED_ROLE_ID });
 }
 
 function roleIdsForProfile(profile) {
@@ -59,24 +31,24 @@ function roleIdsForProfile(profile) {
   const managed = config.roles?.managed || {};
 
   if (!isMainGroupMember(profile)) {
-    return compactIds([...new Set(ids)]);
+    return compactRoleIds(ids);
   }
 
-  ids.push(rolesFromRule(managed.DARK_COUNCIL?.ranks?.[String(ranks.darkCouncil)]));
-  ids.push(rolesFromRanges(ranks.darkCouncil, managed.DARK_COUNCIL?.ranges));
-  ids.push(rolesFromRule(managed.HIGH_RANKS?.ranks?.[String(ranks.highranks)]));
-  ids.push(rolesFromRanges(ranks.highranks, managed.HIGH_RANKS?.ranges));
+  ids.push(roleIdsFromRule(managed.DARK_COUNCIL?.ranks?.[String(ranks.darkCouncil)]));
+  ids.push(roleIdsFromRanges(ranks.darkCouncil, managed.DARK_COUNCIL?.ranges));
+  ids.push(roleIdsFromRule(managed.HIGH_RANKS?.ranks?.[String(ranks.highranks)]));
+  ids.push(roleIdsFromRanges(ranks.highranks, managed.HIGH_RANKS?.ranges));
 
   for (const [roleName, active] of Object.entries(profile.authorityRoles || {})) {
     if (active) ids.push(managed.DARK_COUNCIL?.senior?.[roleName]);
   }
 
   for (const [division, rank] of Object.entries(ranks.divisions)) {
-    ids.push(rolesFromRule(managed.DIVISIONS?.[division]?.ranks?.[String(rank)]));
-    ids.push(rolesFromRanges(rank, managed.DIVISIONS?.[division]?.ranges));
+    ids.push(roleIdsFromRule(managed.DIVISIONS?.[division]?.ranks?.[String(rank)]));
+    ids.push(roleIdsFromRanges(rank, managed.DIVISIONS?.[division]?.ranges));
   }
 
-  return compactIds([...new Set(ids)]);
+  return compactRoleIds(ids);
 }
 
 function nicknameRuleForProfile(profile) {
@@ -238,9 +210,12 @@ export async function syncMemberRoles(member, actorDiscordId = member.id) {
   const managed = verified
     ? managedRoleIds()
     : [...managedRoleIds(), ...UNVERIFIED_REMOVED_ROLE_IDS];
-  const currentManaged = member.roles.cache.filter(role => managed.includes(role.id)).map(role => role.id);
-  const remove = currentManaged.filter(id => !wanted.includes(id));
-  const add = wanted.filter(id => !member.roles.cache.has(id));
+  const currentRoleIds = member.roles.cache.map(role => role.id);
+  const { add, remove } = roleSyncPlan({
+    currentRoleIds,
+    wantedRoleIds: wanted,
+    managedRoleIds: managed
+  });
 
   if (remove.length || add.length) assertBotCanManageRoleIds(member, [...remove, ...add]);
 

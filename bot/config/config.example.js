@@ -13,7 +13,7 @@ export default {
   },
   channels: {
     activityLog: "1455303713701757138",
-    verificationLog: "CHANNEL_ID",
+    verificationLog: "1046540786260512778",
     announcements: {
       holonet: "CHANNEL_ID",
       reavers: "CHANNEL_ID",
@@ -147,11 +147,11 @@ export default {
           "30": "1172292778710028399",
           "40": "1172292778710028399",
           "45": "1172292778710028399",
-          "150": "1109325113142288426",
-          ranges: [
-            { min: 1, max: 250, roles: ["1046451366488445018"] }
-        ]
+          "150": "1109325113142288426"
         },
+        ranges: [
+          { min: 1, max: 250, roles: ["1046451366488445018"] }
+        ],
       },
       HIGH_RANKS: {
         ranks: {

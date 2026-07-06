@@ -45,6 +45,18 @@ const SUBDOMAIN_TO_ID = Object.fromEntries(
   Object.entries(DIVISION_ROUTE_META).map(([id, meta]) => [meta.subdomain, id])
 );
 
+function isLocalHostname(hostname = "") {
+  const normalized = String(hostname || "").toLowerCase();
+  return normalized === "localhost" || normalized.endsWith(".localhost") || normalized === "127.0.0.1" || normalized === "::1" || /^\d+\.\d+\.\d+\.\d+$/.test(normalized);
+}
+
+function canonicalSiteHostname(hostname = "") {
+  const normalized = String(hostname || "").trim().toLowerCase();
+  if (!normalized) return "";
+  if (normalized === "thesithorder.org" || normalized === "www.thesithorder.org") return "www.thesithorder.org";
+  return normalized;
+}
+
 function configuredRootOrigin() {
   const env = typeof process !== "undefined" ? process.env || {} : {};
   const value =
@@ -53,15 +65,20 @@ function configuredRootOrigin() {
     env.HOLONET_BASE_URL ||
     "https://www.thesithorder.org";
 
-  const normalized = String(value || "").trim();
-  if (!normalized) return "https://www.thesithorder.org";
-  return (normalized.startsWith("http") ? normalized : `https://${normalized}`).replace(/\/+$/, "");
+  return normalizeOrigin(value);
 }
 
 function normalizeOrigin(value) {
   const normalized = String(value || "").trim();
   if (!normalized) return "";
-  return (normalized.startsWith("http") ? normalized : `https://${normalized}`).replace(/\/+$/, "");
+
+  const url = new URL(normalized.startsWith("http") ? normalized : `https://${normalized}`);
+  if (!isLocalHostname(url.hostname)) {
+    url.hostname = canonicalSiteHostname(url.hostname);
+    url.port = "";
+  }
+
+  return url.origin.replace(/\/+$/, "");
 }
 
 function rootHostname(hostname = "") {
@@ -74,13 +91,14 @@ function rootHostname(hostname = "") {
 export function holonetRootOrigin() {
   if (typeof window !== "undefined" && window.location?.hostname) {
     const url = new URL(window.location.origin);
-    url.hostname = rootHostname(url.hostname);
+    if (!isLocalHostname(url.hostname)) {
+      url.hostname = canonicalSiteHostname(url.hostname);
+      url.port = "";
+    }
     return url.origin.replace(/\/+$/, "");
   }
 
-  const url = new URL(configuredRootOrigin());
-  url.hostname = rootHostname(url.hostname);
-  return url.origin.replace(/\/+$/, "");
+  return normalizeOrigin(configuredRootOrigin());
 }
 
 export function divisionIdFromRouteSlug(slug) {
@@ -121,6 +139,9 @@ export function divisionSubdomainOrigin(id, rootOrigin = "") {
 
   const url = new URL(origin);
   url.hostname = `${subdomain}.${rootHostname(url.hostname)}`;
+  if (!isLocalHostname(url.hostname)) {
+    url.port = "";
+  }
   return url.origin.replace(/\/+$/, "");
 }
 
@@ -144,12 +165,14 @@ const DIVISIONS = {
       handbooks: "reavers_handbooks",
       transmissions: "reavers_transmissions",
       reports: "reavers_reports",
+      activity: "reavers_activity",
       trackers: "reavers_trackers"
     },
-    modules: ["transmissions", "documents", "reports", "trackers", "actions"],
+    modules: ["transmissions", "documents", "reports", "activity", "actions"],
     transmissions: [],
     documents: [],
     reports: [],
+    activity: [],
     trackers: [],
     actions: [
       { label: "Open Handbooks", href: divisionLockedHref("reavers", "handbooks"), minimumTier: "member" },
@@ -174,12 +197,14 @@ const DIVISIONS = {
       handbooks: "dhg_handbooks",
       transmissions: "dhg_transmissions",
       reports: "dhg_reports",
+      activity: "dhg_activity",
       trackers: "dhg_trackers"
     },
-    modules: ["transmissions", "documents", "reports", "trackers", "actions"],
+    modules: ["transmissions", "documents", "reports", "activity", "actions"],
     transmissions: [],
     documents: [],
     reports: [],
+    activity: [],
     trackers: [],
     actions: [
       { label: "Open Handbooks", href: divisionLockedHref("dhg", "handbooks"), minimumTier: "member" },
@@ -204,12 +229,14 @@ const DIVISIONS = {
       handbooks: "inquisitors_handbooks",
       transmissions: "inquisitors_transmissions",
       reports: "inquisitors_reports",
+      activity: "inquisitors_activity",
       trackers: "inquisitors_trackers"
     },
-    modules: ["transmissions", "documents", "reports", "trackers", "actions"],
+    modules: ["transmissions", "documents", "reports", "activity", "actions"],
     transmissions: [],
     documents: [],
     reports: [],
+    activity: [],
     trackers: [],
     actions: [
       { label: "Open Handbooks", href: divisionLockedHref("inquisitors", "handbooks"), minimumTier: "member" },
@@ -234,12 +261,14 @@ const DIVISIONS = {
       handbooks: "dreadmasters_handbooks",
       transmissions: "dreadmasters_transmissions",
       reports: "dreadmasters_reports",
+      activity: "dreadmasters_activity",
       trackers: "dreadmasters_trackers"
     },
-    modules: ["documents", "transmissions", "reports", "trackers", "actions"],
+    modules: ["documents", "transmissions", "reports", "activity", "actions"],
     transmissions: [],
     documents: [],
     reports: [],
+    activity: [],
     trackers: [],
     actions: [
       { label: "Open Handbooks", href: divisionLockedHref("dreadmasters", "handbooks"), minimumTier: "member" },
@@ -264,12 +293,14 @@ const DIVISIONS = {
       handbooks: "highranks_handbooks",
       transmissions: "highranks_transmissions",
       reports: "highranks_reports",
+      activity: "highranks_activity",
       trackers: "highranks_trackers"
     },
-    modules: ["reports", "trackers", "transmissions", "documents", "actions"],
+    modules: ["reports", "activity", "transmissions", "documents", "actions"],
     transmissions: [],
     documents: [],
     reports: [],
+    activity: [],
     trackers: [],
     actions: [
       { label: "Open Handbooks", href: divisionLockedHref("highranks", "handbooks"), minimumTier: "lower" },
@@ -294,12 +325,14 @@ const DIVISIONS = {
       handbooks: "darkcouncil_handbooks",
       transmissions: "darkcouncil_transmissions",
       reports: "darkcouncil_reports",
+      activity: "darkcouncil_activity",
       trackers: "darkcouncil_trackers"
     },
-    modules: ["documents", "transmissions", "reports", "trackers", "actions"],
+    modules: ["documents", "transmissions", "reports", "activity", "actions"],
     transmissions: [],
     documents: [],
     reports: [],
+    activity: [],
     trackers: [],
     actions: [
       { label: "Open Council Floor", href: divisionLockedHref("darkCouncil", "council-floor"), minimumTier: "council" },

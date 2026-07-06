@@ -491,6 +491,11 @@ function publicImageUrl(path) {
   return "";
 }
 
+function isLocalHostname(hostname = "") {
+  const normalized = String(hostname || "").toLowerCase();
+  return normalized === "localhost" || normalized.endsWith(".localhost") || normalized === "127.0.0.1" || normalized === "::1" || /^\d+\.\d+\.\d+\.\d+$/.test(normalized);
+}
+
 function normalizeSiteUrl(value) {
   const rawValue = String(value || "").trim();
   if (!rawValue) return "";
@@ -498,9 +503,10 @@ function normalizeSiteUrl(value) {
   try {
     const url = new URL(rawValue.startsWith("http") ? rawValue : `https://${rawValue}`);
     const hostname = String(url.hostname || "").toLowerCase();
-    const port = url.port ? `:${url.port}` : "";
+    const normalizedHostname = hostname === "thesithorder.org" ? "www.thesithorder.org" : hostname;
+    const port = isLocalHostname(normalizedHostname) && url.port ? `:${url.port}` : "";
     const pathname = url.pathname && url.pathname !== "/" ? url.pathname : "";
-    return `${url.protocol}//${hostname}${port}${pathname}${url.search}${url.hash}`.replace(/\/$/, "");
+    return `${url.protocol}//${normalizedHostname}${port}${pathname}${url.search}${url.hash}`.replace(/\/$/, "");
   } catch {
     return rawValue;
   }
@@ -3363,7 +3369,8 @@ export const LEGACY_API_HANDLERS = {
         return res.status(400).json({ ok: false, reason: "UNKNOWN_DIVISION" });
       }
 
-      const access = checkPageAccess(auth.profile, divisionConfig.access?.trackers || `${division}_trackers`);
+      const accessKey = divisionConfig.access?.activity || divisionConfig.access?.trackers || `${division}_activity`;
+      const access = checkPageAccess(auth.profile, accessKey);
       if (!access.authorized) {
         return res.status(200).json({ ok: false, authorized: false, reason: access.reason || "ACCESS_DENIED" });
       }

@@ -218,10 +218,23 @@ async function loadClockScopesForUser(discordUserId) {
   return [...new Set((data || []).map(row => row.scope).filter(Boolean))];
 }
 
-async function allowedClockScopesForTarget(interaction, targetUser) {
+async function loadClockScopesForTarget(targetUser, verified = undefined) {
+  const [storedScopes, target] = await Promise.all([
+    loadClockScopesForUser(targetUser.id),
+    verified === undefined ? getVerifiedProfile(targetUser.id).catch(() => null) : Promise.resolve(verified)
+  ]);
+  const scopes = new Set(storedScopes);
+  const profileScope = target?.profile ? inferScope(target.profile) : "";
+  if (profileScope) scopes.add(profileScope);
+  return [...scopes];
+}
+
+async function allowedClockScopesForTarget(interaction, targetUser, targetVerified = undefined) {
   if (targetUser.id === interaction.user.id) return null;
-  const actor = await getVerifiedProfile(interaction.user.id).catch(() => null);
-  const targetScopes = await loadClockScopesForUser(targetUser.id);
+  const [actor, targetScopes] = await Promise.all([
+    getVerifiedProfile(interaction.user.id).catch(() => null),
+    loadClockScopesForTarget(targetUser, targetVerified)
+  ]);
   return targetScopes.filter(scope => canViewScopeTime(actor?.profile, scope, interaction.member));
 }
 
@@ -230,7 +243,7 @@ async function replyUserTime(interaction, user) {
   const scope = verified?.profile ? inferScope(verified.profile) : "";
   let visibleScopes = null;
   if (user.id !== interaction.user.id) {
-    visibleScopes = await allowedClockScopesForTarget(interaction, user);
+    visibleScopes = await allowedClockScopesForTarget(interaction, user, verified);
     if (!visibleScopes.length) {
       await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to view that user's time.")] }));
       return;

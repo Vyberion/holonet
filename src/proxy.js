@@ -17,6 +17,8 @@ const LOCKED_SECTIONS = new Set([
   "trackers",
   "council-floor"
 ]);
+const APEX_HOSTNAME = "thesithorder.org";
+const CANONICAL_HOSTNAME = "www.thesithorder.org";
 
 function requestHostname(request) {
   return String(request.headers.get("host") || request.nextUrl.hostname || "")
@@ -81,11 +83,22 @@ function shouldBypass(pathname) {
   );
 }
 
+function wwwRedirectUrl(request) {
+  const url = request.nextUrl.clone();
+  url.protocol = "https:";
+  url.hostname = CANONICAL_HOSTNAME;
+  return url;
+}
+
 export function proxy(request) {
+  const hostname = requestHostname(request);
+  if (hostname === APEX_HOSTNAME) {
+    return NextResponse.redirect(wwwRedirectUrl(request), 308);
+  }
+
   const pathname = request.nextUrl.pathname;
   if (shouldBypass(pathname)) return NextResponse.next();
 
-  const hostname = requestHostname(request);
   const hostLabel = hostname.split(".")[0] || "";
   const subdomainDivisionId = divisionIdFromSubdomain(hostLabel);
 
@@ -119,5 +132,5 @@ export function proxy(request) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|api|assets|css|js|modules|favicon.ico|robots.txt|sitemap.xml).*)"]
+  matcher: ["/:path*"]
 };

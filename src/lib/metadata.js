@@ -18,10 +18,8 @@ function absoluteBaseUrl(value) {
 export function siteUrl() {
   const url =
     process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
-    process.env.VERCEL_BRANCH_URL ||
-    process.env.VERCEL_URL ||
-    "https://holonet.vercel.app";
+    process.env.HOLONET_BASE_URL ||
+    "https://www.thesithorder.org";
 
   return absoluteBaseUrl(url);
 }
@@ -40,7 +38,7 @@ export function embedImageUrl() {
   const assetOrigin = absoluteBaseUrl(
     process.env.NEXT_PUBLIC_EMBED_ASSET_URL ||
     process.env.NEXT_PUBLIC_ASSET_URL ||
-    "https://holonet.vercel.app"
+    "https://www.thesithorder.org"
   );
 
   return `${assetOrigin}${versionedAssetUrl(EMBED_IMAGE)}`;

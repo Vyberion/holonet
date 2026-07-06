@@ -60,8 +60,7 @@ function envTrue(value) {
 function isPreviewSuperuserMode() {
   return (
     envTrue(process.env.HOLONET_PREVIEW_SUPERUSER) &&
-    process.env.VERCEL_ENV === "preview" &&
-    process.env.VERCEL_GIT_COMMIT_REF === "preview"
+    process.env.NODE_ENV !== "production"
   );
 }
 

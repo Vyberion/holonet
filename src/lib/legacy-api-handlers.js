@@ -3120,6 +3120,7 @@ export const LEGACY_API_HANDLERS = {
         handbooks: "handbook",
         documents: "handbook",
         transmissions: "transmission",
+        activity: "tracker",
         trackers: "tracker",
         reports: "report"
       }[requestedType];
@@ -3137,11 +3138,13 @@ export const LEGACY_API_HANDLERS = {
       }
 
       const pageKey = `${division}_${{
-        handbook: "handbooks",
-        transmission: "transmissions",
-        tracker: "trackers",
-        report: "reports"
-      }[resourceType]}`;
+        handbooks: "handbooks",
+        documents: "handbooks",
+        transmissions: "transmissions",
+        activity: "activity",
+        trackers: "activity",
+        reports: "reports"
+      }[requestedType]}`;
       const access = checkPageAccess(auth.profile, pageKey);
       if (!access.authorized) {
         return res.status(200).json({ ok: false, authorized: false, reason: access.reason || "ACCESS_DENIED" });

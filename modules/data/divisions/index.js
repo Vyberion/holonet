@@ -165,15 +165,13 @@ const DIVISIONS = {
       handbooks: "reavers_handbooks",
       transmissions: "reavers_transmissions",
       reports: "reavers_reports",
-      activity: "reavers_activity",
-      trackers: "reavers_trackers"
+      activity: "reavers_activity"
     },
     modules: ["transmissions", "documents", "reports", "activity", "actions"],
     transmissions: [],
     documents: [],
     reports: [],
     activity: [],
-    trackers: [],
     actions: [
       { label: "Open Handbooks", href: divisionLockedHref("reavers", "handbooks"), minimumTier: "member" },
       { label: "Open Transmissions", href: divisionLockedHref("reavers", "transmissions"), minimumTier: "member" },
@@ -197,15 +195,13 @@ const DIVISIONS = {
       handbooks: "dhg_handbooks",
       transmissions: "dhg_transmissions",
       reports: "dhg_reports",
-      activity: "dhg_activity",
-      trackers: "dhg_trackers"
+      activity: "dhg_activity"
     },
     modules: ["transmissions", "documents", "reports", "activity", "actions"],
     transmissions: [],
     documents: [],
     reports: [],
     activity: [],
-    trackers: [],
     actions: [
       { label: "Open Handbooks", href: divisionLockedHref("dhg", "handbooks"), minimumTier: "member" },
       { label: "Open Transmissions", href: divisionLockedHref("dhg", "transmissions"), minimumTier: "member" },
@@ -229,15 +225,13 @@ const DIVISIONS = {
       handbooks: "inquisitors_handbooks",
       transmissions: "inquisitors_transmissions",
       reports: "inquisitors_reports",
-      activity: "inquisitors_activity",
-      trackers: "inquisitors_trackers"
+      activity: "inquisitors_activity"
     },
     modules: ["transmissions", "documents", "reports", "activity", "actions"],
     transmissions: [],
     documents: [],
     reports: [],
     activity: [],
-    trackers: [],
     actions: [
       { label: "Open Handbooks", href: divisionLockedHref("inquisitors", "handbooks"), minimumTier: "member" },
       { label: "Open Transmissions", href: divisionLockedHref("inquisitors", "transmissions"), minimumTier: "member" },
@@ -261,15 +255,13 @@ const DIVISIONS = {
       handbooks: "dreadmasters_handbooks",
       transmissions: "dreadmasters_transmissions",
       reports: "dreadmasters_reports",
-      activity: "dreadmasters_activity",
-      trackers: "dreadmasters_trackers"
+      activity: "dreadmasters_activity"
     },
     modules: ["documents", "transmissions", "reports", "activity", "actions"],
     transmissions: [],
     documents: [],
     reports: [],
     activity: [],
-    trackers: [],
     actions: [
       { label: "Open Handbooks", href: divisionLockedHref("dreadmasters", "handbooks"), minimumTier: "member" },
       { label: "Open Transmissions", href: divisionLockedHref("dreadmasters", "transmissions"), minimumTier: "member" },
@@ -293,15 +285,13 @@ const DIVISIONS = {
       handbooks: "highranks_handbooks",
       transmissions: "highranks_transmissions",
       reports: "highranks_reports",
-      activity: "highranks_activity",
-      trackers: "highranks_trackers"
+      activity: "highranks_activity"
     },
     modules: ["reports", "activity", "transmissions", "documents", "actions"],
     transmissions: [],
     documents: [],
     reports: [],
     activity: [],
-    trackers: [],
     actions: [
       { label: "Open Handbooks", href: divisionLockedHref("highranks", "handbooks"), minimumTier: "lower" },
       { label: "Open Transmissions", href: divisionLockedHref("highranks", "transmissions"), minimumTier: "lower" },
@@ -325,15 +315,13 @@ const DIVISIONS = {
       handbooks: "darkcouncil_handbooks",
       transmissions: "darkcouncil_transmissions",
       reports: "darkcouncil_reports",
-      activity: "darkcouncil_activity",
-      trackers: "darkcouncil_trackers"
+      activity: "darkcouncil_activity"
     },
     modules: ["documents", "transmissions", "reports", "activity", "actions"],
     transmissions: [],
     documents: [],
     reports: [],
     activity: [],
-    trackers: [],
     actions: [
       { label: "Open Council Floor", href: divisionLockedHref("darkCouncil", "council-floor"), minimumTier: "council" },
       { label: "Open Handbooks", href: divisionLockedHref("darkCouncil", "handbooks"), minimumTier: "powerbase" },

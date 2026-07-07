@@ -40,11 +40,6 @@ export default function PrivacyPage() {
           for moderation and role checks, such as profile link, account age, friend count, badge
           count and relevant group ranks.
         </p>
-        <h2>Analytics</h2>
-        <p>
-          The site may use Analytics to understand basic usage and performance. Analytics are
-          used for maintenance and improvement, not for selling personal data.
-        </p>
         <h2>Data Sharing</h2>
         <h2>Retention</h2>
         <p>

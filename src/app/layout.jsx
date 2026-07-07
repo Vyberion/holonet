@@ -1,4 +1,3 @@
-import { Analytics } from "@vercel/analytics/next";
 import {
   EMBED_IMAGE_HEIGHT,
   EMBED_IMAGE_WIDTH,
@@ -728,7 +727,6 @@ export default function RootLayout({ children }) {
         <HolonetAudioController />
         {children}
         <script dangerouslySetInnerHTML={{ __html: HOLONET_GLOBAL_POLISH_JS }} />
-        <Analytics />
       </body>
     </html>
   );

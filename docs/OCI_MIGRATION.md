@@ -1,6 +1,6 @@
 # OCI migration runbook
 
-This branch is for moving the Holonet web app to OCI while leaving Vercel, `main` and `preview` alone.
+This branch is for running the Holonet web app on OCI.
 
 The existing OCI bot can stay exactly where it is. Do not run these commands inside the `holonet-bot` directory. Use a separate checkout for the web app, for example `~/holonet-web`.
 
@@ -10,7 +10,7 @@ The existing OCI bot can stay exactly where it is. Do not run these commands ins
 - PM2 config for a separate process named `holonet-web`.
 - A deployment script that pulls `migration`, installs dependencies, builds the app and reloads only `holonet-web`.
 - A public health route at `/api/health`.
-- `.env.oci.example` so OCI has the same required runtime settings as Vercel.
+- `.env.oci.example` with the required runtime settings for OCI.
 
 ## First setup on the OCI instance
 
@@ -21,17 +21,26 @@ cp .env.oci.example .env.local
 nano .env.local
 ```
 
-Fill `.env.local` with the production values from Vercel. At minimum, the web app needs:
+Fill `.env.local` with the production values. At minimum, the web app needs:
 
 ```bash
 NODE_ENV=production
 PORT=3000
 HOSTNAME=0.0.0.0
-NEXT_PUBLIC_SITE_URL=https://your-domain.example
-NEXT_PUBLIC_EMBED_ASSET_URL=https://your-domain.example
+NEXT_PUBLIC_SITE_URL=https://www.thesithorder.org
+NEXT_PUBLIC_EMBED_ASSET_URL=https://www.thesithorder.org
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
+ROBLOX_CLIENT_ID=
+ROBLOX_CLIENT_SECRET=
 GOOGLE_SERVICE_ACCOUNT_JSON=
+```
+
+Register both Roblox OAuth callback URLs:
+
+```text
+https://www.thesithorder.org/api/auth/callback
+https://thesithorder.org/api/auth/callback
 ```
 
 Then deploy:
@@ -101,7 +110,7 @@ npm run deploy
 
 ## Optional handbook refresh cron later
 
-Only add this when you want OCI to refresh cached handbook PDFs without Vercel cron.
+Only add this when you want OCI to refresh cached handbook PDFs from cron.
 
 ```cron
 */30 * * * * curl -fsS -H "Authorization: Bearer replace-with-cron-secret" https://your-domain.example/api/cron/handbook-pdf-refresh >/dev/null 2>&1

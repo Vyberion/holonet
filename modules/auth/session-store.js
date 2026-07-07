@@ -57,9 +57,11 @@ function normalizeCookieDomain(value = "") {
     .trim()
     .replace(/^https?:\/\//i, "")
     .split("/")[0]
-    .split(":")[0]; // Removed the www stripper here
+    .split(":")[0]
+    .replace(/^\./, "")
+    .replace(/^www\./i, "");
     
-  if (!domain || domain === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(domain) || domain.endsWith(".vercel.app")) return "";
+  if (!domain || domain === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(domain)) return "";
   return domain.startsWith(".") ? domain : `.${domain}`;
 }
 
@@ -68,7 +70,9 @@ function defaultCookieDomain() {
   if (explicit) return normalizeCookieDomain(explicit);
 
   const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.HOLONET_BASE_URL || "";
-  if (!configuredUrl) return "";
+  if (!configuredUrl) {
+    return process.env.NODE_ENV === "production" ? ".thesithorder.org" : "";
+  }
 
   try {
     const url = new URL(configuredUrl.startsWith("http") ? configuredUrl : `https://${configuredUrl}`);

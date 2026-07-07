@@ -1,4 +1,5 @@
 import { getAuthContext } from "../../modules/auth/auth-context.js";
+import { timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
@@ -45,6 +46,8 @@ const VERIFICATION_WARNING_ROLE_IDS = [
   "1046451364965920848",
   "1302790774458552331"
 ];
+const DEFAULT_SITE_ORIGIN = "https://www.thesithorder.org";
+const OAUTH_STATE_MAX_AGE_SECONDS = 60 * 10;
 let cachedDiscordToken = "";
 let cachedVerificationLogChannelId = "";
 
@@ -495,27 +498,89 @@ function normalizeSiteUrl(value) {
   try {
     const url = new URL(rawValue.startsWith("http") ? rawValue : `https://${rawValue}`);
     const hostname = String(url.hostname || "").toLowerCase();
-    const normalizedHostname = hostname === "thesithorder.org" ? "www.thesithorder.org" : hostname;
     const port = url.port ? `:${url.port}` : "";
     const pathname = url.pathname && url.pathname !== "/" ? url.pathname : "";
-    return `${url.protocol}//${normalizedHostname}${port}${pathname}${url.search}${url.hash}`.replace(/\/$/, "");
+    return `${url.protocol}//${hostname}${port}${pathname}${url.search}${url.hash}`.replace(/\/$/, "");
   } catch {
     return rawValue;
   }
 }
 
+function headerFirstValue(value) {
+  return String(value || "").split(",")[0].trim();
+}
+
 function requestRootOrigin(req) {
-  const forwardedProto = String(req?.headers?.["x-forwarded-proto"] || "").split(",")[0].trim();
-  const protocol = forwardedProto || (String(req?.headers?.host || "").includes("localhost") ? "http" : "https");
-  const host = String(req?.headers?.host || "").trim();
+  const forwardedProto = headerFirstValue(req?.headers?.["x-forwarded-proto"]);
+  const forwardedHost = headerFirstValue(req?.headers?.["x-forwarded-host"]);
+  const host = forwardedHost || headerFirstValue(req?.headers?.host);
+  const protocol = forwardedProto || (host.includes("localhost") ? "http" : "https");
   const origin = host ? `${protocol}://${host}` : "";
   return normalizeSiteUrl(origin);
 }
 
+function canonicalOAuthOrigin(origin) {
+  const normalized = normalizeSiteUrl(origin);
+  if (!normalized) return "";
+
+  try {
+    const url = new URL(normalized);
+    if (url.hostname === "thesithorder.org") {
+      url.hostname = "www.thesithorder.org";
+    }
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return normalized;
+  }
+}
+
 function oauthRedirectUri(req) {
-  const origin = requestRootOrigin(req);
+  const origin = canonicalOAuthOrigin(requestRootOrigin(req));
   if (origin) return `${origin}/api/auth/callback`;
-  return normalizeSiteUrl(String(process.env.ROBLOX_REDIRECT_URI || ""));
+  const configured = normalizeSiteUrl(String(process.env.ROBLOX_REDIRECT_URI || ""));
+  return configured || `${DEFAULT_SITE_ORIGIN}/api/auth/callback`;
+}
+
+function normalizeOauthRedirectUri(value) {
+  const normalized = normalizeSiteUrl(value);
+  if (!normalized) return "";
+
+  try {
+    const url = new URL(normalized);
+    if (url.pathname !== "/api/auth/callback") return "";
+    if (url.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(url.hostname)) return "";
+    return `${url.protocol}//${url.host}${url.pathname}`;
+  } catch {
+    return "";
+  }
+}
+
+function encodeOAuthStateCookie({ state, redirectUri }) {
+  return Buffer.from(JSON.stringify({
+    state,
+    redirectUri: normalizeOauthRedirectUri(redirectUri)
+  })).toString("base64url");
+}
+
+function decodeOAuthStateCookie(value) {
+  const rawValue = requireString(value);
+  if (!rawValue) return { state: "", redirectUri: "" };
+
+  try {
+    const payload = JSON.parse(Buffer.from(rawValue, "base64url").toString("utf8"));
+    return {
+      state: requireString(payload.state),
+      redirectUri: normalizeOauthRedirectUri(payload.redirectUri)
+    };
+  } catch {
+    return { state: rawValue, redirectUri: "" };
+  }
+}
+
+function statesMatch(left, right) {
+  const leftBuffer = Buffer.from(requireString(left));
+  const rightBuffer = Buffer.from(requireString(right));
+  return leftBuffer.length > 0 && leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
 }
 
 function lookupUrlForRequest(req, username) {
@@ -2678,7 +2743,9 @@ export const LEGACY_API_HANDLERS = {
       redirectUri
     });
 
-    res.setHeader("Set-Cookie", serializeCookie(STATE_COOKIE, state, { maxAge: 60 * 10 }));
+    res.setHeader("Set-Cookie", serializeCookie(STATE_COOKIE, encodeOAuthStateCookie({ state, redirectUri }), {
+      maxAge: OAUTH_STATE_MAX_AGE_SECONDS
+    }));
     return res.redirect(robloxAuthUrl);
   },
   "auth/logout": async (req, res) => {
@@ -2729,14 +2796,15 @@ export const LEGACY_API_HANDLERS = {
       return res.redirect("/account.html?status=error&msg=Invalid+callback+payload");
     }
 
-    const expectedState = getCookie(req, STATE_COOKIE);
+    const expected = decodeOAuthStateCookie(getCookie(req, STATE_COOKIE));
 
-    if (!expectedState || state !== expectedState) {
+    if (!statesMatch(state, expected.state)) {
       res.setHeader("Set-Cookie", clearCookie(STATE_COOKIE));
       return res.redirect("/account.html?status=error&msg=OAuth+state+verification+failed");
     }
 
     try {
+      const tokenRedirectUri = expected.redirectUri || oauthRedirectUri(req);
       const tokenResponse = await fetch("https://apis.roblox.com/oauth/v1/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -2745,7 +2813,7 @@ export const LEGACY_API_HANDLERS = {
           client_secret: process.env.ROBLOX_CLIENT_SECRET,
           grant_type: "authorization_code",
           code,
-          redirect_uri: oauthRedirectUri(req)
+          redirect_uri: tokenRedirectUri
         })
       });
 

@@ -4,7 +4,7 @@ export default {
     guildId: "1046437795465539604"
   },
   holonet: {
-    baseUrl: "https://holonet.vercel.app"
+    baseUrl: "https://www.thesithorder.org"
   },
   theme: {
     color: 0xff3348,

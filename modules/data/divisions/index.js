@@ -51,13 +51,10 @@ function configuredRootOrigin() {
     env.NEXT_PUBLIC_SITE_URL ||
     env.NEXT_PUBLIC_ROOT_URL ||
     env.HOLONET_BASE_URL ||
-    env.VERCEL_PROJECT_PRODUCTION_URL ||
-    env.VERCEL_BRANCH_URL ||
-    env.VERCEL_URL ||
-    "https://holonet.vercel.app";
+    "https://www.thesithorder.org";
 
   const normalized = String(value || "").trim();
-  if (!normalized) return "https://holonet.vercel.app";
+  if (!normalized) return "https://www.thesithorder.org";
   return (normalized.startsWith("http") ? normalized : `https://${normalized}`).replace(/\/+$/, "");
 }
 

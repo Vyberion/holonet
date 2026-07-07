@@ -144,21 +144,21 @@ export function HolonetNav() {
   const divisionContext = currentDivisionContext(pathname, hostname);
   const showDivisionReturn = divisionContext && !["home", "info"].includes(divisionContext.section);
   const centerLinks = [
-    { href: "/", page: "home", prefix: "00", label: "Home" },
-    { href: "/codex", page: "codex", prefix: "01", label: "Codex" },
+    { href: "https://www.thesithorder//", page: "home", prefix: "00", label: "Home" },
+    { href: "https://www.thesithorder//codex", page: "codex", prefix: "01", label: "Codex" },
     {
-      href: "/archives",
+      href: "https://www.thesithorder//archives",
       page: "archives",
       prefix: "02",
       label: "Archives",
       dropdown: [
-        { href: "/archives/cots", page: "archives-cots", label: "CoTS" },
-        { href: "/galaxy", page: "galaxy", label: "Galaxy" }
+        { href: "https://www.thesithorder//archives/cots", page: "archives-cots", label: "CoTS" },
+        { href: "https://www.thesithorder//galaxy", page: "galaxy", label: "Galaxy" }
       ]
     },
-    { href: "/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
+    { href: "https://www.thesithorder//hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
     ...(access?.permissions?.canAccessRegistry
-      ? [{ href: "/registry", page: "registry", prefix: "04", label: "Registry" }]
+      ? [{ href: "https://www.thesithorder//registry", page: "registry", prefix: "04", label: "Registry" }]
       : [])
   ];
 
@@ -318,7 +318,7 @@ export function HolonetNav() {
             <div className="nav-privileged" data-nav-privileged>
               <PrivilegedLinks permissions={access?.permissions} activePage={activePage} onClick={closeNav} />
             </div>
-            <NavLink href="/account" page="account" account activePage={activePage} onClick={closeNav}>
+            <NavLink href="https://www.thesithorder/account" page="account" account activePage={activePage} onClick={closeNav}>
               <div className="account-text">
                 <span className="nav-link-label">Account</span>
               </div>

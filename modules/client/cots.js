@@ -102,7 +102,7 @@ function derivePodium(state) {
 
 function autoResolveBrackets(state) {
   const hasLosers = state.losersBracket && state.losersBracket.length > 0;
-  
+
   if (state.bracket) {
     const totalWinners = state.bracket.length;
     state.bracket.forEach((round, roundIndex) => {
@@ -112,7 +112,7 @@ function autoResolveBrackets(state) {
       else if (distanceToEnd === 2) round.name = "Quarter Finals";
       else if (roundIndex === 0) round.name = "Opening Duels";
       else round.name = `Round of ${Math.max(1, (round.matches || []).length) * 2}`;
-      
+
       (round.matches || []).forEach((match, matchIndex) => { match.id = `W${roundIndex + 1}-${matchIndex + 1}`; });
     });
   }
@@ -126,7 +126,7 @@ function autoResolveBrackets(state) {
       else if (distanceToEnd === 2) round.name = "Losers Quarter Finals";
       else if (roundIndex === 0) round.name = "Losers Opening Duels";
       else round.name = `Losers Round of ${Math.max(1, (round.matches || []).length) * 2}`;
-      
+
       (round.matches || []).forEach((match, matchIndex) => { match.id = `L${roundIndex + 1}-${matchIndex + 1}`; });
     });
   }
@@ -228,8 +228,8 @@ function renderCots(root, state, canEdit, meta = {}) {
       <figure class="cots-media-card${image.url ? "" : " cots-media-card--empty"}">
         <div class="cots-media-frame">
           ${image.url
-            ? `<img src="${escapeHtml(image.url)}" alt="Champion of The Sith podium">`
-            : `<div class="cots-media-placeholder"><span>Podium Image</span></div>`}
+      ? `<img src="${escapeHtml(image.url)}" alt="Champion of The Sith podium">`
+      : `<div class="cots-media-placeholder"><span>Podium Image</span></div>`}
         </div>
       </figure>
 
@@ -246,7 +246,7 @@ function renderCots(root, state, canEdit, meta = {}) {
         <h3 class="hub-panel-title">Tournament Bracket</h3>
       </div>
       ${(state.bracket?.length || state.losersBracket?.length || state.grandFinals?.length) ? `
-        <div class="hierarchy-tabs-shell" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 20px;">
+        <div class="hierarchy-tabs-shell" style="margin-bottom: 20px;">
           <div class="hierarchy-tab-strip" role="tablist">
             ${state.bracket?.length ? `<button aria-selected="true" class="hierarchy-tab is-active" role="tab" type="button" data-cots-tab="winners">Winners Bracket</button>` : ""}
             ${state.losersBracket?.length ? `<button aria-selected="${!state.bracket?.length}" class="hierarchy-tab ${!state.bracket?.length ? 'is-active' : ''}" role="tab" type="button" data-cots-tab="losers">Losers Bracket</button>` : ""}
@@ -345,6 +345,158 @@ function roundEditor(bracketPrefix, roundTitle, round, roundIndex) {
   `;
 }
 
+
+function generateDoubleElimination(rosterText) {
+  const players = rosterText.split('\n').map(p => p.trim()).filter(Boolean);
+  const nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(players.length)));
+  while (players.length < nextPowerOf2) players.push("BYE");
+
+  players.sort(() => Math.random() - 0.5);
+
+  const bracket = [];
+  const losersBracket = [];
+  const grandFinals = [];
+
+  const numWRounds = Math.log2(nextPowerOf2);
+  let matchesInRound = nextPowerOf2 / 2;
+
+  for (let r = 0; r < numWRounds; r++) {
+    let name = `Round ${r + 1}`;
+    if (r === numWRounds - 1) name = "Winners Final";
+    else if (r === numWRounds - 2) name = "Winners Semi Finals";
+    else if (r === numWRounds - 3) name = "Winners Quarter Finals";
+
+    bracket.push({ name, matches: [] });
+    for (let m = 0; m < matchesInRound; m++) {
+      const match = {
+        id: `W${r + 1}-${m + 1}`,
+        left: r === 0 ? players[m * 2] : "",
+        right: r === 0 ? players[m * 2 + 1] : "",
+        leftScore: "",
+        rightScore: "",
+        winner: "",
+        nextMatchId: r < numWRounds - 1 ? `W${r + 2}-${Math.floor(m / 2) + 1}` : "TF-1",
+        nextSlot: r < numWRounds - 1 ? (m % 2 === 0 ? "left" : "right") : "left",
+        nextLoserMatchId: "",
+        nextLoserSlot: ""
+      };
+
+      if (r === 0) {
+        match.nextLoserMatchId = `L1-${Math.floor(m / 2) + 1}`;
+        match.nextLoserSlot = m % 2 === 0 ? "left" : "right";
+      } else {
+        const lRound = r * 2;
+        match.nextLoserMatchId = `L${lRound}-${m + 1}`;
+        match.nextLoserSlot = "right";
+      }
+
+      bracket[r].matches.push(match);
+    }
+    matchesInRound /= 2;
+  }
+
+  const numLRounds = numWRounds > 1 ? (numWRounds - 1) * 2 : 0;
+  let lMatchesInRound = nextPowerOf2 / 4;
+
+  for (let r = 0; r < numLRounds; r++) {
+    let name = `L-Round ${r + 1}`;
+    if (r === numLRounds - 1) name = "Losers Final";
+    else if (r === numLRounds - 2) name = "Losers Semi Finals";
+
+    losersBracket.push({ name, matches: [] });
+    for (let m = 0; m < lMatchesInRound; m++) {
+      const match = {
+        id: `L${r + 1}-${m + 1}`,
+        left: "",
+        right: "",
+        leftScore: "",
+        rightScore: "",
+        winner: "",
+        nextMatchId: "",
+        nextSlot: ""
+      };
+
+      if (r < numLRounds - 1) {
+        if (r % 2 === 0) {
+          match.nextMatchId = `L${r + 2}-${m + 1}`;
+          match.nextSlot = "left";
+        } else {
+          match.nextMatchId = `L${r + 2}-${Math.floor(m / 2) + 1}`;
+          match.nextSlot = m % 2 === 0 ? "left" : "right";
+        }
+      } else {
+        match.nextMatchId = "TF-1";
+        match.nextSlot = "right";
+      }
+
+      losersBracket[r].matches.push(match);
+    }
+    if (r % 2 !== 0) lMatchesInRound /= 2;
+  }
+
+  bracket.push({
+    name: "Tournament Final",
+    matches: [{
+      id: "TF-1", left: "", right: "", leftScore: "", rightScore: "", winner: "", nextMatchId: "", nextSlot: "", nextLoserMatchId: "", nextLoserSlot: ""
+    }]
+  });
+
+  grandFinals.push({
+    name: "Grand Finals",
+    matches: [{
+      id: "GF-1", left: "", right: "", leftScore: "", rightScore: "", winner: "", nextMatchId: "", nextSlot: "", nextLoserMatchId: "", nextLoserSlot: ""
+    }]
+  });
+
+  return { bracket, losersBracket, grandFinals };
+}
+
+function propagateWinners(state) {
+  const evaluateMatch = (match, allMatches) => {
+    const ls = parseInt(match.leftScore, 10);
+    const rs = parseInt(match.rightScore, 10);
+    match.winner = "";
+    match.loser = "";
+
+    if (match.left === "BYE" && match.right !== "BYE" && match.right !== "") {
+      match.winner = match.right; match.loser = "BYE";
+    } else if (match.right === "BYE" && match.left !== "BYE" && match.left !== "") {
+      match.winner = match.left; match.loser = "BYE";
+    } else if (!isNaN(ls) && !isNaN(rs)) {
+      if (ls > rs) { match.winner = match.left; match.loser = match.right; }
+      else if (rs > ls) { match.winner = match.right; match.loser = match.left; }
+    }
+
+    if (match.winner && match.nextMatchId && allMatches[match.nextMatchId]) {
+      allMatches[match.nextMatchId][match.nextSlot] = match.winner;
+    }
+    if (match.loser && match.nextLoserMatchId && allMatches[match.nextLoserMatchId]) {
+      allMatches[match.nextLoserMatchId][match.nextLoserSlot] = match.loser;
+    }
+  };
+
+  const allMatches = {};
+  [...(state.bracket || []), ...(state.losersBracket || []), ...(state.grandFinals || [])].forEach(r => {
+    r.matches.forEach(m => allMatches[m.id] = m);
+  });
+
+  Object.values(allMatches).forEach(m => {
+    if (m.nextMatchId && allMatches[m.nextMatchId]) allMatches[m.nextMatchId][m.nextSlot] = "";
+    if (m.nextLoserMatchId && allMatches[m.nextLoserMatchId]) allMatches[m.nextLoserMatchId][m.nextLoserSlot] = "";
+  });
+
+  (state.bracket || []).forEach(r => {
+    (r.matches || []).forEach(m => evaluateMatch(m, allMatches));
+  });
+
+  (state.losersBracket || []).forEach(r => {
+    (r.matches || []).forEach(m => evaluateMatch(m, allMatches));
+  });
+
+  (state.grandFinals || []).forEach(r => {
+    (r.matches || []).forEach(m => evaluateMatch(m, allMatches));
+  });
+}
 function syncStateFromForm(form, workingState) {
   const data = Object.fromEntries(new FormData(form).entries());
   workingState.champion = {
@@ -354,7 +506,7 @@ function syncStateFromForm(form, workingState) {
     motto: text(data.championMotto),
     season: text(data.championSeason)
   };
-  
+
   const parseBracket = (arr, prefix) => {
     return (arr || []).map((round, roundIndex) => ({
       name: round.name,
@@ -371,6 +523,8 @@ function syncStateFromForm(form, workingState) {
   workingState.bracket = parseBracket(workingState.bracket, "w");
   workingState.losersBracket = parseBracket(workingState.losersBracket, "l");
   workingState.grandFinals = parseBracket(workingState.grandFinals, "gf");
+
+  propagateWinners(workingState);
 }
 
 function renderEditorForm(form, state) {
@@ -465,13 +619,13 @@ async function initCots() {
     const tabBtn = event.target.closest("[data-cots-tab]");
     if (tabBtn) {
       const tabId = tabBtn.dataset.cotsTab;
-      
+
       root.querySelectorAll(".hierarchy-tab").forEach(tab => {
         const isSelected = tab.dataset.cotsTab === tabId;
         tab.setAttribute("aria-selected", isSelected);
         tab.classList.toggle("is-active", isSelected);
       });
-      
+
       root.querySelectorAll(".cots-tab-content").forEach(content => {
         content.style.display = content.id === `cots-tab-${tabId}` ? "" : "none";
       });
@@ -543,7 +697,7 @@ async function initCots() {
 window.initHolonetCots = initCots;
 
 if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initCots);
-  } else {
-    initCots();
-  }
+  document.addEventListener("DOMContentLoaded", initCots);
+} else {
+  initCots();
+}

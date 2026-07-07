@@ -245,27 +245,33 @@ function renderCots(root, state, canEdit, meta = {}) {
       <div class="hub-panel-head">
         <h3 class="hub-panel-title">Tournament Bracket</h3>
       </div>
-      ${(state.bracket || []).length ? `
-        <h4 class="hub-kicker" style="margin: 20px 20px 0;">Winners Bracket</h4>
-        <div class="cots-bracket" role="list">
-          ${state.bracket.map(roundMarkup).join("")}
+      ${(state.bracket?.length || state.losersBracket?.length || state.grandFinals?.length) ? `
+        <div class="hierarchy-tabs-shell" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 20px;">
+          <div class="hierarchy-tab-strip" role="tablist">
+            ${state.bracket?.length ? `<button aria-selected="true" class="hierarchy-tab is-active" role="tab" type="button" data-cots-tab="winners">Winners Bracket</button>` : ""}
+            ${state.losersBracket?.length ? `<button aria-selected="${!state.bracket?.length}" class="hierarchy-tab ${!state.bracket?.length ? 'is-active' : ''}" role="tab" type="button" data-cots-tab="losers">Losers Bracket</button>` : ""}
+            ${state.grandFinals?.length ? `<button aria-selected="${!state.bracket?.length && !state.losersBracket?.length}" class="hierarchy-tab ${!state.bracket?.length && !state.losersBracket?.length ? 'is-active' : ''}" role="tab" type="button" data-cots-tab="grand">Grand Finals</button>` : ""}
+          </div>
         </div>
-      ` : ""}
-      ${(state.losersBracket || []).length ? `
-        <h4 class="hub-kicker" style="margin: 20px 20px 0;">Losers Bracket</h4>
-        <div class="cots-bracket" role="list">
-          ${state.losersBracket.map(roundMarkup).join("")}
-        </div>
-      ` : ""}
-      ${(state.grandFinals || []).length ? `
-        <h4 class="hub-kicker" style="margin: 20px 20px 0;">Grand Finals</h4>
-        <div class="cots-bracket" role="list">
-          ${state.grandFinals.map(roundMarkup).join("")}
-        </div>
-      ` : ""}
-      ${!(state.bracket?.length) && !(state.losersBracket?.length) && !(state.grandFinals?.length) ? `
+
+        ${state.bracket?.length ? `
+          <div class="cots-bracket cots-tab-content" id="cots-tab-winners" role="list">
+            ${state.bracket.map(roundMarkup).join("")}
+          </div>
+        ` : ""}
+        ${state.losersBracket?.length ? `
+          <div class="cots-bracket cots-tab-content" id="cots-tab-losers" role="list" style="${state.bracket?.length ? 'display: none;' : ''}">
+            ${state.losersBracket.map(roundMarkup).join("")}
+          </div>
+        ` : ""}
+        ${state.grandFinals?.length ? `
+          <div class="cots-bracket cots-tab-content" id="cots-tab-grand" role="list" style="${(state.bracket?.length || state.losersBracket?.length) ? 'display: none;' : ''}">
+            ${state.grandFinals.map(roundMarkup).join("")}
+          </div>
+        ` : ""}
+      ` : `
         <p class="hub-empty" style="margin: 20px;">Bracket is empty.</p>
-      ` : ""}
+      `}
     </section>
   `;
 }
@@ -456,6 +462,22 @@ async function initCots() {
   }
 
   root.addEventListener("click", event => {
+    const tabBtn = event.target.closest("[data-cots-tab]");
+    if (tabBtn) {
+      const tabId = tabBtn.dataset.cotsTab;
+      
+      root.querySelectorAll(".hierarchy-tab").forEach(tab => {
+        const isSelected = tab.dataset.cotsTab === tabId;
+        tab.setAttribute("aria-selected", isSelected);
+        tab.classList.toggle("is-active", isSelected);
+      });
+      
+      root.querySelectorAll(".cots-tab-content").forEach(content => {
+        content.style.display = content.id === `cots-tab-${tabId}` ? "" : "none";
+      });
+      return;
+    }
+
     if (!event.target.closest("[data-cots-edit]")) return;
 
     const overlay = ensureEditorOverlay();

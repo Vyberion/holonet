@@ -14,6 +14,7 @@ const LOCKED_SECTIONS = new Set([
   "transmissions",
   "reports",
   "activity",
+  "trackers",
   "council-floor"
 ]);
 const APEX_HOSTNAME = "thesithorder.org";
@@ -93,7 +94,8 @@ function stripSameDivisionPrefix(pathname, divisionId) {
 
 function internalPathForSubdomain(pathname, divisionId) {
   const stripped = stripSameDivisionPrefix(pathname, divisionId);
-  return !stripped || stripped === "/" ? "/home" : stripped;
+  const internal = !stripped || stripped === "/" ? "/home" : stripped;
+  return internal.replace(/^\/trackers(?=\/|$)/, "/activity");
 }
 
 function shouldBypass(pathname) {
@@ -129,12 +131,8 @@ export function proxy(request) {
   const subdomainDivisionId = divisionIdFromSubdomain(hostLabel);
 
   if (subdomainDivisionId) {
-    const targetPath = `/${divisionSubdomainForId(subdomainDivisionId)}${internalPathForSubdomain(pathname, subdomainDivisionId)}`;
-    if (pathname === targetPath) {
-      return NextResponse.next();
-    }
     const url = request.nextUrl.clone();
-    url.pathname = targetPath;
+    url.pathname = `/${divisionSubdomainForId(subdomainDivisionId)}${internalPathForSubdomain(pathname, subdomainDivisionId)}`;
     return NextResponse.rewrite(url);
   }
 

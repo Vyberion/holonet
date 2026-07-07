@@ -128,7 +128,8 @@ export function divisionPublicInfoPath(id) {
 
 export function divisionLockedPath(section = "home") {
   const normalized = String(section || "home").toLowerCase().replace(/^\/+|\/+$/g, "");
-  return !normalized || normalized === "home" ? "/" : `/${normalized}`;
+  const route = normalized === "trackers" ? "activity" : normalized;
+  return !route || route === "home" ? "/" : `/${route}`;
 }
 
 export function divisionSubdomainOrigin(id, rootOrigin = "") {

@@ -141,7 +141,7 @@ function renderRows(items, emptyText, { kind = "", division = null } = {}) {
 }
 
 function activityHrefFrom(value) {
-  return String(value || "#");
+  return String(value || "#").replace(/\/trackers(?:\.html)?$/i, "/activity");
 }
 
 function renderActions(items) {

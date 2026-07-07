@@ -26,7 +26,8 @@ export const commands = [
     .addSubcommand(subcommand => subcommand
       .setName("report")
       .setDescription("Write this scope's weekly website report and reset its clock time")
-      .addStringOption(option => addReportScopeChoices(option.setName("scope").setDescription("Report scope").setRequired(true)))),
+      .addStringOption(option => addReportScopeChoices(option.setName("scope").setDescription("Report scope").setRequired(true)))
+      .addStringOption(option => option.setName("date").setDescription("Week start date, YYYY-MM-DD"))),
   new SlashCommandBuilder()
     .setName("reset")
     .setDescription("Reset clock time for a report scope")
@@ -389,31 +390,48 @@ async function resetClockShiftsForReport(scope, members = [], reportAt = new Dat
   const linkMap = await loadVerificationLinksForRobloxIds(robloxIds);
   const discordIds = [...new Set([...linkMap.values()])];
 
-  const filters = [];
-  if (robloxIds.length) filters.push(`roblox_user_id.in.(${robloxIds.map(id => String(id)).join(",")})`);
-  if (discordIds.length) filters.push(`discord_user_id.in.(${discordIds.map(id => String(id)).join(",")})`);
-  if (!filters.length) return;
+  if (robloxIds.length) {
+    const { error: deleteError } = await supabase
+      .from("clock_shifts")
+      .delete()
+      .eq("scope", scope)
+      .eq("status", "completed")
+      .in("roblox_user_id", robloxIds);
+    if (deleteError) throw deleteError;
+  }
 
-  const identityFilter = `or.(${filters.join(",")})`;
+  if (discordIds.length) {
+    const { error: deleteError } = await supabase
+      .from("clock_shifts")
+      .delete()
+      .eq("scope", scope)
+      .eq("status", "completed")
+      .in("discord_user_id", discordIds);
+    if (deleteError) throw deleteError;
+  }
 
-  const { error: deleteError } = await supabase
-    .from("clock_shifts")
-    .delete()
-    .eq("scope", scope)
-    .eq("status", "completed")
-    .or(identityFilter);
-  if (deleteError) throw deleteError;
+  if (robloxIds.length) {
+    const { error: updateError } = await supabase
+      .from("clock_shifts")
+      .update(resetShiftPayload(reportAt))
+      .eq("scope", scope)
+      .eq("status", "active")
+      .in("roblox_user_id", robloxIds);
+    if (updateError) throw updateError;
+  }
 
-  const { error: updateError } = await supabase
-    .from("clock_shifts")
-    .update(resetShiftPayload(reportAt))
-    .eq("scope", scope)
-    .eq("status", "active")
-    .or(identityFilter);
-  if (updateError) throw updateError;
+  if (discordIds.length) {
+    const { error: updateError } = await supabase
+      .from("clock_shifts")
+      .update(resetShiftPayload(reportAt))
+      .eq("scope", scope)
+      .eq("status", "active")
+      .in("discord_user_id", discordIds);
+    if (updateError) throw updateError;
+  }
 }
 
-async function saveWeeklyReportForScope(interaction, scope) {
+async function saveWeeklyReportForScope(interaction, scope, date = "") {
   assertReportScope(scope);
   const actor = await getVerifiedProfile(interaction.user.id);
   if (!actor) throw new Error("DISCORD_NOT_LINKED");
@@ -423,7 +441,7 @@ async function saveWeeklyReportForScope(interaction, scope) {
 
   const members = await buildWeeklyReportRoster(scope);
   const reportAt = new Date().toISOString();
-  const weekStart = weekStartValue();
+  const weekStart = date ? date.trim() : weekStartValue();
   const authorName = await authorNameFor(actor);
 
   const { data: created, error: reportError } = await supabase
@@ -534,10 +552,11 @@ function targetUsersFromOptions(interaction) {
 
 async function handleWriteReportCommand(interaction) {
   const scope = interaction.options.getString("scope", true);
+  const date = (interaction.options.getString("date", false) || "").trim();
   await ensureReportWriteAccess(interaction, scope);
   await interaction.reply(ephemeral({
-    embeds: [embed("Confirm Weekly Report", `Are you sure you want to write the **${scopeLabel(scope)}** weekly report? This will save the current scope logs to the website report system and reset **${scopeLabel(scope)}** clock time.`)],
-    components: confirmButtons(`rptwrite:${scope}`)
+    embeds: [embed("Confirm Weekly Report", `Are you sure you want to write the **${scopeLabel(scope)}** weekly report${date ? ` for **${date}**` : ""}? This will save the current scope logs to the website report system and reset **${scopeLabel(scope)}** clock time.`)],
+    components: confirmButtons(`rptwrite:${scope}:${date}`)
   }));
 }
 
@@ -597,10 +616,10 @@ async function handleResetCommand(interaction) {
   }));
 }
 
-async function confirmWriteReport(interaction, scope) {
+async function confirmWriteReport(interaction, scope, date = "") {
   await interaction.deferUpdate();
   try {
-    const report = await saveWeeklyReportForScope(interaction, scope);
+    const report = await saveWeeklyReportForScope(interaction, scope, date);
     const totals = reportTotals(report.members);
     await interaction.editReply({
       embeds: [reportPreviewEmbed({
@@ -699,8 +718,8 @@ export async function handleButton(interaction) {
   }
 
   if (interaction.customId.startsWith("rptwrite:")) {
-    const [, scope] = interaction.customId.split(":");
-    await confirmWriteReport(interaction, scope);
+    const [, scope, date = ""] = interaction.customId.split(":");
+    await confirmWriteReport(interaction, scope, date);
     return true;
   }
 

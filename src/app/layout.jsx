@@ -356,12 +356,12 @@ body.theme-highranks #resource-editor-overlay .resource-editor-container,
   .site-nav .nav-toggle,
   .site-nav .nav-toggle span,
   .back-to-top-btn {
-    color: color-mix(in srgb, var(--theme-accent, #ffffff) 56%, var(--text-dim) 44%) !important;
-    border-color: color-mix(in srgb, var(--theme-accent, #ffffff) 40%, var(--theme-accent-dim) 60%) !important;
+    color: var(--theme-accent-soft) !important;
+    border-color: var(--theme-accent-dim) !important;
   }
 
   .site-nav .nav-toggle span {
-    background: color-mix(in srgb, var(--theme-accent, #ffffff) 56%, var(--theme-accent-dim) 44%) !important;
+    background: var(--theme-accent-dim) !important;
   }
 
   #resource-editor-overlay,
@@ -435,11 +435,11 @@ body.theme-highranks #resource-editor-overlay .resource-editor-container,
   .mobile-search-shortcut {
     align-items: center;
     background: rgba(0, 0, 0, 0.18);
-    border: 1px solid color-mix(in srgb, var(--theme-accent, #ffffff) 40%, var(--theme-accent-dim) 60%);
+    border: 1px solid var(--theme-accent-dim);
     bottom: 60px;
     box-shadow: none;
     clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
-    color: color-mix(in srgb, var(--theme-accent, #ffffff) 56%, var(--text-dim) 44%);
+    color: var(--theme-accent-soft);
     cursor: crosshair;
     display: flex;
     height: 36px;

@@ -590,7 +590,7 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Torreto the Tyrant",
-    body: "TorretoTerminus is the fortieth Emperor of TSO and the twelfth under Manar_Aktuun. He is the first to secure a second term within this era.\n\nHis ongoing reign currently maintains a stable, albeit unremarkable, status quo. However, this stable era is marred by general discontent within the Order, largely fueled by his reputation for petty internal disputes.",
+    body: "TorretoTerminus is the fortieth Emperor of TSO and the twelfth under Manar_Aktuun. He is the first to secure a second term within this era.\n\nHis ongoing reign currently maintains a stable, albeit unremarkable, status quo. However, this stable era is marred by general discontent within the Order, largely fueled by his reputation for internal disputes.",
     current: true
   }
 ];

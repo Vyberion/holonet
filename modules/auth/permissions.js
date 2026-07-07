@@ -441,7 +441,8 @@ export function checkPageAccess(profile, page) {
       return { ...override, pageKey };
     }
 
-    const authorized = tierListAtLeast(HIGH_RANK_TIERS, profile.highRank, rule.highRankMinimumTier);
+    const inquisitorAccess = canAccessDivisionPagesForInquisitors(profile, "highranks");
+    const authorized = inquisitorAccess || tierListAtLeast(HIGH_RANK_TIERS, profile.highRank, rule.highRankMinimumTier);
 
     return {
       authorized,

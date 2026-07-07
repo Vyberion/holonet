@@ -1,23 +1,10 @@
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[char]);
+function escapeHtml(string) {
+  const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" };
+  return String(string || "").replace(/[&<>"']/g, match => map[match]);
 }
 
 function text(value, fallback = "") {
   return String(value ?? fallback).trim();
-}
-
-function parseJson(value, fallback) {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
 }
 
 function normalizeImage(image = {}) {
@@ -29,114 +16,38 @@ function normalizeImage(image = {}) {
 }
 
 function defaultState(root) {
-  return parseJson(root?.dataset?.cotsState || "{}", {
-    champion: { name: "", title: "", motto: "", season: "", podiumImage: {} },
-    podium: [],
-    bracket: [],
-    losersBracket: [],
-    grandFinals: []
-  });
+  try {
+    const raw = root?.dataset?.cotsState;
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
 }
 
-function normalizeState(value, fallback) {
-  const state = value && typeof value === "object" ? value : {};
-  const champion = state.champion && typeof state.champion === "object" ? state.champion : {};
-  const fallbackChampion = fallback.champion || {};
+function normalizeState(value, fallback = {}) {
+  const state = typeof value === "object" && value !== null ? value : {};
+  const fallbackChampion = typeof fallback.champion === "object" && fallback.champion !== null ? fallback.champion : {};
 
   return {
     champion: {
-      name: text(champion.name, fallbackChampion.name),
-      title: text(champion.title, fallbackChampion.title),
-      motto: text(champion.motto, fallbackChampion.motto),
-      season: text(champion.season, fallbackChampion.season),
-      podiumImage: normalizeImage(champion.podiumImage || fallbackChampion.podiumImage)
+      name: text(state.champion?.name, fallbackChampion.name),
+      title: text(state.champion?.title, fallbackChampion.title),
+      motto: "The Future Belongs to the Bold.",
+      season: text(state.champion?.season, fallbackChampion.season),
+      podiumImage: normalizeImage(state.champion?.podiumImage || fallbackChampion.podiumImage)
     },
-    podium: Array.isArray(state.podium) && state.podium.length ? state.podium.slice(0, 3) : fallback.podium || [],
+    podium: Array.isArray(state.podium) && state.podium.length ? state.podium : fallback.podium || [
+      { place: "I", name: "", note: "Champion" },
+      { place: "II", name: "", note: "Finalist" },
+      { place: "III", name: "", note: "Podium" }
+    ],
+    challongeUrl: text(state.challongeUrl, fallback.challongeUrl || ""),
+    
+    // Archiving previous bracket data to prevent data loss
     bracket: Array.isArray(state.bracket) ? state.bracket : fallback.bracket || [],
     losersBracket: Array.isArray(state.losersBracket) ? state.losersBracket : fallback.losersBracket || [],
     grandFinals: Array.isArray(state.grandFinals) ? state.grandFinals : fallback.grandFinals || []
   };
-}
-
-function derivePodium(state) {
-  let first = null;
-  let second = null;
-  let third = null;
-
-  if (state.grandFinals && state.grandFinals.length > 0) {
-    const gfLastRound = state.grandFinals[state.grandFinals.length - 1];
-    if (gfLastRound.matches && gfLastRound.matches.length > 0) {
-      const gfMatch = gfLastRound.matches[gfLastRound.matches.length - 1];
-      if (gfMatch.winner) {
-        first = gfMatch.winner;
-        second = gfMatch.left === gfMatch.winner ? gfMatch.right : gfMatch.left;
-      }
-    }
-  } else if (state.bracket && state.bracket.length > 0) {
-    const wLastRound = state.bracket[state.bracket.length - 1];
-    if (wLastRound.matches && wLastRound.matches.length > 0) {
-      const wMatch = wLastRound.matches[wLastRound.matches.length - 1];
-      if (wMatch.winner) {
-        first = wMatch.winner;
-        second = wMatch.left === wMatch.winner ? wMatch.right : wMatch.left;
-      }
-    }
-  }
-
-  if (state.losersBracket && state.losersBracket.length > 0) {
-    const lLastRound = state.losersBracket[state.losersBracket.length - 1];
-    if (lLastRound.matches && lLastRound.matches.length > 0) {
-      const lMatch = lLastRound.matches[lLastRound.matches.length - 1];
-      if (lMatch.winner) {
-        third = lMatch.left === lMatch.winner ? lMatch.right : lMatch.left;
-      }
-    }
-  }
-
-  state.podium = [
-    { place: "I", name: first || "", note: "Champion" },
-    { place: "II", name: second || "", note: "Finalist" },
-    { place: "III", name: third || "", note: "Podium" }
-  ];
-}
-
-function autoResolveBrackets(state) {
-  const hasLosers = state.losersBracket && state.losersBracket.length > 0;
-
-  if (state.bracket) {
-    const totalWinners = state.bracket.length;
-    state.bracket.forEach((round, roundIndex) => {
-      const distanceToEnd = totalWinners - 1 - roundIndex;
-      if (distanceToEnd === 0) round.name = hasLosers ? "Winners Final" : "Grand Finals";
-      else if (distanceToEnd === 1) round.name = "Semi Finals";
-      else if (distanceToEnd === 2) round.name = "Quarter Finals";
-      else if (roundIndex === 0) round.name = "Opening Duels";
-      else round.name = `Round of ${Math.max(1, (round.matches || []).length) * 2}`;
-
-      (round.matches || []).forEach((match, matchIndex) => { match.id = `W${roundIndex + 1}-${matchIndex + 1}`; });
-    });
-  }
-
-  if (state.losersBracket) {
-    const totalLosers = state.losersBracket.length;
-    state.losersBracket.forEach((round, roundIndex) => {
-      const distanceToEnd = totalLosers - 1 - roundIndex;
-      if (distanceToEnd === 0) round.name = "Losers Final";
-      else if (distanceToEnd === 1) round.name = "Losers Semi Finals";
-      else if (distanceToEnd === 2) round.name = "Losers Quarter Finals";
-      else if (roundIndex === 0) round.name = "Losers Opening Duels";
-      else round.name = `Losers Round of ${Math.max(1, (round.matches || []).length) * 2}`;
-
-      (round.matches || []).forEach((match, matchIndex) => { match.id = `L${roundIndex + 1}-${matchIndex + 1}`; });
-    });
-  }
-
-  if (state.grandFinals) {
-    state.grandFinals.forEach((round, roundIndex) => {
-      round.name = "Grand Finals";
-      (round.matches || []).forEach((match, matchIndex) => { match.id = `GF-${matchIndex + 1}`; });
-    });
-  }
 }
 
 function podiumRow(entry, index) {
@@ -149,77 +60,14 @@ function podiumRow(entry, index) {
   `;
 }
 
-function competitor(name, winner) {
-  return `
-    <div class="cots-bracket-competitor${winner ? " is-winner" : ""}">
-      <span>${escapeHtml(name || "TBD")}</span>
-      ${winner ? '<b aria-label="Winner">WIN</b>' : ""}
-    </div>
-  `;
-}
-
-function matchCard(match, matchIndex, roundSize, laneHeight) {
-  const topPercent = ((matchIndex + 0.5) / Math.max(1, roundSize)) * 100;
-  const pairLineHeight = laneHeight / Math.max(1, roundSize);
-
-  return `
-    <article
-      class="cots-bracket-match"
-      role="listitem"
-      style="--match-top: ${topPercent}%; --pair-line-height: ${pairLineHeight}px;"
-    >
-      <div class="cots-match-code">${escapeHtml(match.id || "")}</div>
-      ${competitor(match.left, match.winner && match.winner === match.left)}
-      ${competitor(match.right, match.winner && match.winner === match.right)}
-      <div class="cots-match-footer">
-        <span>Score</span>
-        <strong>${escapeHtml(match.score || "-")}</strong>
-      </div>
-    </article>
-  `;
-}
-
-function roundMarkup(round, roundIndex, rounds) {
-  const roundSize = Math.max(1, (round.matches || []).length);
-  const previousSize = roundIndex > 0 ? Math.max(1, (rounds[roundIndex - 1]?.matches || []).length) : 0;
-  const largestRoundSize = Math.max(1, ...rounds.map(item => (item.matches || []).length));
-  const laneHeight = Math.max(720, largestRoundSize * 178);
-
-  return `
-    <section
-      class="cots-bracket-round"
-      aria-label="${escapeHtml(round.name || "Round")}"
-      style="--round-size: ${roundSize}; --previous-round-size: ${previousSize}; --bracket-lane-height: ${laneHeight}px;"
-    >
-      <h4>${escapeHtml(round.name || "Round")}</h4>
-      <div class="cots-bracket-stack">
-        ${(round.matches || []).map((match, matchIndex) => matchCard(match, matchIndex, roundSize, laneHeight)).join("")}
-      </div>
-    </section>
-  `;
-}
-
 function renderCots(root, state, canEdit, meta = {}) {
-  autoResolveBrackets(state);
-  derivePodium(state);
-
   const image = normalizeImage(state.champion.podiumImage);
   root.innerHTML = `
     <section class="cots-hero" aria-labelledby="cots-title">
       <div class="cots-hero-copy">
         <p class="hub-kicker">Current Champion</p>
         <h2 id="cots-title" class="cots-title">${escapeHtml(state.champion.name || "Awaiting Champion")}</h2>
-        <p class="cots-quote">&quot;${escapeHtml(state.champion.motto || "")}&quot;</p>
-      </div>
-      <div class="cots-hero-stats" aria-label="Champion status">
-        <div>
-          <span class="hub-label">Title</span>
-          <strong>${escapeHtml(state.champion.title || "Unrecorded")}</strong>
-        </div>
-        <div>
-          <span class="hub-label">Season</span>
-          <strong>${escapeHtml(state.champion.season || "Unrecorded")}</strong>
-        </div>
+        <p class="cots-quote">&quot;The Future Belongs to the Bold.&quot;</p>
       </div>
       ${canEdit ? '<button type="button" class="resource-editor-open cots-edit-button" data-cots-edit>Edit CoTS</button>' : ""}
     </section>
@@ -228,8 +76,8 @@ function renderCots(root, state, canEdit, meta = {}) {
       <figure class="cots-media-card${image.url ? "" : " cots-media-card--empty"}">
         <div class="cots-media-frame">
           ${image.url
-      ? `<img src="${escapeHtml(image.url)}" alt="Champion of The Sith podium">`
-      : `<div class="cots-media-placeholder"><span>Podium Image</span></div>`}
+            ? `<img src="${escapeHtml(image.url)}" alt="Champion of The Sith podium">`
+            : `<div class="cots-media-placeholder"><span>Podium Image</span></div>`}
         </div>
       </figure>
 
@@ -241,37 +89,10 @@ function renderCots(root, state, canEdit, meta = {}) {
       </div>
     </section>
 
-    <section class="hub-panel cots-bracket-panel" aria-label="Tournament bracket">
-      <div class="hub-panel-head">
-        <h3 class="hub-panel-title">Tournament Bracket</h3>
-      </div>
-      ${(state.bracket?.length || state.losersBracket?.length || state.grandFinals?.length) ? `
-        <div class="hierarchy-tabs-shell" style="margin-bottom: 20px;">
-          <div class="hierarchy-tab-strip" role="tablist">
-            ${state.bracket?.length ? `<button aria-selected="true" class="hierarchy-tab is-active" role="tab" type="button" data-cots-tab="winners">Winners Bracket</button>` : ""}
-            ${state.losersBracket?.length ? `<button aria-selected="${!state.bracket?.length}" class="hierarchy-tab ${!state.bracket?.length ? 'is-active' : ''}" role="tab" type="button" data-cots-tab="losers">Losers Bracket</button>` : ""}
-            ${state.grandFinals?.length ? `<button aria-selected="${!state.bracket?.length && !state.losersBracket?.length}" class="hierarchy-tab ${!state.bracket?.length && !state.losersBracket?.length ? 'is-active' : ''}" role="tab" type="button" data-cots-tab="grand">Grand Finals</button>` : ""}
-          </div>
-        </div>
-
-        ${state.bracket?.length ? `
-          <div class="cots-bracket cots-tab-content" id="cots-tab-winners" role="list">
-            ${state.bracket.map(roundMarkup).join("")}
-          </div>
-        ` : ""}
-        ${state.losersBracket?.length ? `
-          <div class="cots-bracket cots-tab-content" id="cots-tab-losers" role="list" style="${state.bracket?.length ? 'display: none;' : ''}">
-            ${state.losersBracket.map(roundMarkup).join("")}
-          </div>
-        ` : ""}
-        ${state.grandFinals?.length ? `
-          <div class="cots-bracket cots-tab-content" id="cots-tab-grand" role="list" style="${(state.bracket?.length || state.losersBracket?.length) ? 'display: none;' : ''}">
-            ${state.grandFinals.map(roundMarkup).join("")}
-          </div>
-        ` : ""}
-      ` : `
-        <p class="hub-empty" style="margin: 20px;">Bracket is empty.</p>
-      `}
+    <section class="hub-panel cots-bracket-panel" aria-label="Tournament bracket" style="padding: 0; overflow: hidden;">
+      ${state.challongeUrl 
+        ? `<iframe src="${escapeHtml(state.challongeUrl)}" width="100%" height="800" frameborder="0" scrolling="auto" allowtransparency="true" style="border: none; width: 100%; height: 800px; display: block;"></iframe>` 
+        : `<p class="hub-empty" style="margin: 20px;">No tournament bracket available.</p>`}
     </section>
   `;
 }
@@ -284,300 +105,71 @@ function ensureEditorOverlay() {
   overlay.id = "cots-editor-overlay";
   overlay.innerHTML = `
     <div class="resource-editor-container library-editor-container cots-editor-container" role="dialog" aria-modal="true" aria-labelledby="cots-editor-title">
-      <div class="resource-editor-topbar">
-        <span class="resource-editor-title" id="cots-editor-title">EDIT CHAMPION OF THE SITH</span>
-        <button type="button" class="resource-editor-close" data-cots-close>CLOSE</button>
+      <div class="resource-editor-header">
+        <h2 class="resource-editor-title" id="cots-editor-title">Edit Champion of the Sith</h2>
+        <button type="button" class="resource-editor-close" data-cots-close>Close</button>
       </div>
-      <form class="resource-editor-form library-editor-form" id="cots-editor-form"></form>
-      <div class="resource-editor-actions">
-        <span class="resource-editor-status" data-cots-status></span>
-        <button type="submit" class="resource-editor-submit" form="cots-editor-form">SAVE</button>
-      </div>
+      <form class="resource-editor-form" id="cots-editor-form"></form>
       <div class="resource-editor-footer">
-        <span class="resource-editor-hint"><kbd>ESC</kbd> CLOSE</span>
+        <div class="resource-editor-status" aria-live="polite" data-cots-status></div>
+        <button type="submit" form="cots-editor-form" class="resource-editor-submit">Save</button>
       </div>
     </div>
   `;
 
   document.body.appendChild(overlay);
-  overlay.querySelector("[data-cots-close]").addEventListener("click", () => overlay.classList.remove("active"));
-  overlay.addEventListener("pointerup", event => {
-    if (event.target === overlay) overlay.classList.remove("active");
+
+  overlay.addEventListener("click", event => {
+    if (event.target === overlay || event.target.closest("[data-cots-close]")) {
+      overlay.classList.remove("active");
+    }
   });
+
   document.addEventListener("keydown", event => {
-    if (event.key === "Escape") overlay.classList.remove("active");
+    if (event.key === "Escape" && overlay.classList.contains("active")) {
+      overlay.classList.remove("active");
+    }
   });
+
   return overlay;
 }
 
-function matchEditor(bracketPrefix, round, roundIndex, match, matchIndex) {
-  const prefix = `${bracketPrefix}-round-${roundIndex}-match-${matchIndex}`;
-  return `
-    <section class="cots-match-editor" data-cots-match="${bracketPrefix}:${roundIndex}:${matchIndex}">
-      <div class="library-entry-toolbar">
-        <span class="library-entry-title">Match ${matchIndex + 1}</span>
-        <button type="button" class="library-inline-btn danger" data-cots-remove-match="${bracketPrefix}:${roundIndex}:${matchIndex}">REMOVE MATCH</button>
-      </div>
-      <div class="cots-editor-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
-        <div class="resource-editor-field"><label>Left</label><input name="${prefix}-left" value="${escapeHtml(match.left || "")}"></div>
-        <div class="resource-editor-field"><label>Right</label><input name="${prefix}-right" value="${escapeHtml(match.right || "")}"></div>
-        <div class="resource-editor-field"><label>Winner</label><input name="${prefix}-winner" value="${escapeHtml(match.winner || "")}"></div>
-        <div class="resource-editor-field"><label>Score</label><input name="${prefix}-score" value="${escapeHtml(match.score || "")}"></div>
-      </div>
-    </section>
-  `;
-}
-
-function roundEditor(bracketPrefix, roundTitle, round, roundIndex) {
-  return `
-    <section class="library-entry-editor cots-round-editor" data-cots-round="${bracketPrefix}:${roundIndex}">
-      <div class="library-entry-toolbar">
-        <span class="library-entry-title">${escapeHtml(roundTitle)} Round ${roundIndex + 1}</span>
-        <button type="button" class="library-inline-btn danger" data-cots-remove-round="${bracketPrefix}:${roundIndex}">REMOVE ROUND</button>
-      </div>
-      <div class="cots-match-editor-stack">
-        ${(round.matches || []).map((match, matchIndex) => matchEditor(bracketPrefix, round, roundIndex, match, matchIndex)).join("")}
-      </div>
-      <div class="library-editor-buttons cots-inline-buttons">
-        <button type="button" class="library-inline-btn" data-cots-add-match="${bracketPrefix}:${roundIndex}">ADD MATCH</button>
-      </div>
-    </section>
-  `;
-}
-
-
-function generateDoubleElimination(rosterText) {
-  const players = rosterText.split('\n').map(p => p.trim()).filter(Boolean);
-  const nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(players.length)));
-  while (players.length < nextPowerOf2) players.push("BYE");
-
-  players.sort(() => Math.random() - 0.5);
-
-  const bracket = [];
-  const losersBracket = [];
-  const grandFinals = [];
-
-  const numWRounds = Math.log2(nextPowerOf2);
-  let matchesInRound = nextPowerOf2 / 2;
-
-  for (let r = 0; r < numWRounds; r++) {
-    let name = `Round ${r + 1}`;
-    if (r === numWRounds - 1) name = "Winners Final";
-    else if (r === numWRounds - 2) name = "Winners Semi Finals";
-    else if (r === numWRounds - 3) name = "Winners Quarter Finals";
-
-    bracket.push({ name, matches: [] });
-    for (let m = 0; m < matchesInRound; m++) {
-      const match = {
-        id: `W${r + 1}-${m + 1}`,
-        left: r === 0 ? players[m * 2] : "",
-        right: r === 0 ? players[m * 2 + 1] : "",
-        leftScore: "",
-        rightScore: "",
-        winner: "",
-        nextMatchId: r < numWRounds - 1 ? `W${r + 2}-${Math.floor(m / 2) + 1}` : "TF-1",
-        nextSlot: r < numWRounds - 1 ? (m % 2 === 0 ? "left" : "right") : "left",
-        nextLoserMatchId: "",
-        nextLoserSlot: ""
-      };
-
-      if (r === 0) {
-        match.nextLoserMatchId = `L1-${Math.floor(m / 2) + 1}`;
-        match.nextLoserSlot = m % 2 === 0 ? "left" : "right";
-      } else {
-        const lRound = r * 2;
-        match.nextLoserMatchId = `L${lRound}-${m + 1}`;
-        match.nextLoserSlot = "right";
-      }
-
-      bracket[r].matches.push(match);
-    }
-    matchesInRound /= 2;
-  }
-
-  const numLRounds = numWRounds > 1 ? (numWRounds - 1) * 2 : 0;
-  let lMatchesInRound = nextPowerOf2 / 4;
-
-  for (let r = 0; r < numLRounds; r++) {
-    let name = `L-Round ${r + 1}`;
-    if (r === numLRounds - 1) name = "Losers Final";
-    else if (r === numLRounds - 2) name = "Losers Semi Finals";
-
-    losersBracket.push({ name, matches: [] });
-    for (let m = 0; m < lMatchesInRound; m++) {
-      const match = {
-        id: `L${r + 1}-${m + 1}`,
-        left: "",
-        right: "",
-        leftScore: "",
-        rightScore: "",
-        winner: "",
-        nextMatchId: "",
-        nextSlot: ""
-      };
-
-      if (r < numLRounds - 1) {
-        if (r % 2 === 0) {
-          match.nextMatchId = `L${r + 2}-${m + 1}`;
-          match.nextSlot = "left";
-        } else {
-          match.nextMatchId = `L${r + 2}-${Math.floor(m / 2) + 1}`;
-          match.nextSlot = m % 2 === 0 ? "left" : "right";
-        }
-      } else {
-        match.nextMatchId = "TF-1";
-        match.nextSlot = "right";
-      }
-
-      losersBracket[r].matches.push(match);
-    }
-    if (r % 2 !== 0) lMatchesInRound /= 2;
-  }
-
-  bracket.push({
-    name: "Tournament Final",
-    matches: [{
-      id: "TF-1", left: "", right: "", leftScore: "", rightScore: "", winner: "", nextMatchId: "", nextSlot: "", nextLoserMatchId: "", nextLoserSlot: ""
-    }]
-  });
-
-  grandFinals.push({
-    name: "Grand Finals",
-    matches: [{
-      id: "GF-1", left: "", right: "", leftScore: "", rightScore: "", winner: "", nextMatchId: "", nextSlot: "", nextLoserMatchId: "", nextLoserSlot: ""
-    }]
-  });
-
-  return { bracket, losersBracket, grandFinals };
-}
-
-function propagateWinners(state) {
-  const evaluateMatch = (match, allMatches) => {
-    const ls = parseInt(match.leftScore, 10);
-    const rs = parseInt(match.rightScore, 10);
-    match.winner = "";
-    match.loser = "";
-
-    if (match.left === "BYE" && match.right !== "BYE" && match.right !== "") {
-      match.winner = match.right; match.loser = "BYE";
-    } else if (match.right === "BYE" && match.left !== "BYE" && match.left !== "") {
-      match.winner = match.left; match.loser = "BYE";
-    } else if (!isNaN(ls) && !isNaN(rs)) {
-      if (ls > rs) { match.winner = match.left; match.loser = match.right; }
-      else if (rs > ls) { match.winner = match.right; match.loser = match.left; }
-    }
-
-    if (match.winner && match.nextMatchId && allMatches[match.nextMatchId]) {
-      allMatches[match.nextMatchId][match.nextSlot] = match.winner;
-    }
-    if (match.loser && match.nextLoserMatchId && allMatches[match.nextLoserMatchId]) {
-      allMatches[match.nextLoserMatchId][match.nextLoserSlot] = match.loser;
-    }
-  };
-
-  const allMatches = {};
-  [...(state.bracket || []), ...(state.losersBracket || []), ...(state.grandFinals || [])].forEach(r => {
-    r.matches.forEach(m => allMatches[m.id] = m);
-  });
-
-  Object.values(allMatches).forEach(m => {
-    if (m.nextMatchId && allMatches[m.nextMatchId]) allMatches[m.nextMatchId][m.nextSlot] = "";
-    if (m.nextLoserMatchId && allMatches[m.nextLoserMatchId]) allMatches[m.nextLoserMatchId][m.nextLoserSlot] = "";
-  });
-
-  (state.bracket || []).forEach(r => {
-    (r.matches || []).forEach(m => evaluateMatch(m, allMatches));
-  });
-
-  (state.losersBracket || []).forEach(r => {
-    (r.matches || []).forEach(m => evaluateMatch(m, allMatches));
-  });
-
-  (state.grandFinals || []).forEach(r => {
-    (r.matches || []).forEach(m => evaluateMatch(m, allMatches));
-  });
-}
 function syncStateFromForm(form, workingState) {
   const data = Object.fromEntries(new FormData(form).entries());
+  
   workingState.champion = {
     ...workingState.champion,
-    name: text(data.championName),
-    title: text(data.championTitle),
-    motto: text(data.championMotto),
-    season: text(data.championSeason)
+    name: text(data.championName)
   };
+  
+  workingState.challongeUrl = text(data.challongeUrl);
 
-  const parseBracket = (arr, prefix) => {
-    return (arr || []).map((round, roundIndex) => ({
-      name: round.name,
-      matches: (round.matches || []).map((match, matchIndex) => ({
-        id: match.id,
-        left: text(data[`${prefix}-round-${roundIndex}-match-${matchIndex}-left`], match.left),
-        right: text(data[`${prefix}-round-${roundIndex}-match-${matchIndex}-right`], match.right),
-        winner: text(data[`${prefix}-round-${roundIndex}-match-${matchIndex}-winner`], match.winner),
-        score: text(data[`${prefix}-round-${roundIndex}-match-${matchIndex}-score`], match.score)
-      }))
-    }));
-  };
-
-  workingState.bracket = parseBracket(workingState.bracket, "w");
-  workingState.losersBracket = parseBracket(workingState.losersBracket, "l");
-  workingState.grandFinals = parseBracket(workingState.grandFinals, "gf");
-
-  propagateWinners(workingState);
+  workingState.podium = [
+    { place: "I", name: text(data.podium0), note: "Champion" },
+    { place: "II", name: text(data.podium1), note: "Finalist" },
+    { place: "III", name: text(data.podium2), note: "Podium" }
+  ];
 }
 
 function renderEditorForm(form, state) {
   form.innerHTML = `
     <div class="library-entry-stack">
       <section class="library-entry-editor">
-        <div class="library-entry-toolbar"><span class="library-entry-title">Tournament Generator</span></div>
-        <div class="resource-editor-field">
-          <label>Tournament Roster (One name per line)</label>
-          <textarea id="cots-roster-input" rows="6" placeholder="Enter player names here..."></textarea>
-        </div>
-        <div class="library-editor-buttons">
-          <button type="button" class="library-inline-btn" id="cots-generate-bracket-btn">GENERATE BRACKET</button>
-        </div>
-      </section>
-
-      <section class="library-entry-editor">
-        <div class="library-entry-toolbar"><span class="library-entry-title">Champion</span></div>
+        <div class="library-entry-toolbar"><span class="library-entry-title">Champion Settings</span></div>
         <div class="resource-editor-field"><label>Champion Username</label><input name="championName" value="${escapeHtml(state.champion.name || "")}" required></div>
-        <div class="resource-editor-field"><label>Champion Title</label><input name="championTitle" value="${escapeHtml(state.champion.title || "")}"></div>
-        <div class="resource-editor-field"><label>Motto</label><input name="championMotto" value="${escapeHtml(state.champion.motto || "")}"></div>
-        <div class="resource-editor-field"><label>Season</label><input name="championSeason" value="${escapeHtml(state.champion.season || "")}"></div>
         <div class="resource-editor-field"><label>Podium Image</label><input type="file" name="podiumImage" accept="image/*"></div>
-      </section>
-
-      <section class="library-entry-editor">
-        <div class="library-entry-toolbar"><span class="library-entry-title">Winners Bracket</span></div>
-        <div class="cots-round-editor-stack">
-          ${(state.bracket || []).map((r, i) => roundEditor("w", "Winners", r, i)).join("")}
-        </div>
-        <div class="library-editor-buttons cots-inline-buttons">
-          <button type="button" class="library-inline-btn" data-cots-add-round="w">ADD ROUND</button>
+        <div class="resource-editor-field">
+          <label>Challonge Embed URL</label>
+          <input name="challongeUrl" value="${escapeHtml(state.challongeUrl || "")}" placeholder="https://challonge.com/hnm2rcj7/module">
+          <p style="font-size: 11px; opacity: 0.6; margin-top: 4px;">Paste the direct src URL (e.g. https://challonge.com/hnm2rcj7/module)</p>
         </div>
       </section>
 
       <section class="library-entry-editor">
-        <div class="library-entry-toolbar"><span class="library-entry-title">Losers Bracket</span></div>
-        <div class="cots-round-editor-stack">
-          ${(state.losersBracket || []).map((r, i) => roundEditor("l", "Losers", r, i)).join("")}
-        </div>
-        <div class="library-editor-buttons cots-inline-buttons">
-          <button type="button" class="library-inline-btn" data-cots-add-round="l">ADD ROUND</button>
-        </div>
-      </section>
-
-      <section class="library-entry-editor">
-        <div class="library-entry-toolbar"><span class="library-entry-title">Grand Finals</span></div>
-        <div class="cots-round-editor-stack">
-          ${(state.grandFinals || []).map((r, i) => roundEditor("gf", "Grand Finals", r, i)).join("")}
-        </div>
-        <div class="library-editor-buttons cots-inline-buttons">
-          <button type="button" class="library-inline-btn" data-cots-add-round="gf">ADD ROUND</button>
-        </div>
+        <div class="library-entry-toolbar"><span class="library-entry-title">Podium Winners</span></div>
+        <div class="resource-editor-field"><label>1st Place (Champion)</label><input name="podium0" value="${escapeHtml(state.podium?.[0]?.name || "")}"></div>
+        <div class="resource-editor-field"><label>2nd Place (Finalist)</label><input name="podium1" value="${escapeHtml(state.podium?.[1]?.name || "")}"></div>
+        <div class="resource-editor-field"><label>3rd Place (Podium)</label><input name="podium2" value="${escapeHtml(state.podium?.[2]?.name || "")}"></div>
       </section>
     </div>
   `;
@@ -606,7 +198,7 @@ async function initCots() {
   if (!root || root.dataset.cotsBound === "true") return;
   root.dataset.cotsBound = "true";
 
-  const fallback = normalizeState(defaultState(root), { champion: {}, podium: [], bracket: [] });
+  const fallback = normalizeState(defaultState(root), { champion: {}, podium: [], challongeUrl: "", bracket: [] });
   let state = fallback;
   let canEdit = false;
   let meta = {};
@@ -627,22 +219,6 @@ async function initCots() {
   }
 
   root.addEventListener("click", event => {
-    const tabBtn = event.target.closest("[data-cots-tab]");
-    if (tabBtn) {
-      const tabId = tabBtn.dataset.cotsTab;
-
-      root.querySelectorAll(".hierarchy-tab").forEach(tab => {
-        const isSelected = tab.dataset.cotsTab === tabId;
-        tab.setAttribute("aria-selected", isSelected);
-        tab.classList.toggle("is-active", isSelected);
-      });
-
-      root.querySelectorAll(".cots-tab-content").forEach(content => {
-        content.style.display = content.id === `cots-tab-${tabId}` ? "" : "none";
-      });
-      return;
-    }
-
     if (!event.target.closest("[data-cots-edit]")) return;
 
     const overlay = ensureEditorOverlay();
@@ -653,51 +229,6 @@ async function initCots() {
     renderEditorForm(form, workingState);
     status.textContent = meta.migrationRequired ? "Migration required before saving" : "";
     overlay.classList.add("active");
-
-    form.onclick = event => {
-      if (event.target.id === "cots-generate-bracket-btn") {
-        const rosterText = form.querySelector("#cots-roster-input").value;
-        if (!rosterText.trim()) return alert("Please enter at least one player name.");
-        
-        const generated = generateDoubleElimination(rosterText);
-        workingState.bracket = generated.bracket;
-        workingState.losersBracket = generated.losersBracket;
-        workingState.grandFinals = generated.grandFinals;
-        
-        renderEditorForm(form, workingState);
-        return;
-      }
-
-      const removeRound = event.target.closest("[data-cots-remove-round]");
-      const addRound = event.target.closest("[data-cots-add-round]");
-      const removeMatch = event.target.closest("[data-cots-remove-match]");
-      const addMatch = event.target.closest("[data-cots-add-match]");
-
-      if (!removeRound && !addRound && !removeMatch && !addMatch) return;
-      syncStateFromForm(form, workingState);
-
-      const getBracketArray = (prefix) => {
-        if (prefix === "l") return workingState.losersBracket;
-        if (prefix === "gf") return workingState.grandFinals;
-        return workingState.bracket;
-      };
-
-      if (removeRound) {
-        const [prefix, roundIndex] = removeRound.dataset.cotsRemoveRound.split(":");
-        getBracketArray(prefix).splice(Number(roundIndex), 1);
-      } else if (addRound) {
-        const prefix = addRound.dataset.cotsAddRound;
-        getBracketArray(prefix).push({ name: "", matches: [] });
-      } else if (removeMatch) {
-        const [prefix, roundIndex, matchIndex] = removeMatch.dataset.cotsRemoveMatch.split(":");
-        getBracketArray(prefix)[Number(roundIndex)]?.matches?.splice(Number(matchIndex), 1);
-      } else if (addMatch) {
-        const [prefix, roundIndex] = addMatch.dataset.cotsAddMatch.split(":");
-        getBracketArray(prefix)[Number(roundIndex)]?.matches?.push({ id: "", left: "", right: "", winner: "", score: "" });
-      }
-
-      renderEditorForm(form, workingState);
-    };
 
     form.onsubmit = async event => {
       event.preventDefault();

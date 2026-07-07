@@ -486,11 +486,7 @@ async function initDivisionHub() {
 window.initHolonetDivisionHub = initDivisionHub;
 
 if (document.readyState === "loading") {
-  if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initDivisionHub);
   } else {
     initDivisionHub();
   }
-} else {
-  initDivisionHub();
-}

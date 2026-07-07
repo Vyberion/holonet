@@ -8,7 +8,8 @@ import {
 import DivisionSectionPage from "./[section]/page.jsx";
 
 export default async function DivisionRedirectPage({ params }) {
-  const divisionSlug = String(params.division || "");
+  const { division: rawDivisionSlug } = await params;
+  const divisionSlug = String(rawDivisionSlug || "");
   const division = getDivisionByRouteSlug(divisionSlug);
   if (!division) notFound();
   // Directly render the home section

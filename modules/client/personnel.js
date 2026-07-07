@@ -116,13 +116,11 @@
     if (queryUsername) await runLookup(queryUsername.trim());
   }
 
-  if (document.readyState === "loading") {
-    if (document.readyState === "loading") {
+  
+window.initHolonetPersonnel = initPersonnel;
+if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initPersonnel);
     } else {
       initPersonnel();
     }
-  } else {
-    initPersonnel();
-  }
 })();

@@ -282,6 +282,10 @@ function getAvailablePageHeight() {
   return Math.max((dom.scrollBox?.clientHeight || 700) - 34, 320);
 }
 
+function getPixelRatio() {
+  return window.devicePixelRatio || 1;
+}
+
 function getScrollRatio() {
   if (!dom.scrollBox) return 0;
   const maxScroll = dom.scrollBox.scrollHeight - dom.scrollBox.clientHeight;

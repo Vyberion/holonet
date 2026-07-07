@@ -160,11 +160,7 @@ function initReportCycle() {
 window.initHolonetReportCycle = initReportCycle;
 
 if (document.readyState === "loading") {
-  if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initReportCycle);
   } else {
     initReportCycle();
   }
-} else {
-  initReportCycle();
-}

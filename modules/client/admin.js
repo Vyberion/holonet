@@ -303,13 +303,11 @@
     await hydrate();
   }
 
-  if (document.readyState === "loading") {
-    if (document.readyState === "loading") {
+  
+window.initHolonetAdmin = initAdmin;
+if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initAdmin);
     } else {
       initAdmin();
     }
-  } else {
-    initAdmin();
-  }
 })();

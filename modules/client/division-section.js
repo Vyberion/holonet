@@ -662,12 +662,10 @@ async function initDivisionSection() {
   await hydrateSection(mount, division, section);
 }
 
+
+window.initHolonetDivisionSection = initDivisionSection;
 if (document.readyState === "loading") {
-  if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initDivisionSection);
   } else {
     initDivisionSection();
   }
-} else {
-  initDivisionSection();
-}

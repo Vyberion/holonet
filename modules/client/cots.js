@@ -91,7 +91,7 @@ function renderCots(root, state, canEdit, meta = {}) {
 
     <section class="hub-panel cots-bracket-panel" aria-label="Tournament bracket" style="padding: 0; overflow: hidden;">
       ${state.bracketUrl 
-        ? `<iframe src="${escapeHtml(state.bracketUrl)}" width="100%" height="1200" frameborder="0" scrolling="auto" allowtransparency="true" style="border: none; width: 100%; height: 1200px; display: block; margin: 0; padding: 0; background: transparent;"></iframe>` 
+        ? `<iframe src="${escapeHtml(state.bracketUrl)}" width="100%" height="1600" frameborder="0" scrolling="auto" allowtransparency="true" style="border: none; width: 100%; height: 1200px; display: block; margin: 0; padding: 0; background: transparent;"></iframe>` 
         : `<p class="hub-empty" style="margin: 20px;">No tournament bracket available.</p>`}
     </section>
   `;

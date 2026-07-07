@@ -15,45 +15,45 @@
           --holonet-mobile-icon-border: color-mix(in srgb, var(--theme-accent, #ffffff) 54%, var(--theme-accent-dim) 46%);
         }
 
-        .site-nav .account-icon,
-        .site-nav .account-icon svg,
-        .site-nav .account-icon svg *,
-        .site-nav .nav-toggle,
-        .site-nav .nav-dropdown-toggle,
-        .site-nav .nav-dropdown-toggle svg,
-        .site-nav .nav-dropdown-toggle svg *,
-        .back-to-top-btn,
-        .back-to-top-btn svg,
-        .back-to-top-btn svg * {
+        body:not([class*="theme-"]) .site-nav .account-icon,
+        body:not([class*="theme-"]) .site-nav .account-icon svg,
+        body:not([class*="theme-"]) .site-nav .account-icon svg *,
+        body:not([class*="theme-"]) .site-nav .nav-toggle,
+        body:not([class*="theme-"]) .site-nav .nav-dropdown-toggle,
+        body:not([class*="theme-"]) .site-nav .nav-dropdown-toggle svg,
+        body:not([class*="theme-"]) .site-nav .nav-dropdown-toggle svg *,
+        body:not([class*="theme-"]) .back-to-top-btn,
+        body:not([class*="theme-"]) .back-to-top-btn svg,
+        body:not([class*="theme-"]) .back-to-top-btn svg * {
           color: var(--holonet-mobile-icon-colour) !important;
           stroke: var(--holonet-mobile-icon-colour) !important;
         }
 
-        .site-nav .account-link,
-        .site-nav .nav-toggle,
-        .site-nav .nav-dropdown-toggle,
-        .back-to-top-btn {
+        body:not([class*="theme-"]) .site-nav .account-link,
+        body:not([class*="theme-"]) .site-nav .nav-toggle,
+        body:not([class*="theme-"]) .site-nav .nav-dropdown-toggle,
+        body:not([class*="theme-"]) .back-to-top-btn {
           border-color: var(--holonet-mobile-icon-border) !important;
         }
 
-        .site-nav .nav-toggle span {
+        body:not([class*="theme-"]) .site-nav .nav-toggle span {
           background: var(--holonet-mobile-icon-colour) !important;
           color: var(--holonet-mobile-icon-colour) !important;
         }
 
-        .site-nav .account-link:active .account-icon,
-        .site-nav .account-link.active .account-icon,
-        .site-nav .nav-dropdown-toggle:active,
-        .site-nav .nav-dropdown-toggle[aria-expanded="true"],
-        .back-to-top-btn:active,
-        .back-to-top-btn:active svg,
-        .back-to-top-btn:active svg * {
+        body:not([class*="theme-"]) .site-nav .account-link:active .account-icon,
+        body:not([class*="theme-"]) .site-nav .account-link.active .account-icon,
+        body:not([class*="theme-"]) .site-nav .nav-dropdown-toggle:active,
+        body:not([class*="theme-"]) .site-nav .nav-dropdown-toggle[aria-expanded="true"],
+        body:not([class*="theme-"]) .back-to-top-btn:active,
+        body:not([class*="theme-"]) .back-to-top-btn:active svg,
+        body:not([class*="theme-"]) .back-to-top-btn:active svg * {
           color: var(--theme-accent) !important;
           stroke: var(--theme-accent) !important;
         }
 
-        .site-nav .nav-toggle:active span,
-        .site-nav .nav-toggle[aria-expanded="true"] span {
+        body:not([class*="theme-"]) .site-nav .nav-toggle:active span,
+        body:not([class*="theme-"]) .site-nav .nav-toggle[aria-expanded="true"] span {
           background: var(--theme-accent) !important;
           color: var(--theme-accent) !important;
         }

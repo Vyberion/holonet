@@ -143,6 +143,7 @@ export default async function DivisionSectionPage({ params }) {
         footerNode={division.node}
         mainClassName="division-main"
         showHeader={false}
+        showStatusBar={false}
         theme={division.theme}
       >
         <ThemeClass theme={division.theme} />
@@ -168,10 +169,26 @@ export default async function DivisionSectionPage({ params }) {
         includeSearchOverlay
         mainClassName="division-main"
         showHeader={false}
+        showStatusBar={false}
         theme={division.theme}
       >
         <ThemeClass theme={division.theme} />
-        <div className="codex-document document-shell">
+        <div className="hub-shell">
+          <div className="hub-hero">
+            <div className="hub-identity">
+              <div>
+                <span className="hub-kicker">Registry Node / {division.node}</span>
+                <h2 className="hub-title">{divisionTitleName(division)} Handbooks</h2>
+              </div>
+              <div>
+                <span className="hub-kicker">Division</span>
+                <span className="hub-value">{division.shortName || division.name}</span>
+              </div>
+            </div>
+            <p className="hub-summary">{divisionSingularName(division)} handbook and guide archive.</p>
+          </div>
+        </div>
+        <div className="codex-document document-shell" style={{ marginTop: 0 }}>
           <article className="codex-article handbook-viewer-panel">
             <div className="article-content pdf-terminal">
               <div
@@ -215,6 +232,7 @@ export default async function DivisionSectionPage({ params }) {
         footerNode={division.node}
         mainClassName="division-main"
         showHeader={false}
+        showStatusBar={false}
         theme={division.theme}
       >
         <ThemeClass theme={division.theme} />
@@ -232,6 +250,7 @@ export default async function DivisionSectionPage({ params }) {
       footerNode={division.node}
       mainClassName="division-main"
       showHeader={false}
+      showStatusBar={false}
       theme={division.theme}
     >
       <ThemeClass theme={division.theme} />

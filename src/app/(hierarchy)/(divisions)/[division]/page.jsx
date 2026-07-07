@@ -12,6 +12,6 @@ export default async function DivisionRedirectPage({ params }) {
   const divisionSlug = String(rawDivisionSlug || "");
   const division = getDivisionByRouteSlug(divisionSlug);
   if (!division) notFound();
-  // Directly render the home section
-  return DivisionSectionPage({ params: { division: divisionSlug, section: "home" } });
+  // Directly render the info section
+  return DivisionSectionPage({ params: { division: divisionSlug, section: "info" } });
 }

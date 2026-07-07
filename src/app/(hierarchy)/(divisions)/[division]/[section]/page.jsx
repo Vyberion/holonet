@@ -8,8 +8,7 @@ import { holonetMetadata } from "../../../../../lib/metadata.js";
 import { HierarchyDetail } from "../../../hierarchy/HierarchyDetail.jsx";
 
 function normalizeSection(section) {
-  const normalized = String(section || "").toLowerCase();
-  return normalized === "trackers" ? "activity" : normalized;
+  return String(section || "").toLowerCase();
 }
 
 function sectionTitle(section) {

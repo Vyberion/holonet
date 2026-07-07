@@ -381,6 +381,38 @@ async function authorNameFor(actor) {
   return robloxUser?.name || robloxUser?.displayName || robloxId;
 }
 
+async function resetClockShiftsForReport(scope, members = [], reportAt = new Date().toISOString()) {
+  assertReportScope(scope);
+  const robloxIds = [...new Set(members.map(member => String(member.robloxId || "")).filter(Boolean))];
+  if (!robloxIds.length) return;
+
+  const linkMap = await loadVerificationLinksForRobloxIds(robloxIds);
+  const discordIds = [...new Set([...linkMap.values()])];
+
+  const filters = [];
+  if (robloxIds.length) filters.push(`roblox_user_id.in.(${robloxIds.map(id => String(id)).join(",")})`);
+  if (discordIds.length) filters.push(`discord_user_id.in.(${discordIds.map(id => String(id)).join(",")})`);
+  if (!filters.length) return;
+
+  const identityFilter = `or.(${filters.join(",")})`;
+
+  const { error: deleteError } = await supabase
+    .from("clock_shifts")
+    .delete()
+    .eq("scope", scope)
+    .eq("status", "completed")
+    .or(identityFilter);
+  if (deleteError) throw deleteError;
+
+  const { error: updateError } = await supabase
+    .from("clock_shifts")
+    .update(resetShiftPayload(reportAt))
+    .eq("scope", scope)
+    .eq("status", "active")
+    .or(identityFilter);
+  if (updateError) throw updateError;
+}
+
 async function saveWeeklyReportForScope(interaction, scope) {
   assertReportScope(scope);
   const actor = await getVerifiedProfile(interaction.user.id);
@@ -414,7 +446,7 @@ async function saveWeeklyReportForScope(interaction, scope) {
     if (memberError) throw memberError;
   }
 
-  await resetClockShiftsForScope(scope, reportAt);
+  await resetClockShiftsForReport(scope, members, reportAt);
   return { id: created?.id, scope, weekStart, authorName, members };
 }
 

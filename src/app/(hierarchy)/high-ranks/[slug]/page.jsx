@@ -4,7 +4,7 @@ import { HierarchyDetail } from "../../hierarchy/HierarchyDetail.jsx";
 import { holonetMetadata } from "../../../../lib/metadata.js";
 import DivisionSectionPage, { generateMetadata as generateDivisionSectionMetadata } from "../../(divisions)/[division]/[section]/page.jsx";
 
-const DIVISION_SECTIONS = new Set(["home", "handbooks", "transmissions", "reports", "trackers"]);
+const DIVISION_SECTIONS = new Set(["home", "handbooks", "transmissions", "reports", "activity"]);
 
 function isDivisionSection(slug) {
   return DIVISION_SECTIONS.has(String(slug || "").toLowerCase());

@@ -226,7 +226,7 @@ export function HolonetNav() {
         <div className="nav-inner">
           <div className="nav-left">
             {showDivisionReturn ? (
-              <NavLink href={`${divisionContext.base}/home`} page="division-return" account activePage="" onClick={closeNav}>
+              <NavLink href={divisionContext.base} page="division-return" account activePage="" onClick={closeNav}>
                 <div className="account-text"><span className="nav-link-label">Return</span></div>
                 <div className="account-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

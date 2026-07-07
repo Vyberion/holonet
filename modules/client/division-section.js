@@ -1,5 +1,5 @@
 import { getDivision } from "../data/divisions/index.js";
-import { deleteDivisionResource, fetchDivisionResourcePayload, saveDivisionResource } from "./resources.js";
+import { deleteDivisionResource, fetchDivisionResourcePayload, fetchJsonWithTimeout, saveDivisionResource } from "./resources.js";
 
 let activeEntries = [];
 let activeContext = null;
@@ -59,7 +59,7 @@ function renderTimestamp(entry, section) {
 }
 
 async function fetchWeeklyReportPayload(division, draft = false) {
-  const response = await fetch(`/api/weekly-reports?division=${encodeURIComponent(division)}${draft ? "&draft=1" : ""}`);
+  const response = await fetchJsonWithTimeout(`/api/weekly-reports?division=${encodeURIComponent(division)}${draft ? "&draft=1" : ""}`);
   const payload = await response.json();
   if (!response.ok || !payload.ok) throw new Error(payload.reason || payload.error || "REPORTS_UNAVAILABLE");
   return payload;
@@ -77,7 +77,7 @@ async function saveWeeklyReport(data) {
 }
 
 async function fetchDivisionRosterPayload(division) {
-  const response = await fetch(`/api/division-roster?division=${encodeURIComponent(division)}`);
+  const response = await fetchJsonWithTimeout(`/api/division-roster?division=${encodeURIComponent(division)}`);
   const payload = await response.json();
   if (!response.ok || !payload.ok) throw new Error(payload.reason || payload.error || "ROSTER_UNAVAILABLE");
   return payload;
@@ -559,7 +559,7 @@ function bindEditorControls(mount) {
   });
 }
 
-function renderSection(mount, division, section, entries, canWrite) {
+function renderSection(mount, division, section, entries, canWrite, options = {}) {
   activeEntries = entries || [];
   activeContext = {
     division,
@@ -608,23 +608,37 @@ function renderSection(mount, division, section, entries, canWrite) {
   `;
 
   bindEditorControls(mount);
+
+  if (options.error) {
+    const panel = mount.querySelector(".hub-panel");
+    if (panel) {
+      panel.insertAdjacentHTML("beforeend", `<div class="hub-empty" role="alert">${escapeHtml(options.error)}</div>`);
+    }
+  }
 }
 
 async function hydrateSection(mount, division, section) {
-  if (section === "activity") {
-    const payload = await fetchDivisionRosterPayload(division.id);
-    renderSection(mount, division, section, payload.members, false);
-    return;
-  }
+  try {
+    if (section === "activity") {
+      const payload = await fetchDivisionRosterPayload(division.id);
+      renderSection(mount, division, section, payload.members, false);
+      return;
+    }
 
-  if (section === "reports") {
-    const payload = await fetchWeeklyReportPayload(division.id);
-    renderSection(mount, division, section, payload.reports, payload.canWrite);
-    return;
-  }
+    if (section === "reports") {
+      const payload = await fetchWeeklyReportPayload(division.id);
+      renderSection(mount, division, section, payload.reports, payload.canWrite);
+      return;
+    }
 
-  const payload = await fetchDivisionResourcePayload(division.id, section);
-  renderSection(mount, division, section, payload.resources, payload.canWrite);
+    const payload = await fetchDivisionResourcePayload(division.id, section);
+    renderSection(mount, division, section, payload.resources, payload.canWrite);
+  } catch (error) {
+    const message = String(error?.message || error || "SECTION_UNAVAILABLE").replace(/_/g, " ");
+    renderSection(mount, division, section, [], false, {
+      error: `Unable to load ${titleForSection(section, division).toLowerCase()}: ${message}`
+    });
+  }
 }
 
 async function initDivisionSection() {

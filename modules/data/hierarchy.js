@@ -268,7 +268,8 @@ const HIERARCHY_GROUPS = [
         body: "The High Rank Overseer represents the Dark Council's authority over the high ranks.",
         category: "High Rank Overseer",
         path: "High Rank Overseer",
-        pathOwnRow: false
+        pathOwnRow: true,
+        active: false
       },
       {
         slug: "dhgo",

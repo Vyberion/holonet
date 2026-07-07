@@ -219,7 +219,7 @@ const DIVISIONS = {
     theme: "theme-inquisitors",
     href: divisionLockedHref("inquisitors"),
     status: "restricted",
-    description: "Intelligence and background oversight of the group to ensure high standards.",
+    description: "Intelligence operations and background oversight of the group.",
     access: {
       home: "inquisitors_home",
       handbooks: "inquisitors_handbooks",

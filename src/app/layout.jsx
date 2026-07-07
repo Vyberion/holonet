@@ -588,7 +588,7 @@ const HOLONET_GLOBAL_POLISH_JS = `
   function replaceExactText(selector, replacements) {
     document.querySelectorAll(selector).forEach(element => {
       const key = element.textContent.trim();
-      if (Object.prototype.hasOwnProperty.call(replacements, key)) {
+      if (Object.prototype.hasOwnProperty.call(replacements, key) && element.textContent !== replacements[key]) {
         element.textContent = replacements[key];
       }
     });
@@ -609,7 +609,7 @@ const HOLONET_GLOBAL_POLISH_JS = `
     document.querySelectorAll(".hub-kicker").forEach(kicker => {
       if (kicker.textContent.trim().toLowerCase() !== "status") return;
       const value = kicker.parentElement?.querySelector(".hub-value");
-      if (value) value.textContent = "ACTIVE";
+      if (value && value.textContent !== "ACTIVE") value.textContent = "ACTIVE";
     });
 
     replaceExactText(".council-floor-hero .hub-value", {
@@ -679,18 +679,30 @@ const HOLONET_GLOBAL_POLISH_JS = `
     sortWeeklyReportEditorRows();
   }
 
-  const observer = new MutationObserver(() => {
-    bootPolish();
-  });
+  let polishQueued = false;
+  const observerOpts = { childList: true, subtree: true };
+
+  function schedulePolish() {
+    if (polishQueued) return;
+    polishQueued = true;
+    Promise.resolve().then(() => {
+      polishQueued = false;
+      observer.disconnect();
+      bootPolish();
+      if (document.body) observer.observe(document.body, observerOpts);
+    });
+  }
+
+  const observer = new MutationObserver(schedulePolish);
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
       bootPolish();
-      observer.observe(document.body, { childList: true, subtree: true });
+      if (document.body) observer.observe(document.body, observerOpts);
     });
   } else {
     bootPolish();
-    observer.observe(document.body, { childList: true, subtree: true });
+    if (document.body) observer.observe(document.body, observerOpts);
   }
 
   window.addEventListener("resize", ensureMobileSearchShortcut);

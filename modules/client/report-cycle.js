@@ -136,8 +136,24 @@ function initReportCycle() {
   if (!mount || mount.dataset.reportCycleBound === "true") return;
   mount.dataset.reportCycleBound = "true";
 
-  const observer = new MutationObserver(() => scheduleRefresh(mount));
-  observer.observe(mount, { childList: true, subtree: true });
+  let refreshQueued = false;
+  const observerOpts = { childList: true, subtree: true };
+
+  function scheduleRefreshSafe() {
+    if (refreshQueued) return;
+    refreshQueued = true;
+    window.clearTimeout(refreshTimer);
+    refreshTimer = window.setTimeout(() => {
+      refreshQueued = false;
+      observer.disconnect();
+      refreshReportCycleCards(mount).finally(() => {
+        observer.observe(mount, observerOpts);
+      });
+    }, 50);
+  }
+
+  const observer = new MutationObserver(scheduleRefreshSafe);
+  observer.observe(mount, observerOpts);
   scheduleRefresh(mount);
 }
 

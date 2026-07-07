@@ -132,7 +132,7 @@ export default async function DivisionSectionPage({ params }) {
     const item = getHierarchyItem("divisions", hierarchySlug);
     if (!item) notFound();
 
-    return <HierarchyDetail item={{ ...item, theme: division.theme }} />;
+    return <HierarchyDetail item={item} />;
   }
 
   if (section === "home") {

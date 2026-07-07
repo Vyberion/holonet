@@ -41,7 +41,7 @@ function normalizeState(value, fallback = {}) {
       { place: "II", name: "", note: "Finalist" },
       { place: "III", name: "", note: "Podium" }
     ],
-    challongeUrl: text(state.challongeUrl, fallback.challongeUrl || ""),
+    bracketUrl: text(state.bracketUrl, fallback.bracketUrl || ""),
     
     // Archiving previous bracket data to prevent data loss
     bracket: Array.isArray(state.bracket) ? state.bracket : fallback.bracket || [],
@@ -90,8 +90,8 @@ function renderCots(root, state, canEdit, meta = {}) {
     </section>
 
     <section class="hub-panel cots-bracket-panel" aria-label="Tournament bracket" style="padding: 0; overflow: hidden;">
-      ${state.challongeUrl 
-        ? `<iframe src="${escapeHtml(state.challongeUrl)}" width="100%" height="1200" frameborder="0" scrolling="auto" allowtransparency="true" style="border: none; width: 100%; height: 1200px; display: block; margin: 0; padding: 0; background: transparent;"></iframe>` 
+      ${state.bracketUrl 
+        ? `<iframe src="${escapeHtml(state.bracketUrl)}" width="100%" height="1200" frameborder="0" scrolling="auto" allowtransparency="true" style="border: none; width: 100%; height: 1200px; display: block; margin: 0; padding: 0; background: transparent;"></iframe>` 
         : `<p class="hub-empty" style="margin: 20px;">No tournament bracket available.</p>`}
     </section>
   `;
@@ -145,11 +145,11 @@ function syncStateFromForm(form, workingState) {
     name: text(data.championName)
   };
 
-  let url = text(data.challongeUrl);
-  if (url && url.includes("challonge.com") && !url.endsWith("/module")) {
-    url = url.replace(/\/$/, "") + "/module";
+  let url = text(data.bracketUrl);
+  if (url && url.includes("brackethq.com") && !url.endsWith("/embed/")) {
+    url = url.replace(/\/$/, "") + "/embed/";
   }
-  workingState.challongeUrl = url;
+  workingState.bracketUrl = url;
 
   workingState.podium = [
     { place: "I", name: text(data.podium0), note: "Champion" },
@@ -166,9 +166,9 @@ function renderEditorForm(form, state) {
         <div class="resource-editor-field"><label>Champion Username</label><input name="championName" value="${escapeHtml(state.champion.name || "")}" required></div>
         <div class="resource-editor-field"><label>Podium Image</label><input type="file" name="podiumImage" accept="image/*"></div>
         <div class="resource-editor-field">
-          <label>Challonge Embed URL</label>
-          <input name="challongeUrl" value="${escapeHtml(state.challongeUrl || "")}" placeholder="https://challonge.com/hnm2rcj7/module">
-          <p style="font-size: 11px; opacity: 0.6; margin-top: 4px;">Paste the direct src URL (e.g. https://challonge.com/hnm2rcj7/module)</p>
+          <label>BracketHQ Embed URL</label>
+          <input name="bracketUrl" value="${escapeHtml(state.bracketUrl || "")}" placeholder="https://brackethq.com/b/awkqb/embed/">
+          <p style="font-size: 11px; opacity: 0.6; margin-top: 4px;">Paste the direct src URL (e.g. https://brackethq.com/b/awkqb/embed/)</p>
         </div>
       </section>
 
@@ -205,7 +205,7 @@ async function initCots() {
   if (!root || root.dataset.cotsBound === "true") return;
   root.dataset.cotsBound = "true";
 
-  const fallback = normalizeState(defaultState(root), { champion: {}, podium: [], challongeUrl: "", bracket: [] });
+  const fallback = normalizeState(defaultState(root), { champion: {}, podium: [], bracketUrl: "", bracket: [] });
   let state = fallback;
   let canEdit = false;
   let meta = {};

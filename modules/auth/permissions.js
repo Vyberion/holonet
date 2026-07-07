@@ -159,6 +159,18 @@ function getOverrides(profile) {
   return Array.isArray(profile?.accessOverrides) ? profile.accessOverrides : [];
 }
 
+function isDarkCouncilDivision(division) {
+  return ["darkCouncil", "dark_council", "darkcouncil"].includes(String(division || "").toLowerCase());
+}
+
+function canAccessDivisionPagesForInquisitors(profile, division) {
+  if (isDarkCouncilDivision(division)) return false;
+
+  const roles = profile?.authorityRoles || {};
+  const inquisitorTier = profile?.divisions?.inquisitors || "none";
+  return Boolean(roles.inquisitoriusOverseer || tierAtLeast(inquisitorTier, "member"));
+}
+
 function overrideDecision(profile, predicate) {
   if (hasCoreAccess(profile)) {
     return { hasOverride: false };
@@ -298,14 +310,11 @@ export function canViewDivisionReports(profile, division) {
     return { authorized: true, reason: "DIVISION_MEMBER_CLEARANCE" };
   }
 
-  if (division === "inquisitors") {
-    if (roles.inquisitoriusOverseer) {
-      return { authorized: true, reason: "INQUISITORIUS_OVERSEER" };
-    }
-
-    return hasHighCommandAccess(profile)
-      ? { authorized: true, reason: "HC_AUTHORITY" }
-      : { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
+  if (canAccessDivisionPagesForInquisitors(profile, division)) {
+    return {
+      authorized: true,
+      reason: roles.inquisitoriusOverseer ? "INQUISITORIUS_OVERSEER" : "INQUISITORIUS_CLEARANCE"
+    };
   }
 
   return hasAnyDarkCouncilAuthority(profile)
@@ -416,7 +425,8 @@ export function checkPageAccess(profile, page) {
 
     const actualTier = profile.divisions[rule.division] || "none";
     const hasTransmissionAuthority = pageKey.endsWith("_transmissions") && hasAnyDarkCouncilAuthority(profile);
-    const authorized = tierAtLeast(actualTier, rule.minimumTier) || hasTransmissionAuthority;
+    const inquisitorAccess = canAccessDivisionPagesForInquisitors(profile, rule.division);
+    const authorized = inquisitorAccess || tierAtLeast(actualTier, rule.minimumTier) || hasTransmissionAuthority;
 
     return {
       authorized,

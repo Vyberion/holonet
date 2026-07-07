@@ -152,9 +152,7 @@ export default async function DivisionSectionPage({ params }) {
           data-division-title={division.name}
           data-division-subtitle={division.subtitle}
           data-division-node={division.node}
-        >
-          <p className="hub-empty">Loading command hub...</p>
-        </div>
+        />
 
         <PageScripts guarded scripts={["/js/main.js", "/modules/client/site.js"]} moduleScripts={["/modules/client/division-hub.js"]} />
       </HolonetFrame>
@@ -220,9 +218,7 @@ export default async function DivisionSectionPage({ params }) {
         theme={division.theme}
       >
         <ThemeClass theme={division.theme} />
-        <div data-council-floor>
-          <p className="hub-empty">Loading council floor...</p>
-        </div>
+        <div data-council-floor />
 
         <PageScripts guarded scripts={["/js/main.js", "/modules/client/site.js"]} moduleScripts={["/modules/client/council-floor.js"]} />
       </HolonetFrame>
@@ -246,9 +242,7 @@ export default async function DivisionSectionPage({ params }) {
         data-division-title={division.name}
         data-section-title={`${divisionTitleName(division)} ${sectionTitle(section)}`}
         data-division-node={division.node}
-      >
-        <p className="hub-empty">Loading section...</p>
-      </div>
+      />
 
       <PageScripts guarded scripts={["/js/main.js", "/modules/client/site.js"]} moduleScripts={["/modules/client/division-section.js"]} />
     </HolonetFrame>

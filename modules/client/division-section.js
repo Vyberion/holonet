@@ -663,7 +663,11 @@ async function initDivisionSection() {
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initDivisionSection);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initDivisionSection);
+  } else {
+    initDivisionSection();
+  }
 } else {
   initDivisionSection();
 }

@@ -952,7 +952,11 @@
   };
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", window.HolonetSite.boot);
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", window.HolonetSite.boot);
+    } else {
+      window.HolonetSite.boot();
+    }
   } else {
     window.HolonetSite.boot();
   }

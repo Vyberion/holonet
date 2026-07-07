@@ -68,7 +68,11 @@ function initArchiveMap() {
 window.initHolonetArchiveMap = initArchiveMap;
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initArchiveMap);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initArchiveMap);
+  } else {
+    initArchiveMap();
+  }
 } else {
   initArchiveMap();
 }

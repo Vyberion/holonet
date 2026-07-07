@@ -264,11 +264,11 @@ const HIERARCHY_GROUPS = [
     items: [
       {
         slug: "hro",
-        name: "The Emperor's Wrath",
+        name: "Darth Aruk",
         body: "The High Rank Overseer represents the Dark Council's authority over the high ranks.",
         category: "High Rank Overseer",
         path: "High Rank Overseer",
-        pathOwnRow: true
+        pathOwnRow: false
       },
       {
         slug: "dhgo",
@@ -589,7 +589,7 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Torreto the Tyrant",
-    body: "PENDING.",
+    body: "TorretoTerminus is the fortieth Emperor of TSO and the twelfth under Manar_Aktuun. He is the first to secure a second term within this era.\n\nHis ongoing reign currently maintains a stable, albeit unremarkable, status quo. However, this stable era is marred by general discontent within the Order, largely fueled by his reputation for petty internal disputes.",
     current: true
   }
 ];

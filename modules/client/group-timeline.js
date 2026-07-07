@@ -210,7 +210,11 @@ async function initGroupTimeline() {
 window.initHolonetGroupTimeline = initGroupTimeline;
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initGroupTimeline);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initGroupTimeline);
+  } else {
+    initGroupTimeline();
+  }
 } else {
   initGroupTimeline();
 }

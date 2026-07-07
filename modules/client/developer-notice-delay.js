@@ -52,7 +52,11 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", releaseNotice, { once: true });
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", releaseNotice, { once: true });
+    } else {
+      releaseNotice();
+    }
   } else {
     releaseNotice();
   }

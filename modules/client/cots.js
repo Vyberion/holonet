@@ -404,7 +404,11 @@ async function initCots() {
 window.initHolonetCots = initCots;
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initCots);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initCots);
+  } else {
+    initCots();
+  }
 } else {
   initCots();
 }

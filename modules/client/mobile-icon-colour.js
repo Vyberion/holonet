@@ -64,7 +64,11 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", ensureMobileIconColour);
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", ensureMobileIconColour);
+    } else {
+      ensureMobileIconColour();
+    }
   } else {
     ensureMobileIconColour();
   }

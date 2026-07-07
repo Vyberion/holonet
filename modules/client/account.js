@@ -208,7 +208,11 @@
   window.initHolonetAccount = initAccount;
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initAccount, { once: true });
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initAccount, { once: true });
+    } else {
+      initAccount();
+    }
   } else {
     initAccount();
   }

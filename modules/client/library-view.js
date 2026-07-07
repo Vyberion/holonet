@@ -613,7 +613,11 @@ async function initLibraryView() {
 window.initHolonetLibraryView = initLibraryView;
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initLibraryView);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initLibraryView);
+  } else {
+    initLibraryView();
+  }
 } else {
   initLibraryView();
 }

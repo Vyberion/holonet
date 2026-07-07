@@ -272,6 +272,9 @@ async function hydratePdfTabsFromResources() {
     state.handbookPayload = { resources: [], slotCatalog: [] };
     tabStrip.innerHTML = `<span class="pdf-loading" role="alert">Unable to load handbook registry: ${escapeHtml(String(error?.message || error || "HANDBOOKS_UNAVAILABLE").replace(/_/g, " "))}</span>`;
   }
+}
+
+function getAvailablePageWidth() {
   return Math.max((dom.container?.clientWidth || 900) - 34, 320);
 }
 

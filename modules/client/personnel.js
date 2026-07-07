@@ -117,7 +117,11 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initPersonnel);
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initPersonnel);
+    } else {
+      initPersonnel();
+    }
   } else {
     initPersonnel();
   }

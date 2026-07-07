@@ -32,7 +32,9 @@ function defaultState(root) {
   return parseJson(root?.dataset?.cotsState || "{}", {
     champion: { name: "", title: "", motto: "", season: "", podiumImage: {} },
     podium: [],
-    bracket: []
+    bracket: [],
+    losersBracket: [],
+    grandFinals: []
   });
 }
 
@@ -50,8 +52,91 @@ function normalizeState(value, fallback) {
       podiumImage: normalizeImage(champion.podiumImage || fallbackChampion.podiumImage)
     },
     podium: Array.isArray(state.podium) && state.podium.length ? state.podium.slice(0, 3) : fallback.podium || [],
-    bracket: Array.isArray(state.bracket) && state.bracket.length ? state.bracket : fallback.bracket || []
+    bracket: Array.isArray(state.bracket) ? state.bracket : fallback.bracket || [],
+    losersBracket: Array.isArray(state.losersBracket) ? state.losersBracket : fallback.losersBracket || [],
+    grandFinals: Array.isArray(state.grandFinals) ? state.grandFinals : fallback.grandFinals || []
   };
+}
+
+function derivePodium(state) {
+  let first = null;
+  let second = null;
+  let third = null;
+
+  if (state.grandFinals && state.grandFinals.length > 0) {
+    const gfLastRound = state.grandFinals[state.grandFinals.length - 1];
+    if (gfLastRound.matches && gfLastRound.matches.length > 0) {
+      const gfMatch = gfLastRound.matches[gfLastRound.matches.length - 1];
+      if (gfMatch.winner) {
+        first = gfMatch.winner;
+        second = gfMatch.left === gfMatch.winner ? gfMatch.right : gfMatch.left;
+      }
+    }
+  } else if (state.bracket && state.bracket.length > 0) {
+    const wLastRound = state.bracket[state.bracket.length - 1];
+    if (wLastRound.matches && wLastRound.matches.length > 0) {
+      const wMatch = wLastRound.matches[wLastRound.matches.length - 1];
+      if (wMatch.winner) {
+        first = wMatch.winner;
+        second = wMatch.left === wMatch.winner ? wMatch.right : wMatch.left;
+      }
+    }
+  }
+
+  if (state.losersBracket && state.losersBracket.length > 0) {
+    const lLastRound = state.losersBracket[state.losersBracket.length - 1];
+    if (lLastRound.matches && lLastRound.matches.length > 0) {
+      const lMatch = lLastRound.matches[lLastRound.matches.length - 1];
+      if (lMatch.winner) {
+        third = lMatch.left === lMatch.winner ? lMatch.right : lMatch.left;
+      }
+    }
+  }
+
+  state.podium = [
+    { place: "I", name: first || "", note: "Champion" },
+    { place: "II", name: second || "", note: "Finalist" },
+    { place: "III", name: third || "", note: "Podium" }
+  ];
+}
+
+function autoResolveBrackets(state) {
+  const hasLosers = state.losersBracket && state.losersBracket.length > 0;
+  
+  if (state.bracket) {
+    const totalWinners = state.bracket.length;
+    state.bracket.forEach((round, roundIndex) => {
+      const distanceToEnd = totalWinners - 1 - roundIndex;
+      if (distanceToEnd === 0) round.name = hasLosers ? "Winners Final" : "Grand Finals";
+      else if (distanceToEnd === 1) round.name = "Semi Finals";
+      else if (distanceToEnd === 2) round.name = "Quarter Finals";
+      else if (roundIndex === 0) round.name = "Opening Duels";
+      else round.name = \`Round of \${Math.max(1, (round.matches || []).length) * 2}\`;
+      
+      (round.matches || []).forEach((match, matchIndex) => { match.id = \`W\${roundIndex + 1}-\${matchIndex + 1}\`; });
+    });
+  }
+
+  if (state.losersBracket) {
+    const totalLosers = state.losersBracket.length;
+    state.losersBracket.forEach((round, roundIndex) => {
+      const distanceToEnd = totalLosers - 1 - roundIndex;
+      if (distanceToEnd === 0) round.name = "Losers Final";
+      else if (distanceToEnd === 1) round.name = "Losers Semi Finals";
+      else if (distanceToEnd === 2) round.name = "Losers Quarter Finals";
+      else if (roundIndex === 0) round.name = "Losers Opening Duels";
+      else round.name = \`Losers Round of \${Math.max(1, (round.matches || []).length) * 2}\`;
+      
+      (round.matches || []).forEach((match, matchIndex) => { match.id = \`L\${roundIndex + 1}-\${matchIndex + 1}\`; });
+    });
+  }
+
+  if (state.grandFinals) {
+    state.grandFinals.forEach((round, roundIndex) => {
+      round.name = "Grand Finals";
+      (round.matches || []).forEach((match, matchIndex) => { match.id = \`GF-\${matchIndex + 1}\`; });
+    });
+  }
 }
 
 function podiumRow(entry, index) {
@@ -115,40 +200,43 @@ function roundMarkup(round, roundIndex, rounds) {
 }
 
 function renderCots(root, state, canEdit, meta = {}) {
+  autoResolveBrackets(state);
+  derivePodium(state);
+
   const image = normalizeImage(state.champion.podiumImage);
   root.innerHTML = `
     <section class="cots-hero" aria-labelledby="cots-title">
       <div class="cots-hero-copy">
         <p class="hub-kicker">Current Champion</p>
-        <h2 id="cots-title" class="cots-title">${escapeHtml(state.champion.name || "Awaiting Champion")}</h2>
-        <p class="cots-quote">&quot;${escapeHtml(state.champion.motto || "")}&quot;</p>
+        <h2 id="cots-title" class="cots-title">\${escapeHtml(state.champion.name || "Awaiting Champion")}</h2>
+        <p class="cots-quote">&quot;\${escapeHtml(state.champion.motto || "")}&quot;</p>
       </div>
       <div class="cots-hero-stats" aria-label="Champion status">
         <div>
           <span class="hub-label">Title</span>
-          <strong>${escapeHtml(state.champion.title || "Unrecorded")}</strong>
+          <strong>\${escapeHtml(state.champion.title || "Unrecorded")}</strong>
         </div>
         <div>
           <span class="hub-label">Season</span>
-          <strong>${escapeHtml(state.champion.season || "Unrecorded")}</strong>
+          <strong>\${escapeHtml(state.champion.season || "Unrecorded")}</strong>
         </div>
       </div>
-      ${canEdit ? '<button type="button" class="resource-editor-open cots-edit-button" data-cots-edit>Edit CoTS</button>' : ""}
+      \${canEdit ? '<button type="button" class="resource-editor-open cots-edit-button" data-cots-edit>Edit CoTS</button>' : ""}
     </section>
 
     <section class="cots-feature-grid" aria-label="Champion imagery and podium">
-      <figure class="cots-media-card${image.url ? "" : " cots-media-card--empty"}">
+      <figure class="cots-media-card\${image.url ? "" : " cots-media-card--empty"}">
         <div class="cots-media-frame">
-          ${image.url
-            ? `<img src="${escapeHtml(image.url)}" alt="Champion of The Sith podium">`
-            : `<div class="cots-media-placeholder"><span>Podium Image</span></div>`}
+          \${image.url
+            ? \`<img src="\${escapeHtml(image.url)}" alt="Champion of The Sith podium">\`
+            : \`<div class="cots-media-placeholder"><span>Podium Image</span></div>\`}
         </div>
       </figure>
 
       <div class="hub-panel cots-podium-panel">
         <h3 class="hub-panel-title">Podium</h3>
         <div class="cots-podium-list">
-          ${(state.podium || []).slice(0, 3).map(podiumRow).join("")}
+          \${(state.podium || []).slice(0, 3).map(podiumRow).join("")}
         </div>
       </div>
     </section>
@@ -157,11 +245,29 @@ function renderCots(root, state, canEdit, meta = {}) {
       <div class="hub-panel-head">
         <h3 class="hub-panel-title">Tournament Bracket</h3>
       </div>
-      <div class="cots-bracket" role="list">
-        ${(state.bracket || []).map(roundMarkup).join("")}
-      </div>
+      \${(state.bracket || []).length ? \`
+        <h4 class="hub-kicker" style="margin: 20px 20px 0;">Winners Bracket</h4>
+        <div class="cots-bracket" role="list">
+          \${state.bracket.map(roundMarkup).join("")}
+        </div>
+      \` : ""}
+      \${(state.losersBracket || []).length ? \`
+        <h4 class="hub-kicker" style="margin: 20px 20px 0;">Losers Bracket</h4>
+        <div class="cots-bracket" role="list">
+          \${state.losersBracket.map(roundMarkup).join("")}
+        </div>
+      \` : ""}
+      \${(state.grandFinals || []).length ? \`
+        <h4 class="hub-kicker" style="margin: 20px 20px 0;">Grand Finals</h4>
+        <div class="cots-bracket" role="list">
+          \${state.grandFinals.map(roundMarkup).join("")}
+        </div>
+      \` : ""}
+      \${!(state.bracket?.length) && !(state.losersBracket?.length) && !(state.grandFinals?.length) ? \`
+        <p class="hub-empty" style="margin: 20px;">Bracket is empty.</p>
+      \` : ""}
     </section>
-  `;
+  \`;
 }
 
 function ensureEditorOverlay() {
@@ -198,44 +304,39 @@ function ensureEditorOverlay() {
   return overlay;
 }
 
-function matchEditor(round, roundIndex, match, matchIndex) {
-  const prefix = `round-${roundIndex}-match-${matchIndex}`;
-  return `
-    <section class="cots-match-editor" data-cots-match="${roundIndex}:${matchIndex}">
+function matchEditor(bracketPrefix, round, roundIndex, match, matchIndex) {
+  const prefix = \`\${bracketPrefix}-round-\${roundIndex}-match-\${matchIndex}\`;
+  return \`
+    <section class="cots-match-editor" data-cots-match="\${bracketPrefix}:\${roundIndex}:\${matchIndex}">
       <div class="library-entry-toolbar">
-        <span class="library-entry-title">Match ${escapeHtml(match.id || matchIndex + 1)}</span>
-        <button type="button" class="library-inline-btn danger" data-cots-remove-match="${roundIndex}:${matchIndex}">REMOVE MATCH</button>
+        <span class="library-entry-title">Match \${matchIndex + 1}</span>
+        <button type="button" class="library-inline-btn danger" data-cots-remove-match="\${bracketPrefix}:\${roundIndex}:\${matchIndex}">REMOVE MATCH</button>
       </div>
-      <div class="cots-editor-grid">
-        <div class="resource-editor-field"><label>Code</label><input name="${prefix}-id" value="${escapeHtml(match.id || "")}"></div>
-        <div class="resource-editor-field"><label>Left</label><input name="${prefix}-left" value="${escapeHtml(match.left || "")}"></div>
-        <div class="resource-editor-field"><label>Right</label><input name="${prefix}-right" value="${escapeHtml(match.right || "")}"></div>
-        <div class="resource-editor-field"><label>Winner</label><input name="${prefix}-winner" value="${escapeHtml(match.winner || "")}"></div>
-        <div class="resource-editor-field"><label>Score</label><input name="${prefix}-score" value="${escapeHtml(match.score || "")}"></div>
+      <div class="cots-editor-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+        <div class="resource-editor-field"><label>Left</label><input name="\${prefix}-left" value="\${escapeHtml(match.left || "")}"></div>
+        <div class="resource-editor-field"><label>Right</label><input name="\${prefix}-right" value="\${escapeHtml(match.right || "")}"></div>
+        <div class="resource-editor-field"><label>Winner</label><input name="\${prefix}-winner" value="\${escapeHtml(match.winner || "")}"></div>
+        <div class="resource-editor-field"><label>Score</label><input name="\${prefix}-score" value="\${escapeHtml(match.score || "")}"></div>
       </div>
     </section>
-  `;
+  \`;
 }
 
-function roundEditor(round, roundIndex) {
-  return `
-    <section class="library-entry-editor cots-round-editor" data-cots-round="${roundIndex}">
+function roundEditor(bracketPrefix, roundTitle, round, roundIndex) {
+  return \`
+    <section class="library-entry-editor cots-round-editor" data-cots-round="\${bracketPrefix}:\${roundIndex}">
       <div class="library-entry-toolbar">
-        <span class="library-entry-title">Round ${roundIndex + 1}</span>
-        <button type="button" class="library-inline-btn danger" data-cots-remove-round="${roundIndex}">REMOVE ROUND</button>
-      </div>
-      <div class="resource-editor-field">
-        <label>Round Name</label>
-        <input name="round-${roundIndex}-name" value="${escapeHtml(round.name || "")}">
+        <span class="library-entry-title">\${escapeHtml(roundTitle)} Round \${roundIndex + 1}</span>
+        <button type="button" class="library-inline-btn danger" data-cots-remove-round="\${bracketPrefix}:\${roundIndex}">REMOVE ROUND</button>
       </div>
       <div class="cots-match-editor-stack">
-        ${(round.matches || []).map((match, matchIndex) => matchEditor(round, roundIndex, match, matchIndex)).join("")}
+        \${(round.matches || []).map((match, matchIndex) => matchEditor(bracketPrefix, round, roundIndex, match, matchIndex)).join("")}
       </div>
       <div class="library-editor-buttons cots-inline-buttons">
-        <button type="button" class="library-inline-btn" data-cots-add-match="${roundIndex}">ADD MATCH</button>
+        <button type="button" class="library-inline-btn" data-cots-add-match="\${bracketPrefix}:\${roundIndex}">ADD MATCH</button>
       </div>
     </section>
-  `;
+  \`;
 }
 
 function syncStateFromForm(form, workingState) {
@@ -247,21 +348,23 @@ function syncStateFromForm(form, workingState) {
     motto: text(data.championMotto),
     season: text(data.championSeason)
   };
-  workingState.podium = [0, 1, 2].map(index => ({
-    place: text(data[`podium-${index}-place`], ["I", "II", "III"][index]),
-    name: text(data[`podium-${index}-name`]),
-    note: text(data[`podium-${index}-note`])
-  }));
-  workingState.bracket = (workingState.bracket || []).map((round, roundIndex) => ({
-    name: text(data[`round-${roundIndex}-name`], round.name || `Round ${roundIndex + 1}`),
-    matches: (round.matches || []).map((match, matchIndex) => ({
-      id: text(data[`round-${roundIndex}-match-${matchIndex}-id`], match.id),
-      left: text(data[`round-${roundIndex}-match-${matchIndex}-left`], match.left),
-      right: text(data[`round-${roundIndex}-match-${matchIndex}-right`], match.right),
-      winner: text(data[`round-${roundIndex}-match-${matchIndex}-winner`], match.winner),
-      score: text(data[`round-${roundIndex}-match-${matchIndex}-score`], match.score)
-    }))
-  }));
+  
+  const parseBracket = (arr, prefix) => {
+    return (arr || []).map((round, roundIndex) => ({
+      name: round.name,
+      matches: (round.matches || []).map((match, matchIndex) => ({
+        id: match.id,
+        left: text(data[`${prefix}-round-${roundIndex}-match-${matchIndex}-left`], match.left),
+        right: text(data[`${prefix}-round-${roundIndex}-match-${matchIndex}-right`], match.right),
+        winner: text(data[`${prefix}-round-${roundIndex}-match-${matchIndex}-winner`], match.winner),
+        score: text(data[`${prefix}-round-${roundIndex}-match-${matchIndex}-score`], match.score)
+      }))
+    }));
+  };
+
+  workingState.bracket = parseBracket(workingState.bracket, "w");
+  workingState.losersBracket = parseBracket(workingState.losersBracket, "l");
+  workingState.grandFinals = parseBracket(workingState.grandFinals, "gf");
 }
 
 function renderEditorForm(form, state) {
@@ -277,26 +380,32 @@ function renderEditorForm(form, state) {
       </section>
 
       <section class="library-entry-editor">
-        <div class="library-entry-toolbar"><span class="library-entry-title">Podium Top 3</span></div>
-        <div class="cots-editor-grid cots-editor-grid--podium">
-          ${[0, 1, 2].map(index => {
-            const entry = state.podium?.[index] || {};
-            return `
-              <div class="resource-editor-field"><label>Place ${index + 1}</label><input name="podium-${index}-place" value="${escapeHtml(entry.place || ["I", "II", "III"][index])}"></div>
-              <div class="resource-editor-field"><label>Name ${index + 1}</label><input name="podium-${index}-name" value="${escapeHtml(entry.name || "")}"></div>
-              <div class="resource-editor-field"><label>Note ${index + 1}</label><input name="podium-${index}-note" value="${escapeHtml(entry.note || "")}"></div>
-            `;
-          }).join("")}
+        <div class="library-entry-toolbar"><span class="library-entry-title">Winners Bracket</span></div>
+        <div class="cots-round-editor-stack">
+          ${(state.bracket || []).map((r, i) => roundEditor("w", "Winners", r, i)).join("")}
+        </div>
+        <div class="library-editor-buttons cots-inline-buttons">
+          <button type="button" class="library-inline-btn" data-cots-add-round="w">ADD ROUND</button>
         </div>
       </section>
 
       <section class="library-entry-editor">
-        <div class="library-entry-toolbar"><span class="library-entry-title">Bracket</span></div>
+        <div class="library-entry-toolbar"><span class="library-entry-title">Losers Bracket</span></div>
         <div class="cots-round-editor-stack">
-          ${(state.bracket || []).map(roundEditor).join("")}
+          ${(state.losersBracket || []).map((r, i) => roundEditor("l", "Losers", r, i)).join("")}
         </div>
         <div class="library-editor-buttons cots-inline-buttons">
-          <button type="button" class="library-inline-btn" data-cots-add-round>ADD ROUND</button>
+          <button type="button" class="library-inline-btn" data-cots-add-round="l">ADD ROUND</button>
+        </div>
+      </section>
+
+      <section class="library-entry-editor">
+        <div class="library-entry-toolbar"><span class="library-entry-title">Grand Finals</span></div>
+        <div class="cots-round-editor-stack">
+          ${(state.grandFinals || []).map((r, i) => roundEditor("gf", "Grand Finals", r, i)).join("")}
+        </div>
+        <div class="library-editor-buttons cots-inline-buttons">
+          <button type="button" class="library-inline-btn" data-cots-add-round="gf">ADD ROUND</button>
         </div>
       </section>
     </div>
@@ -367,16 +476,24 @@ async function initCots() {
       if (!removeRound && !addRound && !removeMatch && !addMatch) return;
       syncStateFromForm(form, workingState);
 
+      const getBracketArray = (prefix) => {
+        if (prefix === "l") return workingState.losersBracket;
+        if (prefix === "gf") return workingState.grandFinals;
+        return workingState.bracket;
+      };
+
       if (removeRound) {
-        workingState.bracket.splice(Number(removeRound.dataset.cotsRemoveRound), 1);
+        const [prefix, roundIndex] = removeRound.dataset.cotsRemoveRound.split(":");
+        getBracketArray(prefix).splice(Number(roundIndex), 1);
       } else if (addRound) {
-        workingState.bracket.push({ name: `Round ${workingState.bracket.length + 1}`, matches: [] });
+        const prefix = addRound.dataset.cotsAddRound;
+        getBracketArray(prefix).push({ name: "", matches: [] });
       } else if (removeMatch) {
-        const [roundIndex, matchIndex] = removeMatch.dataset.cotsRemoveMatch.split(":").map(Number);
-        workingState.bracket[roundIndex]?.matches?.splice(matchIndex, 1);
+        const [prefix, roundIndex, matchIndex] = removeMatch.dataset.cotsRemoveMatch.split(":");
+        getBracketArray(prefix)[Number(roundIndex)]?.matches?.splice(Number(matchIndex), 1);
       } else if (addMatch) {
-        const roundIndex = Number(addMatch.dataset.cotsAddMatch);
-        workingState.bracket[roundIndex]?.matches?.push({ id: "", left: "", right: "", winner: "", score: "" });
+        const [prefix, roundIndex] = addMatch.dataset.cotsAddMatch.split(":");
+        getBracketArray(prefix)[Number(roundIndex)]?.matches?.push({ id: "", left: "", right: "", winner: "", score: "" });
       }
 
       renderEditorForm(form, workingState);

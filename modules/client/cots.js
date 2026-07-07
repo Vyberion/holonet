@@ -91,7 +91,7 @@ function renderCots(root, state, canEdit, meta = {}) {
 
     <section class="hub-panel cots-bracket-panel" aria-label="Tournament bracket" style="padding: 0; overflow: hidden;">
       ${state.challongeUrl 
-        ? `<iframe src="${escapeHtml(state.challongeUrl)}" width="100%" height="800" frameborder="0" scrolling="auto" allowtransparency="true" style="border: none; width: 100%; height: 800px; display: block;"></iframe>` 
+        ? `<iframe src="${escapeHtml(state.challongeUrl)}" width="100%" height="1200" frameborder="0" scrolling="auto" allowtransparency="true" style="border: none; width: 100%; height: 1200px; display: block; margin: 0; padding: 0; background: transparent;"></iframe>` 
         : `<p class="hub-empty" style="margin: 20px;">No tournament bracket available.</p>`}
     </section>
   `;
@@ -144,8 +144,12 @@ function syncStateFromForm(form, workingState) {
     ...workingState.champion,
     name: text(data.championName)
   };
-  
-  workingState.challongeUrl = text(data.challongeUrl);
+
+  let url = text(data.challongeUrl);
+  if (url && url.includes("challonge.com") && !url.endsWith("/module")) {
+    url = url.replace(/\/$/, "") + "/module";
+  }
+  workingState.challongeUrl = url;
 
   workingState.podium = [
     { place: "I", name: text(data.podium0), note: "Champion" },

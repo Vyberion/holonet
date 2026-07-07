@@ -87,5 +87,14 @@ client.on("messageCreate", async message => {
   }
 });
 
+client.on("guildMemberAdd", async member => {
+  try {
+    const { syncMemberRoles } = await import("./services/roles.js");
+    await syncMemberRoles(member, client.user.id);
+  } catch (error) {
+    console.error("Failed to sync new member roles", error);
+  }
+});
+
 const tokenEnvName = ["DISCORD", "TOKEN"].join("_");
 await client.login(requireEnv(tokenEnvName));

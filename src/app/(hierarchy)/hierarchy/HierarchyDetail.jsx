@@ -1,5 +1,6 @@
 import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../../components/PageScripts.jsx";
+import { ThemeClass } from "../../../components/ThemeClass.jsx";
 
 const SPECIAL_RANK_NEXT = {
   "sith-adept": [
@@ -94,7 +95,8 @@ export function HierarchyDetail({ item, guarded = false, rankNav = null }) {
   const imageSrc = normalizeImageSrc(item.image);
 
   return (
-    <HolonetFrame title={item.name.toUpperCase()} subtitle={item.groupTitle.toUpperCase()} footerNode="HRK-03">
+    <HolonetFrame title={item.name.toUpperCase()} subtitle={item.groupTitle.toUpperCase()} footerNode="HRK-03" theme={item.theme}>
+      {item.theme && <ThemeClass theme={item.theme} />}
       <div className={`codex-document hierarchy-detail${classified ? " hierarchy-detail--classified" : ""}`}>
         <article className="codex-article">
           <div className="article-header">

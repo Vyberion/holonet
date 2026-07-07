@@ -8,20 +8,9 @@ import {
 import DivisionSectionPage from "./[section]/page.jsx";
 
 export default async function DivisionRedirectPage({ params }) {
-  const routeParams = await params;
-  const divisionSlug = String(routeParams.division || "");
+  const divisionSlug = String(params.division || "");
   const division = getDivisionByRouteSlug(divisionSlug);
-
   if (!division) notFound();
-
-  if (isPublicInfoDivision(division.id)) {
-    const canonicalInfoPath = divisionPublicInfoPath(division.id);
-    if (canonicalInfoPath && `/${divisionSlug.toLowerCase()}` !== canonicalInfoPath) {
-      redirect(canonicalInfoPath);
-    }
-
-    return DivisionSectionPage({ params: { division: divisionSlug, section: "info" } });
-  }
-
-  redirect(divisionLockedHref(division.id));
+  // Directly render the home section
+  return DivisionSectionPage({ params: { division: divisionSlug, section: "home" } });
 }

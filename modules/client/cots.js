@@ -531,6 +531,17 @@ function renderEditorForm(form, state) {
   form.innerHTML = `
     <div class="library-entry-stack">
       <section class="library-entry-editor">
+        <div class="library-entry-toolbar"><span class="library-entry-title">Tournament Generator</span></div>
+        <div class="resource-editor-field">
+          <label>Tournament Roster (One name per line)</label>
+          <textarea id="cots-roster-input" rows="6" placeholder="Enter player names here..."></textarea>
+        </div>
+        <div class="library-editor-buttons">
+          <button type="button" class="library-inline-btn" id="cots-generate-bracket-btn">GENERATE BRACKET</button>
+        </div>
+      </section>
+
+      <section class="library-entry-editor">
         <div class="library-entry-toolbar"><span class="library-entry-title">Champion</span></div>
         <div class="resource-editor-field"><label>Champion Username</label><input name="championName" value="${escapeHtml(state.champion.name || "")}" required></div>
         <div class="resource-editor-field"><label>Champion Title</label><input name="championTitle" value="${escapeHtml(state.champion.title || "")}"></div>
@@ -644,6 +655,19 @@ async function initCots() {
     overlay.classList.add("active");
 
     form.onclick = event => {
+      if (event.target.id === "cots-generate-bracket-btn") {
+        const rosterText = form.querySelector("#cots-roster-input").value;
+        if (!rosterText.trim()) return alert("Please enter at least one player name.");
+        
+        const generated = generateDoubleElimination(rosterText);
+        workingState.bracket = generated.bracket;
+        workingState.losersBracket = generated.losersBracket;
+        workingState.grandFinals = generated.grandFinals;
+        
+        renderEditorForm(form, workingState);
+        return;
+      }
+
       const removeRound = event.target.closest("[data-cots-remove-round]");
       const addRound = event.target.closest("[data-cots-add-round]");
       const removeMatch = event.target.closest("[data-cots-remove-match]");

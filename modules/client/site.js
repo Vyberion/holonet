@@ -918,7 +918,10 @@
 
     function syncOverlayState() {
       const active = Boolean(document.querySelector(activeOverlaySelector));
-      document.body.classList.toggle("editor-overlay-active", active);
+      const hasClass = document.body.classList.contains("editor-overlay-active");
+      if (active !== hasClass) {
+        document.body.classList.toggle("editor-overlay-active", active);
+      }
     }
 
     const observer = new MutationObserver(syncOverlayState);

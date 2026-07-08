@@ -107,16 +107,15 @@ export function HolonetAudioController() {
     function unlockAudio() {
       const audio = audioRef.current;
       if (!audio || unlockedRef.current) return;
+      
+      // CRITICAL: Never attempt to unlock or touch the audio element unless we are ACTUALLY on the galaxy page.
+      // iOS can act unpredictably if we call play() and then try to pause() it immediately.
+      if (!isGalaxyRef.current) return;
 
-      unlockedRef.current = true; // Lock immediately to prevent multi-tap races
-      audio.volume = 0;
-      audio.muted = true; 
+      unlockedRef.current = true;
+      audio.volume = 0; // Prepare for fade-in
       
       const markUnlocked = () => {
-        audio.muted = false; 
-        if (!isGalaxyRef.current || !loaderIsHidden()) {
-          audio.pause();
-        }
         syncAudioTarget();
       };
 

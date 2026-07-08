@@ -4,24 +4,18 @@ import { useEffect, useRef, useState } from "react";
 
 export function InteractiveMandate({ hero, content }) {
   const containerRef = useRef(null);
-  const [scrollData, setScrollData] = useState({ progress: 0, scrollY: 0, vh: 800 });
+  const [scrollData, setScrollData] = useState({ scrollY: 0, vh: 800 });
 
   useEffect(() => {
-    // Track scroll progress to drive the transition
     const handleScroll = () => {
-      const vh = window.innerHeight;
-      const scrollY = window.scrollY;
-      
-      let p = scrollY / vh;
-      if (p < 0) p = 0;
-      if (p > 1) p = 1;
-      
-      setScrollData({ progress: p, scrollY, vh });
+      setScrollData({ 
+        scrollY: window.scrollY, 
+        vh: window.innerHeight 
+      });
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("resize", handleScroll);
-    // Trigger once on mount
     handleScroll();
 
     return () => {
@@ -85,57 +79,76 @@ export function InteractiveMandate({ hero, content }) {
     };
   }, []);
 
-  const { progress, scrollY, vh } = scrollData;
-  const isTransitioning = progress < 1;
+  const { scrollY, vh } = scrollData;
+  
+  let heroOpacity = 1;
+  let heroScale = 1;
+  let contentOpacity = 0;
 
-  // When transitioning, we compensate for the native scroll by translating the element UP
-  // by exactly the amount it natively scrolled DOWN, keeping it visually glued to the viewport.
-  const contentTransform = isTransitioning 
-    ? `translateY(${scrollY - vh + (1 - progress) * 40}px)` 
-    : 'none';
+  // Phase 1: 0 to 100vh -> Hero fades out
+  if (scrollY <= vh) {
+    heroOpacity = 1 - (scrollY / vh);
+    heroScale = 1 + (scrollY / vh) * 0.05;
+    contentOpacity = 0;
+  } 
+  // Phase 2: 100vh to 200vh -> Content fades in
+  else if (scrollY <= 2 * vh) {
+    heroOpacity = 0;
+    heroScale = 1.05;
+    contentOpacity = (scrollY - vh) / vh;
+  } 
+  // Phase 3: > 200vh -> Fully visible, native scrolling resumes
+  else {
+    heroOpacity = 0;
+    heroScale = 1.05;
+    contentOpacity = 1;
+  }
 
   return (
-    <div ref={containerRef} className="interactive-mandate-wrapper">
+    <div 
+      ref={containerRef} 
+      className="interactive-mandate-wrapper" 
+      // This padding creates the 200vh of scrollable space needed for the 2-phase transition.
+      // Because the child is `sticky`, scrolling through this padding visually locks the screen.
+      style={{ paddingBottom: '200vh' }}
+    >
+      
       {/* 
-        This spacer gives the document physical height so the user can scroll down 
-        to trigger the transition BEFORE the real content begins taking up space.
+        This container naturally sticks to the top of the viewport for exactly the duration 
+        of the padding (200vh), preventing any jitter or bouncing natively. 
       */}
-      <div style={{ height: '100vh', width: '100%' }}></div>
+      <div style={{ position: 'sticky', top: 0 }}>
+        
+        {/* Hero Layer */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '100vh',
+          zIndex: 5,
+          opacity: heroOpacity,
+          transform: `scale(${heroScale})`,
+          pointerEvents: heroOpacity > 0 ? 'auto' : 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          {hero}
+        </div>
 
-      {/* The Hero splash screen - fixed to the viewport, fading and shrinking out */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 5,
-        opacity: 1 - progress,
-        transform: `scale(${1 - progress * 0.05})`,
-        pointerEvents: isTransitioning ? 'auto' : 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        {hero}
-      </div>
+        {/* Content Layer */}
+        <div style={{
+          position: 'relative', // Relative so it defines the height of the sticky container
+          zIndex: 10,
+          width: '100%',
+          opacity: contentOpacity,
+          pointerEvents: contentOpacity > 0 ? 'auto' : 'none',
+        }}>
+          {content}
+        </div>
 
-      {/* 
-        The Main Content Container
-        It natively sits directly under the 100vh spacer.
-        While transitioning, we apply a mathematical transform to visually pin it to the viewport
-        while allowing the body to scroll normally. Once progress = 1, transform is removed and it flows naturally.
-      */}
-      <div style={{
-        position: 'relative',
-        zIndex: 10,
-        width: '100%',
-        opacity: progress,
-        transform: contentTransform,
-        pointerEvents: isTransitioning ? 'none' : 'auto',
-      }}>
-        {content}
       </div>
     </div>
   );

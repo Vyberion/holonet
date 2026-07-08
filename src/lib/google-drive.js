@@ -65,6 +65,7 @@ async function getGoogleAccessToken() {
 
 async function fetchGoogleJson(url, token) {
   const response = await fetch(url, {
+    cache: "no-store",
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json"
@@ -326,6 +327,7 @@ export async function exportGoogleDocPdf(fileId, { tabId = "", sourceUrl = "", f
   const exportUrl = googlePdfExportUrl(id, { tabId, sourceUrl, fileKind: kind, spreadsheetRange });
 
   const response = await fetch(exportUrl, {
+    cache: "no-store",
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: GOOGLE_DOC_PDF_MIME

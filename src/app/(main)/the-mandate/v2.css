@@ -87,13 +87,13 @@ body {
   perspective: none;
 }
 
-.pos-item, .v2-pillar, .v2-quote-box {
+.pos-item, .service-col, .v2-quote-box {
   position: relative;
   overflow: hidden;
-  transition: box-shadow 0.3s, transform 0.1s;
+  transition: box-shadow 0.3s, transform 0.1s, background 0.3s;
 }
 
-.pos-item::before, .v2-pillar::before, .v2-quote-box::before {
+.pos-item::before, .service-col::before, .v2-quote-box::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -104,11 +104,11 @@ body {
   transition: opacity 0.5s;
 }
 
-.pos-item:hover::before, .v2-pillar:hover::before, .v2-quote-box:hover::before {
+.pos-item:hover::before, .service-col:hover::before, .v2-quote-box:hover::before {
   opacity: 1;
 }
 
-.pos-item > *, .v2-pillar > *, .v2-quote-box > * {
+.pos-item > *, .service-col > *, .v2-quote-box > * {
   position: relative;
   z-index: 1;
 }
@@ -473,20 +473,19 @@ body.splash-active {
 .pos-item {
   grid-column: span 2;
   padding: 20px 10px;
-  transition: background 0.3s, box-shadow 0.3s;
 }
 
-.pos-item:hover {
+.pos-item:hover, .service-col:hover {
   background: rgba(211, 26, 56, 0.1);
   box-shadow: 0 0 20px rgba(211, 26, 56, 0.2) inset;
 }
 
 .pos-item.border-right {
-  border-right: 1px solid rgba(211, 26, 56, 0.4);
+  border-right: 1px solid rgba(211, 26, 56, 0.2);
 }
 
 .pos-item.border-bottom {
-  border-bottom: 1px solid rgba(211, 26, 56, 0.4);
+  border-bottom: 1px solid rgba(211, 26, 56, 0.2);
 }
 
 .pos-item.wide {

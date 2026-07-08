@@ -25,8 +25,8 @@ export function InteractiveMandate({ children }) {
     const scrollElements = document.querySelectorAll('.animate-on-scroll');
     scrollElements.forEach(el => observer.observe(el));
 
-    // 3. Glow Effect on Hover for Grid Items & Pillars (No Tilt)
-    const glowElements = document.querySelectorAll('.pos-item, .v2-pillar, .v2-quote-box');
+    // 3. Glow Effect on Hover for Grid Items (No Tilt)
+    const glowElements = document.querySelectorAll('.pos-item, .service-col, .v2-quote-box');
     
     const handleGlowMove = (e) => {
       const el = e.currentTarget;

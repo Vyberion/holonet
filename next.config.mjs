@@ -32,6 +32,9 @@ const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
+  experimental: {
+    instrumentationHook: true
+  },
   images: {
     remotePatterns
   },

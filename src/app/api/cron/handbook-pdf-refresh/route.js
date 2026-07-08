@@ -159,7 +159,7 @@ export async function GET(request) {
 
   try {
     const candidates = await loadPublishedGoogleHandbooks();
-    const limited = candidates.slice(0, Math.max(1, MAX_REFRESH_PER_RUN));
+    const limited = candidates; // User requested ALL handbooks to be processed
     const results = [];
 
     for (const candidate of limited) {

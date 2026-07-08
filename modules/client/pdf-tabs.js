@@ -67,11 +67,10 @@ async function fetchPdfBytes(source) {
     return cached instanceof Promise ? await cached : cached;
   }
 
-  // Use a 5-minute bucket for the cache buster so we don't bust every single reload,
-  // but we guarantee an update every 5 minutes.
-  const timeBucket = Math.floor(Date.now() / (5 * 60 * 1000));
+  // Use a completely fresh timestamp so we always check the true Google Doc modified time on the server
+  const timeBucket = Date.now();
   const urlObj = new URL(source, window.location.href);
-  urlObj.searchParams.set('_v', timeBucket);
+  urlObj.searchParams.set("_cache", timeBucket);
 
   const request = fetch(urlObj.toString(), {
     credentials: "same-origin"

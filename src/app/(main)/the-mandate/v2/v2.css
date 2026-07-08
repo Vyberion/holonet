@@ -45,26 +45,35 @@ body {
 
 .v2-bg {
   position: fixed;
-  top: -5%;
-  left: -5%;
-  width: 110%;
-  height: 110%;
-  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(50, 0, 0, 0.6) 0%, rgba(0, 0, 0, 1) 60%);
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(80, 0, 10, 0.5) 0%, rgba(10, 0, 5, 0.95) 50%, rgba(0, 0, 0, 1) 100%);
   z-index: 0;
-  transition: background 0.1s;
+  transition: background 0.3s ease-out;
+  pointer-events: none;
+}
+
+.v2-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);
+  pointer-events: none;
 }
 
 /* Scroll Animations */
 .animate-on-scroll {
   opacity: 0;
-  transform: translateY(40px);
-  transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(60px) scale(0.98);
+  transition: opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1), transform 1.5s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
 
 .animate-on-scroll.is-visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
 }
 
 .stagger-1 { transition-delay: 0.1s; }
@@ -75,7 +84,7 @@ body {
 
 /* 3D Tilt Wrapper */
 .interactive-mandate-wrapper {
-  perspective: 1500px;
+  perspective: none;
 }
 
 .pos-item, .v2-pillar, .v2-quote-box {
@@ -91,7 +100,14 @@ body {
   background: radial-gradient(circle at var(--shine-x, 50%) var(--shine-y, 50%), rgba(211, 26, 56, 0.15) 0%, transparent 60%);
   z-index: 0;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s;
 }
+
+.pos-item:hover::before, .v2-pillar:hover::before, .v2-quote-box:hover::before {
+  opacity: 1;
+}
+
 .pos-item > *, .v2-pillar > *, .v2-quote-box > * {
   position: relative;
   z-index: 1;
@@ -105,7 +121,7 @@ body {
 /* Scroll animations rely on body scroll */
 
 /* Base Page Styles */
-.v2-hero, .v2-page {
+.v2-hero {
   min-height: 100vh;
   width: 100%;
   max-width: 1200px;
@@ -116,7 +132,21 @@ body {
   justify-content: center;
   box-sizing: border-box;
   opacity: 0;
-  animation: fade-in-up 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fade-in-up 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.v2-page {
+  min-height: auto;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  opacity: 0;
+  animation: fade-in-up 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes fade-in-up {

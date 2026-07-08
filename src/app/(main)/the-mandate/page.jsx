@@ -32,7 +32,7 @@ export default function TheMandatePage() {
               className="pdf-tab-strip" 
               data-pdf-tab-strip 
               data-pdf-division="mandate"
-              data-pdf-initial-zoom="1.5"
+              data-pdf-initial-zoom="1.85"
               style={{ display: 'none' }}
             >
             </div>

@@ -21,9 +21,8 @@ export default function MandateV2Page() {
       includeSearchOverlay={false}
       releaseIntro={{ enabled: false }}
     >
+      <div className="v2-bg"></div>
       <InteractiveMandate>
-        <div className="v2-bg"></div>
-
         <section className="v2-hero animate-on-scroll">
           <div className="hero-content">
             <h2 className="v2-subheading">VYBERON'S</h2>

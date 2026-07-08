@@ -1139,11 +1139,7 @@ function setupEvents() {
     }
   });
 
-  dom.scrollBox?.addEventListener("wheel", event => {
-    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-    event.preventDefault();
-    dom.scrollBox.scrollTop += event.deltaY;
-  }, { passive: false });
+
 
   let resizeTimer = null;
   window.addEventListener("resize", () => {

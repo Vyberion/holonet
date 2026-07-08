@@ -44,19 +44,24 @@ export function HolonetAudioController() {
   const unlockedRef = useRef(false);
   const fadeFrameRef = useRef(null);
   const isGalaxy = pathname === "/galaxy" || pathname?.startsWith("/galaxy/");
+  const isGalaxyRef = useRef(isGalaxy);
+  isGalaxyRef.current = isGalaxy;
 
   const syncAudioTarget = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || !unlockedRef.current) return;
 
-    const currentPath = window.location.pathname;
-    const onGalaxy = currentPath === "/galaxy" || currentPath.startsWith("/galaxy/");
-    const targetVolume = onGalaxy && loaderIsHidden() ? GALAXY_MUSIC_VOLUME : 0;
+    const targetVolume = isGalaxyRef.current && loaderIsHidden() ? GALAXY_MUSIC_VOLUME : 0;
     if (targetVolume > 0 && audio.paused) {
       const playAttempt = audio.play();
       if (playAttempt?.catch) playAttempt.catch(() => {});
     }
-    fadeAudio(audio, targetVolume, GALAXY_MUSIC_FADE_MS, fadeFrameRef);
+    if (targetVolume === 0 && !audio.paused) {
+      fadeAudio(audio, 0, GALAXY_MUSIC_FADE_MS, fadeFrameRef);
+      setTimeout(() => { if (audioRef.current && audioRef.current.volume === 0) audioRef.current.pause(); }, GALAXY_MUSIC_FADE_MS + 100);
+    } else {
+      fadeAudio(audio, targetVolume, GALAXY_MUSIC_FADE_MS, fadeFrameRef);
+    }
   }, []);
 
   useEffect(() => {

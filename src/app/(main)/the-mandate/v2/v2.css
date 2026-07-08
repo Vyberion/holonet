@@ -13,13 +13,33 @@
   --font-script: 'Great Vibes', cursive;
 }
 
+/* Global Overrides to break out of the Holonet layout completely */
+footer, #nav-container, header, .status-bar, #loader {
+  display: none !important;
+}
+
+#app {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+body {
+  background: var(--sith-black) !important;
+  color: var(--sith-text-light) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
 .mandate-v2-main {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background-color: var(--sith-black);
-  color: var(--sith-text-light);
-  overflow: hidden;
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  z-index: 10;
+  background-color: transparent;
   font-family: var(--font-sans);
 }
 
@@ -82,27 +102,7 @@
   100% { transform: scale(1.05); filter: brightness(1.3); }
 }
 
-.v2-scroll-container {
-  position: relative;
-  z-index: 10;
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
-  perspective: 1000px;
-}
-
-.v2-scroll-container::-webkit-scrollbar {
-  width: 8px;
-}
-.v2-scroll-container::-webkit-scrollbar-track {
-  background: var(--sith-black);
-}
-.v2-scroll-container::-webkit-scrollbar-thumb {
-  background: var(--sith-dark-red);
-  border-radius: 4px;
-}
+/* Scroll animations rely on body scroll */
 
 /* Base Page Styles */
 .v2-hero, .v2-page {

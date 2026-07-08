@@ -24,8 +24,7 @@ export default function MandateV2Page() {
       <InteractiveMandate>
         <div className="v2-bg"></div>
 
-        <div className="v2-scroll-container">
-          <section className="v2-hero animate-on-scroll">
+        <section className="v2-hero animate-on-scroll">
           <div className="hero-content">
             <h2 className="v2-subheading">VYBERON'S</h2>
             <h1 className="v2-title">MANDATE</h1>
@@ -188,7 +187,6 @@ export default function MandateV2Page() {
             <div className="v2-signature animate-on-scroll stagger-4">Vyberon</div>
           </div>
         </section>
-      </div>
       </InteractiveMandate>
 
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} />

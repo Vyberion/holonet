@@ -1,6 +1,6 @@
-import { HolonetFrame } from "../../../../components/HolonetFrame.jsx";
-import { PageScripts } from "../../../../components/PageScripts.jsx";
-import { holonetMetadata } from "../../../../lib/metadata.js";
+import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
+import { PageScripts } from "../../../components/PageScripts.jsx";
+import { holonetMetadata } from "../../../lib/metadata.js";
 
 const defaultCotsState = {
   champion: {

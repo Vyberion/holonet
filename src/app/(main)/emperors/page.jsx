@@ -1,8 +1,8 @@
-import { HolonetFrame } from "../../../../components/HolonetFrame.jsx";
-import { PageScripts } from "../../../../components/PageScripts.jsx";
-import { EMPEROR_ARCHIVE_GROUP, emperorArchiveItems } from "../../../../../modules/data/hierarchy.js";
-import { holonetMetadata } from "../../../../lib/metadata.js";
-import { HierarchySection } from "../../../(hierarchy)/hierarchy/HierarchyList.jsx";
+import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
+import { PageScripts } from "../../../components/PageScripts.jsx";
+import { EMPEROR_ARCHIVE_GROUP, emperorArchiveItems } from "../../../../modules/data/hierarchy.js";
+import { holonetMetadata } from "../../../lib/metadata.js";
+import { HierarchySection } from "../../(hierarchy)/hierarchy/HierarchyList.jsx";
 
 export const metadata = holonetMetadata({
   title: "Emperor Archive",

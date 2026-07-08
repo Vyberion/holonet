@@ -121,18 +121,68 @@ body {
 /* Scroll animations rely on body scroll */
 
 /* Base Page Styles */
+body.splash-active {
+  overflow: hidden !important;
+}
+
 .v2-hero {
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 80px 40px;
+  z-index: 100;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   box-sizing: border-box;
   opacity: 0;
   animation: fade-in-up 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: opacity 1s ease-in-out, visibility 1s, transform 1s ease-in-out;
+}
+
+.v2-hero.splash-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(1.05);
+}
+
+.v2-content-wrapper {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(40px);
+  transition: opacity 1.5s ease-in-out, transform 1.5s ease-in-out;
+  padding-top: 100vh; /* Pushes actual content down so it starts below where the splash was, wait no, if splash is fixed we don't need this, but let's keep it safe. Actually, let's just make it 0. */
+}
+
+.v2-content-wrapper.content-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.v2-splash-action {
+  margin-top: 50px;
+}
+
+.v2-splash-button {
+  background: transparent;
+  border: 1px solid var(--sith-red);
+  color: var(--sith-red);
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  padding: 15px 40px;
+  cursor: pointer;
+  letter-spacing: 0.2em;
+  transition: all 0.3s;
+  text-transform: uppercase;
+}
+
+.v2-splash-button:hover {
+  background: rgba(211, 26, 56, 0.2);
+  box-shadow: 0 0 20px rgba(211, 26, 56, 0.4);
+  color: #fff;
+  transform: scale(1.05);
 }
 
 .v2-page {
@@ -147,6 +197,10 @@ body {
   box-sizing: border-box;
   opacity: 0;
   animation: fade-in-up 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.v2-ultimatum {
+  padding-bottom: 30vh; /* Extra space at the bottom */
 }
 
 @keyframes fade-in-up {

@@ -9,42 +9,65 @@ export function InteractiveMandate({ hero, content }) {
 
   const locked = progress < 1;
 
-  // Lock body scroll during the transition
+  // Lock body scroll and pin to top while transitioning
   useEffect(() => {
     if (locked) {
       document.body.style.setProperty('overflow', 'hidden', 'important');
       window.scrollTo(0, 0);
     } else {
       document.body.style.removeProperty('overflow');
-      window.scrollTo(0, 0);
     }
     return () => {
       document.body.style.removeProperty('overflow');
     };
   }, [locked]);
 
-  // Wheel events drive progress while locked
+  // Force scroll to 0 on every render while locked (belt AND suspenders)
   useEffect(() => {
-    if (!locked) return;
+    if (locked) {
+      window.scrollTo(0, 0);
+    }
+  });
 
+  // Wheel events — ALWAYS active, uses ref for latest progress
+  useEffect(() => {
     const handleWheel = (e) => {
-      e.preventDefault();
-      // ~1.5 screen-heights of total wheel travel for the full transition
-      const step = e.deltaY / (window.innerHeight * 1.5);
-      let p = progressRef.current + step;
-      if (p < 0) p = 0;
-      if (p > 1) p = 1;
-      progressRef.current = p;
-      setProgress(p);
+      const p = progressRef.current;
+
+      // LOCKED: intercept all wheel events, drive progress
+      if (p < 1) {
+        e.preventDefault();
+        const step = e.deltaY / (window.innerHeight * 1.5);
+        let next = p + step;
+        if (next < 0) next = 0;
+        if (next > 1) next = 1;
+        progressRef.current = next;
+        setProgress(next);
+        window.scrollTo(0, 0);
+        return;
+      }
+
+      // UNLOCKED: at top of page and scrolling UP → re-enter transition
+      if (window.scrollY <= 0 && e.deltaY < 0) {
+        e.preventDefault();
+        const step = e.deltaY / (window.innerHeight * 1.5);
+        let next = 1 + step; // step is negative, brings progress below 1
+        if (next < 0) next = 0;
+        progressRef.current = next;
+        setProgress(next);
+        window.scrollTo(0, 0);
+        return;
+      }
+
+      // UNLOCKED, not at top: native scroll handles it
     };
 
     window.addEventListener('wheel', handleWheel, { passive: false });
     return () => window.removeEventListener('wheel', handleWheel);
-  }, [locked]);
+  }, []); // Empty deps — permanent listener, uses refs
 
-  // Touch events for mobile
+  // Touch events — same logic, ALWAYS active
   useEffect(() => {
-    if (!locked) return;
     let lastTouchY = 0;
 
     const handleTouchStart = (e) => {
@@ -52,16 +75,33 @@ export function InteractiveMandate({ hero, content }) {
     };
 
     const handleTouchMove = (e) => {
-      e.preventDefault();
       const touchY = e.touches[0].clientY;
       const delta = lastTouchY - touchY; // positive = finger swipe up = scroll down
       lastTouchY = touchY;
-      const step = delta / (window.innerHeight * 1.5);
-      let p = progressRef.current + step;
-      if (p < 0) p = 0;
-      if (p > 1) p = 1;
-      progressRef.current = p;
-      setProgress(p);
+      const p = progressRef.current;
+
+      if (p < 1) {
+        e.preventDefault();
+        const step = delta / (window.innerHeight * 1.5);
+        let next = p + step;
+        if (next < 0) next = 0;
+        if (next > 1) next = 1;
+        progressRef.current = next;
+        setProgress(next);
+        window.scrollTo(0, 0);
+        return;
+      }
+
+      if (window.scrollY <= 0 && delta < 0) {
+        e.preventDefault();
+        const step = delta / (window.innerHeight * 1.5);
+        let next = 1 + step;
+        if (next < 0) next = 0;
+        progressRef.current = next;
+        setProgress(next);
+        window.scrollTo(0, 0);
+        return;
+      }
     };
 
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -70,7 +110,7 @@ export function InteractiveMandate({ hero, content }) {
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
     };
-  }, [locked]);
+  }, []);
 
   // Mouse spotlight, IntersectionObserver, glow effects
   useEffect(() => {
@@ -125,7 +165,7 @@ export function InteractiveMandate({ hero, content }) {
     };
   }, []);
 
-  // Phase 1: progress 0→0.3 — hero fades out (quick, less scrolling)
+  // Phase 1: progress 0→0.3 — hero fades out (quick)
   // Phase 2: progress 0.3→1.0 — content fades in (locked, no movement)
   let heroOpacity = 1;
   let contentOpacity = 0;
@@ -157,11 +197,11 @@ export function InteractiveMandate({ hero, content }) {
         {hero}
       </div>
 
-      {/* 
-        CONTENT — always in the document flow. 
-        While locked, "scroll-reveal-override" disables all child CSS animations 
-        so that our wrapper opacity is the sole control. Nothing moves.
-        When unlocked, the class is removed and normal scroll-reveal behaviour resumes.
+      {/*
+        CONTENT — always in the document flow.
+        While locked, "scroll-reveal-override" disables all child CSS animations
+        so our wrapper opacity is the sole control. Nothing moves.
+        When unlocked, the class is removed and normal scroll-reveal resumes.
       */}
       <div
         className={locked ? 'scroll-reveal-override' : ''}

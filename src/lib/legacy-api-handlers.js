@@ -1223,10 +1223,9 @@ async function normalizeRows(resources, detailRows, resourceType) {
         : googleFileId || detail.source_type === "google_doc"
         ? "google_doc"
         : "supabase_pdf";
-      const href = detail.google_doc_url
+      const signedUrl = googleFileId
         ? `/api/handbook-pdf?resourceId=${encodeURIComponent(resource.id)}`
-        : "";
-      const signedUrl = detail.storage_path && !detail.google_doc_url
+        : detail.storage_path
         ? await createSignedStorageUrl(detail.storage_bucket || "handbooks", detail.storage_path)
         : "";
 

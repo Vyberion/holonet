@@ -103,64 +103,67 @@ export function InteractiveMandate({ hero, content }) {
     heroScale = 1.05;
     contentOpacity = 1;
   }
+  const locked = scrollY < 2 * vh;
 
   return (
-    <div ref={containerRef} className="interactive-mandate-wrapper" style={{ position: 'relative' }}>
+    <div ref={containerRef} className="interactive-mandate-wrapper">
       
       {/* 
-        THE TRACK
-        This invisible spacer pushes the rest of the document down by exactly 200vh.
-        This provides the physical scroll space for our 2-phase transition.
+        SPACER: 200vh of empty scroll room for the two transition phases.
+        The browser scrollbar reflects this height, allowing the user to scroll
+        while everything on screen stays visually locked via position: fixed.
       */}
-      <div style={{ height: '200vh', width: '100%', pointerEvents: 'none' }}></div>
+      {locked && <div style={{ height: '200vh', width: '100%' }}></div>}
 
-      {/* 
-        THE VIEWPORT
-        During the first 200vh of scrolling, this is FIXED to the screen. It cannot move, 
-        bounce, or jitter. Once scrolling exceeds 200vh, it becomes STATIC, naturally 
-        sitting directly below the 200vh track above, creating a flawless handoff.
-      */}
-      <div style={{ 
-        position: scrollY <= 2 * vh ? 'fixed' : 'static',
-        top: scrollY <= 2 * vh ? 0 : 'auto',
+      {/* HERO OVERLAY: Fixed to the viewport, fades out during Phase 1 */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
         left: 0,
         right: 0,
-        height: scrollY <= 2 * vh ? '100vh' : 'auto',
-        overflow: scrollY <= 2 * vh ? 'hidden' : 'visible',
-        zIndex: 10,
+        bottom: 0,
+        zIndex: 15,
+        opacity: heroOpacity,
+        transform: `scale(${heroScale})`,
+        pointerEvents: heroOpacity > 0.01 ? 'auto' : 'none',
+        display: heroOpacity > 0.01 ? 'flex' : 'none',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}>
-        
-        {/* Hero Layer */}
+        {hero}
+      </div>
+
+      {/* CONTENT OVERLAY: Fixed to the viewport, fades in during Phase 2 */}
+      {locked && (
         <div style={{
-          position: 'absolute',
+          position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
-          height: '100vh',
-          zIndex: 5,
-          opacity: heroOpacity,
-          transform: `scale(${heroScale})`,
-          pointerEvents: heroOpacity > 0 ? 'auto' : 'none',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          {hero}
-        </div>
-
-        {/* Content Layer */}
-        <div style={{
-          position: 'relative',
-          zIndex: 10,
-          width: '100%',
+          bottom: 0,
+          zIndex: 20,
           opacity: contentOpacity,
-          pointerEvents: contentOpacity > 0 ? 'auto' : 'none',
+          pointerEvents: 'none',
+          overflow: 'hidden',
         }}>
           {content}
         </div>
+      )}
 
+      {/* 
+        STATIC CONTENT: Always in the document flow.
+        Hidden while locked (the fixed overlay above shows it instead).
+        Visible once unlocked — the user scrolls this natively.
+      */}
+      <div style={{
+        opacity: locked ? 0 : 1,
+        pointerEvents: locked ? 'none' : 'auto',
+        visibility: locked ? 'hidden' : 'visible',
+      }}>
+        {content}
       </div>
+
     </div>
   );
 }

@@ -87,13 +87,13 @@ body {
   perspective: none;
 }
 
-.pos-item, .service-col, .v2-quote-box {
+.pos-item, .v2-quote-box {
   position: relative;
   overflow: hidden;
   transition: box-shadow 0.3s, transform 0.1s, background 0.3s;
 }
 
-.pos-item::before, .service-col::before, .v2-quote-box::before {
+.pos-item::before, .v2-quote-box::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -104,11 +104,11 @@ body {
   transition: opacity 0.5s;
 }
 
-.pos-item:hover::before, .service-col:hover::before, .v2-quote-box:hover::before {
+.pos-item:hover::before, .v2-quote-box:hover::before {
   opacity: 1;
 }
 
-.pos-item > *, .service-col > *, .v2-quote-box > * {
+.pos-item > *, .v2-quote-box > * {
   position: relative;
   z-index: 1;
 }
@@ -437,26 +437,16 @@ body.splash-active {
   background: rgba(15,0,0,0.5);
 }
 
-.v2-service-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 10px;
-  text-align: center;
+.pos-item.span-1 {
+  grid-column: span 1 !important;
 }
 
-.service-col {
-  border-left: 1px solid rgba(211, 26, 56, 0.2);
-}
-.service-col:first-child { border-left: none; }
-
-.service-col h5 {
-  font-family: var(--font-serif);
-  color: var(--sith-red);
-  margin: 0 0 15px 0;
+.pos-item.span-1 h5 {
   font-size: 1.1rem;
+  margin: 0 0 15px 0;
 }
 
-.service-col p {
+.pos-item.span-1 p {
   margin: 5px 0;
   font-size: 0.85rem;
   font-weight: 600;
@@ -468,6 +458,14 @@ body.splash-active {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   text-align: center;
+  justify-items: stretch;
+  align-items: stretch;
+}
+
+.v2-positions-grid > .pos-item {
+  place-self: stretch;
+  min-width: 0;
+  width: auto;
 }
 
 .pos-item {
@@ -475,7 +473,7 @@ body.splash-active {
   padding: 20px 10px;
 }
 
-.pos-item:hover, .service-col:hover {
+.pos-item:hover {
   background: rgba(211, 26, 56, 0.1);
   box-shadow: 0 0 20px rgba(211, 26, 56, 0.2) inset;
 }

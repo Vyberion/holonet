@@ -103,28 +103,28 @@ export default function MandateV2Page() {
               <div className="v2-pillars-header">
                 <span className="triangle-icon">▶</span> ACTIVE SERVICE
               </div>
-              <div className="v2-service-grid">
-                <div className="service-col">
+              <div className="v2-positions-grid">
+                <div className="pos-item span-1 border-right">
                   <h5>2020</h5>
                   <p>MAR</p><p>MAY</p>
                 </div>
-                <div className="service-col">
+                <div className="pos-item span-1 border-right">
                   <h5>2021</h5>
                   <p>AUG</p><p>SEP</p><p>OCT</p><p>NOV</p><p>DEC</p>
                 </div>
-                <div className="service-col">
+                <div className="pos-item span-1 border-right">
                   <h5>2022</h5>
                   <p>JAN</p><p>FEB</p><p>AUG</p><p>DEC</p>
                 </div>
-                <div className="service-col">
+                <div className="pos-item span-1 border-right">
                   <h5>2023</h5>
                   <p>JAN</p><p>FEB</p><p>MAR</p><p>APR</p><p>MAY</p><p>JUN</p><p>JUL</p><p>AUG</p><p>SEP</p><p>NOV</p><p>DEC</p>
                 </div>
-                <div className="service-col">
+                <div className="pos-item span-1 border-right">
                   <h5>2024</h5>
                   <p>JAN</p><p>FEB</p><p>MAR</p><p>APR</p><p>JUN</p><p>JUL</p>
                 </div>
-                <div className="service-col">
+                <div className="pos-item span-1">
                   <h5>2026</h5>
                   <p>MAY</p><p>JUN</p><p>JUL</p>
                 </div>

@@ -108,7 +108,7 @@ function redirectTo(url, cacheStatus) {
     status: 302,
     headers: {
       Location: url,
-      "Cache-Control": "private, max-age=300",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
       "X-Holonet-PDF-Cache": cacheStatus
     }
   });

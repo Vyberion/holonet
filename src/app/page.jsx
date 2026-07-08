@@ -62,62 +62,10 @@ export default function HomePage() {
             DESIGNATION: LEVEL 1<br />
           </div>
           <span className="card-category">Section 03 &mdash; Ranks</span>
-          <h2 className="card-title">Hierarchy</h2>
+          <h2 className="card-title">The Hierarchy</h2>
           <p className="card-desc">Sith ranks.</p>
           <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
         </a>
-
-        <a href="/cots" className="nav-card" aria-label="Enter Champion of The Sith">
-          <div className="card-inner-border" aria-hidden="true" />
-          <div className="card-corners" aria-hidden="true" />
-          <div className="card-vline" aria-hidden="true" />
-          <div className="card-scan" aria-hidden="true" />
-          <div className="card-bg-glyph" aria-hidden="true">II.I</div>
-          <div className="card-hex" aria-hidden="true">0x4D&nbsp;&nbsp;SECT.02.1</div>
-          <div className="card-data" aria-hidden="true">
-            CLEARANCE: UNCLASSIFIED<br />
-            DESIGNATION: LEVEL 1<br />
-          </div>
-          <span className="card-category">Section 02.1 &mdash; Tournament</span>
-          <h2 className="card-title">Champion of The Sith</h2>
-          <p className="card-desc">CoTS records.</p>
-          <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
-        </a>
-
-        <a href="/galaxy" className="nav-card" aria-label="Enter The Galaxy">
-          <div className="card-inner-border" aria-hidden="true" />
-          <div className="card-corners" aria-hidden="true" />
-          <div className="card-vline" aria-hidden="true" />
-          <div className="card-scan" aria-hidden="true" />
-          <div className="card-bg-glyph" aria-hidden="true">II.II</div>
-          <div className="card-hex" aria-hidden="true">0x5E&nbsp;&nbsp;SECT.02.2</div>
-          <div className="card-data" aria-hidden="true">
-            CLEARANCE: UNCLASSIFIED<br />
-            DESIGNATION: LEVEL 1<br />
-          </div>
-          <span className="card-category">Section 02.2 &mdash; Control</span>
-          <h2 className="card-title">Galaxy</h2>
-          <p className="card-desc">Interactive map.</p>
-          <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
-        </a>
-
-        <a href="/emperors" className="nav-card" aria-label="Enter The Emperors">
-          <div className="card-inner-border" aria-hidden="true" />
-          <div className="card-corners" aria-hidden="true" />
-          <div className="card-vline" aria-hidden="true" />
-          <div className="card-scan" aria-hidden="true" />
-          <div className="card-bg-glyph" aria-hidden="true">II.III</div>
-          <div className="card-hex" aria-hidden="true">0x6F&nbsp;&nbsp;SECT.02.3</div>
-          <div className="card-data" aria-hidden="true">
-            CLEARANCE: UNCLASSIFIED<br />
-            DESIGNATION: LEVEL 1<br />
-          </div>
-          <span className="card-category">Section 02.3 &mdash; Records</span>
-          <h2 className="card-title">Emperors</h2>
-          <p className="card-desc">Emperor archives.</p>
-          <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
-        </a>
-
       </nav>
 
       <div className="marquee-wrap" aria-hidden="true">

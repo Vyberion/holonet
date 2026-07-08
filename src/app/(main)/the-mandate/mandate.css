@@ -100,6 +100,7 @@
   margin: 0;
   background: transparent !important;
   border: none !important;
+  box-shadow: none !important;
 }
 
 .mandate-viewer-container .article-content {
@@ -107,12 +108,17 @@
   flex-direction: column;
   height: 100%;
   flex: 1;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .mandate-viewer-container .pdf-box {
   flex: 1;
   overflow: visible;
   background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .mandate-viewer-container .pdf-pages {
@@ -120,56 +126,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 60px;
+  gap: 80px;
   padding-bottom: 60px;
+  transform: scale(1.25);
+  transform-origin: top center;
+  margin-top: 50px;
 }
 
 /* Document Glow Effect */
 .mandate-viewer-container .pdf-page,
 .mandate-viewer-container canvas {
   box-shadow: 0 0 40px rgba(255, 0, 0, 0.5), 0 0 100px rgba(255, 0, 0, 0.2) !important;
-  border-radius: 4px;
-}
-
-/* Toolbar styling */
-.mandate-toolbar {
-  background: transparent !important;
-  border: none !important;
-  padding: 12px 0 40px 0 !important;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 30px;
-}
-
-.mandate-viewer-container .pdf-tool-btn {
-  background: rgba(0, 0, 0, 0.5) !important;
-  color: var(--theme-accent) !important;
-  border: 1px solid var(--theme-accent-dim) !important;
-  border-radius: 4px !important;
-  transition: all 0.3s ease !important;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  font-family: inherit;
-  padding: 6px 16px !important;
-  cursor: pointer;
-  backdrop-filter: blur(4px);
-}
-
-.mandate-viewer-container .pdf-tool-btn:hover {
-  background: var(--theme-wash) !important;
-  color: var(--theme-accent-soft) !important;
-  box-shadow: 0 0 15px var(--theme-accent-glow) !important;
-  border-color: var(--theme-accent) !important;
-}
-
-.mandate-viewer-container .pdf-zoom-readout {
-  color: var(--theme-accent) !important;
-  font-family: monospace;
-  font-size: 1.1rem;
-  margin: 0 15px;
-  background: rgba(0,0,0,0.5);
-  padding: 5px 10px;
   border-radius: 4px;
 }
 
@@ -186,30 +153,4 @@
 @keyframes pulse-loading {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; text-shadow: 0 0 10px var(--theme-accent-glow); }
-}
-
-/* Back Button */
-.mandate-back-btn {
-  align-self: flex-start;
-  margin-bottom: 20px;
-  opacity: 0;
-  animation: content-fade-in 2s forwards 4.5s;
-  color: var(--theme-accent) !important;
-  border: 1px solid var(--theme-accent-dim) !important;
-  padding: 8px 20px;
-  border-radius: 4px;
-  text-decoration: none;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  font-size: 0.9rem;
-  background: rgba(0,0,0,0.4);
-  transition: all 0.3s ease;
-  backdrop-filter: blur(4px);
-}
-
-.mandate-back-btn:hover {
-  background: var(--theme-wash);
-  color: var(--theme-accent-soft) !important;
-  border-color: var(--theme-accent);
-  box-shadow: 0 0 15px var(--theme-accent-glow);
 }

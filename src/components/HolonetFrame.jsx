@@ -316,6 +316,7 @@ export function HolonetFrame({
   includeSearchOverlay = false,
   showHeader = true,
   showStatusBar = true,
+  showNav = true,
   theme = "",
   releaseIntro = null
 }) {
@@ -452,9 +453,11 @@ export function HolonetFrame({
       </div>
 
       <div id="app" className={includeSearchOverlay ? 'document-viewer-page' : ''}>
-        <div id="nav-container">
-          <HolonetNav />
-        </div>
+        {showNav && (
+          <div id="nav-container">
+            <HolonetNav />
+          </div>
+        )}
 
         {showHeader ? (
           <header>

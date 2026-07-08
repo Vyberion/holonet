@@ -49,13 +49,15 @@ export function HolonetAudioController() {
     const audio = audioRef.current;
     if (!audio || !unlockedRef.current) return;
 
-    const targetVolume = isGalaxy && loaderIsHidden() ? GALAXY_MUSIC_VOLUME : 0;
+    const currentPath = window.location.pathname;
+    const onGalaxy = currentPath === "/galaxy" || currentPath.startsWith("/galaxy/");
+    const targetVolume = onGalaxy && loaderIsHidden() ? GALAXY_MUSIC_VOLUME : 0;
     if (targetVolume > 0 && audio.paused) {
       const playAttempt = audio.play();
       if (playAttempt?.catch) playAttempt.catch(() => {});
     }
     fadeAudio(audio, targetVolume, GALAXY_MUSIC_FADE_MS, fadeFrameRef);
-  }, [isGalaxy]);
+  }, []);
 
   useEffect(() => {
     const audio = new Audio(GALAXY_MUSIC_SRC);
@@ -109,7 +111,7 @@ export function HolonetAudioController() {
     syncAudioTarget();
     window.addEventListener("holonet:loader-hidden", syncAudioTarget);
     return () => window.removeEventListener("holonet:loader-hidden", syncAudioTarget);
-  }, [syncAudioTarget]);
+  }, [syncAudioTarget, pathname]);
 
   useEffect(() => {
     function handleInternalLinkClick(event) {

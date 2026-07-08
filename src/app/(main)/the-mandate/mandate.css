@@ -1,50 +1,22 @@
-.mandate-wrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: #050505;
-  color: #fff;
-  z-index: 99999; /* Cover the entire app, including navbar */
+.mandate-page-main {
+  position: relative;
+  min-height: 80vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  font-family: "Cinzel", "Trajan Pro", "Trajan", serif;
+  padding: 0;
+  margin: 0;
 }
 
 /* Background Stars/Nebula */
 .mandate-bg {
-  position: absolute;
+  position: fixed;
   top: -50%;
   left: -50%;
   width: 200%;
   height: 200%;
   background: radial-gradient(circle at center, #1a0505 0%, #000000 100%);
-  z-index: 1;
+  z-index: -1;
   animation: bg-drift 120s infinite linear;
-}
-
-/* Embers/Particles */
-.mandate-particles {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 2;
-  pointer-events: none;
-  background-image: 
-    radial-gradient(2px 2px at 20px 30px, #ff4444, rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 40px 70px, #ffaaaa, rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 50px 160px, #cc0000, rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 90px 40px, #ff4444, rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 130px 80px, #ffaaaa, rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 160px 120px, #cc0000, rgba(0,0,0,0));
-  background-repeat: repeat;
-  background-size: 200px 200px;
-  animation: embers-rise 20s infinite linear;
-  opacity: 0.5;
 }
 
 @keyframes bg-drift {
@@ -52,22 +24,17 @@
   100% { transform: rotate(360deg); }
 }
 
-@keyframes embers-rise {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-200px); }
-}
-
 /* Epic Intro */
 .mandate-intro {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
+  z-index: 2000;
   background: #000;
   animation: intro-fade-out 2s forwards 3.5s;
   pointer-events: none;
@@ -82,7 +49,8 @@
   opacity: 0;
   font-weight: 300;
   text-transform: uppercase;
-  margin-left: clamp(0.5rem, 2vw, 2rem); /* Offset letter-spacing centering issue */
+  margin-left: clamp(0.5rem, 2vw, 2rem);
+  font-family: "Cinzel", "Trajan Pro", "Trajan", serif;
 }
 
 @keyframes title-pulse {
@@ -101,12 +69,11 @@
   position: relative;
   z-index: 5;
   width: 100%;
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 40px;
+  padding: 40px 20px;
   opacity: 0;
   animation: content-fade-in 2s forwards 4s;
   box-sizing: border-box;
@@ -116,24 +83,18 @@
   to { opacity: 1; }
 }
 
-/* Glassmorphism PDF Container */
+/* Invisible Container, Floating Document */
 .mandate-viewer-container {
   width: 100%;
   max-width: 1200px;
-  height: 90vh;
-  background: rgba(15, 5, 5, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 0, 0, 0.3);
-  border-radius: 8px;
-  box-shadow: 0 0 40px rgba(200, 0, 0, 0.2), inset 0 0 30px rgba(200, 0, 0, 0.1);
+  flex: 1;
   display: flex;
   flex-direction: column;
   position: relative;
 }
 
 .mandate-viewer-container .handbook-viewer-panel {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   margin: 0;
@@ -150,30 +111,41 @@
 
 .mandate-viewer-container .pdf-box {
   flex: 1;
-  overflow: auto;
+  overflow: visible;
   background: transparent !important;
-  /* Make the PDF box look a bit inset */
-  box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
 }
 
 .mandate-viewer-container .pdf-pages {
   background: transparent !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 60px;
+  padding-bottom: 60px;
 }
 
-/* Restyle the PDF Toolbar inside the viewer */
-.mandate-viewer-container .pdf-toolbar {
-  background: rgba(0, 0, 0, 0.6) !important;
-  border-bottom: 1px solid rgba(255, 0, 0, 0.3) !important;
-  padding: 12px 24px !important;
+/* Document Glow Effect */
+.mandate-viewer-container .pdf-page,
+.mandate-viewer-container canvas {
+  box-shadow: 0 0 40px rgba(255, 0, 0, 0.5), 0 0 100px rgba(255, 0, 0, 0.2) !important;
+  border-radius: 4px;
+}
+
+/* Toolbar styling */
+.mandate-toolbar {
+  background: transparent !important;
+  border: none !important;
+  padding: 12px 0 40px 0 !important;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
+  gap: 30px;
 }
 
 .mandate-viewer-container .pdf-tool-btn {
-  background: transparent !important;
-  color: #ffaaaa !important;
-  border: 1px solid rgba(255, 0, 0, 0.4) !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  color: var(--theme-accent) !important;
+  border: 1px solid var(--theme-accent-dim) !important;
   border-radius: 4px !important;
   transition: all 0.3s ease !important;
   text-transform: uppercase;
@@ -181,63 +153,63 @@
   font-family: inherit;
   padding: 6px 16px !important;
   cursor: pointer;
+  backdrop-filter: blur(4px);
 }
 
 .mandate-viewer-container .pdf-tool-btn:hover {
-  background: rgba(255, 0, 0, 0.3) !important;
-  color: #fff !important;
-  box-shadow: 0 0 15px rgba(255, 0, 0, 0.6) !important;
-  text-shadow: 0 0 5px #fff;
-  border-color: #ff4444 !important;
+  background: var(--theme-wash) !important;
+  color: var(--theme-accent-soft) !important;
+  box-shadow: 0 0 15px var(--theme-accent-glow) !important;
+  border-color: var(--theme-accent) !important;
 }
 
 .mandate-viewer-container .pdf-zoom-readout {
-  color: #ffaaaa !important;
+  color: var(--theme-accent) !important;
   font-family: monospace;
   font-size: 1.1rem;
   margin: 0 15px;
+  background: rgba(0,0,0,0.5);
+  padding: 5px 10px;
+  border-radius: 4px;
 }
 
-.mandate-viewer-container .pdf-tab-strip {
-  background: rgba(0, 0, 0, 0.8) !important;
-  border-bottom: 1px solid rgba(255, 0, 0, 0.4) !important;
-  padding: 10px 20px !important;
-}
-
-/* Hide loading text or style it epic */
 .mandate-viewer-container .pdf-loading {
-  color: #ffaaaa !important;
+  color: var(--theme-accent) !important;
   text-transform: uppercase;
   letter-spacing: 3px;
   font-family: inherit;
   animation: pulse-loading 2s infinite;
+  text-align: center;
+  padding: 40px;
 }
 
 @keyframes pulse-loading {
   0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; text-shadow: 0 0 10px #ff4444; }
+  50% { opacity: 1; text-shadow: 0 0 10px var(--theme-accent-glow); }
 }
 
 /* Back Button */
 .mandate-back-btn {
-  position: absolute;
-  top: 30px;
-  left: 40px;
-  z-index: 20;
-  color: #ffaaaa;
-  text-decoration: none;
-  font-size: 1.2rem;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.3s ease;
+  align-self: flex-start;
+  margin-bottom: 20px;
   opacity: 0;
   animation: content-fade-in 2s forwards 4.5s;
+  color: var(--theme-accent) !important;
+  border: 1px solid var(--theme-accent-dim) !important;
+  padding: 8px 20px;
+  border-radius: 4px;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.9rem;
+  background: rgba(0,0,0,0.4);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
 }
 
 .mandate-back-btn:hover {
-  color: #fff;
-  text-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+  background: var(--theme-wash);
+  color: var(--theme-accent-soft) !important;
+  border-color: var(--theme-accent);
+  box-shadow: 0 0 15px var(--theme-accent-glow);
 }

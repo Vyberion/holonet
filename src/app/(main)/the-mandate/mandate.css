@@ -1,0 +1,243 @@
+.mandate-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #050505;
+  color: #fff;
+  z-index: 99999; /* Cover the entire app, including navbar */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: "Cinzel", "Trajan Pro", "Trajan", serif;
+}
+
+/* Background Stars/Nebula */
+.mandate-bg {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, #1a0505 0%, #000000 100%);
+  z-index: 1;
+  animation: bg-drift 120s infinite linear;
+}
+
+/* Embers/Particles */
+.mandate-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, #ff4444, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 40px 70px, #ffaaaa, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 50px 160px, #cc0000, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 90px 40px, #ff4444, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 130px 80px, #ffaaaa, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 160px 120px, #cc0000, rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  animation: embers-rise 20s infinite linear;
+  opacity: 0.5;
+}
+
+@keyframes bg-drift {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes embers-rise {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-200px); }
+}
+
+/* Epic Intro */
+.mandate-intro {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  background: #000;
+  animation: intro-fade-out 2s forwards 3.5s;
+  pointer-events: none;
+}
+
+.mandate-intro h1 {
+  font-size: clamp(3rem, 6vw, 6rem);
+  letter-spacing: clamp(0.5rem, 2vw, 2rem);
+  color: #fff;
+  text-shadow: 0 0 20px rgba(255, 0, 0, 0.8), 0 0 40px rgba(255, 0, 0, 0.4);
+  animation: title-pulse 4s forwards;
+  opacity: 0;
+  font-weight: 300;
+  text-transform: uppercase;
+  margin-left: clamp(0.5rem, 2vw, 2rem); /* Offset letter-spacing centering issue */
+}
+
+@keyframes title-pulse {
+  0% { opacity: 0; transform: scale(0.9); }
+  20% { opacity: 1; transform: scale(1); }
+  80% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(1.1); }
+}
+
+@keyframes intro-fade-out {
+  to { opacity: 0; visibility: hidden; }
+}
+
+/* Main Content Area */
+.mandate-content {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  opacity: 0;
+  animation: content-fade-in 2s forwards 4s;
+  box-sizing: border-box;
+}
+
+@keyframes content-fade-in {
+  to { opacity: 1; }
+}
+
+/* Glassmorphism PDF Container */
+.mandate-viewer-container {
+  width: 100%;
+  max-width: 1200px;
+  height: 90vh;
+  background: rgba(15, 5, 5, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 0 40px rgba(200, 0, 0, 0.2), inset 0 0 30px rgba(200, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.mandate-viewer-container .handbook-viewer-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  background: transparent !important;
+  border: none !important;
+}
+
+.mandate-viewer-container .article-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex: 1;
+}
+
+.mandate-viewer-container .pdf-box {
+  flex: 1;
+  overflow: auto;
+  background: transparent !important;
+  /* Make the PDF box look a bit inset */
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+}
+
+.mandate-viewer-container .pdf-pages {
+  background: transparent !important;
+}
+
+/* Restyle the PDF Toolbar inside the viewer */
+.mandate-viewer-container .pdf-toolbar {
+  background: rgba(0, 0, 0, 0.6) !important;
+  border-bottom: 1px solid rgba(255, 0, 0, 0.3) !important;
+  padding: 12px 24px !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mandate-viewer-container .pdf-tool-btn {
+  background: transparent !important;
+  color: #ffaaaa !important;
+  border: 1px solid rgba(255, 0, 0, 0.4) !important;
+  border-radius: 4px !important;
+  transition: all 0.3s ease !important;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-family: inherit;
+  padding: 6px 16px !important;
+  cursor: pointer;
+}
+
+.mandate-viewer-container .pdf-tool-btn:hover {
+  background: rgba(255, 0, 0, 0.3) !important;
+  color: #fff !important;
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.6) !important;
+  text-shadow: 0 0 5px #fff;
+  border-color: #ff4444 !important;
+}
+
+.mandate-viewer-container .pdf-zoom-readout {
+  color: #ffaaaa !important;
+  font-family: monospace;
+  font-size: 1.1rem;
+  margin: 0 15px;
+}
+
+.mandate-viewer-container .pdf-tab-strip {
+  background: rgba(0, 0, 0, 0.8) !important;
+  border-bottom: 1px solid rgba(255, 0, 0, 0.4) !important;
+  padding: 10px 20px !important;
+}
+
+/* Hide loading text or style it epic */
+.mandate-viewer-container .pdf-loading {
+  color: #ffaaaa !important;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-family: inherit;
+  animation: pulse-loading 2s infinite;
+}
+
+@keyframes pulse-loading {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; text-shadow: 0 0 10px #ff4444; }
+}
+
+/* Back Button */
+.mandate-back-btn {
+  position: absolute;
+  top: 30px;
+  left: 40px;
+  z-index: 20;
+  color: #ffaaaa;
+  text-decoration: none;
+  font-size: 1.2rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  opacity: 0;
+  animation: content-fade-in 2s forwards 4.5s;
+}
+
+.mandate-back-btn:hover {
+  color: #fff;
+  text-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+}

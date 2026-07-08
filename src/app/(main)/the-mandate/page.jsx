@@ -27,25 +27,22 @@ export default function TheMandatePage() {
 
       <div className="mandate-content">
         <div className="mandate-viewer-container">
-          <article className="codex-article handbook-viewer-panel">
-            <div className="article-content pdf-terminal">
-              
-              <div 
-                className="pdf-tab-strip" 
-                data-pdf-tab-strip 
-                data-pdf-division="mandate"
-                data-pdf-initial-zoom="1.25"
-                style={{ display: 'none' }}
-              >
-              </div>
+          <div className="pdf-viewer-naked">
+            <div 
+              className="pdf-tab-strip" 
+              data-pdf-tab-strip 
+              data-pdf-division="mandate"
+              data-pdf-initial-zoom="1.5"
+              style={{ display: 'none' }}
+            >
+            </div>
 
-              <div className="pdf-box">
-                <div className="pdf-pages" data-pdf-pages aria-label="Rendered handbook pages">
-                   <span className="pdf-loading">Initializing Secure Uplink...</span>
-                </div>
+            <div className="pdf-box" style={{ height: "auto", overflow: "visible" }}>
+              <div className="pdf-pages" data-pdf-pages aria-label="Rendered handbook pages">
+                 <span className="pdf-loading">Initializing Secure Uplink...</span>
               </div>
             </div>
-          </article>
+          </div>
         </div>
       </div>
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} moduleScripts={["/modules/client/pdf-tabs.js"]} />

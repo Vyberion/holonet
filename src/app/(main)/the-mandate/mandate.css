@@ -92,30 +92,17 @@
   position: relative;
 }
 
-.mandate-viewer-container .handbook-viewer-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.mandate-viewer-container .article-content {
-  display: flex;
-  flex-direction: column;
+.mandate-viewer-container .pdf-viewer-naked {
+  width: 100%;
   height: auto;
-  flex: 1;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
+  display: flex;
+  flex-direction: column;
 }
 
 .mandate-viewer-container .pdf-box {
   flex: 1;
-  height: auto;
-  overflow: visible; /* Let the body scroll handle it */
+  height: auto !important;
+  overflow: visible !important; /* Let the body scroll handle it */
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;

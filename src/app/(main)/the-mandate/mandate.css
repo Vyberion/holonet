@@ -1,12 +1,11 @@
 .mandate-page-main {
   position: relative;
-  height: 100vh;
-  width: 100vw;
+  width: 100%;
   display: flex;
   flex-direction: column;
   padding: 0;
   margin: 0;
-  overflow: hidden; /* Hide main scrolling, let pdf-box handle it */
+  min-height: 100vh;
 }
 
 /* Background Stars/Nebula */
@@ -71,7 +70,7 @@
   position: relative;
   z-index: 5;
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -87,7 +86,7 @@
 /* Invisible Container, Floating Document */
 .mandate-viewer-container {
   width: 100%;
-  height: 100%;
+  height: auto;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -106,7 +105,7 @@
 .mandate-viewer-container .article-content {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: auto;
   flex: 1;
   background: transparent !important;
   border: none !important;
@@ -115,8 +114,8 @@
 
 .mandate-viewer-container .pdf-box {
   flex: 1;
-  overflow-y: auto; /* THIS IS THE FIX FOR SCROLLING */
-  overflow-x: visible; /* Prevent cutting off shadows or document width */
+  height: auto;
+  overflow: visible; /* Let the body scroll handle it */
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -127,7 +126,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0px; /* Space out the pages */
+  gap: 20px; /* Space out the pages */
   padding-bottom: 200px;
   margin-top: 50px;
 }
@@ -135,16 +134,11 @@
 /* Holographic Floating Text Effect (No Box) */
 .mandate-viewer-container .pdf-page {
   background: transparent !important;
-  box-shadow: none !important;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5) !important;
   border: none !important;
 }
 
 .mandate-viewer-container canvas {
-  /* Invert makes the white page black, and black text white. */
-  /* Drop shadow applies to the text. */
-  /* Screen blend mode makes the black background completely invisible! */
-  filter: invert(1) drop-shadow(0 0 5px rgba(255, 50, 50, 0.5));
-  mix-blend-mode: screen;
   box-shadow: none !important;
   background: transparent !important;
   border: none !important;

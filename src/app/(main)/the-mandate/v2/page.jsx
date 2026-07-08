@@ -191,7 +191,7 @@ export default function MandateV2Page() {
       </div>
       </InteractiveMandate>
 
-      <PageScripts scripts={["/js/main.js"]} />
+      <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} />
     </HolonetFrame>
   );
 }

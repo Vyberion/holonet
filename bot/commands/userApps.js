@@ -17,14 +17,7 @@ class ProxyInteraction {
     this.original = original;
     this.commandName = commandName;
     this.subcommand = subcommand;
-    this.user = original.user;
-    this.member = original.member;
     this.targetUser = user;
-    this.type = original.type;
-    this.client = original.client;
-    this.channel = original.channel;
-    this.id = original.id;
-    this.token = original.token;
     
     this.options = {
       getUser: (name) => name === "user" ? this.targetUser : null,
@@ -33,6 +26,19 @@ class ProxyInteraction {
       getSubcommand: (required = false) => this.subcommand,
       getInteger: () => null
     };
+
+    return new Proxy(this, {
+      get: (target, prop, receiver) => {
+        if (prop in target) {
+          return target[prop];
+        }
+        const val = target.original[prop];
+        if (typeof val === "function") {
+          return val.bind(target.original);
+        }
+        return val;
+      }
+    });
   }
 
   isChatInputCommand() { return true; }
@@ -40,49 +46,66 @@ class ProxyInteraction {
   isModalSubmit() { return false; }
   isMessageContextMenuCommand() { return false; }
   isUserContextMenuCommand() { return false; }
-
-  async reply(options) { return this.original.reply(options); }
-  async editReply(options) { return this.original.editReply(options); }
-  async deferReply(options) { return this.original.deferReply(options); }
-  async followUp(options) { return this.original.followUp(options); }
-  async showModal(modal) { return this.original.showModal(modal); }
-  async update(options) { return this.original.update(options); }
 }
 
 export async function handleContextMenu(interaction) {
-  if (!interaction.isUserContextMenuCommand()) return false;
+  console.log(`[userApps] handleContextMenu called for command: "${interaction.commandName}"`);
+  if (!interaction.isUserContextMenuCommand()) {
+    console.log(`[userApps] interaction is not a user context menu command.`);
+    return false;
+  }
 
   const targetUser = interaction.targetUser;
+  console.log(`[userApps] targetUser: ${targetUser?.tag} (${targetUser?.id})`);
 
   if (interaction.commandName === "Update Roles") {
+    console.log(`[userApps] Routing to handleVerification`);
     const proxy = new ProxyInteraction(interaction, "update-roles", null, targetUser);
-    return handleVerification(proxy);
+    const result = await handleVerification(proxy);
+    console.log(`[userApps] handleVerification result: ${result}`);
+    return result;
   }
 
   if (interaction.commandName === "Lookup") {
+    console.log(`[userApps] Routing to handleLookup`);
     const proxy = new ProxyInteraction(interaction, "lookup", null, targetUser);
-    return handleLookup(proxy);
+    const result = await handleLookup(proxy);
+    console.log(`[userApps] handleLookup result: ${result}`);
+    return result;
   }
 
   if (interaction.commandName === "Add Time") {
+    console.log(`[userApps] Routing to handleClock (Add Time)`);
     const proxy = new ProxyInteraction(interaction, "add", "time", targetUser);
-    return handleClock(proxy);
+    const result = await handleClock(proxy);
+    console.log(`[userApps] handleClock (Add Time) result: ${result}`);
+    return result;
   }
 
   if (interaction.commandName === "Remove Time") {
+    console.log(`[userApps] Routing to handleClock (Remove Time)`);
     const proxy = new ProxyInteraction(interaction, "remove", "time", targetUser);
-    return handleClock(proxy);
+    const result = await handleClock(proxy);
+    console.log(`[userApps] handleClock (Remove Time) result: ${result}`);
+    return result;
   }
 
   if (interaction.commandName === "View Shifts") {
+    console.log(`[userApps] Routing to handleClock (View Shifts)`);
     const proxy = new ProxyInteraction(interaction, "shifts", "user", targetUser);
-    return handleClock(proxy);
+    const result = await handleClock(proxy);
+    console.log(`[userApps] handleClock (View Shifts) result: ${result}`);
+    return result;
   }
 
   if (interaction.commandName === "View Time") {
+    console.log(`[userApps] Routing to handleClock (View Time)`);
     const proxy = new ProxyInteraction(interaction, "view", "time", targetUser);
-    return handleClock(proxy);
+    const result = await handleClock(proxy);
+    console.log(`[userApps] handleClock (View Time) result: ${result}`);
+    return result;
   }
 
+  console.log(`[userApps] commandName "${interaction.commandName}" did not match any expected context menu commands.`);
   return false;
 }

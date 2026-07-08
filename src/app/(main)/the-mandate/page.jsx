@@ -23,7 +23,7 @@ export default function MandateV2Page() {
     >
       <div className="v2-bg"></div>
       <InteractiveMandate>
-        <section className="v2-hero animate-on-scroll">
+        <section className="v2-hero">
           <div className="hero-content">
             <h2 className="v2-subheading">VYBERON'S</h2>
             <h1 className="v2-title">MANDATE</h1>
@@ -42,11 +42,11 @@ export default function MandateV2Page() {
               <span className="line"></span>
               <span className="diamond"></span>
             </div>
-            <div className="v2-quote-box animate-on-scroll stagger-2">
+            <div className="v2-quote-box splash-fade-in delay-1">
               <p>Only the strong shall inherit the stars</p>
             </div>
-
-            <div className="v2-splash-action animate-on-scroll stagger-3">
+            
+            <div className="v2-splash-action splash-fade-in delay-2">
               <button className="v2-splash-button" type="button">Read The Mandate</button>
             </div>
           </div>

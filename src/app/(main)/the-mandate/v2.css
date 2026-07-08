@@ -128,7 +128,8 @@ body.splash-active {
 .v2-hero {
   position: fixed;
   inset: 0;
-  width: 100%;
+  width: 100vw;
+  height: 100vh;
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -137,28 +138,34 @@ body.splash-active {
   box-sizing: border-box;
   opacity: 0;
   animation: fade-in-up 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  transition: opacity 1s ease-in-out, visibility 1s, transform 1s ease-in-out;
+  transition: opacity 1s ease-in-out, transform 1s ease-in-out;
 }
 
 .v2-hero.splash-hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: scale(1.05);
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: scale(1.05) !important;
 }
 
-.v2-content-wrapper {
+.splash-fade-in {
   opacity: 0;
-  visibility: hidden;
-  transform: translateY(40px);
-  transition: opacity 1.5s ease-in-out, transform 1.5s ease-in-out;
-  padding-top: 100vh; /* Pushes actual content down so it starts below where the splash was, wait no, if splash is fixed we don't need this, but let's keep it safe. Actually, let's just make it 0. */
+  animation: fade-in-up 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.delay-1 { animation-delay: 1s; }
+.delay-2 { animation-delay: 1.5s; }
+
+.v2-content-wrapper {
+  position: relative;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.5s ease-in-out 0.8s;
+  padding-top: 0;
 }
 
 .v2-content-wrapper.content-visible {
   opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .v2-splash-action {

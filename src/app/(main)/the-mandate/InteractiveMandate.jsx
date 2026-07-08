@@ -37,7 +37,8 @@ export function InteractiveMandate({ hero, content }) {
       // LOCKED: intercept all wheel events, drive progress
       if (p < 1) {
         e.preventDefault();
-        const step = e.deltaY / (window.innerHeight * 1.5);
+        let step = e.deltaY / (window.innerHeight * 1.5);
+        if (step < 0) step *= 2.5; // Scroll up is 2.5x faster
         let next = p + step;
         if (next < 0) next = 0;
         if (next > 1) next = 1;
@@ -50,7 +51,8 @@ export function InteractiveMandate({ hero, content }) {
       // UNLOCKED: at top of page and scrolling UP → re-enter transition
       if (window.scrollY <= 0 && e.deltaY < 0) {
         e.preventDefault();
-        const step = e.deltaY / (window.innerHeight * 1.5);
+        let step = e.deltaY / (window.innerHeight * 1.5);
+        step *= 2.5; // Scroll up is 2.5x faster
         let next = 1 + step; // step is negative, brings progress below 1
         if (next < 0) next = 0;
         progressRef.current = next;
@@ -82,7 +84,8 @@ export function InteractiveMandate({ hero, content }) {
 
       if (p < 1) {
         e.preventDefault();
-        const step = delta / (window.innerHeight * 1.5);
+        let step = delta / (window.innerHeight * 1.5);
+        if (step < 0) step *= 2.5; // Swipe down is 2.5x faster
         let next = p + step;
         if (next < 0) next = 0;
         if (next > 1) next = 1;
@@ -94,7 +97,8 @@ export function InteractiveMandate({ hero, content }) {
 
       if (window.scrollY <= 0 && delta < 0) {
         e.preventDefault();
-        const step = delta / (window.innerHeight * 1.5);
+        let step = delta / (window.innerHeight * 1.5);
+        step *= 2.5; // Swipe down is 2.5x faster
         let next = 1 + step;
         if (next < 0) next = 0;
         progressRef.current = next;

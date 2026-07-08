@@ -101,6 +101,8 @@ const PAGE_ACCESS = {
   darkcouncil_reports: { division: "dark_council", minimumTier: "member" },
   darkcouncil_activity: { division: "dark_council", minimumTier: "member" },
   darkcouncil_trackers: { division: "dark_council", minimumTier: "member" },
+  agenda_handbooks: { public: true },
+  mandate_handbooks: { public: true },
   index: { public: true },
 };
 

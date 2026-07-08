@@ -45,9 +45,9 @@ export default function MandateV2Page() {
             <div className="v2-quote-box splash-fade-in delay-1">
               <p>Only the strong shall inherit the stars</p>
             </div>
-            
+
             <div className="v2-splash-action splash-fade-in delay-2">
-              <button className="v2-splash-button" type="button">Read The Mandate</button>
+              <button className="v2-splash-button" type="button">OPEN</button>
             </div>
           </div>
         </section>

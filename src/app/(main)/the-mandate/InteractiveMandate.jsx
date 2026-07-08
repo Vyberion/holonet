@@ -22,6 +22,9 @@ export function InteractiveMandate({ children }) {
       });
     }, { threshold: 0.15, rootMargin: "0px 0px -50px 0px" });
 
+    const scrollElements = document.querySelectorAll('.animate-on-scroll');
+    scrollElements.forEach(el => observer.observe(el));
+
     // 3. Glow Effect on Hover for Grid Items & Pillars (No Tilt)
     const glowElements = document.querySelectorAll('.pos-item, .v2-pillar, .v2-quote-box');
     

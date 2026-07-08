@@ -105,19 +105,30 @@ export function InteractiveMandate({ hero, content }) {
   }
 
   return (
-    <div 
-      ref={containerRef} 
-      className="interactive-mandate-wrapper" 
-      // This padding creates the 200vh of scrollable space needed for the 2-phase transition.
-      // Because the child is `sticky`, scrolling through this padding visually locks the screen.
-      style={{ paddingBottom: '200vh' }}
-    >
+    <div ref={containerRef} className="interactive-mandate-wrapper" style={{ position: 'relative' }}>
       
       {/* 
-        This container naturally sticks to the top of the viewport for exactly the duration 
-        of the padding (200vh), preventing any jitter or bouncing natively. 
+        THE TRACK
+        This invisible spacer pushes the rest of the document down by exactly 200vh.
+        This provides the physical scroll space for our 2-phase transition.
       */}
-      <div style={{ position: 'sticky', top: 0 }}>
+      <div style={{ height: '200vh', width: '100%', pointerEvents: 'none' }}></div>
+
+      {/* 
+        THE VIEWPORT
+        During the first 200vh of scrolling, this is FIXED to the screen. It cannot move, 
+        bounce, or jitter. Once scrolling exceeds 200vh, it becomes STATIC, naturally 
+        sitting directly below the 200vh track above, creating a flawless handoff.
+      */}
+      <div style={{ 
+        position: scrollY <= 2 * vh ? 'fixed' : 'static',
+        top: scrollY <= 2 * vh ? 0 : 'auto',
+        left: 0,
+        right: 0,
+        height: scrollY <= 2 * vh ? '100vh' : 'auto',
+        overflow: scrollY <= 2 * vh ? 'hidden' : 'visible',
+        zIndex: 10,
+      }}>
         
         {/* Hero Layer */}
         <div style={{
@@ -140,7 +151,7 @@ export function InteractiveMandate({ hero, content }) {
 
         {/* Content Layer */}
         <div style={{
-          position: 'relative', // Relative so it defines the height of the sticky container
+          position: 'relative',
           zIndex: 10,
           width: '100%',
           opacity: contentOpacity,

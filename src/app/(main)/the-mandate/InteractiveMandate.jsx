@@ -5,9 +5,37 @@ import { useEffect, useRef, useState } from "react";
 export function InteractiveMandate({ hero, content }) {
   const containerRef = useRef(null);
   const [progress, setProgress] = useState(0);
-  const progressRef = useRef(0);
+  const targetProgressRef = useRef(0);
+  const currentProgressRef = useRef(0);
+  const rafRef = useRef(null);
 
   const locked = progress < 1;
+
+  // Animation Loop for buttery smooth easing (Lerp)
+  useEffect(() => {
+    const loop = () => {
+      const target = targetProgressRef.current;
+      const current = currentProgressRef.current;
+      
+      // If we're close enough, snap to exact target
+      if (Math.abs(target - current) < 0.001) {
+        if (current !== target) {
+          currentProgressRef.current = target;
+          setProgress(target);
+        }
+      } else {
+        // Easing function: moves 8% of the distance per frame
+        const next = current + (target - current) * 0.08;
+        currentProgressRef.current = next;
+        setProgress(next);
+      }
+      
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    
+    rafRef.current = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
 
   // Lock body scroll and pin to top while transitioning
   useEffect(() => {
@@ -32,18 +60,18 @@ export function InteractiveMandate({ hero, content }) {
   // Wheel events — ALWAYS active, uses ref for latest progress
   useEffect(() => {
     const handleWheel = (e) => {
-      const p = progressRef.current;
+      const p = targetProgressRef.current;
+      const isCurrentlyLocked = currentProgressRef.current < 1;
 
-      // LOCKED: intercept all wheel events, drive progress
-      if (p < 1) {
+      // LOCKED: intercept all wheel events, drive target progress
+      if (isCurrentlyLocked) {
         e.preventDefault();
-        let step = e.deltaY / (window.innerHeight * 1.5);
-        if (step < 0) step *= 2.5; // Scroll up is 2.5x faster
+        let step = e.deltaY / window.innerHeight; // Faster base scroll speed
+        if (step < 0) step *= 1.66; // Matches previous absolute upward speed
         let next = p + step;
         if (next < 0) next = 0;
         if (next > 1) next = 1;
-        progressRef.current = next;
-        setProgress(next);
+        targetProgressRef.current = next;
         window.scrollTo(0, 0);
         return;
       }
@@ -51,12 +79,17 @@ export function InteractiveMandate({ hero, content }) {
       // UNLOCKED: at top of page and scrolling UP → re-enter transition
       if (window.scrollY <= 0 && e.deltaY < 0) {
         e.preventDefault();
-        let step = e.deltaY / (window.innerHeight * 1.5);
-        step *= 2.5; // Scroll up is 2.5x faster
+        let step = e.deltaY / window.innerHeight;
+        step *= 1.66; // Matches previous absolute upward speed
         let next = 1 + step; // step is negative, brings progress below 1
         if (next < 0) next = 0;
-        progressRef.current = next;
-        setProgress(next);
+        targetProgressRef.current = next;
+        
+        // Instantly trigger the locked state to prevent native scroll escaping
+        if (currentProgressRef.current === 1) {
+          currentProgressRef.current = 0.999;
+          setProgress(0.999);
+        }
         window.scrollTo(0, 0);
         return;
       }
@@ -80,29 +113,35 @@ export function InteractiveMandate({ hero, content }) {
       const touchY = e.touches[0].clientY;
       const delta = lastTouchY - touchY; // positive = finger swipe up = scroll down
       lastTouchY = touchY;
-      const p = progressRef.current;
+      
+      const p = targetProgressRef.current;
+      const isCurrentlyLocked = currentProgressRef.current < 1;
 
-      if (p < 1) {
+      if (isCurrentlyLocked) {
         e.preventDefault();
-        let step = delta / (window.innerHeight * 1.5);
-        if (step < 0) step *= 2.5; // Swipe down is 2.5x faster
+        let step = delta / window.innerHeight; // Faster base scroll speed
+        if (step < 0) step *= 1.66; // Matches previous absolute upward speed
         let next = p + step;
         if (next < 0) next = 0;
         if (next > 1) next = 1;
-        progressRef.current = next;
-        setProgress(next);
+        targetProgressRef.current = next;
         window.scrollTo(0, 0);
         return;
       }
 
       if (window.scrollY <= 0 && delta < 0) {
         e.preventDefault();
-        let step = delta / (window.innerHeight * 1.5);
-        step *= 2.5; // Swipe down is 2.5x faster
+        let step = delta / window.innerHeight;
+        step *= 1.66; // Matches previous absolute upward speed
         let next = 1 + step;
         if (next < 0) next = 0;
-        progressRef.current = next;
-        setProgress(next);
+        targetProgressRef.current = next;
+        
+        // Instantly trigger the locked state to prevent native scroll escaping
+        if (currentProgressRef.current === 1) {
+          currentProgressRef.current = 0.999;
+          setProgress(0.999);
+        }
         window.scrollTo(0, 0);
         return;
       }

@@ -138,13 +138,16 @@ body.splash-active {
   box-sizing: border-box;
   opacity: 0;
   animation: fade-in-up 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  transition: opacity 1s ease-in-out, transform 1s ease-in-out;
+}
+
+@keyframes fade-out-splash {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.05); }
 }
 
 .v2-hero.splash-hidden {
-  opacity: 0 !important;
   pointer-events: none !important;
-  transform: scale(1.05) !important;
+  animation: fade-out-splash 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 .splash-fade-in {

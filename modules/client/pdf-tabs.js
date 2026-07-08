@@ -233,6 +233,10 @@ async function hydratePdfTabsFromResources() {
   const division = tabStrip?.dataset.pdfDivision;
   if (!tabStrip || !division) return;
 
+  if (tabStrip.dataset.pdfInitialZoom) {
+    state.zoom = Number(tabStrip.dataset.pdfInitialZoom) || 1;
+  }
+
   tabStrip.innerHTML = '<span class="pdf-loading">Loading handbook registry...</span>';
 
   try {

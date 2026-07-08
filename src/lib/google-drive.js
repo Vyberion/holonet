@@ -297,6 +297,8 @@ export function googlePdfExportUrl(fileId, { tabId = "", sourceUrl = "", fileKin
     exportUrl.searchParams.set("mimeType", GOOGLE_DOC_PDF_MIME);
   }
 
+  exportUrl.searchParams.set("t", Date.now().toString());
+
   return exportUrl;
 }
 
@@ -310,6 +312,7 @@ export async function fetchGoogleFileMetadata(fileId) {
   const url = new URL(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}`);
   url.searchParams.set("fields", "id,name,mimeType,modifiedTime");
   url.searchParams.set("supportsAllDrives", "true");
+  url.searchParams.set("t", Date.now().toString());
   return fetchGoogleJson(url, token);
 }
 

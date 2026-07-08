@@ -152,8 +152,9 @@ export function HolonetNav() {
       prefix: "02",
       label: "Archives",
       dropdown: [
-        { href: "https://www.thesithorder.org/archives/cots", page: "archives-cots", label: "CoTS" },
-        { href: "https://www.thesithorder.org/galaxy", page: "galaxy", label: "Galaxy" }
+        { href: "https://www.thesithorder.org/cots", page: "cots", label: "CoTS" },
+        { href: "https://www.thesithorder.org/galaxy", page: "galaxy", label: "Galaxy" },
+        { href: "https://www.thesithorder.org/emperors", page: "emperors", label: "Emperors" }
       ]
     },
     { href: "https://www.thesithorder.org/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },

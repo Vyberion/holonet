@@ -18,7 +18,7 @@ export default function EmperorArchivePage() {
       <div className="hierarchy-main">
         <HierarchySection group={group} items={items} />
       </div>
-      <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} guarded />
+      <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} />
     </HolonetFrame>
   );
 }

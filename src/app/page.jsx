@@ -67,7 +67,7 @@ export default function HomePage() {
           <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
         </a>
 
-        <a href="/archives/cots" className="nav-card nav-card--home-short" aria-label="Enter Champion of The Sith">
+        <a href="/cots" className="nav-card" aria-label="Enter Champion of The Sith">
           <div className="card-inner-border" aria-hidden="true" />
           <div className="card-corners" aria-hidden="true" />
           <div className="card-vline" aria-hidden="true" />
@@ -84,7 +84,7 @@ export default function HomePage() {
           <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
         </a>
 
-        <a href="/galaxy" className="nav-card nav-card--home-short" aria-label="Enter The Galaxy">
+        <a href="/galaxy" className="nav-card" aria-label="Enter The Galaxy">
           <div className="card-inner-border" aria-hidden="true" />
           <div className="card-corners" aria-hidden="true" />
           <div className="card-vline" aria-hidden="true" />
@@ -101,6 +101,23 @@ export default function HomePage() {
           <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
         </a>
 
+        <a href="/emperors" className="nav-card" aria-label="Enter The Emperors">
+          <div className="card-inner-border" aria-hidden="true" />
+          <div className="card-corners" aria-hidden="true" />
+          <div className="card-vline" aria-hidden="true" />
+          <div className="card-scan" aria-hidden="true" />
+          <div className="card-bg-glyph" aria-hidden="true">II.III</div>
+          <div className="card-hex" aria-hidden="true">0x6F&nbsp;&nbsp;SECT.02.3</div>
+          <div className="card-data" aria-hidden="true">
+            CLEARANCE: UNCLASSIFIED<br />
+            DESIGNATION: LEVEL 1<br />
+          </div>
+          <span className="card-category">Section 02.3 &mdash; Records</span>
+          <h2 className="card-title">Emperors</h2>
+          <p className="card-desc">Emperor archives.</p>
+          <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
+        </a>
+
       </nav>
 
       <div className="marquee-wrap" aria-hidden="true">
@@ -112,25 +129,8 @@ export default function HomePage() {
           grid-template-columns: repeat(6, minmax(0, 1fr));
         }
 
-        .nav-grid--home > .nav-card:not(.nav-card--home-short) {
+        .nav-grid--home > .nav-card {
           grid-column: span 2;
-        }
-
-        .nav-grid--home .nav-card--home-short {
-          grid-column: span 3;
-          height: clamp(190px, 19vh, 270px);
-          min-height: 190px;
-        }
-
-        .nav-grid--home .nav-card--home-short .card-bg-glyph {
-          font-size: clamp(6.5rem, 8vw, 11rem);
-          left: auto;
-          right: clamp(54px, 8vw, 130px);
-          transform: translateY(-50%);
-        }
-
-        .nav-grid--home .nav-card--home-short .card-desc {
-          max-width: 34ch;
         }
 
         @media (max-width: 860px) {
@@ -138,20 +138,8 @@ export default function HomePage() {
             grid-template-columns: 1fr;
           }
 
-          .nav-grid--home .nav-card,
-          .nav-grid--home .nav-card--home-short {
+          .nav-grid--home .nav-card {
             grid-column: auto;
-          }
-
-          .nav-grid--home .nav-card--home-short {
-            height: 200px;
-            min-height: 200px;
-          }
-
-          .nav-grid--home .nav-card--home-short .card-bg-glyph {
-            left: 50%;
-            right: auto;
-            transform: translate(-50%, -50%);
           }
         }
       `}</style>

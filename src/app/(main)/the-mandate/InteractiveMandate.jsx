@@ -4,27 +4,30 @@ import { useEffect, useRef, useState } from "react";
 
 export function InteractiveMandate({ hero, content }) {
   const containerRef = useRef(null);
-  const [progress, setProgress] = useState(0);
+  const [scrollData, setScrollData] = useState({ progress: 0, scrollY: 0, vh: 800 });
 
   useEffect(() => {
     // Track scroll progress to drive the transition
     const handleScroll = () => {
-      // The distance over which the fade out/in happens
-      const transitionDistance = window.innerHeight;
+      const vh = window.innerHeight;
       const scrollY = window.scrollY;
       
-      let p = scrollY / transitionDistance;
+      let p = scrollY / vh;
       if (p < 0) p = 0;
       if (p > 1) p = 1;
       
-      setProgress(p);
+      setScrollData({ progress: p, scrollY, vh });
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
     // Trigger once on mount
     handleScroll();
 
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
   }, []);
 
   useEffect(() => {
@@ -82,7 +85,14 @@ export function InteractiveMandate({ hero, content }) {
     };
   }, []);
 
+  const { progress, scrollY, vh } = scrollData;
   const isTransitioning = progress < 1;
+
+  // When transitioning, we compensate for the native scroll by translating the element UP
+  // by exactly the amount it natively scrolled DOWN, keeping it visually glued to the viewport.
+  const contentTransform = isTransitioning 
+    ? `translateY(${scrollY - vh + (1 - progress) * 40}px)` 
+    : 'none';
 
   return (
     <div ref={containerRef} className="interactive-mandate-wrapper">
@@ -113,20 +123,17 @@ export function InteractiveMandate({ hero, content }) {
 
       {/* 
         The Main Content Container
-        While scrolling the first 100vh, it is fixed (locking it in place while it fades in).
-        Once progress === 1, it becomes static, seamlessly handing off into the document flow
-        so the user can naturally scroll down the rest of the lengthy page.
+        It natively sits directly under the 100vh spacer.
+        While transitioning, we apply a mathematical transform to visually pin it to the viewport
+        while allowing the body to scroll normally. Once progress = 1, transform is removed and it flows naturally.
       */}
       <div style={{
-        position: isTransitioning ? 'fixed' : 'static',
-        top: isTransitioning ? 0 : 'auto',
-        left: 0,
-        right: 0,
+        position: 'relative',
         zIndex: 10,
         width: '100%',
         opacity: progress,
-        // Optional: slight upward slide-in effect as it fades in
-        transform: isTransitioning ? `translateY(${(1 - progress) * 40}px)` : 'none',
+        transform: contentTransform,
+        pointerEvents: isTransitioning ? 'none' : 'auto',
       }}>
         {content}
       </div>

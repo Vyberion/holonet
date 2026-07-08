@@ -121,33 +121,23 @@ body {
 /* Scroll animations rely on body scroll */
 
 /* Base Page Styles */
-body.splash-active {
-  overflow: hidden !important;
-}
-
 .v2-hero {
-  position: fixed;
-  inset: 0;
+  /* position, opacity, and transform are handled dynamically by InteractiveMandate.jsx */
   width: 100vw;
   height: 100vh;
-  z-index: 100;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   box-sizing: border-box;
-  opacity: 0;
+}
+
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   animation: fade-in-up 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes fade-out-splash {
-  0% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.05); }
-}
-
-.v2-hero.splash-hidden {
-  pointer-events: none !important;
-  animation: fade-out-splash 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 .splash-fade-in {
@@ -160,39 +150,8 @@ body.splash-active {
 .v2-content-wrapper {
   position: relative;
   z-index: 10;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 1.5s ease-in-out 0.8s;
   padding-top: 0;
-}
-
-.v2-content-wrapper.content-visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.v2-splash-action {
-  margin-top: 50px;
-}
-
-.v2-splash-button {
-  background: transparent;
-  border: 1px solid var(--sith-red);
-  color: var(--sith-red);
-  font-family: var(--font-serif);
-  font-size: 1.2rem;
-  padding: 15px 40px;
-  cursor: pointer;
-  letter-spacing: 0.2em;
-  transition: all 0.3s;
-  text-transform: uppercase;
-}
-
-.v2-splash-button:hover {
-  background: rgba(211, 26, 56, 0.2);
-  box-shadow: 0 0 20px rgba(211, 26, 56, 0.4);
-  color: #fff;
-  transform: scale(1.05);
+  /* Dynamic opacity and position handled by InteractiveMandate.jsx */
 }
 
 .v2-page {

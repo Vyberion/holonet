@@ -1,9 +1,31 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
-export function InteractiveMandate({ children }) {
+export function InteractiveMandate({ hero, content }) {
   const containerRef = useRef(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    // Track scroll progress to drive the transition
+    const handleScroll = () => {
+      // The distance over which the fade out/in happens
+      const transitionDistance = window.innerHeight;
+      const scrollY = window.scrollY;
+      
+      let p = scrollY / transitionDistance;
+      if (p < 0) p = 0;
+      if (p > 1) p = 1;
+      
+      setProgress(p);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    // Trigger once on mount
+    handleScroll();
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     // 1. Mouse Spotlight Effect on Background
@@ -25,7 +47,7 @@ export function InteractiveMandate({ children }) {
     const scrollElements = document.querySelectorAll('.animate-on-scroll');
     scrollElements.forEach(el => observer.observe(el));
 
-    // 3. Glow Effect on Hover for Grid Items (No Tilt)
+    // 3. Glow Effect on Hover for Grid Items
     const glowElements = document.querySelectorAll('.pos-item, .v2-quote-box');
     
     const handleGlowMove = (e) => {
@@ -50,22 +72,6 @@ export function InteractiveMandate({ children }) {
       el.addEventListener('mouseleave', handleGlowLeave);
     });
 
-    // 4. Splash Screen Logic
-    window.scrollTo(0,0);
-    document.body.classList.add('splash-active');
-    
-    const splashButton = document.querySelector('.v2-splash-button');
-    const handleSplashClose = () => {
-      document.body.classList.remove('splash-active');
-      document.querySelector('.v2-hero')?.classList.add('splash-hidden');
-      document.querySelector('.v2-content-wrapper')?.classList.add('content-visible');
-      window.scrollTo(0,0);
-    };
-
-    if (splashButton) {
-      splashButton.addEventListener('click', handleSplashClose);
-    }
-
     return () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
       observer.disconnect();
@@ -73,15 +79,57 @@ export function InteractiveMandate({ children }) {
         el.removeEventListener('mousemove', handleGlowMove);
         el.removeEventListener('mouseleave', handleGlowLeave);
       });
-      if (splashButton) {
-        splashButton.removeEventListener('click', handleSplashClose);
-      }
     };
   }, []);
 
+  const isTransitioning = progress < 1;
+
   return (
     <div ref={containerRef} className="interactive-mandate-wrapper">
-      {children}
+      {/* 
+        This spacer gives the document physical height so the user can scroll down 
+        to trigger the transition BEFORE the real content begins taking up space.
+      */}
+      <div style={{ height: '100vh', width: '100%' }}></div>
+
+      {/* The Hero splash screen - fixed to the viewport, fading and shrinking out */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 5,
+        opacity: 1 - progress,
+        transform: `scale(${1 - progress * 0.05})`,
+        pointerEvents: isTransitioning ? 'auto' : 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        {hero}
+      </div>
+
+      {/* 
+        The Main Content Container
+        While scrolling the first 100vh, it is fixed (locking it in place while it fades in).
+        Once progress === 1, it becomes static, seamlessly handing off into the document flow
+        so the user can naturally scroll down the rest of the lengthy page.
+      */}
+      <div style={{
+        position: isTransitioning ? 'fixed' : 'static',
+        top: isTransitioning ? 0 : 'auto',
+        left: 0,
+        right: 0,
+        zIndex: 10,
+        width: '100%',
+        opacity: progress,
+        // Optional: slight upward slide-in effect as it fades in
+        transform: isTransitioning ? `translateY(${(1 - progress) * 40}px)` : 'none',
+      }}>
+        {content}
+      </div>
     </div>
   );
 }

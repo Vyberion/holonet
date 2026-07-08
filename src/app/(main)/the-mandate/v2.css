@@ -395,6 +395,7 @@ body.splash-active {
 
 .triangle-icon {
   font-size: 0.8em;
+  color: var(--sith-red);
 }
 
 .v2-pillar {

@@ -66,7 +66,7 @@ export default function MandateV2Page() {
 
               <div className="v2-pillars animate-on-scroll stagger-3">
                 <div className="v2-pillars-header">
-                  <span className="triangle-icon">▶</span> PILLARS OF INTENT
+                  <span className="triangle-icon">▸</span> PILLARS OF INTENT
                 </div>
                 <div className="v2-pillar animate-on-scroll stagger-1">
                   <h4>PILLAR OF THE DOCTRINE</h4>
@@ -101,7 +101,7 @@ export default function MandateV2Page() {
 
             <div className="v2-record-section animate-on-scroll stagger-3">
               <div className="v2-pillars-header">
-                <span className="triangle-icon">▶</span> ACTIVE SERVICE
+                <span className="triangle-icon">▸</span> ACTIVE SERVICE
               </div>
               <div className="v2-positions-grid">
                 <div className="pos-item span-1 border-right">
@@ -133,7 +133,7 @@ export default function MandateV2Page() {
 
             <div className="v2-record-section">
               <div className="v2-pillars-header">
-                <span className="triangle-icon">▶</span> POSITIONS HELD
+                <span className="triangle-icon">▸</span> POSITIONS HELD
               </div>
               <div className="v2-positions-grid">
                 <div className="pos-item border-right border-bottom">

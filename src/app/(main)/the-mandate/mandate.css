@@ -1,10 +1,12 @@
 .mandate-page-main {
   position: relative;
-  min-height: 80vh;
+  height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
   padding: 0;
   margin: 0;
+  overflow: hidden; /* Hide main scrolling, let pdf-box handle it */
 }
 
 /* Background Stars/Nebula */
@@ -69,11 +71,10 @@
   position: relative;
   z-index: 5;
   width: 100%;
-  flex: 1;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 20px;
   opacity: 0;
   animation: content-fade-in 2s forwards 4s;
   box-sizing: border-box;
@@ -86,8 +87,7 @@
 /* Invisible Container, Floating Document */
 .mandate-viewer-container {
   width: 100%;
-  max-width: 1200px;
-  flex: 1;
+  height: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -115,7 +115,8 @@
 
 .mandate-viewer-container .pdf-box {
   flex: 1;
-  overflow: visible;
+  overflow-y: auto; /* THIS IS THE FIX FOR SCROLLING */
+  overflow-x: hidden;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -126,18 +127,28 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 80px;
-  padding-bottom: 60px;
+  gap: 120px; /* Space out the pages */
+  padding-bottom: 200px;
   transform: scale(1.25);
   transform-origin: top center;
-  margin-top: 50px;
+  margin-top: 100px; /* Account for the scale shift */
 }
 
-/* Document Glow Effect */
-.mandate-viewer-container .pdf-page,
+/* Holographic Floating Text Effect (No Box) */
+.mandate-viewer-container .pdf-page {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
 .mandate-viewer-container canvas {
-  box-shadow: 0 0 40px rgba(255, 0, 0, 0.5), 0 0 100px rgba(255, 0, 0, 0.2) !important;
-  border-radius: 4px;
+  /* Invert makes the white page black, and black text white. */
+  /* Drop shadow applies to the text. */
+  /* Screen blend mode makes the black background completely invisible! */
+  filter: invert(1) drop-shadow(0 0 5px rgba(255, 50, 50, 1)) drop-shadow(0 0 15px rgba(255, 0, 0, 0.8));
+  mix-blend-mode: screen;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
 .mandate-viewer-container .pdf-loading {

@@ -67,7 +67,13 @@ async function fetchPdfBytes(source) {
     return cached instanceof Promise ? await cached : cached;
   }
 
-  const request = fetch(source, {
+  // Use a 5-minute bucket for the cache buster so we don't bust every single reload,
+  // but we guarantee an update every 5 minutes.
+  const timeBucket = Math.floor(Date.now() / (5 * 60 * 1000));
+  const urlObj = new URL(source, window.location.href);
+  urlObj.searchParams.set('_v', timeBucket);
+
+  const request = fetch(urlObj.toString(), {
     credentials: "same-origin"
   }).then(async response => {
     if (!response.ok) {

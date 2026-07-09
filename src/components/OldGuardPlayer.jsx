@@ -26,6 +26,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
   const [playerReady, setPlayerReady] = useState(false);
   const [paused, setPaused] = useState(true);
   const [hasEnded, setHasEnded] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const isIntro = mode === "intro";
@@ -49,6 +50,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
     const handlePlay = () => {
       setPaused(false);
       setHasEnded(false);
+      setHasStarted(true);
       readDuration();
       if (onPlay) onPlay();
     };
@@ -146,6 +148,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
 
   const safeCurrentTime = duration > 0 ? Math.min(currentTime, duration) : 0;
   const progress = duration > 0 ? `${(safeCurrentTime / duration) * 100}%` : "0%";
+  const showStartButton = isIntro ? (paused && !hasStarted) : (paused && !hasEnded);
 
   if (mode === "intro") {
     return (
@@ -176,7 +179,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
           />
           <button
             type="button"
-            className={`old-guard-start-button${(paused && !hasEnded) ? "" : " is-hidden"}`}
+            className={`old-guard-start-button${showStartButton ? "" : " is-hidden"}`}
             aria-label={`Play ${title}`}
             disabled={!playerReady}
             onClick={handleStartButton}
@@ -216,7 +219,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
         />
         <button
           type="button"
-          className={`old-guard-start-button${paused ? "" : " is-hidden"}`}
+          className={`old-guard-start-button${showStartButton ? "" : " is-hidden"}`}
           aria-label={`Play ${title}`}
           disabled={!playerReady}
           onClick={handleStartButton}

@@ -58,9 +58,9 @@ export default function MandateV2Page() {
               </div>
               <div className="v2-text-content animate-on-scroll stagger-2">
                 <p className="v2-greeting">The Lords and Aspirants of the Sith Order:</p>
-                <p>For too long, our potential has been squandered. We have bickered, fighting over scraps of what little we have while the Order forgets what made the Empire what it was. The Order has grown stagnant, bloated by those who mistake pettiness for strength.</p>
-                <p>Time and succession have dulled the Order's edge, your passion has been eroded by a procession of pretenders and lesser rulers who lacked the vision and will required to lead the Sith. Under these fleeting reigns, mediocrity festered. This must end.</p>
-                <p>I proclaim the commencement of my second mandate. I do not return to inherit a bloated, stagnant bureaucracy left to rot by years of decay. I return to reclaim it in adherence with our true doctrine. Under my reclaimed throne:</p>
+                <p>For too long, our potential has been squandered. We have bickered over scraps of what little we have while the Order has drifted away from the principles that once made it what it was.</p>
+                <p>The Order has grown stagnant, weighed down by those who mistake pettiness for strength; time and succession have dulled its edge. Your passion has been eroded by a succession of leaders who lacked the vision and resolve required to lead the Order effectively. Under their stewardship, complacency became acceptable and mediocrity was allowed to take root. This must end.</p>
+                <p>I proclaim the commencement of my second mandate. I do not return simply to preside over an institution diminished by years of stagnation. I return with a clear purpose, that which will restore the Order to its principles, rebuild its foundations and bring it into the future. Under my reclaimed throne:</p>
 
                 <div className="v2-pillars animate-on-scroll stagger-3">
                   <div className="v2-pillars-header">
@@ -68,23 +68,23 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-1">
                     <h4>PILLAR OF THE DOCTRINE</h4>
-                    <p>The Sith Order is not an army, and we will stop operating under the delusion that we are just soldiers. We will discard the militaristic vocabulary and bureaucratic thinking that has infected the Order. We are an esoteric religious order and our focus will return to such.</p>
-                  </div>
-                  <div className="v2-pillar animate-on-scroll stagger-2">
-                    <h4>PILLAR OF THE DOMAIN</h4>
-                    <p>I will not micromanage your duties. Sith and divisional leadership will be expected to rule them with absolute competence. You are expected to generate your own momentum.</p>
+                    <p>The Sith Order is not an army, and we will stop operating under the delusion that we are soldiers. We will discard the militaristic vocabulary and bureaucratic thinking that has infected the Order. We are an esoteric religious order, and our focus will return to such.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-3">
                     <h4>PILLAR OF THE RIVALRY</h4>
-                    <p>Peace is a lie. Petty conflict, however, is a waste of resources. Internal rivalry must serve a purpose, and so we will foster meaningful conflict. Destructive infighting threatens the Order and will be treated as treason. You are encouraged to challenge your peers, but you will not jeopardize the Order to do so.</p>
+                    <p>Peace is a lie. Petty conflict, however, is a waste of resources. Internal rivalry must serve a purpose, and so we will foster meaningful competition. Destructive infighting threatens the Order and will be treated as treason. Challenge your peers, but do not jeopardize the Order in doing so.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-4">
                     <h4>PILLAR OF THE ARCHIVE</h4>
-                    <p>We have lost too much of our history to the past. It is my absolute priority to halt this loss and preserve as much as we can from here on out. Moving forward, the documentation of our lore and history will be recovered and preserved.</p>
+                    <p>We have lost too much of our history. It is my priority to ensure no more is lost, and preserve as much as we can from here on out. Moving forward, the documentation of our lore and history will be recovered and preserved.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-5">
                     <h4>PILLAR OF THE NECESSARY</h4>
-                    <p>Every action we take must serve a grander purpose. Moving forward, our activities within the Order must have a deliberate reason. We will no longer languish in isolation. I will personally explore avenues to ensure this Order exists as a living institution once more.</p>
+                    <p>Every action we take must serve a greater purpose. Our activities will no longer exist for their own sake. I will personally explore avenues to ensure this Order exists as a living, breathing, relevant institution once more.</p>
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-2">
+                    <h4>PILLAR OF THE DOMAIN</h4>
+                    <p>I will not micromanage your duties. Sith and divisional leadership will be expected to govern with absolute competence. You are expected to generate your own momentum.</p>
                   </div>
                 </div>
               </div>
@@ -129,7 +129,7 @@ export default function MandateV2Page() {
                 </div>
               </div>
 
-              <div className="v2-record-section">
+              <div className="v2-record-section animate-on-scroll stagger-4">
                 <div className="v2-pillars-header">
                   <span className="triangle-icon">▸</span> POSITIONS HELD
                 </div>
@@ -183,8 +183,9 @@ export default function MandateV2Page() {
                 <h3>ULTIMATUM</h3>
               </div>
               <div className="v2-text-content animate-on-scroll stagger-2">
-                <p>The Sith Order must stop operating as a shrine to its own history. Greatness demands continuous action, and true strength requires constant evolution. To remain stagnant is to accept obsolescence.</p>
-                <p>The rot of complacency ends today. The Order will realign with its true doctrine and its absolute purpose. Limitless opportunity awaits those who actively drive our expansion, while those who resist progress will simply be cast aside. The future of the Sith Order must be forged in the fires of our ambition.</p>
+                <p>The Sith Order must be more than just a monument to its own past. To do such a thing is to wallow in its failures.</p>
+                <p>We cannot overcome the challenges laid before us by clinging to the status quo. They require a willingness to adapt and pursue a vision for what this Order can become. If entrusted with this position once more, I intend to dedicate my term to restoring purpose and making ambition not only meaningful, but a core tenet of the Order once more.</p>
+                <p>The legacy of the Sith Order should be measured only by what it continues to accomplish. We can reclaim the Order.</p>
                 <p className="v2-italic animate-on-scroll stagger-3">Only the strong shall inherit the stars.</p>
                 <div className="v2-signature animate-on-scroll stagger-4">Vyberon</div>
               </div>

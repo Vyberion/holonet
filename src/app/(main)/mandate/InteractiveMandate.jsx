@@ -3,15 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { OldGuardPlayer } from "../../../components/OldGuardPlayer.jsx";
 
-export function InteractiveMandate({ hero, content }) {
+export function InteractiveMandate({ hero, content, videoPlaybackId }) {
   const containerRef = useRef(null);
   const [progress, setProgress] = useState(0);
   const targetProgressRef = useRef(0);
   const currentProgressRef = useRef(0);
   const rafRef = useRef(null);
 
-  const [introVideoFinished, setIntroVideoFinished] = useState(false);
-  const introVideoFinishedRef = useRef(false);
+  const [introVideoFinished, setIntroVideoFinished] = useState(!videoPlaybackId);
+  const introVideoFinishedRef = useRef(!videoPlaybackId);
   const [introVideoStarted, setIntroVideoStarted] = useState(false);
 
   const locked = progress < 1;
@@ -234,25 +234,27 @@ export function InteractiveMandate({ hero, content }) {
     <div ref={containerRef} className="interactive-mandate-wrapper">
 
       {/* INTRO VIDEO OVERLAY — stays on top until finished */}
-      <div style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        zIndex: 20,
-        opacity: introVideoFinished ? 0 : 1,
-        pointerEvents: introVideoFinished ? 'none' : 'auto',
-        transition: 'opacity 0.65s ease-out',
-        background: '#050102'
-      }}>
-        <OldGuardPlayer
-          mode="intro"
-          playbackId="8TMIBxxLXd5BKfnDq3nU6xki2lvlXaJ9I00xrNkZ9k3k"
-          onPlay={() => setIntroVideoStarted(true)}
-          onEnded={() => {
-            introVideoFinishedRef.current = true;
-            setIntroVideoFinished(true);
-          }}
-        />
-      </div>
+      {videoPlaybackId && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          zIndex: 20,
+          opacity: introVideoFinished ? 0 : 1,
+          pointerEvents: introVideoFinished ? 'none' : 'auto',
+          transition: 'opacity 0.65s ease-out',
+          background: '#050102'
+        }}>
+          <OldGuardPlayer
+            mode="intro"
+            playbackId={videoPlaybackId}
+            onPlay={() => setIntroVideoStarted(true)}
+            onEnded={() => {
+              introVideoFinishedRef.current = true;
+              setIntroVideoFinished(true);
+            }}
+          />
+        </div>
+      )}
 
       {/* HERO — fixed overlay, fades out during Phase 1 */}
       <div style={{

@@ -21,33 +21,34 @@ export default function MandateV2Page() {
       includeSearchOverlay={false}
     >
       <InteractiveMandate
+        videoPlaybackId="02OyJ9da02hFxdv7D9BBNXzUBqUjgqrJ7hJcVfYHjbv38"
         hero={
           <>
             <div className="v2-bg"></div>
             <section className="v2-hero">
               <div className="hero-content">
-              <h2 className="v2-subheading">VYBERON'S</h2>
-              <h1 className="v2-title">MANDATE</h1>
-              <div className="v2-divider">
-                <span className="diamond"></span>
-                <span className="line"></span>
-                <span className="diamond-large"></span>
-                <span className="line"></span>
-                <span className="diamond"></span>
+                <h2 className="v2-subheading">VYBERON'S</h2>
+                <h1 className="v2-title">MANDATE</h1>
+                <div className="v2-divider">
+                  <span className="diamond"></span>
+                  <span className="line"></span>
+                  <span className="diamond-large"></span>
+                  <span className="line"></span>
+                  <span className="diamond"></span>
+                </div>
+                <p className="v2-subtitle">A LETTER<br />TO THE ORDER</p>
+                <div className="v2-divider">
+                  <span className="diamond"></span>
+                  <span className="line"></span>
+                  <span className="diamond-large"></span>
+                  <span className="line"></span>
+                  <span className="diamond"></span>
+                </div>
+                <div className="v2-quote-box splash-fade-in delay-1">
+                  <p>Only the strong shall inherit the stars</p>
+                </div>
               </div>
-              <p className="v2-subtitle">A LETTER<br />TO THE ORDER</p>
-              <div className="v2-divider">
-                <span className="diamond"></span>
-                <span className="line"></span>
-                <span className="diamond-large"></span>
-                <span className="line"></span>
-                <span className="diamond"></span>
-              </div>
-              <div className="v2-quote-box splash-fade-in delay-1">
-                <p>Only the strong shall inherit the stars</p>
-              </div>
-            </div>
-          </section>
+            </section>
           </>
         }
         content={

@@ -5,7 +5,7 @@ import { InteractiveMandate } from "./InteractiveMandate.jsx";
 import "./v2.css";
 
 export const metadata = holonetMetadata({
-  title: "Vyberon's Mandate",
+  title: "The Mandate",
   description: "Only the strong shall inherit the stars."
 });
 
@@ -13,13 +13,18 @@ export default function MandateV2Page() {
   return (
     <HolonetFrame
       title="The Mandate"
-      subtitle="The Emperor's Will"
+      subtitle="The New Era"
       showHeader={false}
       showStatusBar={false}
       showNav={false}
       mainClassName="mandate-v2-main"
       includeSearchOverlay={false}
-      releaseIntro={{ enabled: false }}
+      releaseIntro={{
+        enabled: true,
+        video: {
+          playbackId: "02OyJ9da02hFxdv7D9BBNXzUBqUjgqrJ7hJcVfYHjbv38"
+        }
+      }}
     >
       <div className="v2-bg"></div>
       <InteractiveMandate

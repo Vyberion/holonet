@@ -1,15 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import MuxPlayer from "@mux/mux-player-react";
 
 export function InteractiveMandate({ hero, content }) {
   const containerRef = useRef(null);
-  const videoRef = useRef(null);
-  
-  // "pending" (waiting for start), "playing" (video active), "finished" (hero sequence active)
-  const [introState, setIntroState] = useState("pending"); 
-  
   const [progress, setProgress] = useState(0);
   const targetProgressRef = useRef(0);
   const currentProgressRef = useRef(0);
@@ -43,9 +37,9 @@ export function InteractiveMandate({ hero, content }) {
     return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
-  // Lock body scroll and pin to top while transitioning or during cinematic intro
+  // Lock body scroll and pin to top while transitioning
   useEffect(() => {
-    if (locked || introState !== "finished") {
+    if (locked) {
       document.body.style.setProperty('overflow', 'hidden', 'important');
       window.scrollTo(0, 0);
     } else {
@@ -54,11 +48,11 @@ export function InteractiveMandate({ hero, content }) {
     return () => {
       document.body.style.removeProperty('overflow');
     };
-  }, [locked, introState]);
+  }, [locked]);
 
   // Force scroll to 0 on every render while locked (belt AND suspenders)
   useEffect(() => {
-    if (locked || introState !== "finished") {
+    if (locked) {
       window.scrollTo(0, 0);
     }
   });
@@ -66,12 +60,6 @@ export function InteractiveMandate({ hero, content }) {
   // Wheel events — ALWAYS active, uses ref for latest progress
   useEffect(() => {
     const handleWheel = (e) => {
-      // Block wheel events entirely until the video finishes
-      if (introState !== "finished") {
-        e.preventDefault();
-        return;
-      }
-
       const p = targetProgressRef.current;
       const isCurrentlyLocked = currentProgressRef.current < 1;
 
@@ -111,7 +99,7 @@ export function InteractiveMandate({ hero, content }) {
 
     window.addEventListener('wheel', handleWheel, { passive: false });
     return () => window.removeEventListener('wheel', handleWheel);
-  }, [introState]); 
+  }, []); // Empty deps — permanent listener, uses refs
 
   // Touch events — same logic, ALWAYS active
   useEffect(() => {
@@ -122,12 +110,6 @@ export function InteractiveMandate({ hero, content }) {
     };
 
     const handleTouchMove = (e) => {
-      // Block swipe events entirely until the video finishes
-      if (introState !== "finished") {
-        e.preventDefault();
-        return;
-      }
-
       const touchY = e.touches[0].clientY;
       const delta = lastTouchY - touchY; // positive = finger swipe up = scroll down
       lastTouchY = touchY;
@@ -171,7 +153,7 @@ export function InteractiveMandate({ hero, content }) {
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
     };
-  }, [introState]);
+  }, []);
 
   // Mouse spotlight, IntersectionObserver, glow effects
   useEffect(() => {
@@ -239,59 +221,24 @@ export function InteractiveMandate({ hero, content }) {
     contentOpacity = (progress - 0.3) / 0.7;
   }
 
-  // The hero is only shown once the intro is finished.
-  const isIntroFinished = introState === "finished";
-
   return (
     <div ref={containerRef} className="interactive-mandate-wrapper">
-      
-      {/* CINEMATIC INTRO SEQUENCE */}
-      <div className={`v2-cinematic-intro ${introState}`}>
-        {/* Placeholder Playback ID. Replace when you upload the video! */}
-        <MuxPlayer
-          ref={videoRef}
-          playbackId="8TMIBxxLXd5BKfnDq3nU6xki2lvlXaJ9I00xrNkZ9k3k" 
-          controls={false}
-          autoPlay={false}
-          muted={false} // Audio permitted since it requires user interaction (START button)
-          onEnded={() => setIntroState("finished")}
-          style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }}
-        />
-        
-        {introState === "pending" && (
-          <div className="v2-intro-overlay">
-            <button 
-              className="v2-intro-start-btn"
-              onClick={() => {
-                setIntroState("playing");
-                if (videoRef.current) {
-                  videoRef.current.play();
-                }
-              }}
-            >
-              START
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* HERO — fixed overlay, fades out during Phase 1 */}
-      {isIntroFinished && (
-        <div className="v2-hero-wrapper splash-fade-in" style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          zIndex: 15,
-          opacity: heroOpacity,
-          transform: `scale(${1 + (1 - heroOpacity) * 0.05})`,
-          pointerEvents: 'none',
-          display: heroOpacity > 0.01 ? 'flex' : 'none',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          {hero}
-        </div>
-      )}
+      <div style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        zIndex: 15,
+        opacity: heroOpacity,
+        transform: `scale(${1 + (1 - heroOpacity) * 0.05})`,
+        pointerEvents: 'none',
+        display: heroOpacity > 0.01 ? 'flex' : 'none',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        {hero}
+      </div>
 
       {/*
         CONTENT — always in the document flow.
@@ -302,9 +249,8 @@ export function InteractiveMandate({ hero, content }) {
       <div
         className={locked ? 'scroll-reveal-override' : ''}
         style={{
-          opacity: (locked || !isIntroFinished) ? contentOpacity : 1,
-          pointerEvents: (locked || !isIntroFinished) ? 'none' : 'auto',
-          display: isIntroFinished ? 'block' : 'none',
+          opacity: locked ? contentOpacity : 1,
+          pointerEvents: locked ? 'none' : 'auto',
         }}
       >
         {content}

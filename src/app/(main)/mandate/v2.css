@@ -655,54 +655,47 @@ body {
   }
 }
 
-/* Cinematic Intro Styles */
-.v2-cinematic-intro {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  background-color: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 1.5s ease-in-out;
-}
-
-.v2-cinematic-intro.finished {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.v2-intro-overlay {
+/* Background Player Overrides */
+.v2-bg .old-guard-player--fill {
   position: absolute;
-  inset: 0;
-  z-index: 55;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  margin: 0;
+  padding: 0;
 }
 
-.v2-cinematic-intro.playing .v2-intro-overlay {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s ease-out;
+.old-guard-player--fill .old-guard-stage {
+  height: 100vh !important;
+  width: 100vw !important;
+  max-width: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
 }
 
-.v2-intro-start-btn {
-  font-family: var(--font-serif);
-  font-size: 1.5rem;
-  letter-spacing: 0.3em;
-  color: var(--sith-text-light);
-  background: transparent;
-  border: 1px solid rgba(211, 26, 56, 0.5);
-  padding: 15px 40px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
+.old-guard-player--fill mux-player {
+  height: 100vh !important;
+  width: 100vw !important;
+  max-width: none !important;
+  --controls: none;
 }
 
-.v2-intro-start-btn:hover {
-  background: rgba(211, 26, 56, 0.2);
-  border-color: var(--sith-red);
-  box-shadow: 0 0 20px rgba(211, 26, 56, 0.3);
+.old-guard-player--fill mux-player::part(video) {
+  object-fit: cover !important;
+}
+
+/* Force Intro Video to fill screen and hide default controls */
+.old-guard-mux--intro::part(video) {
+  object-fit: cover !important;
+}
+
+.old-guard-mux--intro::part(control-bar) {
+  display: none !important;
+}
+.old-guard-mux--intro::part(bottom) {
+  display: none !important;
 }

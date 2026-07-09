@@ -21,7 +21,7 @@ function muxThumbnailUrl(playbackId) {
   return `https://image.mux.com/${playbackId}/thumbnail.png?width=214&height=121&time=0`;
 }
 
-export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId = "", title = OLD_GUARD_TITLE }) {
+export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId = "", title = OLD_GUARD_TITLE, hideControls = false, fillScreen = false }) {
   const playerRef = useRef(null);
   const [playerReady, setPlayerReady] = useState(false);
   const [paused, setPaused] = useState(true);
@@ -142,7 +142,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
   const safeCurrentTime = duration > 0 ? Math.min(currentTime, duration) : 0;
   const progress = duration > 0 ? `${(safeCurrentTime / duration) * 100}%` : "0%";
 
-  if (isIntro) {
+  if (mode === "intro") {
     return (
       <div className="old-guard-player old-guard-player--intro" data-old-guard-intro-player="">
         <Script
@@ -150,28 +150,43 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
           strategy="afterInteractive"
           onReady={() => setPlayerReady(true)}
         />
-        <mux-player
-          ref={playerRef}
-          class="old-guard-mux old-guard-mux--intro"
-          playback-id={playbackId}
-          poster={thumbnailUrl}
-          metadata-video-title={title}
-          video-title={title}
-          accent-color="#4d0000"
-          primary-color="#ff0000"
-          secondary-color="#050102"
-          stream-type="on-demand"
-          preload="auto"
-          playsinline=""
-          data-player-ready={playerReady ? "true" : "false"}
-          disable-tracking
-        />
+        <div className="old-guard-stage" onClick={togglePlayback} style={{ height: '100%', width: '100%', border: 'none', borderRadius: 0, boxShadow: 'none' }}>
+          <mux-player
+            ref={playerRef}
+            class="old-guard-mux old-guard-mux--intro"
+            playback-id={playbackId}
+            poster={thumbnailUrl}
+            metadata-video-title={title}
+            video-title={title}
+            accent-color="#4d0000"
+            primary-color="#ff0000"
+            secondary-color="#050102"
+            stream-type="on-demand"
+            preload="auto"
+            playsinline=""
+            nohotkeys=""
+            disable-tracking
+            data-player-ready={playerReady ? "true" : "false"}
+            style={{ "--controls": "none", objectFit: "cover" }}
+          />
+          <button
+            type="button"
+            className={`old-guard-start-button${paused ? "" : " is-hidden"}`}
+            aria-label={`Play ${title}`}
+            disabled={!playerReady}
+            onClick={handleStartButton}
+          >
+            <span className="old-guard-start-ring" aria-hidden="true">
+              <span />
+            </span>
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="old-guard-player old-guard-player--page">
+    <div className={`old-guard-player old-guard-player--page${fillScreen ? " old-guard-player--fill" : ""}${hideControls ? " old-guard-player--no-controls" : ""}`}>
       <Script
         src={MUX_PLAYER_SCRIPT}
         strategy="afterInteractive"
@@ -207,22 +222,24 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
         </button>
       </div>
 
-      <div className="old-guard-timeline">
-        <span className="old-guard-timecode">{formatTime(safeCurrentTime)}</span>
-        <input
-          className="old-guard-time-range"
-          type="range"
-          min="0"
-          max={duration || 0}
-          step="0.01"
-          value={safeCurrentTime}
-          aria-label="Transmission time selector"
-          disabled={!duration}
-          onChange={handleSeek}
-          style={{ "--timeline-progress": progress }}
-        />
-        <span className="old-guard-timecode">{formatTime(duration)}</span>
-      </div>
+      {!hideControls && (
+        <div className="old-guard-timeline">
+          <span className="old-guard-timecode">{formatTime(safeCurrentTime)}</span>
+          <input
+            className="old-guard-time-range"
+            type="range"
+            min="0"
+            max={duration || 0}
+            step="0.01"
+            value={safeCurrentTime}
+            aria-label="Transmission time selector"
+            disabled={!duration}
+            onChange={handleSeek}
+            style={{ "--timeline-progress": progress }}
+          />
+          <span className="old-guard-timecode">{formatTime(duration)}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -192,6 +192,8 @@ export default function MandateV2Page() {
                 <div className="v2-signature animate-on-scroll stagger-4">Vyberon</div>
               </div>
             </section>
+
+            <iframe data-testid="embed-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/track/48v2zlOv10W8F4RWg7eWy1?utm_source=generator&theme=0&si=d317b391208240f2" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
           </div>
         }
       />

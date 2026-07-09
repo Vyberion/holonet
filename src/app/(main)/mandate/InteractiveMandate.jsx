@@ -253,6 +253,21 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
               setIntroVideoFinished(true);
             }}
           />
+          <button
+            className="loader-intro-skip"
+            type="button"
+            style={{ 
+              opacity: introVideoStarted ? 1 : 0, 
+              pointerEvents: introVideoStarted ? 'auto' : 'none',
+              zIndex: 100 
+            }}
+            onClick={() => {
+              introVideoFinishedRef.current = true;
+              setIntroVideoFinished(true);
+            }}
+          >
+            SKIP TRANSMISSION
+          </button>
         </div>
       )}
 

@@ -241,7 +241,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
           zIndex: 20,
           opacity: introVideoFinished ? 0 : 1,
           pointerEvents: introVideoFinished ? 'none' : 'auto',
-          transition: 'opacity 1.5s ease-out',
+          transition: 'opacity 3.5s ease-out',
           background: '#050102'
         }}>
           <OldGuardPlayer

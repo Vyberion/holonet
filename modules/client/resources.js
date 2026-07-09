@@ -1,4 +1,4 @@
-const RESOURCE_PAYLOAD_TTL_MS = 60 * 60000;
+const RESOURCE_PAYLOAD_TTL_MS = 0; // Always fetch live
 const RESOURCE_REQUEST_TIMEOUT_MS = 10 * 1000;
 const resourcePayloadCache = new Map();
 

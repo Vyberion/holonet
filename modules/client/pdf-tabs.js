@@ -67,7 +67,12 @@ async function fetchPdfBytes(source) {
     return cached instanceof Promise ? await cached : cached;
   }
 
-  const request = fetch(source, {
+  // Use a completely fresh timestamp so we always check the true Google Doc modified time on the server
+  const timeBucket = Date.now();
+  const urlObj = new URL(source, window.location.href);
+  urlObj.searchParams.set("_cache", timeBucket);
+
+  const request = fetch(urlObj.toString(), {
     credentials: "same-origin"
   }).then(async response => {
     if (!response.ok) {
@@ -232,6 +237,10 @@ async function hydratePdfTabsFromResources() {
   const tabStrip = document.querySelector("[data-pdf-tab-strip]");
   const division = tabStrip?.dataset.pdfDivision;
   if (!tabStrip || !division) return;
+
+  if (tabStrip.dataset.pdfInitialZoom) {
+    state.zoom = Number(tabStrip.dataset.pdfInitialZoom) || 1;
+  }
 
   tabStrip.innerHTML = '<span class="pdf-loading">Loading handbook registry...</span>';
 
@@ -1130,11 +1139,7 @@ function setupEvents() {
     }
   });
 
-  dom.scrollBox?.addEventListener("wheel", event => {
-    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-    event.preventDefault();
-    dom.scrollBox.scrollTop += event.deltaY;
-  }, { passive: false });
+
 
   let resizeTimer = null;
   window.addEventListener("resize", () => {

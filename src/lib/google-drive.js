@@ -23,7 +23,7 @@ function serviceAccountCredentials() {
   if (jsonCredentials?.client_email && jsonCredentials?.private_key) {
     return {
       client_email: jsonCredentials.client_email,
-      private_key: String(jsonCredentials.private_key).replace(/\n/g, "\n")
+      private_key: String(jsonCredentials.private_key).replace(/\\n/g, "\n")
     };
   }
 
@@ -36,7 +36,7 @@ function serviceAccountCredentials() {
 
   return {
     client_email: clientEmail,
-    private_key: privateKey.replace(/\n/g, "\n")
+    private_key: privateKey.replace(/\\n/g, "\n")
   };
 }
 
@@ -65,6 +65,7 @@ async function getGoogleAccessToken() {
 
 async function fetchGoogleJson(url, token) {
   const response = await fetch(url, {
+    cache: "no-store",
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json"
@@ -296,6 +297,8 @@ export function googlePdfExportUrl(fileId, { tabId = "", sourceUrl = "", fileKin
     exportUrl.searchParams.set("mimeType", GOOGLE_DOC_PDF_MIME);
   }
 
+  exportUrl.searchParams.set("t", Date.now().toString());
+
   return exportUrl;
 }
 
@@ -309,6 +312,7 @@ export async function fetchGoogleFileMetadata(fileId) {
   const url = new URL(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}`);
   url.searchParams.set("fields", "id,name,mimeType,modifiedTime");
   url.searchParams.set("supportsAllDrives", "true");
+  url.searchParams.set("t", Date.now().toString());
   return fetchGoogleJson(url, token);
 }
 
@@ -326,6 +330,7 @@ export async function exportGoogleDocPdf(fileId, { tabId = "", sourceUrl = "", f
   const exportUrl = googlePdfExportUrl(id, { tabId, sourceUrl, fileKind: kind, spreadsheetRange });
 
   const response = await fetch(exportUrl, {
+    cache: "no-store",
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: GOOGLE_DOC_PDF_MIME

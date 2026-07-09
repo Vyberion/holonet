@@ -44,28 +44,60 @@ export function HolonetAudioController() {
   const unlockedRef = useRef(false);
   const fadeFrameRef = useRef(null);
   const isGalaxy = pathname === "/galaxy" || pathname?.startsWith("/galaxy/");
+  const isGalaxyRef = useRef(isGalaxy);
+  isGalaxyRef.current = isGalaxy;
 
   const syncAudioTarget = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || !unlockedRef.current) return;
 
-    const targetVolume = isGalaxy && loaderIsHidden() ? GALAXY_MUSIC_VOLUME : 0;
-    if (targetVolume > 0 && audio.paused) {
-      const playAttempt = audio.play();
-      if (playAttempt?.catch) playAttempt.catch(() => {});
+    const targetVolume = isGalaxyRef.current && loaderIsHidden() ? GALAXY_MUSIC_VOLUME : 0;
+    
+    if (targetVolume === 0) {
+      if (fadeFrameRef.current) cancelAnimationFrame(fadeFrameRef.current);
+      audio.pause();
+    } else {
+      if (audio.paused) {
+        const playAttempt = audio.play();
+        if (playAttempt?.catch) playAttempt.catch(() => {});
+      }
+      fadeAudio(audio, targetVolume, GALAXY_MUSIC_FADE_MS, fadeFrameRef);
     }
-    fadeAudio(audio, targetVolume, GALAXY_MUSIC_FADE_MS, fadeFrameRef);
-  }, [isGalaxy]);
+  }, []);
+
+  // Nuclear fallback to aggressively enforce silence on non-galaxy pages
+  useEffect(() => {
+    const nuclearInterval = setInterval(() => {
+      if (audioRef.current && !isGalaxyRef.current && !audioRef.current.paused) {
+        audioRef.current.pause();
+      }
+    }, 100);
+    return () => clearInterval(nuclearInterval);
+  }, []);
 
   useEffect(() => {
     const audio = new Audio(GALAXY_MUSIC_SRC);
     audio.loop = true;
     audio.preload = "auto";
     audio.volume = 0;
+
+    try {
+      const saved = parseFloat(sessionStorage.getItem("galaxy-music-time"));
+      if (Number.isFinite(saved) && saved > 0) audio.currentTime = saved;
+    } catch {}
+
     audioRef.current = audio;
 
+    const saveInterval = setInterval(() => {
+      if (audioRef.current && !audioRef.current.paused) {
+        try { sessionStorage.setItem("galaxy-music-time", String(audioRef.current.currentTime)); } catch {}
+      }
+    }, 2000);
+
     return () => {
+      clearInterval(saveInterval);
       if (fadeFrameRef.current) cancelAnimationFrame(fadeFrameRef.current);
+      try { sessionStorage.setItem("galaxy-music-time", String(audio.currentTime)); } catch {}
       audio.pause();
       audioRef.current = null;
     };
@@ -75,10 +107,15 @@ export function HolonetAudioController() {
     function unlockAudio() {
       const audio = audioRef.current;
       if (!audio || unlockedRef.current) return;
+      
+      // CRITICAL: Never attempt to unlock or touch the audio element unless we are ACTUALLY on the galaxy page.
+      // iOS can act unpredictably if we call play() and then try to pause() it immediately.
+      if (!isGalaxyRef.current) return;
 
-      audio.volume = 0;
+      unlockedRef.current = true;
+      audio.volume = 0; // Prepare for fade-in
+      
       const markUnlocked = () => {
-        unlockedRef.current = true;
         syncAudioTarget();
       };
 
@@ -109,7 +146,7 @@ export function HolonetAudioController() {
     syncAudioTarget();
     window.addEventListener("holonet:loader-hidden", syncAudioTarget);
     return () => window.removeEventListener("holonet:loader-hidden", syncAudioTarget);
-  }, [syncAudioTarget]);
+  }, [syncAudioTarget, pathname]);
 
   useEffect(() => {
     function handleInternalLinkClick(event) {

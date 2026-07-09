@@ -5,8 +5,9 @@ import * as reports from "./reports.js";
 import * as clock from "./clock.js";
 import * as say from "./say.js";
 import * as purge from "./purge.js";
+import * as userApps from "./userApps.js";
 
-export const modules = [lookup, getroles, verification, reports, clock, say, purge];
+export const modules = [lookup, getroles, verification, reports, clock, say, purge, userApps];
 
 export const commandData = (() => {
   const commandsByName = new Map();
@@ -28,7 +29,9 @@ export async function routeInteraction(interaction) {
       ? "handleButton"
       : interaction.isModalSubmit()
         ? "handleModal"
-        : "";
+        : interaction.isMessageContextMenuCommand() || interaction.isUserContextMenuCommand()
+          ? "handleContextMenu"
+          : "";
 
   if (!method) {
     console.warn("Unhandled interaction type", {

@@ -11,7 +11,8 @@ import {
   exportGoogleDocPdf,
   extractGoogleFileId,
   extractGoogleTabId,
-  googleWorkspaceKindFromUrl
+  googleWorkspaceKindFromUrl,
+  fetchGoogleFileMetadata
 } from "../../../lib/google-drive.js";
 
 export const runtime = "nodejs";
@@ -49,8 +50,9 @@ function safeSegment(value, fallback = "unknown") {
     .slice(0, 96) || fallback;
 }
 
-function cacheVersion(resource, detail) {
-  return detail.cache_version
+function cacheVersion(resource, detail, googleModifiedTime) {
+  return googleModifiedTime
+    || detail.cache_version
     || detail.published_at
     || detail.updated_at
     || resource.updated_at
@@ -58,8 +60,8 @@ function cacheVersion(resource, detail) {
     || "published";
 }
 
-function cacheParts(resourceId, resource, detail, tabId) {
-  const version = safeSegment(cacheVersion(resource, detail), "published");
+function cacheParts(resourceId, resource, detail, tabId, googleModifiedTime) {
+  const version = safeSegment(cacheVersion(resource, detail, googleModifiedTime), "published");
   const tab = tabId ? `-${safeSegment(tabId, "tab")}` : "";
   const prefix = `${CACHE_PREFIX}/${safeSegment(resourceId, "resource")}`;
   const fileName = `${version}${tab}.pdf`;
@@ -106,7 +108,7 @@ function redirectTo(url, cacheStatus) {
     status: 302,
     headers: {
       Location: url,
-      "Cache-Control": "private, max-age=300",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
       "X-Holonet-PDF-Cache": cacheStatus
     }
   });
@@ -148,9 +150,9 @@ async function loadHandbookResource(resourceId) {
   return { resource, detail: detail || {} };
 }
 
-async function cachedGooglePdfRedirect(resource, detail, googleFileId, googleTabId, forceRefresh = false) {
+async function cachedGooglePdfRedirect(resource, detail, googleFileId, googleTabId, forceRefresh = false, googleModifiedTime = null) {
   const googleDocUrl = detail.google_doc_url || "";
-  const cache = cacheParts(resource.id, resource, detail, googleTabId);
+  const cache = cacheParts(resource.id, resource, detail, googleTabId, googleModifiedTime);
 
   if (!forceRefresh) {
     const memoized = memoryCacheRedirect(cache.path);
@@ -211,7 +213,12 @@ export async function GET(request) {
     const googleTabId = detail.google_tab_id || extractGoogleTabId(detail.google_doc_url);
 
     if (googleFileId) {
-      return await cachedGooglePdfRedirect(resource, detail, googleFileId, googleTabId, forceRefresh);
+      const metadata = await fetchGoogleFileMetadata(googleFileId).catch((err) => {
+        console.warn("Failed to fetch Google File metadata for cache validation:", err);
+        return null;
+      });
+      const googleModifiedTime = metadata?.modifiedTime || null;
+      return await cachedGooglePdfRedirect(resource, detail, googleFileId, googleTabId, forceRefresh, googleModifiedTime);
     }
 
     return await supabasePdfRedirect(detail);

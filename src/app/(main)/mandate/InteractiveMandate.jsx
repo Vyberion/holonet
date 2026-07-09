@@ -27,7 +27,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
       const stepTime = duration / steps;
       let currentStep = 0;
 
-      const MAX_VOLUME = 0.5;
+      const MAX_VOLUME = 0.15;
 
       const timer = setInterval(() => {
         currentStep++;

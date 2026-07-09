@@ -332,6 +332,17 @@ body {
   font-weight: 600;
 }
 
+.v2-seal {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--sith-red);
+  margin-top: 50px;
+  margin-bottom: -30px; /* Pulls the signature closer to the seal */
+}
+
 .v2-signature {
   font-family: var(--font-script);
   font-size: 4rem;

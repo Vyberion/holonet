@@ -13,6 +13,33 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
   const [introVideoFinished, setIntroVideoFinished] = useState(!videoPlaybackId);
   const introVideoFinishedRef = useRef(!videoPlaybackId);
   const [introVideoStarted, setIntroVideoStarted] = useState(false);
+  const audioRef = useRef(null);
+
+  // Sync music fade-in with the 3.5s video fade-out
+  useEffect(() => {
+    if (introVideoFinished && audioRef.current) {
+      const audio = audioRef.current;
+      audio.volume = 0;
+      audio.play().catch(e => console.warn("Audio autoplay blocked:", e));
+
+      const duration = 3500; // Matches the 3.5s opacity transition
+      const steps = 35; 
+      const stepTime = duration / steps;
+      let currentStep = 0;
+
+      const timer = setInterval(() => {
+        currentStep++;
+        if (currentStep >= steps) {
+          audio.volume = 1;
+          clearInterval(timer);
+        } else {
+          audio.volume = currentStep / steps;
+        }
+      }, stepTime);
+
+      return () => clearInterval(timer);
+    }
+  }, [introVideoFinished]);
 
   const locked = progress < 1;
 
@@ -232,6 +259,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
 
   return (
     <div ref={containerRef} className="interactive-mandate-wrapper">
+      <audio ref={audioRef} src="/assets/music/suspense.mp3" loop />
 
       {/* INTRO VIDEO OVERLAY — stays on top until finished */}
       {videoPlaybackId && (

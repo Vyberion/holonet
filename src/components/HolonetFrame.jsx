@@ -435,7 +435,7 @@ export function HolonetFrame({
         </div>
 
         <div className="loader-intro-video" {...releaseIntroVideoAttributes} aria-hidden="true">
-          {shouldRenderIntroPlayer ? <OldGuardPlayer mode="intro" /> : null}
+          {shouldRenderIntroPlayer ? <OldGuardPlayer mode="intro" playbackId={releaseIntroConfig.video.playbackId} /> : null}
           <button
             className="loader-intro-skip"
             type="button"

@@ -21,16 +21,18 @@ export default function MandateV2Page() {
       includeSearchOverlay={false}
       releaseIntro={{
         enabled: true,
+        force: true,
         video: {
-          playbackId: "02OyJ9da02hFxdv7D9BBNXzUBqUjgqrJ7hJcVfYHjbv38"
+          playbackId: "8TMIBxxLXd5BKfnDq3nU6xki2lvlXaJ9I00xrNkZ9k3k"
         }
       }}
     >
-      <div className="v2-bg"></div>
       <InteractiveMandate
         hero={
-          <section className="v2-hero">
-            <div className="hero-content">
+          <>
+            <div className="v2-bg"></div>
+            <section className="v2-hero">
+              <div className="hero-content">
               <h2 className="v2-subheading">VYBERON'S</h2>
               <h1 className="v2-title">MANDATE</h1>
               <div className="v2-divider">
@@ -53,6 +55,7 @@ export default function MandateV2Page() {
               </div>
             </div>
           </section>
+          </>
         }
         content={
           <div className="v2-content-wrapper">

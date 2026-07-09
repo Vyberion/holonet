@@ -171,6 +171,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
             secondary-color="#050102"
             stream-type="on-demand"
             preload="auto"
+            volume={1}
             playsinline=""
             nohotkeys=""
             disable-tracking
@@ -214,6 +215,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
           secondary-color="#050102"
           stream-type="on-demand"
           preload="auto"
+          volume={1}
           disable-tracking
           playsinline=""
         />

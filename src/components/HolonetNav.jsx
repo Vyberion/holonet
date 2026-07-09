@@ -144,21 +144,21 @@ export function HolonetNav() {
   const divisionContext = currentDivisionContext(pathname, hostname);
   const showDivisionReturn = divisionContext && !["home", "info"].includes(divisionContext.section);
   const centerLinks = [
-    { href: "/", page: "home", prefix: "00", label: "Home" },
-    { href: "/codex", page: "codex", prefix: "01", label: "Codex" },
+    { href: "https://www.thesithorder.org", page: "home", prefix: "00", label: "Home" },
+    { href: "https://www.thesithorder.org/codex", page: "codex", prefix: "01", label: "Codex" },
     {
-      href: "/archives",
+      href: "https://www.thesithorder.org/archives",
       page: "archives",
       prefix: "02",
       label: "Archives",
       dropdown: [
-        { href: "/archives/cots", page: "archives-cots", label: "CoTS" },
-        { href: "/galaxy", page: "galaxy", label: "Galaxy" }
+        { href: "https://www.thesithorder.org/archives/cots", page: "archives-cots", label: "CoTS" },
+        { href: "https://www.thesithorder.org/galaxy", page: "galaxy", label: "Galaxy" }
       ]
     },
-    { href: "/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
+    { href: "https://www.thesithorder.org/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
     ...(access?.permissions?.canAccessRegistry
-      ? [{ href: "/registry", page: "registry", prefix: "04", label: "Registry" }]
+      ? [{ href: "https://www.thesithorder.org/registry", page: "registry", prefix: "04", label: "Registry" }]
       : [])
   ];
 
@@ -226,7 +226,7 @@ export function HolonetNav() {
         <div className="nav-inner">
           <div className="nav-left">
             {showDivisionReturn ? (
-              <NavLink href={`${divisionContext.base}/home`} page="division-return" account activePage="" onClick={closeNav}>
+              <NavLink href={divisionContext.base} page="division-return" account activePage="" onClick={closeNav}>
                 <div className="account-text"><span className="nav-link-label">Return</span></div>
                 <div className="account-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -318,7 +318,7 @@ export function HolonetNav() {
             <div className="nav-privileged" data-nav-privileged>
               <PrivilegedLinks permissions={access?.permissions} activePage={activePage} onClick={closeNav} />
             </div>
-            <NavLink href="/account" page="account" account activePage={activePage} onClick={closeNav}>
+            <NavLink href="https://www.thesithorder.org/account" page="account" account activePage={activePage} onClick={closeNav}>
               <div className="account-text">
                 <span className="nav-link-label">Account</span>
               </div>

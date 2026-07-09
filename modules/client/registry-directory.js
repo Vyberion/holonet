@@ -136,7 +136,7 @@ async function initRegistryDirectory() {
 window.initHolonetRegistryDirectory = initRegistryDirectory;
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initRegistryDirectory);
-} else {
-  initRegistryDirectory();
-}
+    document.addEventListener("DOMContentLoaded", initRegistryDirectory);
+  } else {
+    initRegistryDirectory();
+  }

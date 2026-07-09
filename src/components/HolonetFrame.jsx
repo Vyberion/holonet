@@ -315,6 +315,7 @@ export function HolonetFrame({
   mainClassName = "",
   includeSearchOverlay = false,
   showHeader = true,
+  showStatusBar = true,
   theme = "",
   releaseIntro = null
 }) {
@@ -465,19 +466,21 @@ export function HolonetFrame({
           </header>
         ) : null}
 
-        <div className="status-bar" role="status" aria-live="polite">
-          <span style={{ color: "var(--text-dim)" }}>
-            Node: <span style={{ color: "var(--text-dim)" }}>{node}</span>
-          </span>
-          <span className="status-signal" style={{ color: "var(--text-dim)" }}>
-            <span className="blink">● {signalLabel}</span>&nbsp;&nbsp;Signal:{" "}
-            <span id="signal-bars">{signalValue}</span>{" "}
-            <span id="signal-percent">{signalPercent}</span>
-          </span>
-          <span style={{ color: "var(--text-dim)" }}>
-            <span id="timestamp">{timestamp}</span>
-          </span>
-        </div>
+        {showStatusBar ? (
+          <div className="status-bar" role="status" aria-live="polite">
+            <span style={{ color: "var(--text-dim)" }}>
+              Node: <span style={{ color: "var(--text-dim)" }}>{node}</span>
+            </span>
+            <span className="status-signal" style={{ color: "var(--text-dim)" }}>
+              <span className="blink">● {signalLabel}</span>&nbsp;&nbsp;Signal:{" "}
+              <span id="signal-bars">{signalValue}</span>{" "}
+              <span id="signal-percent">{signalPercent}</span>
+            </span>
+            <span style={{ color: "var(--text-dim)" }}>
+              <span id="timestamp">{timestamp}</span>
+            </span>
+          </div>
+        ) : null}
 
         <main className={mainClassName}>{children}</main>
 

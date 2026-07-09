@@ -1,5 +1,5 @@
 import { divisionLockedHref, getDivision } from "../data/divisions/index.js";
-import { fetchDivisionResources } from "./resources.js";
+import { fetchDivisionResources, fetchJsonWithTimeout } from "./resources.js";
 
 const reportViewCache = new Map();
 let reportViewBound = false;
@@ -235,6 +235,29 @@ function renderHub(division) {
   const activityPanel = renderPanel("activity", "Activity", renderActivityOverview(division));
   const reportsPanel = renderPanel("reports", "Reports", renderRows(reports, "NO REPORTS", { kind: "reports", division }));
 
+  if (division.loadError) {
+    return `
+      <section class="hub-shell" aria-label="${escapeHtml(division.name)} command hub">
+        <div class="hub-hero">
+          <div class="hub-identity">
+            <div>
+              <span class="hub-kicker">Registry Node / ${escapeHtml(division.node)}</span>
+              <h2 class="hub-title">${escapeHtml(division.name)}</h2>
+            </div>
+            <div>
+              <span class="hub-kicker">Status</span>
+              <span class="hub-value">ACTIVE</span>
+            </div>
+          </div>
+          <p class="hub-summary">${escapeHtml(division.description)}</p>
+        </div>
+        <section class="hub-panel" role="alert">
+          <p class="hub-empty">${escapeHtml(division.loadError)}</p>
+        </section>
+      </section>
+    `;
+  }
+
   return `
     <section class="hub-shell" aria-label="${escapeHtml(division.name)} command hub">
       <div class="hub-hero">
@@ -284,7 +307,7 @@ function renderHub(division) {
 }
 
 async function fetchDivisionRosterPayload(division) {
-  const response = await fetch(`/api/division-roster?division=${encodeURIComponent(division)}`);
+  const response = await fetchJsonWithTimeout(`/api/division-roster?division=${encodeURIComponent(division)}`);
   const payload = await response.json();
   if (!response.ok || !payload.ok) throw new Error(payload.reason || payload.error || "ROSTER_UNAVAILABLE");
   return payload;
@@ -292,7 +315,7 @@ async function fetchDivisionRosterPayload(division) {
 
 async function fetchWeeklyReportPayload(division) {
   try {
-    const response = await fetch(`/api/weekly-reports?division=${encodeURIComponent(division)}`);
+    const response = await fetchJsonWithTimeout(`/api/weekly-reports?division=${encodeURIComponent(division)}`);
     const payload = await response.json();
     if (!response.ok || !payload.ok) return { reports: [], canWrite: false };
     return {
@@ -444,14 +467,26 @@ async function initDivisionHub() {
     activityMembers: []
   });
 
-  const hydratedDivision = await loadDivisionResourceSets(division);
-  mount.innerHTML = renderHub(hydratedDivision);
+  try {
+    const hydratedDivision = await loadDivisionResourceSets(division);
+    mount.innerHTML = renderHub(hydratedDivision);
+  } catch (error) {
+    console.error("Division hub failed to initialize:", error);
+    mount.innerHTML = renderHub({
+      ...division,
+      transmissions: [],
+      documents: [],
+      reports: [],
+      activityMembers: [],
+      loadError: `Unable to load ${division.name} command hub: ${String(error?.message || error || "NETWORK_UNAVAILABLE").replace(/_/g, " ")}`
+    });
+  }
 }
 
 window.initHolonetDivisionHub = initDivisionHub;
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initDivisionHub);
-} else {
-  initDivisionHub();
-}
+    document.addEventListener("DOMContentLoaded", initDivisionHub);
+  } else {
+    initDivisionHub();
+  }

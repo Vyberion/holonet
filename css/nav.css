@@ -626,7 +626,7 @@
   
   .account-icon {
     display: block;
-    color: var(--theme-accent-dim);
+    color: var(--theme-accent-soft);
     height: 20px;
     width: 20px;
   }
@@ -651,7 +651,7 @@
   }
 
   .nav-toggle span {
-    background: var(--theme-accent-dim);
+    background: var(--theme-accent-soft);
     flex: 0 0 auto;
     width: 18px;
   }
@@ -662,7 +662,7 @@
   }
 
   .nav-toggle[aria-expanded="false"] span {
-    background: var(--theme-accent-dim);
+    background: var(--theme-accent-soft);
   }
 
   .nav-toggle:active,
@@ -685,7 +685,7 @@
     bottom: 16px;
     box-shadow: none;
     clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
-    color: var(--theme-accent-dim);
+    color: var(--theme-accent-soft);
     cursor: crosshair;
     display: flex;
     height: 36px;

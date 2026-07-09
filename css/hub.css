@@ -572,10 +572,10 @@
 }
 
 .cots-edit-button {
-  position: absolute;
-  right: clamp(18px, 3vw, 30px);
-  top: clamp(16px, 3vw, 26px);
-  z-index: 2;
+  align-self: flex-start;
+  grid-column: 1 / -1;
+  justify-self: end;
+  margin-top: -10px;
 }
 
 .cots-feature-grid {

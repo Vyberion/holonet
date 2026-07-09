@@ -358,22 +358,31 @@ function loadPlanetAssetTexture(entry, anisotropy, quality = "full") {
   return PLANET_ASSET_TEXTURE_CACHE.get(cacheKey);
 }
 
-function loadPlanetTextureEntries(entries, anisotropy, onProgress, quality = "full") {
+async function loadPlanetTextureEntries(entries, anisotropy, onProgress, quality = "full") {
   const total = entries.length;
   if (!total) {
     onProgress?.({ loaded: 0, total: 0 });
-    return Promise.resolve({});
+    return {};
   }
 
   let loaded = 0;
   onProgress?.({ loaded, total });
-  return Promise.all(entries.map(entry => (
-    loadPlanetAssetTexture(entry, anisotropy, quality).then(texture => {
-      loaded += 1;
-      onProgress?.({ loaded, total });
-      return [entry.key, texture];
-    })
-  ))).then(results => Object.fromEntries(results.filter(([, texture]) => texture)));
+  const results = [];
+  const BATCH_SIZE = 6;
+
+  for (let i = 0; i < total; i += BATCH_SIZE) {
+    const batch = entries.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(batch.map(entry => (
+      loadPlanetAssetTexture(entry, anisotropy, quality).then(texture => {
+        loaded += 1;
+        onProgress?.({ loaded, total });
+        return [entry.key, texture];
+      })
+    )));
+    results.push(...batchResults);
+  }
+
+  return Object.fromEntries(results.filter(([, texture]) => texture));
 }
 
 function uniquePlanetTextureEntries(planets = []) {

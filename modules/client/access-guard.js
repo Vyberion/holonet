@@ -1,4 +1,5 @@
 import { isEmperorArchiveRobloxId } from "../auth/emperor-archive-access.js";
+import { divisionIdFromRouteSlug, divisionIdFromSubdomain } from "../data/divisions/index.js";
 
 (function () {
   document.documentElement.style.background = "#050606";
@@ -16,12 +17,55 @@ import { isEmperorArchiveRobloxId } from "../auth/emperor-archive-access.js";
   `;
   document.head.appendChild(pendingStyle);
 
+  const DIVISION_PAGE_PREFIX = {
+    reavers: "reavers",
+    dhg: "dhg",
+    inquisitors: "inquisitors",
+    dreadmasters: "dreadmasters",
+    highranks: "highranks",
+    darkCouncil: "dark_council"
+  };
+
+  function normalizedSegment(value) {
+    return String(value || "")
+      .replace(/\.html$/i, "")
+      .toLowerCase();
+  }
+
+  function keySegment(value) {
+    return normalizedSegment(value).replace(/-/g, "_");
+  }
+
+  function getSubdomainDivisionId() {
+    const hostLabel = location.hostname.split(".")[0]?.toLowerCase() || "";
+    return divisionIdFromSubdomain(hostLabel);
+  }
+
+  function getSubdomainDivisionPageKey(segments) {
+    const divisionId = getSubdomainDivisionId();
+    const prefix = DIVISION_PAGE_PREFIX[divisionId];
+    if (!prefix) return "";
+
+    const scopedSegments = [...segments];
+    if (divisionIdFromRouteSlug(scopedSegments[0]) === divisionId) {
+      scopedSegments.shift();
+    }
+
+    const section = normalizedSegment(scopedSegments[0] || "home");
+    return `${prefix}_${keySegment(section || "home")}`;
+  }
+
   function getPageKey() {
     const segments = location.pathname.split("/").filter(Boolean);
 
     if (segments.length > 0) {
       const lastIndex = segments.length - 1;
-      segments[lastIndex] = segments[lastIndex].replace(".html", "");
+      segments[lastIndex] = normalizedSegment(segments[lastIndex]);
+    }
+
+    const subdomainPageKey = getSubdomainDivisionPageKey(segments);
+    if (subdomainPageKey) {
+      return subdomainPageKey;
     }
 
     const pageKey = (segments.join("_") || "home").replace(/-/g, "_");

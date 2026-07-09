@@ -87,5 +87,21 @@ client.on("messageCreate", async message => {
   }
 });
 
+client.on("guildMemberAdd", async member => {
+  try {
+    const unverifiedRoleId = "1340850135680155674";
+    await member.roles.add(unverifiedRoleId, "Immediate unverified assignment on join").catch(err => {
+      console.error("Failed to immediately assign unverified role", err);
+    });
+
+    const { syncMemberRoles } = await import("./services/roles.js");
+    syncMemberRoles(member, client.user.id).catch(error => {
+      console.error("Failed to sync new member roles in background", error);
+    });
+  } catch (error) {
+    console.error("Failed to handle new member join", error);
+  }
+});
+
 const tokenEnvName = ["DISCORD", "TOKEN"].join("_");
 await client.login(requireEnv(tokenEnvName));

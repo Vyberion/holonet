@@ -334,7 +334,7 @@ async function initCouncilFloor() {
 window.initHolonetCouncilFloor = initCouncilFloor;
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initCouncilFloor);
-} else {
-  initCouncilFloor();
-}
+    document.addEventListener("DOMContentLoaded", initCouncilFloor);
+  } else {
+    initCouncilFloor();
+  }

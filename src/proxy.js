@@ -20,10 +20,29 @@ const LOCKED_SECTIONS = new Set([
 const APEX_HOSTNAME = "thesithorder.org";
 const CANONICAL_HOSTNAME = "www.thesithorder.org";
 
+function firstHeaderValue(value) {
+  return String(value || "").split(",")[0].trim();
+}
+
 function requestHostname(request) {
-  return String(request.headers.get("host") || request.nextUrl.hostname || "")
+  return String(
+    firstHeaderValue(request.headers.get("x-forwarded-host")) ||
+    firstHeaderValue(request.headers.get("host")) ||
+    request.nextUrl.hostname ||
+    ""
+  )
     .split(":")[0]
     .toLowerCase();
+}
+
+function isLocalHostname(hostname) {
+  return (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    /^\d+\.\d+\.\d+\.\d+$/.test(hostname)
+  );
 }
 
 function rootHostname(hostname) {
@@ -33,22 +52,34 @@ function rootHostname(hostname) {
   return labels.join(".");
 }
 
+function setPublicRedirectHost(url, hostname) {
+  const nextUrl = new URL(url.toString());
+  nextUrl.hostname = hostname;
+
+  if (!isLocalHostname(hostname)) {
+    nextUrl.protocol = "https:";
+    nextUrl.port = "";
+  }
+
+  return nextUrl;
+}
+
 function firstPathSegment(pathname) {
   return String(pathname || "/").split("/").filter(Boolean)[0] || "";
 }
 
 function subdomainRedirectUrl(request, divisionId, section = "home") {
-  const url = request.nextUrl.clone();
+  const url = new URL(request.url);
   const subdomain = divisionSubdomainForId(divisionId);
   if (!subdomain) return url;
 
-  url.hostname = `${subdomain}.${rootHostname(requestHostname(request))}`;
-  url.pathname = divisionLockedPath(section);
-  return url;
+  const nextUrl = setPublicRedirectHost(url, `${subdomain}.${rootHostname(requestHostname(request))}`);
+  nextUrl.pathname = divisionLockedPath(section);
+  return nextUrl;
 }
 
 function publicInfoRedirectUrl(request, divisionId) {
-  const url = request.nextUrl.clone();
+  const url = new URL(request.url);
   url.pathname = divisionPublicInfoPath(divisionId) || url.pathname;
   return url;
 }
@@ -84,10 +115,7 @@ function shouldBypass(pathname) {
 }
 
 function wwwRedirectUrl(request) {
-  const url = request.nextUrl.clone();
-  url.protocol = "https:";
-  url.hostname = CANONICAL_HOSTNAME;
-  return url;
+  return setPublicRedirectHost(new URL(request.url), CANONICAL_HOSTNAME);
 }
 
 export function proxy(request) {
@@ -118,14 +146,14 @@ export function proxy(request) {
   if (isPublicInfoDivision(routeDivisionId) && (!section || section === "info")) {
     const canonicalPath = divisionPublicInfoPath(routeDivisionId);
     if (canonicalPath && pathname.replace(/\/+$/, "") !== canonicalPath) {
-      return NextResponse.redirect(publicInfoRedirectUrl(request, routeDivisionId));
+      return NextResponse.redirect(publicInfoRedirectUrl(request, routeDivisionId), 308);
     }
 
     return NextResponse.next();
   }
 
   if (!section || LOCKED_SECTIONS.has(section)) {
-    return NextResponse.redirect(subdomainRedirectUrl(request, routeDivisionId, section || "home"));
+    return NextResponse.redirect(subdomainRedirectUrl(request, routeDivisionId, section || "home"), 308);
   }
 
   return NextResponse.next();

@@ -164,6 +164,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
           preload="auto"
           playsinline=""
           data-player-ready={playerReady ? "true" : "false"}
+          disable-tracking
         />
       </div>
     );
@@ -190,6 +191,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
           secondary-color="#050102"
           stream-type="on-demand"
           preload="auto"
+          disable-tracking
           playsinline=""
         />
         <button

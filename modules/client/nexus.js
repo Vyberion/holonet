@@ -504,7 +504,7 @@ async function initNexus() {
 window.initHolonetNexus = initNexus;
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initNexus);
-} else {
-  initNexus();
-}
+    document.addEventListener("DOMContentLoaded", initNexus);
+  } else {
+    initNexus();
+  }

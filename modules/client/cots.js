@@ -1,23 +1,10 @@
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[char]);
+function escapeHtml(string) {
+  const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" };
+  return String(string || "").replace(/[&<>"']/g, match => map[match]);
 }
 
 function text(value, fallback = "") {
   return String(value ?? fallback).trim();
-}
-
-function parseJson(value, fallback) {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
 }
 
 function normalizeImage(image = {}) {
@@ -29,28 +16,37 @@ function normalizeImage(image = {}) {
 }
 
 function defaultState(root) {
-  return parseJson(root?.dataset?.cotsState || "{}", {
-    champion: { name: "", title: "", motto: "", season: "", podiumImage: {} },
-    podium: [],
-    bracket: []
-  });
+  try {
+    const raw = root?.dataset?.cotsState;
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
 }
 
-function normalizeState(value, fallback) {
-  const state = value && typeof value === "object" ? value : {};
-  const champion = state.champion && typeof state.champion === "object" ? state.champion : {};
-  const fallbackChampion = fallback.champion || {};
+function normalizeState(value, fallback = {}) {
+  const state = typeof value === "object" && value !== null ? value : {};
+  const fallbackChampion = typeof fallback.champion === "object" && fallback.champion !== null ? fallback.champion : {};
 
   return {
     champion: {
-      name: text(champion.name, fallbackChampion.name),
-      title: text(champion.title, fallbackChampion.title),
-      motto: text(champion.motto, fallbackChampion.motto),
-      season: text(champion.season, fallbackChampion.season),
-      podiumImage: normalizeImage(champion.podiumImage || fallbackChampion.podiumImage)
+      name: text(state.champion?.name, fallbackChampion.name),
+      title: text(state.champion?.title, fallbackChampion.title),
+      motto: "The Future Belongs to the Bold.",
+      season: text(state.champion?.season, fallbackChampion.season),
+      podiumImage: normalizeImage(state.champion?.podiumImage || fallbackChampion.podiumImage)
     },
-    podium: Array.isArray(state.podium) && state.podium.length ? state.podium.slice(0, 3) : fallback.podium || [],
-    bracket: Array.isArray(state.bracket) && state.bracket.length ? state.bracket : fallback.bracket || []
+    podium: Array.isArray(state.podium) && state.podium.length ? state.podium : fallback.podium || [
+      { place: "I", name: "", note: "Champion" },
+      { place: "II", name: "", note: "Finalist" },
+      { place: "III", name: "", note: "Podium" }
+    ],
+    bracketUrl: text(state.bracketUrl, fallback.bracketUrl || ""),
+    
+    // Archiving previous bracket data to prevent data loss
+    bracket: Array.isArray(state.bracket) ? state.bracket : fallback.bracket || [],
+    losersBracket: Array.isArray(state.losersBracket) ? state.losersBracket : fallback.losersBracket || [],
+    grandFinals: Array.isArray(state.grandFinals) ? state.grandFinals : fallback.grandFinals || []
   };
 }
 
@@ -64,56 +60,6 @@ function podiumRow(entry, index) {
   `;
 }
 
-function competitor(name, winner) {
-  return `
-    <div class="cots-bracket-competitor${winner ? " is-winner" : ""}">
-      <span>${escapeHtml(name || "TBD")}</span>
-      ${winner ? '<b aria-label="Winner">WIN</b>' : ""}
-    </div>
-  `;
-}
-
-function matchCard(match, matchIndex, roundSize, laneHeight) {
-  const topPercent = ((matchIndex + 0.5) / Math.max(1, roundSize)) * 100;
-  const pairLineHeight = laneHeight / Math.max(1, roundSize);
-
-  return `
-    <article
-      class="cots-bracket-match"
-      role="listitem"
-      style="--match-top: ${topPercent}%; --pair-line-height: ${pairLineHeight}px;"
-    >
-      <div class="cots-match-code">${escapeHtml(match.id || "")}</div>
-      ${competitor(match.left, match.winner && match.winner === match.left)}
-      ${competitor(match.right, match.winner && match.winner === match.right)}
-      <div class="cots-match-footer">
-        <span>Score</span>
-        <strong>${escapeHtml(match.score || "-")}</strong>
-      </div>
-    </article>
-  `;
-}
-
-function roundMarkup(round, roundIndex, rounds) {
-  const roundSize = Math.max(1, (round.matches || []).length);
-  const previousSize = roundIndex > 0 ? Math.max(1, (rounds[roundIndex - 1]?.matches || []).length) : 0;
-  const largestRoundSize = Math.max(1, ...rounds.map(item => (item.matches || []).length));
-  const laneHeight = Math.max(720, largestRoundSize * 178);
-
-  return `
-    <section
-      class="cots-bracket-round"
-      aria-label="${escapeHtml(round.name || "Round")}"
-      style="--round-size: ${roundSize}; --previous-round-size: ${previousSize}; --bracket-lane-height: ${laneHeight}px;"
-    >
-      <h4>${escapeHtml(round.name || "Round")}</h4>
-      <div class="cots-bracket-stack">
-        ${(round.matches || []).map((match, matchIndex) => matchCard(match, matchIndex, roundSize, laneHeight)).join("")}
-      </div>
-    </section>
-  `;
-}
-
 function renderCots(root, state, canEdit, meta = {}) {
   const image = normalizeImage(state.champion.podiumImage);
   root.innerHTML = `
@@ -121,17 +67,7 @@ function renderCots(root, state, canEdit, meta = {}) {
       <div class="cots-hero-copy">
         <p class="hub-kicker">Current Champion</p>
         <h2 id="cots-title" class="cots-title">${escapeHtml(state.champion.name || "Awaiting Champion")}</h2>
-        <p class="cots-quote">&quot;${escapeHtml(state.champion.motto || "")}&quot;</p>
-      </div>
-      <div class="cots-hero-stats" aria-label="Champion status">
-        <div>
-          <span class="hub-label">Title</span>
-          <strong>${escapeHtml(state.champion.title || "Unrecorded")}</strong>
-        </div>
-        <div>
-          <span class="hub-label">Season</span>
-          <strong>${escapeHtml(state.champion.season || "Unrecorded")}</strong>
-        </div>
+        <p class="cots-quote">&quot;The Future Belongs to the Bold.&quot;</p>
       </div>
       ${canEdit ? '<button type="button" class="resource-editor-open cots-edit-button" data-cots-edit>Edit CoTS</button>' : ""}
     </section>
@@ -153,13 +89,10 @@ function renderCots(root, state, canEdit, meta = {}) {
       </div>
     </section>
 
-    <section class="hub-panel cots-bracket-panel" aria-label="Tournament bracket">
-      <div class="hub-panel-head">
-        <h3 class="hub-panel-title">Tournament Bracket</h3>
-      </div>
-      <div class="cots-bracket" role="list">
-        ${(state.bracket || []).map(roundMarkup).join("")}
-      </div>
+    <section class="hub-panel cots-bracket-panel" aria-label="Tournament bracket" style="padding: 0; overflow: hidden;">
+      ${state.bracketUrl 
+        ? `<iframe src="${escapeHtml(state.bracketUrl)}" width="100%" height="1600" frameborder="0" scrolling="auto" allowtransparency="true" style="border: none; width: 100%; height: 1200px; display: block; margin: 0; padding: 0; background: transparent;"></iframe>` 
+        : `<p class="hub-empty" style="margin: 20px;">No tournament bracket available.</p>`}
     </section>
   `;
 }
@@ -188,116 +121,62 @@ function ensureEditorOverlay() {
   `;
 
   document.body.appendChild(overlay);
-  overlay.querySelector("[data-cots-close]").addEventListener("click", () => overlay.classList.remove("active"));
-  overlay.addEventListener("pointerup", event => {
-    if (event.target === overlay) overlay.classList.remove("active");
+
+  overlay.addEventListener("click", event => {
+    if (event.target === overlay || event.target.closest("[data-cots-close]")) {
+      overlay.classList.remove("active");
+    }
   });
+
   document.addEventListener("keydown", event => {
-    if (event.key === "Escape") overlay.classList.remove("active");
+    if (event.key === "Escape" && overlay.classList.contains("active")) {
+      overlay.classList.remove("active");
+    }
   });
+
   return overlay;
-}
-
-function matchEditor(round, roundIndex, match, matchIndex) {
-  const prefix = `round-${roundIndex}-match-${matchIndex}`;
-  return `
-    <section class="cots-match-editor" data-cots-match="${roundIndex}:${matchIndex}">
-      <div class="library-entry-toolbar">
-        <span class="library-entry-title">Match ${escapeHtml(match.id || matchIndex + 1)}</span>
-        <button type="button" class="library-inline-btn danger" data-cots-remove-match="${roundIndex}:${matchIndex}">REMOVE MATCH</button>
-      </div>
-      <div class="cots-editor-grid">
-        <div class="resource-editor-field"><label>Code</label><input name="${prefix}-id" value="${escapeHtml(match.id || "")}"></div>
-        <div class="resource-editor-field"><label>Left</label><input name="${prefix}-left" value="${escapeHtml(match.left || "")}"></div>
-        <div class="resource-editor-field"><label>Right</label><input name="${prefix}-right" value="${escapeHtml(match.right || "")}"></div>
-        <div class="resource-editor-field"><label>Winner</label><input name="${prefix}-winner" value="${escapeHtml(match.winner || "")}"></div>
-        <div class="resource-editor-field"><label>Score</label><input name="${prefix}-score" value="${escapeHtml(match.score || "")}"></div>
-      </div>
-    </section>
-  `;
-}
-
-function roundEditor(round, roundIndex) {
-  return `
-    <section class="library-entry-editor cots-round-editor" data-cots-round="${roundIndex}">
-      <div class="library-entry-toolbar">
-        <span class="library-entry-title">Round ${roundIndex + 1}</span>
-        <button type="button" class="library-inline-btn danger" data-cots-remove-round="${roundIndex}">REMOVE ROUND</button>
-      </div>
-      <div class="resource-editor-field">
-        <label>Round Name</label>
-        <input name="round-${roundIndex}-name" value="${escapeHtml(round.name || "")}">
-      </div>
-      <div class="cots-match-editor-stack">
-        ${(round.matches || []).map((match, matchIndex) => matchEditor(round, roundIndex, match, matchIndex)).join("")}
-      </div>
-      <div class="library-editor-buttons cots-inline-buttons">
-        <button type="button" class="library-inline-btn" data-cots-add-match="${roundIndex}">ADD MATCH</button>
-      </div>
-    </section>
-  `;
 }
 
 function syncStateFromForm(form, workingState) {
   const data = Object.fromEntries(new FormData(form).entries());
+  
   workingState.champion = {
     ...workingState.champion,
-    name: text(data.championName),
-    title: text(data.championTitle),
-    motto: text(data.championMotto),
-    season: text(data.championSeason)
+    name: text(data.championName)
   };
-  workingState.podium = [0, 1, 2].map(index => ({
-    place: text(data[`podium-${index}-place`], ["I", "II", "III"][index]),
-    name: text(data[`podium-${index}-name`]),
-    note: text(data[`podium-${index}-note`])
-  }));
-  workingState.bracket = (workingState.bracket || []).map((round, roundIndex) => ({
-    name: text(data[`round-${roundIndex}-name`], round.name || `Round ${roundIndex + 1}`),
-    matches: (round.matches || []).map((match, matchIndex) => ({
-      id: text(data[`round-${roundIndex}-match-${matchIndex}-id`], match.id),
-      left: text(data[`round-${roundIndex}-match-${matchIndex}-left`], match.left),
-      right: text(data[`round-${roundIndex}-match-${matchIndex}-right`], match.right),
-      winner: text(data[`round-${roundIndex}-match-${matchIndex}-winner`], match.winner),
-      score: text(data[`round-${roundIndex}-match-${matchIndex}-score`], match.score)
-    }))
-  }));
+
+  let url = text(data.bracketUrl);
+  if (url && url.includes("brackethq.com") && !url.endsWith("/embed/")) {
+    url = url.replace(/\/$/, "") + "/embed/";
+  }
+  workingState.bracketUrl = url;
+
+  workingState.podium = [
+    { place: "I", name: text(data.podium0), note: "Champion" },
+    { place: "II", name: text(data.podium1), note: "Finalist" },
+    { place: "III", name: text(data.podium2), note: "Podium" }
+  ];
 }
 
 function renderEditorForm(form, state) {
   form.innerHTML = `
     <div class="library-entry-stack">
       <section class="library-entry-editor">
-        <div class="library-entry-toolbar"><span class="library-entry-title">Champion</span></div>
+        <div class="library-entry-toolbar"><span class="library-entry-title">Champion Settings</span></div>
         <div class="resource-editor-field"><label>Champion Username</label><input name="championName" value="${escapeHtml(state.champion.name || "")}" required></div>
-        <div class="resource-editor-field"><label>Champion Title</label><input name="championTitle" value="${escapeHtml(state.champion.title || "")}"></div>
-        <div class="resource-editor-field"><label>Motto</label><input name="championMotto" value="${escapeHtml(state.champion.motto || "")}"></div>
-        <div class="resource-editor-field"><label>Season</label><input name="championSeason" value="${escapeHtml(state.champion.season || "")}"></div>
         <div class="resource-editor-field"><label>Podium Image</label><input type="file" name="podiumImage" accept="image/*"></div>
-      </section>
-
-      <section class="library-entry-editor">
-        <div class="library-entry-toolbar"><span class="library-entry-title">Podium Top 3</span></div>
-        <div class="cots-editor-grid cots-editor-grid--podium">
-          ${[0, 1, 2].map(index => {
-            const entry = state.podium?.[index] || {};
-            return `
-              <div class="resource-editor-field"><label>Place ${index + 1}</label><input name="podium-${index}-place" value="${escapeHtml(entry.place || ["I", "II", "III"][index])}"></div>
-              <div class="resource-editor-field"><label>Name ${index + 1}</label><input name="podium-${index}-name" value="${escapeHtml(entry.name || "")}"></div>
-              <div class="resource-editor-field"><label>Note ${index + 1}</label><input name="podium-${index}-note" value="${escapeHtml(entry.note || "")}"></div>
-            `;
-          }).join("")}
+        <div class="resource-editor-field">
+          <label>BracketHQ Embed URL</label>
+          <input name="bracketUrl" value="${escapeHtml(state.bracketUrl || "")}" placeholder="https://brackethq.com/b/awkqb/embed/">
+          <p style="font-size: 11px; opacity: 0.6; margin-top: 4px;">Paste the direct src URL (e.g. https://brackethq.com/b/awkqb/embed/)</p>
         </div>
       </section>
 
       <section class="library-entry-editor">
-        <div class="library-entry-toolbar"><span class="library-entry-title">Bracket</span></div>
-        <div class="cots-round-editor-stack">
-          ${(state.bracket || []).map(roundEditor).join("")}
-        </div>
-        <div class="library-editor-buttons cots-inline-buttons">
-          <button type="button" class="library-inline-btn" data-cots-add-round>ADD ROUND</button>
-        </div>
+        <div class="library-entry-toolbar"><span class="library-entry-title">Podium Winners</span></div>
+        <div class="resource-editor-field"><label>1st Place (Champion)</label><input name="podium0" value="${escapeHtml(state.podium?.[0]?.name || "")}"></div>
+        <div class="resource-editor-field"><label>2nd Place (Finalist)</label><input name="podium1" value="${escapeHtml(state.podium?.[1]?.name || "")}"></div>
+        <div class="resource-editor-field"><label>3rd Place (Podium)</label><input name="podium2" value="${escapeHtml(state.podium?.[2]?.name || "")}"></div>
       </section>
     </div>
   `;
@@ -326,7 +205,7 @@ async function initCots() {
   if (!root || root.dataset.cotsBound === "true") return;
   root.dataset.cotsBound = "true";
 
-  const fallback = normalizeState(defaultState(root), { champion: {}, podium: [], bracket: [] });
+  const fallback = normalizeState(defaultState(root), { champion: {}, podium: [], bracketUrl: "", bracket: [] });
   let state = fallback;
   let canEdit = false;
   let meta = {};
@@ -357,30 +236,6 @@ async function initCots() {
     renderEditorForm(form, workingState);
     status.textContent = meta.migrationRequired ? "Migration required before saving" : "";
     overlay.classList.add("active");
-
-    form.onclick = event => {
-      const removeRound = event.target.closest("[data-cots-remove-round]");
-      const addRound = event.target.closest("[data-cots-add-round]");
-      const removeMatch = event.target.closest("[data-cots-remove-match]");
-      const addMatch = event.target.closest("[data-cots-add-match]");
-
-      if (!removeRound && !addRound && !removeMatch && !addMatch) return;
-      syncStateFromForm(form, workingState);
-
-      if (removeRound) {
-        workingState.bracket.splice(Number(removeRound.dataset.cotsRemoveRound), 1);
-      } else if (addRound) {
-        workingState.bracket.push({ name: `Round ${workingState.bracket.length + 1}`, matches: [] });
-      } else if (removeMatch) {
-        const [roundIndex, matchIndex] = removeMatch.dataset.cotsRemoveMatch.split(":").map(Number);
-        workingState.bracket[roundIndex]?.matches?.splice(matchIndex, 1);
-      } else if (addMatch) {
-        const roundIndex = Number(addMatch.dataset.cotsAddMatch);
-        workingState.bracket[roundIndex]?.matches?.push({ id: "", left: "", right: "", winner: "", score: "" });
-      }
-
-      renderEditorForm(form, workingState);
-    };
 
     form.onsubmit = async event => {
       event.preventDefault();

@@ -1,4 +1,5 @@
-const RESOURCE_PAYLOAD_TTL_MS = 60 * 1000;
+const RESOURCE_PAYLOAD_TTL_MS = 60 * 60000;
+const RESOURCE_REQUEST_TIMEOUT_MS = 10 * 1000;
 const resourcePayloadCache = new Map();
 
 function resourceCacheKey(division, type) {
@@ -24,6 +25,16 @@ function emptyPayload() {
   return { resources: [], canWrite: false, canUpload: false, slotCatalog: [] };
 }
 
+export function fetchJsonWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), RESOURCE_REQUEST_TIMEOUT_MS);
+
+  return fetch(url, {
+    ...options,
+    signal: controller.signal
+  }).finally(() => window.clearTimeout(timer));
+}
+
 export async function fetchDivisionResourcePayload(division, type, options = {}) {
   const cacheKey = resourceCacheKey(division, type);
   if (!options.force) {
@@ -32,7 +43,7 @@ export async function fetchDivisionResourcePayload(division, type, options = {})
   }
 
   try {
-    const response = await fetch(`/api/resources?division=${encodeURIComponent(division)}&type=${encodeURIComponent(type)}`);
+    const response = await fetchJsonWithTimeout(`/api/resources?division=${encodeURIComponent(division)}&type=${encodeURIComponent(type)}`);
     const payload = await response.json();
 
     if (!response.ok || !payload.ok) {
@@ -47,7 +58,8 @@ export async function fetchDivisionResourcePayload(division, type, options = {})
       slotCatalog: payload.slotCatalog || []
     });
   } catch (error) {
-    console.warn("Resource feed unavailable:", error);
+    const message = error?.name === "AbortError" ? "REQUEST_TIMED_OUT" : String(error?.message || error || "RESOURCE_FEED_UNAVAILABLE");
+    console.warn("Resource feed unavailable:", message);
     return emptyPayload();
   }
 }

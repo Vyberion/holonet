@@ -32,7 +32,7 @@ export function roleIdsFromRule(rule) {
 
 export function roleIdsFromRanges(rank, ranges = []) {
   const numericRank = Number(rank) || 0;
-  if (!Array.isArray(ranges)) return [];
+  if (!Array.isArray(ranges) || numericRank <= 0) return [];
 
   return ranges.flatMap(range => {
     const min = range?.min == null ? Number.NEGATIVE_INFINITY : Number(range.min);

@@ -26,13 +26,13 @@ export function managedRoleIds() {
 }
 
 function roleIdsForProfile(profile) {
+  if (!isMainGroupMember(profile)) {
+    return [];
+  }
+
   const ids = [config.roles?.verified];
   const ranks = rawRanksFromProfile(profile);
   const managed = config.roles?.managed || {};
-
-  if (!isMainGroupMember(profile)) {
-    return compactRoleIds(ids);
-  }
 
   ids.push(roleIdsFromRule(managed.DARK_COUNCIL?.ranks?.[String(ranks.darkCouncil)]));
   ids.push(roleIdsFromRanges(ranks.darkCouncil, managed.DARK_COUNCIL?.ranges));

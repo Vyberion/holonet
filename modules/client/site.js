@@ -608,6 +608,7 @@
     const skipButton = videoSlot.querySelector("[data-loader-skip-intro]");
     const player = document.createElement("mux-player");
     player.className = "old-guard-mux old-guard-mux--intro";
+    player.setAttribute("disable-tracking");
     player.setAttribute("playback-id", OLD_GUARD_PLAYBACK_ID);
     player.setAttribute("metadata-video-title", OLD_GUARD_TITLE);
     player.setAttribute("video-title", OLD_GUARD_TITLE);
@@ -918,7 +919,10 @@
 
     function syncOverlayState() {
       const active = Boolean(document.querySelector(activeOverlaySelector));
-      document.body.classList.toggle("editor-overlay-active", active);
+      const hasClass = document.body.classList.contains("editor-overlay-active");
+      if (active !== hasClass) {
+        document.body.classList.toggle("editor-overlay-active", active);
+      }
     }
 
     const observer = new MutationObserver(syncOverlayState);
@@ -949,7 +953,11 @@
   };
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", window.HolonetSite.boot);
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", window.HolonetSite.boot);
+    } else {
+      window.HolonetSite.boot();
+    }
   } else {
     window.HolonetSite.boot();
   }

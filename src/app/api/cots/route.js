@@ -116,6 +116,7 @@ function normalizeState(value = {}) {
         note: text(entry?.note)
       }))
       : fallback.podium,
+    bracketUrl: text(source.bracketUrl, fallback.bracketUrl || ""),
     bracket: Array.isArray(source.bracket) && source.bracket.length
       ? source.bracket.map((round, roundIndex) => ({
         name: text(round?.name, `Round ${roundIndex + 1}`),

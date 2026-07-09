@@ -235,41 +235,43 @@ async function hydratePdfTabsFromResources() {
 
   tabStrip.innerHTML = '<span class="pdf-loading">Loading handbook registry...</span>';
 
-  state.handbookPayload = normalizeHandbookPayload(await fetchDivisionResourcePayload(division, "documents"));
-  const handbooks = state.handbookPayload.resources || [];
+  try {
+    state.handbookPayload = normalizeHandbookPayload(await fetchDivisionResourcePayload(division, "documents"));
+    const handbooks = state.handbookPayload.resources || [];
 
-  if (!handbooks.length) {
-    tabStrip.innerHTML = '<span class="pdf-loading">No handbooks published.</span>';
-    return;
+    if (!handbooks.length) {
+      tabStrip.innerHTML = '<span class="pdf-loading">No handbooks published.</span>';
+      return;
+    }
+
+    const requestedKey = normalizeKey(requestedDocumentKey());
+    const requestedIndex = handbooks.findIndex(resource => resourceKeys(resource).includes(requestedKey));
+    const firstAvailableIndex = handbooks.findIndex(isResourceAvailable);
+    const activeIndex = requestedIndex >= 0 ? requestedIndex : Math.max(0, firstAvailableIndex);
+
+    tabStrip.innerHTML = handbooks.map((resource, index) => `
+      <button
+        type="button"
+        class="pdf-tab${index === activeIndex ? " is-active" : ""}${isResourceAvailable(resource) ? "" : " is-disabled"}"
+        role="tab"
+        aria-selected="${index === activeIndex ? "true" : "false"}"
+        aria-disabled="${isResourceAvailable(resource) ? "false" : "true"}"
+        data-pdf-tab
+        data-pdf-key="${escapeHtml(resource.slug || resource.id || resource.storagePath || resource.fileName || resource.title)}"
+        data-pdf-label="${escapeHtml(displayTitle(resource))}"
+        data-pdf-document-meta="${escapeHtml(resource.meta || resource.title || "HANDBOOK")}"
+        data-pdf-src="${escapeHtml(resource.signedUrl || resource.href || "")}" 
+        data-pdf-available="${isResourceAvailable(resource) ? "true" : "false"}"
+        data-pdf-crop-whitespace="${resource.sourceType === "google_spreadsheet" || resource.googleKind === "spreadsheet" ? "true" : "false"}"
+      >
+        ${escapeHtml(tabLabel(resource))}
+      </button>
+    `).join("");
+  } catch (error) {
+    console.error("Handbook viewer failed to load resources:", error);
+    state.handbookPayload = { resources: [], slotCatalog: [] };
+    tabStrip.innerHTML = `<span class="pdf-loading" role="alert">Unable to load handbook registry: ${escapeHtml(String(error?.message || error || "HANDBOOKS_UNAVAILABLE").replace(/_/g, " "))}</span>`;
   }
-
-  const requestedKey = normalizeKey(requestedDocumentKey());
-  const requestedIndex = handbooks.findIndex(resource => resourceKeys(resource).includes(requestedKey));
-  const firstAvailableIndex = handbooks.findIndex(isResourceAvailable);
-  const activeIndex = requestedIndex >= 0 ? requestedIndex : Math.max(0, firstAvailableIndex);
-
-  tabStrip.innerHTML = handbooks.map((resource, index) => `
-    <button
-      type="button"
-      class="pdf-tab${index === activeIndex ? " is-active" : ""}${isResourceAvailable(resource) ? "" : " is-disabled"}"
-      role="tab"
-      aria-selected="${index === activeIndex ? "true" : "false"}"
-      aria-disabled="${isResourceAvailable(resource) ? "false" : "true"}"
-      data-pdf-tab
-      data-pdf-key="${escapeHtml(resource.slug || resource.id || resource.storagePath || resource.fileName || resource.title)}"
-      data-pdf-label="${escapeHtml(displayTitle(resource))}"
-      data-pdf-document-meta="${escapeHtml(resource.meta || resource.title || "HANDBOOK")}"
-      data-pdf-src="${escapeHtml(resource.signedUrl || resource.href || "")}"
-      data-pdf-available="${isResourceAvailable(resource) ? "true" : "false"}"
-      data-pdf-crop-whitespace="${resource.sourceType === "google_spreadsheet" || resource.googleKind === "spreadsheet" ? "true" : "false"}"
-    >
-      ${escapeHtml(tabLabel(resource))}
-    </button>
-  `).join("");
-}
-
-function getPixelRatio() {
-  return Math.min(window.devicePixelRatio || 1, 2);
 }
 
 function getAvailablePageWidth() {
@@ -278,6 +280,10 @@ function getAvailablePageWidth() {
 
 function getAvailablePageHeight() {
   return Math.max((dom.scrollBox?.clientHeight || 700) - 34, 320);
+}
+
+function getPixelRatio() {
+  return window.devicePixelRatio || 1;
 }
 
 function getScrollRatio() {

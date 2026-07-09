@@ -23,11 +23,11 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
       audio.play().catch(e => console.warn("Audio autoplay blocked:", e));
 
       const duration = 3500; // Matches the 3.5s opacity transition
-      const steps = 35; 
+      const steps = 35;
       const stepTime = duration / steps;
       let currentStep = 0;
 
-      const MAX_VOLUME = 0.15;
+      const MAX_VOLUME = 0.05;
 
       const timer = setInterval(() => {
         currentStep++;
@@ -50,7 +50,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
     const loop = () => {
       const target = targetProgressRef.current;
       const current = currentProgressRef.current;
-      
+
       // If we're close enough, snap to exact target
       if (Math.abs(target - current) < 0.001) {
         if (current !== target) {
@@ -63,10 +63,10 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
         currentProgressRef.current = next;
         setProgress(next);
       }
-      
+
       rafRef.current = requestAnimationFrame(loop);
     };
-    
+
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
   }, []);
@@ -120,7 +120,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
         let next = 1 + step; // step is negative, brings progress below 1
         if (next < 0) next = 0;
         targetProgressRef.current = next;
-        
+
         // Instantly trigger the locked state to prevent native scroll escaping
         if (currentProgressRef.current === 1) {
           currentProgressRef.current = 0.999;
@@ -149,7 +149,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
       const touchY = e.touches[0].clientY;
       const delta = lastTouchY - touchY; // positive = finger swipe up = scroll down
       lastTouchY = touchY;
-      
+
       const p = targetProgressRef.current;
       const isCurrentlyLocked = currentProgressRef.current < 1;
 
@@ -174,7 +174,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
         let next = 1 + step;
         if (next < 0) next = 0;
         targetProgressRef.current = next;
-        
+
         // Instantly trigger the locked state to prevent native scroll escaping
         if (currentProgressRef.current === 1) {
           currentProgressRef.current = 0.999;
@@ -286,10 +286,10 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
           <button
             className="loader-intro-skip"
             type="button"
-            style={{ 
-              opacity: introVideoStarted ? 1 : 0, 
+            style={{
+              opacity: introVideoStarted ? 1 : 0,
               pointerEvents: introVideoStarted ? 'auto' : 'none',
-              zIndex: 100 
+              zIndex: 100
             }}
             onClick={() => {
               introVideoFinishedRef.current = true;

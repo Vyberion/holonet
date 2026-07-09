@@ -108,7 +108,7 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-1">
                     <h4>PILLAR OF DOCTRINE</h4>
-                    <p>The Sith Order is not an army, and we will stop operating under the delusion that we are soldiers. We are a religious order, and our focus will return to such, and so we will stop lying with the militaristic and bureaucratic mindset that has infected ourselves.</p>
+                    <p>The Sith Order is not an army, and we will stop operating under the delusion that we are soldiers. We are a religious order, and our focus will return to such, and so we will stop lying with the militaristic and bureaucratic mindset that has infected the Order.</p>
                   </div>
                 </div>
               </div>
@@ -210,8 +210,7 @@ export default function MandateV2Page() {
                 <p>The Sith Order shall be more than just a shadow of its former self. To do such a thing is to wallow in its failures.</p>
                 <p>We cannot cling to the status quo. If nothing changes, neither will the Order. The Order requires a willingness to adapt and pursue a vision for what it can become. Given this responsibility again, I intend to dedicate my whole term to restoring purpose and making ambition meaningful and a central part of the group again.</p>
                 <p>The legacy of our great Order should be judged by what it achieves next, not by its past from Eras ago. We can reclaim the Order.</p>
-                <p className="v2-italic animate-on-scroll stagger-3">Only the strong shall inherit the stars.</p>
-                <p className="v2-seal animate-on-scroll stagger-4">By my Authority and Hand, in Mind and Will:</p>
+                <p className="v2-italic animate-on-scroll stagger-3">Only the strong shall inherit the stars. By my Authority and Hand, in Mind and Will:</p>
                 <div className="v2-signature animate-on-scroll stagger-4">Vyberon<br /></div>
                 <iframe data-testid="embed-iframe" style={{ borderRadius: "12px" }} src="https://open.spotify.com/embed/track/48v2zlOv10W8F4RWg7eWy1?utm_source=generator&theme=0&si=d317b391208240f2" width="100%" height="352" frameBorder="0" allowFullScreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
               </div>

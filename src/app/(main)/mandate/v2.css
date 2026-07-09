@@ -405,7 +405,8 @@ body {
   font-family: var(--font-script);
   font-size: 4rem;
   color: #fff;
-  margin-top: 20px;
+  margin-top: 40px;
+  margin-bottom: 40px;
   text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
 }
 

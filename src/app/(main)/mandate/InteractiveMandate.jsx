@@ -259,7 +259,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
 
   return (
     <div ref={containerRef} className="interactive-mandate-wrapper">
-      <audio ref={audioRef} src="/assets/music/suspense.mp3" loop />
+      <audio ref={audioRef} src="/assets/music/galaxy/suspense.mp3" loop />
 
       {/* INTRO VIDEO OVERLAY — stays on top until finished */}
       {videoPlaybackId && (

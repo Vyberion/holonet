@@ -25,6 +25,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
   const playerRef = useRef(null);
   const [playerReady, setPlayerReady] = useState(false);
   const [paused, setPaused] = useState(true);
+  const [hasEnded, setHasEnded] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const isIntro = mode === "intro";
@@ -47,6 +48,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
 
     const handlePlay = () => {
       setPaused(false);
+      setHasEnded(false);
       readDuration();
       if (onPlay) onPlay();
     };
@@ -58,6 +60,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
 
     const handleEnded = () => {
       setPaused(true);
+      setHasEnded(true);
       setCurrentTime(0);
       if (onEnded) onEnded();
     };
@@ -173,7 +176,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
           />
           <button
             type="button"
-            className={`old-guard-start-button${paused ? "" : " is-hidden"}`}
+            className={`old-guard-start-button${(paused && !hasEnded) ? "" : " is-hidden"}`}
             aria-label={`Play ${title}`}
             disabled={!playerReady}
             onClick={handleStartButton}

@@ -241,7 +241,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
           zIndex: 20,
           opacity: introVideoFinished ? 0 : 1,
           pointerEvents: introVideoFinished ? 'none' : 'auto',
-          transition: 'opacity 0.65s ease-out',
+          transition: 'opacity 1.5s ease-out',
           background: '#050102'
         }}>
           <OldGuardPlayer
@@ -264,6 +264,10 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
             onClick={() => {
               introVideoFinishedRef.current = true;
               setIntroVideoFinished(true);
+              const player = containerRef.current?.querySelector("mux-player");
+              if (player && typeof player.pause === "function") {
+                player.pause();
+              }
             }}
           >
             SKIP TRANSMISSION

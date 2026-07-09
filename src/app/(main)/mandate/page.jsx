@@ -19,13 +19,6 @@ export default function MandateV2Page() {
       showNav={false}
       mainClassName="mandate-v2-main"
       includeSearchOverlay={false}
-      releaseIntro={{
-        enabled: true,
-        force: true,
-        video: {
-          playbackId: "8TMIBxxLXd5BKfnDq3nU6xki2lvlXaJ9I00xrNkZ9k3k"
-        }
-      }}
     >
       <InteractiveMandate
         hero={

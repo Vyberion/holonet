@@ -21,7 +21,7 @@ function muxThumbnailUrl(playbackId) {
   return `https://image.mux.com/${playbackId}/thumbnail.png?width=214&height=121&time=0`;
 }
 
-export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId = "", title = OLD_GUARD_TITLE, hideControls = false, fillScreen = false }) {
+export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId = "", title = OLD_GUARD_TITLE, hideControls = false, fillScreen = false, onPlay, onEnded }) {
   const playerRef = useRef(null);
   const [playerReady, setPlayerReady] = useState(false);
   const [paused, setPaused] = useState(true);
@@ -33,7 +33,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
 
   useEffect(() => {
     const player = playerRef.current;
-    if (!player || isIntro) return undefined;
+    if (!player) return undefined;
 
     const readDuration = () => {
       const nextDuration = Number(player.duration);
@@ -48,6 +48,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
     const handlePlay = () => {
       setPaused(false);
       readDuration();
+      if (onPlay) onPlay();
     };
 
     const handlePause = () => {
@@ -58,6 +59,7 @@ export function OldGuardPlayer({ mode = "page", playbackId: explicitPlaybackId =
     const handleEnded = () => {
       setPaused(true);
       setCurrentTime(0);
+      if (onEnded) onEnded();
     };
 
     player.addEventListener("loadedmetadata", readDuration);

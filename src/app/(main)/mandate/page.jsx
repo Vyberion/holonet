@@ -190,10 +190,9 @@ export default function MandateV2Page() {
                 <p>The legacy of the Sith Order should be measured only by what it continues to accomplish. We can reclaim the Order.</p>
                 <p className="v2-italic animate-on-scroll stagger-3">Only the strong shall inherit the stars.</p>
                 <div className="v2-signature animate-on-scroll stagger-4">Vyberon</div>
+                <iframe data-testid="embed-iframe" style={{ borderRadius: "12px" }} src="https://open.spotify.com/embed/track/48v2zlOv10W8F4RWg7eWy1?utm_source=generator&theme=0&si=d317b391208240f2" width="100%" height="352" frameBorder="0" allowFullScreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
               </div>
             </section>
-
-            <iframe data-testid="embed-iframe" style={{ borderRadius: "12px" }} src="https://open.spotify.com/embed/track/48v2zlOv10W8F4RWg7eWy1?utm_source=generator&theme=0&si=d317b391208240f2" width="100%" height="352" frameBorder="0" allowFullScreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
           </div>
         }
       />

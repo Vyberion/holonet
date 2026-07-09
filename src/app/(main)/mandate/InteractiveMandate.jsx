@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { OldGuardPlayer } from "../../components/OldGuardPlayer.jsx";
+import { OldGuardPlayer } from "../../../components/OldGuardPlayer.jsx";
 
 export function InteractiveMandate({ hero, content }) {
   const containerRef = useRef(null);

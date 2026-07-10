@@ -195,16 +195,17 @@ export default function MandateV2Page() {
                     <p>AUG 22</p>
                   </div>
                 </div>
+              </div>
 
-                <div className="v2-text-content animate-on-scroll stagger-4" style={{ marginTop: '40px' }}>
-                  <p>My experience within the Order has given me a perspective. I have witnessed, while albeit overall minor, the evolution of our systems and the larger challenges that face the group. I have gained an understanding of both the strengths that must be protected and the weaknesses that must be addressed.</p>
+              <div className="v2-text-content animate-on-scroll stagger-4" style={{ marginTop: '40px' }}>
+                <p>My experience within the Order has given me a perspective. I have witnessed, while albeit overall minor, the evolution of our systems and the larger challenges that face the group. I have gained an understanding of both the strengths that must be protected and the weaknesses that must be addressed.</p>
 
-                  <p>I have seen how ambition can be lost through the poor direction of those who wield it. I have seen how systems can become detached from their purpose. I have seen how temporary fixes often fail to deal with the deeper issues. I have seen what this Order needs. These lessons learned form the base of my vision and so I approach this position with a deeply rooted understanding of what it takes.</p>
+                <p>I have seen how ambition can be lost through the poor direction of those who wield it. I have seen how systems can become detached from their purpose. I have seen how temporary fixes often fail to deal with the deeper issues. I have seen what this Order needs. These lessons learned form the base of my vision and so I approach this position with a deeply rooted understanding of what it takes.</p>
 
-                  <p style={{ marginTop: '40px' }}>With the same sentiment as my last application: I am not one for going on and on about personal achievements nor diminishing the accolades of my rivals during this period. However, I will state a few of my achievements as to not fall flat.</p>
+                <p style={{ marginTop: '40px' }}>With the same sentiment as my last application: I am not one for going on and on about personal achievements nor diminishing the accolades of my rivals during this period. However, I will state a few of my achievements as to not fall flat.</p>
 
-                  <div className="v2-pillars animate-on-scroll stagger-5" style={{ marginTop: '40px' }}>
-                    <div className="v2-pillars-header">
+                <div className="v2-pillars animate-on-scroll stagger-5" style={{ marginTop: '40px' }}>
+                  <div className="v2-pillars-header">
                       <span className="triangle-icon">▸</span> ACHIEVEMENTS
                     </div>
                     <div className="v2-pillar animate-on-scroll stagger-1">
@@ -223,10 +224,9 @@ export default function MandateV2Page() {
                       <h4>HIGH COMMAND</h4>
                       <p>I have served in this position before. While not a perfect reign by any means, my four months on the Throne and nine months as High Command (one of which was spent as the High Command Reaver Overseer rather than the Head of Divisions) boosted my experience first-hand required for the role.</p>
                     </div>
-                    <div className="v2-pillar animate-on-scroll stagger-5">
-                      <h4>CENTRALIZED DOCUMENTS</h4>
-                      <p>They may have since changed, but I was responsible for the first generally long-lasting, centralized documents during my second term as Wrath. This was understandably superceded, but I will always make an effort to push for a consistent quality and raise the standards of the Order. Small improvements are always still improvements.</p>
-                    </div>
+                  <div className="v2-pillar animate-on-scroll stagger-5">
+                    <h4>CENTRALIZED DOCUMENTS</h4>
+                    <p>They may have since changed, but I was responsible for the first generally long-lasting, centralized documents during my second term as Wrath. This was understandably superceded, but I will always make an effort to push for a consistent quality and raise the standards of the Order. Small improvements are always still improvements.</p>
                   </div>
                 </div>
               </div>

@@ -80,23 +80,46 @@ body {
   transform: translateY(0) scale(1);
 }
 
-/* Normal (Scroll Down) Stagger (Top-Down) */
-.stagger-1 { transition-delay: 0.1s; }
-.stagger-2 { transition-delay: 0.2s; }
-.stagger-3 { transition-delay: 0.3s; }
-.stagger-4 { transition-delay: 0.4s; }
-.stagger-5 { transition-delay: 0.5s; }
-.stagger-6 { transition-delay: 0.6s; }
-.stagger-7 { transition-delay: 0.7s; }
+.stagger-1,
+.stagger-2,
+.stagger-3,
+.stagger-4,
+.stagger-5,
+.stagger-6,
+.stagger-7 {
+  transition-delay: 0s;
+}
 
-/* Scroll Up Stagger (Bottom-Up) */
-.is-scrolling-up .stagger-1 { transition-delay: 0.7s; }
-.is-scrolling-up .stagger-2 { transition-delay: 0.6s; }
-.is-scrolling-up .stagger-3 { transition-delay: 0.5s; }
-.is-scrolling-up .stagger-4 { transition-delay: 0.4s; }
-.is-scrolling-up .stagger-5 { transition-delay: 0.3s; }
-.is-scrolling-up .stagger-6 { transition-delay: 0.2s; }
-.is-scrolling-up .stagger-7 { transition-delay: 0.1s; }
+/* Normal (Scroll Down) Stagger In (Top-Down) */
+.is-visible.stagger-1 {
+  transition-delay: 0.1s;
+}
+
+.is-visible.stagger-2 {
+  transition-delay: 0.2s;
+}
+
+.is-visible.stagger-3 {
+  transition-delay: 0.3s;
+}
+
+.is-visible.stagger-4 {
+  transition-delay: 0.4s;
+}
+
+.is-visible.stagger-5 {
+  transition-delay: 0.5s;
+}
+
+.is-visible.stagger-6 {
+  transition-delay: 0.6s;
+}
+
+.is-visible.stagger-7 {
+  transition-delay: 0.7s;
+}
+
+
 
 /* 3D Tilt Wrapper */
 .interactive-mandate-wrapper {

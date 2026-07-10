@@ -203,18 +203,6 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
     };
     window.addEventListener('mousemove', handleGlobalMouseMove);
 
-    let lastScrollY = window.scrollY;
-    const handleScrollDir = () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY > lastScrollY) {
-        document.body.classList.remove('is-scrolling-up');
-      } else if (currentScrollY < lastScrollY) {
-        document.body.classList.add('is-scrolling-up');
-      }
-      lastScrollY = currentScrollY;
-    };
-    window.addEventListener('scroll', handleScrollDir, { passive: true });
-
     const glowElements = document.querySelectorAll('.pos-item, .v2-quote-box');
 
     const handleGlowMove = (e) => {
@@ -240,7 +228,6 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
     });
 
     return () => {
-      window.removeEventListener('scroll', handleScrollDir);
       window.removeEventListener('mousemove', handleGlobalMouseMove);
       glowElements.forEach(el => {
         el.removeEventListener('mousemove', handleGlowMove);

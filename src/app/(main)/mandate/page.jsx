@@ -62,7 +62,7 @@ export default function MandateV2Page() {
                 <p className="v2-greeting">The Lords and Aspirants of the Sith Order:</p>
                 <p>For too long, the Order has lacked direction and been weakened. We have bickered over the remnants of what little we have while the Order has drifted away from the principles that once made it what it was.</p>
                 <p>The Order has grown stagnant, it has been utterly bloated by those who mistake pettiness with one another for what we were meant to become; a succession of leaders have lacked the will required to return it to its former glory and your passion has been allowed to erode. Time has dulled its edge and complacency has been allowed to spread corner to corner. This must end.</p>
-                <p>I proclaim that my second campaign begins today. I am returning with a clear intent. I want to restore the Sith Order to its original glory. I want to bring the Order into the future. Oftentimes, the future of the Order has been diluted by overly specific misdirected decrees from day one. Changes are often introduced without true consultation with other aspects of the Order, patchy and isolated from the issues that they are meant to fix. Hence, this mandate does not contain a list of strict promises, because I believe the path forward is more than one document and must adapt to whatever challenges we come across as we face them.</p>
+                <p>I proclaim that my second campaign begins today. I am returning with a clear intent. I want to restore the Order to its original glory. I want to bring it into the future. Oftentimes, the future of the Order has been diluted by overly specific misdirected decrees from day one. Changes are often introduced without true consultation with other aspects of the Order, patchy and isolated from the issues that they are meant to fix. Hence, this mandate does not contain a list of strict promises, because I believe the path forward is more than one document and must adapt to whatever challenges we come across as we face them.</p>
                 <p>Under my reclaimed throne:</p>
 
               </div>
@@ -213,9 +213,9 @@ export default function MandateV2Page() {
                 <h3>ULTIMATUM</h3>
               </div>
               <div className="v2-text-content animate-on-scroll stagger-2">
-                <p>The Sith Order shall be more than just a shadow of its former self. To do such a thing is to wallow in its failures.</p>
-                <p>We cannot cling to the status quo. If nothing changes, neither will the Order. The Order requires a willingness to adapt and pursue a vision for what it can become. Given this responsibility again, I intend to dedicate my whole term to restoring purpose and making ambition meaningful and a central part of the group again.</p>
-                <p>The legacy of our great Order should be judged by what it achieves next, not by its past from Eras ago. We can reclaim the Order.</p>
+                <p>The Sith Order shall be more than just a shadow of its former self. To deny such a thing is to wallow in its failures.</p>
+                <p>We cannot cling to the status quo. If nothing changes, neither will it. It requires a willingness to adapt and pursue a vision for what it can become. Given this responsibility again, I intend to dedicate my whole term to restoring purpose and making ambition meaningful and a central part of the Order again.</p>
+                <p>The legacy of our great Order should be judged by what it achieves next, not by its past from Eras ago. We can reclaim the Sith Order.</p>
                 <p className="v2-italic animate-on-scroll stagger-3">Only the strong shall inherit the stars. By my Authority and Hand, in Mind and Will:</p>
                 <div className="v2-signature animate-on-scroll stagger-4">Vyberon<br /></div>
                 <iframe data-testid="embed-iframe" style={{ borderRadius: "12px" }} src="https://open.spotify.com/embed/track/48v2zlOv10W8F4RWg7eWy1?utm_source=generator&theme=0&si=d317b391208240f2" width="100%" height="352" frameBorder="0" allowFullScreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>

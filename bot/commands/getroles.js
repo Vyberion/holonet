@@ -15,9 +15,9 @@ export async function handleCommand(interaction) {
 
   try {
     const result = await syncMemberRoles(interaction.member, interaction.user.id);
-    await interaction.reply(ephemeral({
+    await interaction.reply({
       embeds: [successEmbed("Roles Updated", `Updated your roles. Added ${result.added.length} role(s), removed ${result.removed.length} role(s).${result.nickname ? `\nNickname: ${result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`}` : ""}`)]
-    }));
+    });
     await postVerificationLog(interaction.client, {
       title: "Roles Updated",
       description: `<@${interaction.user.id}> used /getroles.`,

@@ -3,11 +3,11 @@ import * as getroles from "./getroles.js";
 import * as verification from "./verification.js";
 import * as reports from "./reports.js";
 import * as clock from "./clock.js";
-import * as say from "./say.js";
+
 import * as purge from "./purge.js";
 import * as userApps from "./userApps.js";
 
-export const modules = [lookup, getroles, verification, reports, clock, say, purge, userApps];
+export const modules = [lookup, getroles, verification, reports, clock, purge, userApps];
 
 export const commandData = (() => {
   const commandsByName = new Map();

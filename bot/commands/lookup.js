@@ -93,7 +93,7 @@ function lookupLines({ discordUser, link, groupRoles, robloxUser }) {
 async function replyLookup(interaction, { discordUser, link, robloxUser }) {
   const robloxUserId = robloxUser?.id || link?.roblox_user_id;
   if (!robloxUserId) {
-    await interaction.reply(ephemeral({ embeds: [errorEmbed("That user is not linked.")] }));
+    await interaction.reply({ embeds: [errorEmbed("That user is not linked.")] });
     return;
   }
 
@@ -102,14 +102,14 @@ async function replyLookup(interaction, { discordUser, link, robloxUser }) {
     robloxUser?.name ? robloxUser : loadRobloxUser(robloxUserId).catch(() => robloxUser)
   ]);
 
-  await interaction.reply(ephemeral({
+  await interaction.reply({
     embeds: [embed("Holonet Lookup", lookupLines({
       discordUser,
       link,
       groupRoles,
       robloxUser: loadedRobloxUser
     }).join("\n"))]
-  }));
+  });
 }
 
 export async function handleCommand(interaction) {
@@ -120,14 +120,14 @@ export async function handleCommand(interaction) {
     const robloxInput = interaction.options.getString("roblox", false);
 
     if ((discordUser && robloxInput) || (!discordUser && !robloxInput)) {
-      await interaction.reply(ephemeral({ embeds: [errorEmbed("Choose either a Discord user or a Roblox username/ID.")] }));
+      await interaction.reply({ embeds: [errorEmbed("Choose either a Discord user or a Roblox username/ID.")] });
       return true;
     }
 
     if (discordUser) {
       const link = await loadLinkByDiscordUserId(discordUser.id);
       if (!link) {
-        await interaction.reply(ephemeral({ embeds: [errorEmbed("That Discord user is not linked.")] }));
+        await interaction.reply({ embeds: [errorEmbed("That Discord user is not linked.")] });
         return true;
       }
 
@@ -137,7 +137,7 @@ export async function handleCommand(interaction) {
 
     const robloxUser = await loadRobloxUserByInput(robloxInput);
     if (!robloxUser?.id) {
-      await interaction.reply(ephemeral({ embeds: [errorEmbed("That Roblox user was not found.")] }));
+      await interaction.reply({ embeds: [errorEmbed("That Roblox user was not found.")] });
       return true;
     }
 

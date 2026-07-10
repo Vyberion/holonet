@@ -189,9 +189,9 @@ function schedulePostLinkRoleSync(interaction, link) {
 
 async function replyLink(interaction) {
   const link = await createLinkToken(interaction.user);
-  await interaction.reply(ephemeral({
+  await interaction.reply({
     embeds: [embed("Holonet Verification", `Open the Holonet Account page and log in with Roblox to finish linking.\n\n${link.url}`)]
-  }));
+  });
   schedulePostLinkRoleSync(interaction, link);
 }
 
@@ -245,7 +245,7 @@ export async function handleCommand(interaction) {
 
       const result = await syncMemberRoles(targetMember, interaction.user.id);
       const targetLabel = sameUser ? "" : ` for <@${targetUser.id}>`;
-      await interaction.reply(ephemeral({ embeds: [successEmbed("Roles Updated", `Updated roles${targetLabel}. Added ${result.added.length} role(s), removed ${result.removed.length} role(s).${result.nickname ? `\nNickname: ${result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`}` : ""}`)] }));
+      await interaction.reply({ embeds: [successEmbed("Roles Updated", `Updated roles${targetLabel}. Added ${result.added.length} role(s), removed ${result.removed.length} role(s).${result.nickname ? `\nNickname: ${result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`}` : ""}`)] });
       await postVerificationLog(interaction.client, {
         title: "Roles Updated",
         description: `<@${interaction.user.id}> updated roles${targetLabel}.`,
@@ -266,7 +266,7 @@ export async function handleCommand(interaction) {
     const user = interaction.options.getUser("user", true);
     const verified = await getVerifiedProfile(user.id);
     if (!verified) {
-      await interaction.reply(ephemeral({ embeds: [errorEmbed("That Discord user is not linked.")] }));
+      await interaction.reply({ embeds: [errorEmbed("That Discord user is not linked.")] });
       return true;
     }
     const groupRoles = await loadGroupRoles(verified.link.roblox_user_id);
@@ -280,7 +280,7 @@ export async function handleCommand(interaction) {
       .filter(Boolean);
     const username = robloxUser?.name || robloxUser?.displayName || verified.link.roblox_user_id;
 
-    await interaction.reply(ephemeral({
+    await interaction.reply({
       embeds: [embed("Holonet Lookup", [
         `Discord: <@${user.id}>`,
         `Roblox: ${username} (${verified.link.roblox_user_id})`,
@@ -288,7 +288,7 @@ export async function handleCommand(interaction) {
         ...(divisionLines.length ? [`Divisions: ${divisionLines.join(", ")}`] : []),
         `Lookup: ${lookupUrl(username)}`
       ].join("\n"))]
-    }));
+    });
     return true;
   }
 
@@ -298,13 +298,13 @@ export async function handleCommand(interaction) {
     if (!selfUnlink) {
       const actor = await getVerifiedProfile(interaction.user.id);
       if (!canManageBot(actor?.profile, interaction.member)) {
-        await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to unlink users.")] }));
+        await interaction.reply({ embeds: [errorEmbed("You do not have clearance to unlink users.")] });
         return true;
       }
     }
 
     await unlinkDiscordUser(user.id, interaction.user.id);
-    await interaction.reply(ephemeral({ embeds: [successEmbed("Unlinked", selfUnlink ? "Your Discord account has been unlinked." : `<@${user.id}> has been unlinked.`)] }));
+    await interaction.reply({ embeds: [successEmbed("Unlinked", selfUnlink ? "Your Discord account has been unlinked." : `<@${user.id}> has been unlinked.`)] });
     await postVerificationLog(interaction.client, {
       title: "Discord Unlinked",
       description: selfUnlink ? `<@${interaction.user.id}> unlinked their Discord account.` : `<@${interaction.user.id}> unlinked <@${user.id}>.`,

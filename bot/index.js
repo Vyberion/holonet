@@ -61,6 +61,28 @@ client.once("clientReady", () => {
 
 client.on("interactionCreate", async interaction => {
   try {
+    const isAppContextMenu = interaction.isMessageContextMenuCommand?.() || interaction.isUserContextMenuCommand?.();
+    const isButton = interaction.isButton?.();
+
+    if (isAppContextMenu || isButton) {
+      const originalReply = interaction.reply.bind(interaction);
+      interaction.reply = async (options) => {
+        if (typeof options === "string") options = { content: options };
+        return originalReply({ ...options, ephemeral: true });
+      };
+
+      const originalDeferReply = interaction.deferReply.bind(interaction);
+      interaction.deferReply = async (options = {}) => {
+        return originalDeferReply({ ...options, ephemeral: true });
+      };
+
+      const originalFollowUp = interaction.followUp.bind(interaction);
+      interaction.followUp = async (options) => {
+        if (typeof options === "string") options = { content: options };
+        return originalFollowUp({ ...options, ephemeral: true });
+      };
+    }
+
     const handled = await routeInteraction(interaction);
     if (!handled && interaction.isRepliable()) {
       const subcommand = interaction.isChatInputCommand?.() ? interaction.options?.getSubcommand(false) : "";

@@ -48,11 +48,11 @@ body {
 }
 
 .v2-bg {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(80, 0, 10, 0.5) 0%, rgba(10, 0, 5, 0.95) 50%, rgba(0, 0, 0, 1) 100%);
   z-index: 0;
   transition: background 0.3s ease-out;
@@ -86,7 +86,8 @@ body {
 .stagger-4,
 .stagger-5,
 .stagger-6,
-.stagger-7 {
+.stagger-7,
+.stagger-8 {
   transition-delay: 0s;
 }
 
@@ -117,6 +118,10 @@ body {
 
 .is-visible.stagger-7 {
   transition-delay: 0.7s;
+}
+
+.is-visible.stagger-8 {
+  transition-delay: 0.8s;
 }
 
 

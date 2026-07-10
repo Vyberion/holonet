@@ -199,7 +199,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
   useEffect(() => {
     const handleGlobalMouseMove = (e) => {
       document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`);
-      document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`);
+      document.documentElement.style.setProperty('--mouse-y', `${e.clientY + window.scrollY}px`);
     };
     window.addEventListener('mousemove', handleGlobalMouseMove);
 

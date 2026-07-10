@@ -204,6 +204,10 @@ body {
   box-sizing: border-box;
 }
 
+.v2-proclamation {
+  padding-top: 15vh;
+}
+
 /* During the scroll-driven transition, suppress all child CSS animations
    so that ONLY our wrapper opacity controls visibility. No flashes. */
 .scroll-reveal-override .animate-on-scroll {

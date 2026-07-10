@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;600&family=Great+Vibes&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;600&family=Great+Vibes&family=Share+Tech+Mono&display=swap');
 
 :root {
   --sith-red: #d31a38;
@@ -11,6 +11,7 @@
   --font-serif: 'Cinzel', serif;
   --font-sans: 'Inter', sans-serif;
   --font-script: 'Great Vibes', cursive;
+  --font-mono: 'Share Tech Mono', monospace;
 }
 
 /* Global Overrides to break out of the Holonet layout completely */
@@ -412,12 +413,14 @@ body {
 
 .v2-text-content p {
   margin-bottom: 25px;
+  font-family: var(--font-mono);
 }
 
 .v2-italic {
   font-style: italic;
   color: #fff;
   font-weight: 600;
+  font-family: var(--font-sans);
 }
 
 .v2-seal {
@@ -482,6 +485,7 @@ body {
   margin: 0;
   font-size: 0.95rem;
   line-height: 1.6;
+  font-family: var(--font-mono);
 }
 
 /* Record Section */
@@ -520,6 +524,7 @@ body {
   font-size: 0.85rem;
   font-weight: 600;
   color: #fff;
+  font-family: var(--font-mono);
 }
 
 /* Positions Grid */
@@ -572,6 +577,7 @@ body {
   font-size: 0.85rem;
   font-weight: 600;
   color: #fff;
+  font-family: var(--font-mono);
 }
 
 /* ==================== Responsive ==================== */

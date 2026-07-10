@@ -197,26 +197,42 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
 
   // Mouse spotlight, IntersectionObserver, glow effects
   useEffect(() => {
-    const handleGlobalMouseMove = (e) => {
-      document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`);
-      document.documentElement.style.setProperty('--mouse-y', `${e.clientY + window.scrollY}px`);
+    let lastClientX = typeof window !== 'undefined' ? window.innerWidth / 2 : 0;
+    let lastClientY = typeof window !== 'undefined' ? window.innerHeight / 2 : 0;
+    let hoveredGlowElement = null;
+
+    const updateMouseVariables = () => {
+      document.documentElement.style.setProperty('--mouse-x', `${lastClientX}px`);
+      document.documentElement.style.setProperty('--mouse-y', `${lastClientY + window.scrollY}px`);
+      
+      if (hoveredGlowElement) {
+        const rect = hoveredGlowElement.getBoundingClientRect();
+        const x = lastClientX - rect.left;
+        const y = lastClientY - rect.top;
+        const shineX = (x / rect.width) * 100;
+        const shineY = (y / rect.height) * 100;
+        hoveredGlowElement.style.setProperty('--shine-x', `${shineX}%`);
+        hoveredGlowElement.style.setProperty('--shine-y', `${shineY}%`);
+      }
     };
+
+    const handleGlobalMouseMove = (e) => {
+      lastClientX = e.clientX;
+      lastClientY = e.clientY;
+      updateMouseVariables();
+    };
+
     window.addEventListener('mousemove', handleGlobalMouseMove);
+    window.addEventListener('scroll', updateMouseVariables, { passive: true });
 
     const glowElements = document.querySelectorAll('.pos-item, .v2-quote-box');
 
     const handleGlowMove = (e) => {
-      const el = e.currentTarget;
-      const rect = el.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const shineX = (x / rect.width) * 100;
-      const shineY = (y / rect.height) * 100;
-      el.style.setProperty('--shine-x', `${shineX}%`);
-      el.style.setProperty('--shine-y', `${shineY}%`);
+      hoveredGlowElement = e.currentTarget;
     };
 
     const handleGlowLeave = (e) => {
+      hoveredGlowElement = null;
       const el = e.currentTarget;
       el.style.setProperty('--shine-x', `50%`);
       el.style.setProperty('--shine-y', `50%`);
@@ -229,6 +245,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
 
     return () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('scroll', updateMouseVariables);
       glowElements.forEach(el => {
         el.removeEventListener('mousemove', handleGlowMove);
         el.removeEventListener('mouseleave', handleGlowLeave);

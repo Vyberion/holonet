@@ -44,6 +44,8 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
   }, [introVideoFinished]);
 
   const locked = progress < 1;
+  const lockedRef = useRef(locked);
+  lockedRef.current = locked; // Keep perfectly synced with every render
 
   // Animation Loop for buttery smooth easing (Lerp)
   useEffect(() => {
@@ -201,17 +203,6 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
     };
     window.addEventListener('mousemove', handleGlobalMouseMove);
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-visible');
-        }
-      });
-    }, { threshold: 0.15, rootMargin: "0px 0px -50px 0px" });
-
-    const scrollElements = document.querySelectorAll('.animate-on-scroll');
-    scrollElements.forEach(el => observer.observe(el));
-
     const glowElements = document.querySelectorAll('.pos-item, .v2-quote-box');
 
     const handleGlowMove = (e) => {
@@ -238,13 +229,30 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
 
     return () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
-      observer.disconnect();
       glowElements.forEach(el => {
         el.removeEventListener('mousemove', handleGlowMove);
         el.removeEventListener('mouseleave', handleGlowLeave);
       });
     };
-  }, []);
+  }, []); // Run once on mount
+
+  // Attach IntersectionObserver ONLY when unlocked to force an immediate scan of elements on screen
+  useEffect(() => {
+    if (locked) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+        }
+      });
+    }, { threshold: 0.15, rootMargin: "0px 0px -50px 0px" });
+
+    const scrollElements = document.querySelectorAll('.animate-on-scroll');
+    scrollElements.forEach(el => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [locked]);
 
   // Phase 1: progress 0→0.3 — hero fades out (quick)
   // Phase 2: progress 0.3→1.0 — content fades in (locked, no movement)

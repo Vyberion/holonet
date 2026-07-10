@@ -20,12 +20,11 @@ export default function MandateV2Page() {
       mainClassName="mandate-v2-main"
       includeSearchOverlay={false}
     >
+      <div className="v2-bg"></div>
       <InteractiveMandate
         videoPlaybackId="02OyJ9da02hFxdv7D9BBNXzUBqUjgqrJ7hJcVfYHjbv38"
         hero={
-          <>
-            <div className="v2-bg"></div>
-            <section className="v2-hero">
+          <section className="v2-hero">
               <div className="hero-content">
                 <h2 className="v2-subheading">VYBERON'S</h2>
                 <h1 className="v2-title">MANDATE</h1>
@@ -49,7 +48,6 @@ export default function MandateV2Page() {
                 </div>
               </div>
             </section>
-          </>
         }
         content={
           <div className="v2-content-wrapper">

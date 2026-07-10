@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 const MORPH_FALLBACK_IMAGE = "/assets/morphs/throne.png";
-const CURRENT_EMPEROR_SLUG = "the-40th-emperor";
+const CURRENT_EMPEROR_SLUG = "40th";
 const CURRENT_EMPEROR_MORPH_IMAGE = "/assets/morphs/current_emperor.png";
 const RANK_PROGRESSION_GROUP_IDS = ["low-ranks", "middle-ranks", "high-ranks"];
 const RANK_PROGRESSION_END = { groupId: "high-ranks", slug: "darth" };
@@ -38,7 +38,7 @@ function toRoman(value) {
 }
 
 function emperorNumberFromSlug(slug = "") {
-  const match = String(slug).match(/^the-(\d+)(?:st|nd|rd|th)-emperor$/);
+  const match = String(slug).match(/^(\d+)(?:st|nd|rd|th)$/);
   return match ? Number(match[1]) : 0;
 }
 
@@ -325,7 +325,7 @@ const HIERARCHY_GROUPS = [
     items: [
       {
         slug: CURRENT_EMPEROR_SLUG,
-        href: `/archives/emperors/${CURRENT_EMPEROR_SLUG}`,
+        href: `/emperors/${CURRENT_EMPEROR_SLUG}`,
         image: CURRENT_EMPEROR_MORPH_IMAGE,
         name: "Torreto the Tyrant",
         body: "PENDING.",
@@ -598,7 +598,7 @@ const EMPEROR_ARCHIVE_DATA = [
 function emperorArchiveRecord(index) {
   const title = ordinal(index);
   const source = EMPEROR_ARCHIVE_DATA[index - 1] || {};
-  const slug = `the-${title}-emperor`.toLowerCase();
+  const slug = `${title}`.toLowerCase();
   const current = slug === CURRENT_EMPEROR_SLUG;
 
   return {
@@ -757,7 +757,7 @@ export function getRankProgressionNav(groupId, slug) {
 
 export function emperorArchiveItems() {
   return EMPEROR_ARCHIVE_GROUP.items.map((item, index) =>
-    decorateHierarchyItem(EMPEROR_ARCHIVE_GROUP, item, index, `/archives/emperors/${item.slug}`)
+    decorateHierarchyItem(EMPEROR_ARCHIVE_GROUP, item, index, `/emperors/${item.slug}`)
   );
 }
 
@@ -766,5 +766,5 @@ export function getEmperorArchiveItem(slug) {
   if (!item) return null;
 
   const index = EMPEROR_ARCHIVE_GROUP.items.indexOf(item);
-  return decorateHierarchyItem(EMPEROR_ARCHIVE_GROUP, item, index, `/archives/emperors/${item.slug}`);
+  return decorateHierarchyItem(EMPEROR_ARCHIVE_GROUP, item, index, `/emperors/${item.slug}`);
 }

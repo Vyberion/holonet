@@ -25,10 +25,11 @@ cd ..
 
 # Restart service
 echo "Restarting bot service..."
-if systemctl list-unit-files | grep -q "^${SERVICE_NAME}.service"; then
-  sudo systemctl restart "$SERVICE_NAME"
-  echo "Holonet bot restarted successfully."
+if command -v pm2 >/dev/null 2>&1; then
+  pm2 restart "$SERVICE_NAME"
+  pm2 save
+  echo "Holonet bot restarted successfully via PM2."
 else
-  echo "Warning: Systemd service '$SERVICE_NAME' not found."
-  echo "If you use PM2 or another process manager, please restart the bot manually."
+  echo "Warning: PM2 is not installed."
+  echo "Please restart the bot manually."
 fi

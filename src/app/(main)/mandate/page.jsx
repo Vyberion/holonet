@@ -78,35 +78,35 @@ export default function MandateV2Page() {
                   <div className="v2-pillars-header">
                     <span className="triangle-icon">▸</span> PILLARS OF INTENT
                   </div>
-                  <div className="v2-pillar animate-on-scroll stagger-5">
+                  <div className="v2-pillar animate-on-scroll stagger-1">
                     <h4>PILLAR OF PURPOSE</h4>
                     <p>Our actions should not exist for their own sake. This Order requires purpose, and so I will personally look for the best ways possible to make sure this Order becomes relevant once again.</p>
                   </div>
-                  <div className="v2-pillar animate-on-scroll stagger-1">
+                  <div className="v2-pillar animate-on-scroll stagger-2">
                     <h4>PILLAR OF RECRUITMENT</h4>
                     <p>We will explore all pathways to save the Order from stagnation. This includes integration with the potential upcoming Battlegrounds game to secure a steady influx of new Aspirants.</p>
                   </div>
-                  <div className="v2-pillar animate-on-scroll stagger-2">
+                  <div className="v2-pillar animate-on-scroll stagger-3">
                     <h4>PILLAR OF PROGRESSION</h4>
                     <p>The current systems for events and rank progression will be subject to revision. We must ensure that participation is meaningful, but more than simply function over form.</p>
                   </div>
-                  <div className="v2-pillar animate-on-scroll stagger-3">
+                  <div className="v2-pillar animate-on-scroll stagger-4">
                     <h4>PILLAR OF CANON</h4>
                     <p>We will explore establishing a formal Group Canon that provides a solid baseline for continued roleplay. Every member should be able to take part in a coherent setting.</p>
                   </div>
-                  <div className="v2-pillar animate-on-scroll stagger-3">
+                  <div className="v2-pillar animate-on-scroll stagger-5">
                     <h4>PILLAR OF RIVALRY</h4>
                     <p>Petty infighting is a waste of time. Internal rivalry must serve a purpose, and so we will foster meaningful competition. Destructive conflict threatens the Order and will be treated as treason.</p>
                   </div>
-                  <div className="v2-pillar animate-on-scroll stagger-7">
+                  <div className="v2-pillar animate-on-scroll stagger-6">
                     <h4>PILLAR OF UNITY</h4>
                     <p>Splinter groups that operate against the best interests of the Order will not be tolerated. External allegiances may of course exist, but those who actively divide the Order and our members will be strictly prohibited at first sight.</p>
                   </div>
-                  <div className="v2-pillar animate-on-scroll stagger-4">
+                  <div className="v2-pillar animate-on-scroll stagger-7">
                     <h4>PILLAR OF ARCHIVAL</h4>
                     <p>We have lost too much of our history. It is my priority to make sure no more of it is lost, and preserve as much as we can from here on out. Moving forward, the documentation of our lore and history will be preserved.</p>
                   </div>
-                  <div className="v2-pillar animate-on-scroll stagger-1">
+                  <div className="v2-pillar animate-on-scroll stagger-8">
                     <h4>PILLAR OF DOCTRINE</h4>
                     <p>The Sith Order is not an army, and we will stop operating under the delusion that we are soldiers. We are a religious order, and our focus will return to such, and so we will stop lying with the militaristic and bureaucratic mindset that has infected the Order.</p>
                   </div>

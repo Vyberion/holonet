@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BRANCH="${1:-migration}"
+BRANCH="${1:-main}"
 APP_NAME="${HOLONET_PM2_APP_NAME:-holonet-web}"
 
 if [ ! -d .git ]; then

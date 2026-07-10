@@ -19,7 +19,7 @@ module.exports = {
         NODE_ENV: "production",
         PORT: port,
         HOSTNAME: hostname,
-        HOLONET_DEPLOY_BRANCH: "migration"
+        HOLONET_DEPLOY_BRANCH: "main"
       }
     }
   ]

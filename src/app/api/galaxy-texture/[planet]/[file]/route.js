@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const GALAXY_LFS_ASSET_BASE = "https://media.githubusercontent.com/media/Vyberion/holonet/migration/public/assets/galaxy";
+const GALAXY_LFS_ASSET_BASE = "https://media.githubusercontent.com/media/Vyberion/holonet/main/public/assets/galaxy";
 
 const PLANETS = new Set([
   "coruscant",

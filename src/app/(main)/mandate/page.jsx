@@ -197,7 +197,7 @@ export default function MandateV2Page() {
                 </div>
               </div>
 
-              <div className="v2-text-content animate-on-scroll stagger-4" style={{ marginTop: '40px' }}>
+              <div className="v2-text-content animate-on-scroll stagger-4">
                 <p>My experience within the Order has given me a perspective. I have witnessed, while albeit overall minor, the evolution of our systems and the larger challenges that face the group. I have gained an understanding of both the strengths that must be protected and the weaknesses that must be addressed.</p>
 
                 <p>I have seen how ambition can be lost through the poor direction of those who wield it. I have seen how systems can become detached from their purpose. I have seen how temporary fixes often fail to deal with the deeper issues. I have seen what this Order needs. These lessons learned form the base of my vision and so I approach this position with a deeply rooted understanding of what it takes.</p>

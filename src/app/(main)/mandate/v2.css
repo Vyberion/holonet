@@ -412,6 +412,7 @@ body {
 }
 
 .v2-text-content p {
+  margin-bottom: 25px;
   font-family: var(--font-mono);
 }
 

@@ -425,6 +425,7 @@ body {
   color: #fff;
   font-weight: 600;
   font-family: var(--font-sans);
+  margin-top: 40px;
 }
 
 .v2-seal {

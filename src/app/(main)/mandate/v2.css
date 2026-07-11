@@ -449,7 +449,7 @@ body {
 
 /* Pillars Section */
 .v2-pillars {
-  margin-top: 50px;
+  margin-top: 0;
   border: 1px solid rgba(211, 26, 56, 0.3);
   padding: 30px;
   background: rgba(15, 0, 0, 0.5);

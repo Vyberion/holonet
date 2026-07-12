@@ -229,11 +229,31 @@ function renderHub(division) {
   const documents = latestItems(division.documents);
   const reports = latestItems(division.reports, 1);
   const activityTotal = formatDuration(totalRosterMinutes(division.activityMembers || []));
+  
   const pagesPanel = renderPanel("pages", "Pages", renderActions(division.actions));
   const documentsPanel = renderPanel("documents", "Documents", renderRows(documents, "NO DOCUMENTS", { kind: "documents", division }));
   const transmissionsPanel = renderPanel("transmissions", "Transmission Feed", renderFeed(transmissions, "NO TRANSMISSIONS"));
   const activityPanel = renderPanel("activity", "Activity", renderActivityOverview(division));
   const reportsPanel = renderPanel("reports", "Reports", renderRows(reports, "NO REPORTS", { kind: "reports", division }));
+
+  const hasDocuments = division.id !== "darkCouncil";
+  const hasPages = division.id !== "highranks";
+  const hasActivity = division.id !== "highranks";
+  const hasReports = division.id !== "highranks";
+
+  const leftPanels = [];
+  const rightPanels = [];
+
+  if (hasDocuments) leftPanels.push(documentsPanel);
+  leftPanels.push(transmissionsPanel);
+
+  if (hasPages) rightPanels.push(pagesPanel);
+  if (hasActivity) rightPanels.push(activityPanel);
+  if (hasReports) rightPanels.push(reportsPanel);
+
+  const leftColumn = leftPanels.length ? `<div class="hub-column">\n          ${leftPanels.join("\n          ")}\n        </div>` : "";
+  const rightColumn = rightPanels.length ? `\n        <aside class="hub-column">\n          ${rightPanels.join("\n          ")}\n        </aside>` : "";
+  const gridClass = (leftPanels.length && rightPanels.length) ? "hub-grid" : "hub-grid hub-grid--single";
 
   if (division.loadError) {
     return `
@@ -290,17 +310,8 @@ function renderHub(division) {
 
       ${renderCouncilFloorCard(division)}
 
-      <div class="hub-grid">
-        <div class="hub-column">
-          ${documentsPanel}
-          ${transmissionsPanel}
-        </div>
-
-        <aside class="hub-column">
-          ${pagesPanel}
-          ${activityPanel}
-          ${reportsPanel}
-        </aside>
+      <div class="${gridClass}">
+        ${leftColumn}${rightColumn}
       </div>
     </section>
   `;

@@ -315,9 +315,18 @@
   grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
 }
 
+.hub-grid--single {
+  grid-template-columns: 1fr;
+}
+
 .hub-column {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 18px;
+}
+
+.hub-column > :last-child {
+  flex-grow: 1;
 }
 
 .hub-panel {

@@ -56,7 +56,7 @@ const defaultCotsState = {
 
 export const metadata = holonetMetadata({
   title: "Champion of The Sith",
-  description: "Champion of The Sith tournament bracket and Champion."
+  description: "Tournament bracket and reigning Champion."
 });
 
 export default function CotsPage() {

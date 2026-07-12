@@ -1,13 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;600&family=Great+Vibes&family=Share+Tech+Mono&display=swap');
 
 :root {
-  --sith-red: #d31a38;
-  --sith-dark-red: #8a1024;
-  --sith-black: #000000;
-  --sith-dark-gray: #080808;
+  --sith-red: var(--theme-accent-soft, #d31a38);
+  --sith-dark-red: var(--theme-accent-dim, #8a1024);
+  --sith-black: var(--black, #000000);
+  --sith-dark-gray: var(--dark, #080808);
   --sith-gray: #1a1a1a;
-  --sith-text-light: #f4f4f4;
-  --sith-text-dim: #a0a0a0;
+  --sith-text-light: var(--text, #f4f4f4);
+  --sith-text-dim: var(--text-dim, #a0a0a0);
   --font-serif: 'Cinzel', serif;
   --font-sans: 'Inter', sans-serif;
   --font-script: 'Great Vibes', cursive;

@@ -10,68 +10,37 @@ const handler = async (req, res) => {
         return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
       }
 
-      const permissions = councilPermissions(auth.profile);
-      if (!permissions.canView) {
-        return res.status(200).json({ ok: false, authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" });
-      }
-
+      const division = requireString(getQueryParam(req, "division")).toLowerCase();
       if (req.method === "GET") {
-        let roleSnapshot = null;
-        try {
-          roleSnapshot = await fetchCouncilEligibleSnapshot();
-        } catch {
-          roleSnapshot = { snapshot: [], countingEligibleCount: 0, majorityCount: 0 };
+        const viewAccess = division
+          ? canViewDivisionReports(auth.profile, division)
+          : { authorized: false, reason: "UNKNOWN_DIVISION" };
+        if (!viewAccess.authorized) {
+          return res.status(200).json({ ok: false, authorized: false, reason: viewAccess.reason || "ACCESS_DENIED" });
         }
 
+        const canWrite = division ? canWriteDivisionWeeklyReport(auth.profile, division) : false;
+        const draft = getQueryParam(req, "draft") === "1";
         return res.status(200).json({
           ok: true,
           authorized: true,
-          permissions,
-          roleSnapshot,
-          proposals: await loadCouncilProposals()
+          canWrite,
+          roster: draft && canWrite ? await buildWeeklyReportRoster(division) : [],
+          reports: await loadWeeklyReports(division)
         });
       }
 
-      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-      const action = requireString(body.action || (req.method === "POST" ? "create" : "")).toLowerCase();
-
-      if (req.method === "POST" && action === "create") {
-        const result = await createCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "vote") {
-        const result = await writeCouncilVote(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "veto") {
-        const result = await vetoCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "reopen") {
-        const result = await reopenCouncilProposal(auth, body);
+      if (req.method === "POST" || req.method === "PATCH") {
+        const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+        const result = await writeWeeklyReport(auth, body);
         return res.status(result.status).json(result.payload);
       }
 
       return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
     } catch (error) {
       if (isMissingSchemaError(error)) {
-        if (req.method !== "GET") {
-          return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED" });
-        }
-
-        return res.status(200).json({
-          ok: true,
-          migrationRequired: true,
-          authorized: true,
-          permissions: {},
-          roleSnapshot: { snapshot: [], countingEligibleCount: 0, majorityCount: 0 },
-          proposals: []
-        });
+        return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED" });
       }
-
       return res.status(500).json({ ok: false, error: error.message });
     }
   };

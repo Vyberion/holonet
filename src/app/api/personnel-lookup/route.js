@@ -5,73 +5,63 @@ import {
 
 const handler = async (req, res) => {
     try {
-      const auth = await getAuthContext(req);
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
+      const username = requireString(req.method === "POST" ? req.body?.username : getQueryParam(req, "username"));
+      if (!username) {
+        return res.status(400).json({ ok: false, reason: "USERNAME_REQUIRED" });
       }
 
-      const permissions = councilPermissions(auth.profile);
-      if (!permissions.canView) {
-        return res.status(200).json({ ok: false, authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" });
+      const resolved = await resolveUserByUsername(username);
+      if (!resolved?.id) {
+        return res.status(200).json({ ok: false, reason: "USER_NOT_FOUND" });
       }
 
-      if (req.method === "GET") {
-        let roleSnapshot = null;
-        try {
-          roleSnapshot = await fetchCouncilEligibleSnapshot();
-        } catch {
-          roleSnapshot = { snapshot: [], countingEligibleCount: 0, majorityCount: 0 };
+      const { user, groups, accountAgeDays, friendsCount, badgeCount } = await loadRobloxProfileSummary(resolved.id);
+      const mainGroupMembership = (groups.data || []).find(
+        membership => membership?.group?.id === ROBLOX_GROUPS.HIGH_RANKS.groupId
+      );
+      const divisionMemberships = Object.entries(ROBLOX_GROUPS.DIVISIONS)
+        .map(([divisionKey, definition]) => {
+          const membership = (groups.data || []).find(item => item?.group?.id === definition.groupId);
+          if (!membership) return null;
+          return {
+            divisionKey,
+            label: divisionKey === "dhg" ? "Dark Honor Guard" : divisionKey === "inquisitors" ? "Inquisitors" : divisionKey.charAt(0).toUpperCase() + divisionKey.slice(1),
+            rankName: membership.role?.name || "Unknown",
+            rank: membership.role?.rank || 0,
+            joinedAt: membership.joinedAt || membership.joined_at || null
+          };
+        })
+        .filter(Boolean);
+      const warnings = personnelLookupWarnings({ accountAgeDays, friendsCount, badgeCount });
+
+      return res.status(200).json({
+        ok: true,
+        authorized: true,
+        user: {
+          robloxId: String(resolved.id),
+          username: resolved.name || username,
+          displayName: resolved.displayName || user.displayName || resolved.name || username,
+          created: user.created || null,
+          accountAgeDays,
+          friendsCount,
+          badgeCount,
+          profileUrl: `https://www.roblox.com/users/${resolved.id}/profile`,
+          mainGroup: mainGroupMembership ? {
+            inGroup: true,
+            rankName: mainGroupMembership.role?.name || "Unknown",
+            rank: mainGroupMembership.role?.rank || 0,
+            joinedAt: mainGroupMembership.joinedAt || mainGroupMembership.joined_at || null
+          } : {
+            inGroup: false,
+            rankName: "",
+            rank: 0,
+            joinedAt: null
+          },
+          divisionMemberships,
+          warnings
         }
-
-        return res.status(200).json({
-          ok: true,
-          authorized: true,
-          permissions,
-          roleSnapshot,
-          proposals: await loadCouncilProposals()
-        });
-      }
-
-      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-      const action = requireString(body.action || (req.method === "POST" ? "create" : "")).toLowerCase();
-
-      if (req.method === "POST" && action === "create") {
-        const result = await createCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "vote") {
-        const result = await writeCouncilVote(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "veto") {
-        const result = await vetoCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "reopen") {
-        const result = await reopenCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
+      });
     } catch (error) {
-      if (isMissingSchemaError(error)) {
-        if (req.method !== "GET") {
-          return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED" });
-        }
-
-        return res.status(200).json({
-          ok: true,
-          migrationRequired: true,
-          authorized: true,
-          permissions: {},
-          roleSnapshot: { snapshot: [], countingEligibleCount: 0, majorityCount: 0 },
-          proposals: []
-        });
-      }
-
       return res.status(500).json({ ok: false, error: error.message });
     }
   };

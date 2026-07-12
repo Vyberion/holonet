@@ -5,71 +5,46 @@ import {
 
 const handler = async (req, res) => {
     try {
-      const auth = await getAuthContext(req);
+      const auth = await getAuthContext(req, { optional: true });
+      const canEdit = auth.authenticated ? canAccessAdmin(auth.profile).authorized : false;
+
+      if (req.method === "GET") {
+        return res.status(200).json({
+          ok: true,
+          canEdit,
+          entries: await loadTimelineEntries(canEdit)
+        });
+      }
+
       if (!auth.authenticated) {
         return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
       }
 
-      const permissions = councilPermissions(auth.profile);
-      if (!permissions.canView) {
-        return res.status(200).json({ ok: false, authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" });
+      if (req.method === "POST" || req.method === "PATCH") {
+        const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+        const result = await writeTimelineEntry(auth, body);
+        return res.status(result.status).json(result.payload);
       }
 
-      if (req.method === "GET") {
-        let roleSnapshot = null;
-        try {
-          roleSnapshot = await fetchCouncilEligibleSnapshot();
-        } catch {
-          roleSnapshot = { snapshot: [], countingEligibleCount: 0, majorityCount: 0 };
+      if (req.method === "DELETE") {
+        const permission = canAccessAdmin(auth.profile);
+        if (!permission.authorized) {
+          return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
         }
 
-        return res.status(200).json({
-          ok: true,
-          authorized: true,
-          permissions,
-          roleSnapshot,
-          proposals: await loadCouncilProposals()
-        });
-      }
+        const id = requireString(getQueryParam(req, "id"));
+        if (!id) {
+          return res.status(400).json({ ok: false, reason: "TIMELINE_ID_REQUIRED" });
+        }
 
-      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-      const action = requireString(body.action || (req.method === "POST" ? "create" : "")).toLowerCase();
-
-      if (req.method === "POST" && action === "create") {
-        const result = await createCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "vote") {
-        const result = await writeCouncilVote(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "veto") {
-        const result = await vetoCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "reopen") {
-        const result = await reopenCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
+        await supabaseRest(`group_timeline_entries?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
+        return res.status(200).json({ ok: true, entries: await loadTimelineEntries(true) });
       }
 
       return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
     } catch (error) {
       if (isMissingSchemaError(error)) {
-        if (req.method !== "GET") {
-          return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED" });
-        }
-
-        return res.status(200).json({
-          ok: true,
-          migrationRequired: true,
-          authorized: true,
-          permissions: {},
-          roleSnapshot: { snapshot: [], countingEligibleCount: 0, majorityCount: 0 },
-          proposals: []
-        });
+        return res.status(200).json({ ok: true, migrationRequired: true, canEdit: false, entries: [] });
       }
 
       return res.status(500).json({ ok: false, error: error.message });

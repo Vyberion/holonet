@@ -5,70 +5,70 @@ import {
 
 const handler = async (req, res) => {
     try {
+      if (req.method === "GET") {
+        const auth = await getAuthContext(req, { optional: true });
+        const canEdit = auth.authenticated ? canEditLibrary(auth.profile, "archives").authorized : false;
+        const articles = await ensureArchivesSeeded();
+
+        return res.status(200).json({
+          ok: true,
+          library: "archives",
+          canEdit,
+          articles,
+          documents: articles
+        });
+      }
+
       const auth = await getAuthContext(req);
       if (!auth.authenticated) {
         return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
       }
 
-      const permissions = councilPermissions(auth.profile);
-      if (!permissions.canView) {
-        return res.status(200).json({ ok: false, authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" });
+      const permission = canEditLibrary(auth.profile, "archives");
+      if (!permission.authorized) {
+        return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
       }
 
-      if (req.method === "GET") {
-        let roleSnapshot = null;
-        try {
-          roleSnapshot = await fetchCouncilEligibleSnapshot();
-        } catch {
-          roleSnapshot = { snapshot: [], countingEligibleCount: 0, majorityCount: 0 };
+      if (req.method === "POST" || req.method === "PATCH") {
+        const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+        const result = await writeArchiveArticle(body);
+        return res.status(result.status).json(result.payload);
+      }
+
+      if (req.method === "DELETE") {
+        const id = requireString(getQueryParam(req, "id"));
+        if (!id) {
+          return res.status(400).json({ ok: false, reason: "ARTICLE_ID_REQUIRED" });
         }
 
-        return res.status(200).json({
-          ok: true,
-          authorized: true,
-          permissions,
-          roleSnapshot,
-          proposals: await loadCouncilProposals()
-        });
-      }
-
-      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-      const action = requireString(body.action || (req.method === "POST" ? "create" : "")).toLowerCase();
-
-      if (req.method === "POST" && action === "create") {
-        const result = await createCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "vote") {
-        const result = await writeCouncilVote(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "veto") {
-        const result = await vetoCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "reopen") {
-        const result = await reopenCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
+        await deleteArchiveArticle(id);
+        return res.status(200).json({ ok: true });
       }
 
       return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
     } catch (error) {
-      if (isMissingSchemaError(error)) {
-        if (req.method !== "GET") {
-          return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED" });
-        }
+      if (req.method === "GET" && isMissingSchemaError(error)) {
+        const articles = (ARCHIVE_SEED.articles || []).map(article => ({
+          id: article.slug,
+          slug: article.slug,
+          articleNumber: article.articleNumber || "ARTICLE 1",
+          title: article.title,
+          body: article.body,
+          imageBucket: article.imagePath ? "archives" : "",
+          imagePath: article.imagePath || "",
+          imageAlt: article.imageAlt || article.title,
+          imageUrl: "",
+          status: article.status || "published",
+          displayOrder: article.displayOrder || 0
+        }));
 
         return res.status(200).json({
           ok: true,
+          library: "archives",
+          canEdit: false,
           migrationRequired: true,
-          authorized: true,
-          permissions: {},
-          roleSnapshot: { snapshot: [], countingEligibleCount: 0, majorityCount: 0 },
-          proposals: []
+          articles,
+          documents: articles
         });
       }
 

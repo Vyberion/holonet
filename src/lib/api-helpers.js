@@ -39,33 +39,33 @@ import { getHandbookSlot, getHandbookSlots } from "../../modules/data/handbook-s
 import { divisionLockedHref, getDivision, listDivisions } from "../../modules/data/divisions/index.js";
 import { extractGoogleFileId, extractGoogleTabId, googleWorkspaceKindFromUrl } from "./google-drive.js";
 
-const VERIFICATION_LOG_COLOR = 0xff3348;
-const VERIFICATION_WARNING_COLOR = 0x8f1d2c;
-const VERIFICATION_WARNING_ROLE_IDS = [
+export const VERIFICATION_LOG_COLOR = 0xff3348;
+export const VERIFICATION_WARNING_COLOR = 0x8f1d2c;
+export const VERIFICATION_WARNING_ROLE_IDS = [
   "1046451376236003359",
   "1046451364965920848",
   "1302790774458552331"
 ];
-const DEFAULT_SITE_ORIGIN = "https://www.thesithorder.org";
-const OAUTH_STATE_MAX_AGE_SECONDS = 60 * 10;
-let cachedDiscordToken = "";
-let cachedVerificationLogChannelId = "";
+export const DEFAULT_SITE_ORIGIN = "https://www.thesithorder.org";
+export const OAUTH_STATE_MAX_AGE_SECONDS = 60 * 10;
+export let cachedDiscordToken = "";
+export let cachedVerificationLogChannelId = "";
 
-function getQueryParam(req, name) {
+export function getQueryParam(req, name) {
   return String(req?.query?.[name] || "").trim();
 }
 
-function requireString(value, fallback = "") {
+export function requireString(value, fallback = "") {
   return String(value ?? fallback).trim();
 }
 
-function authAuthorName(auth) {
+export function authAuthorName(auth) {
   const user = auth?.user || {};
   const fallback = auth?.profile?.isSuperUser ? "Preview Operator" : "";
   return requireString(user.roblox_username || user.roblox_display_name || user.roblox_id, fallback);
 }
 
-function readTextFileIfExists(filePath) {
+export function readTextFileIfExists(filePath) {
   try {
     return existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
   } catch {
@@ -73,11 +73,11 @@ function readTextFileIfExists(filePath) {
   }
 }
 
-function escapeRegExp(value) {
+export function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function candidateRepoRoots() {
+export function candidateRepoRoots() {
   const cwd = process.cwd();
   return [...new Set([
     cwd,
@@ -86,11 +86,11 @@ function candidateRepoRoots() {
   ])];
 }
 
-function candidateBotFiles(...parts) {
+export function candidateBotFiles(...parts) {
   return candidateRepoRoots().map(root => path.join(root, ...parts));
 }
 
-function readEnvValue(filePath, key) {
+export function readEnvValue(filePath, key) {
   const text = readTextFileIfExists(filePath);
   const pattern = new RegExp(`^\\s*(?:export\\s+)?${escapeRegExp(key)}\\s*=\\s*(.*)$`);
   const line = text.split(/\r?\n/).find(item => pattern.test(item));
@@ -100,7 +100,7 @@ function readEnvValue(filePath, key) {
   return value.replace(/^['"]|['"]$/g, "");
 }
 
-function readEnvValueFromCandidates(key) {
+export function readEnvValueFromCandidates(key) {
   const candidates = [
     ...candidateBotFiles("bot", ".env"),
     ...candidateBotFiles(".env")
@@ -114,17 +114,17 @@ function readEnvValueFromCandidates(key) {
   return "";
 }
 
-function discordToken() {
+export function discordToken() {
   if (process.env.DISCORD_TOKEN) return process.env.DISCORD_TOKEN;
   if (!cachedDiscordToken) cachedDiscordToken = readEnvValueFromCandidates("DISCORD_TOKEN");
   return cachedDiscordToken;
 }
 
-function parseVerificationLogChannelId(source) {
+export function parseVerificationLogChannelId(source) {
   return source.match(/verificationLog\s*:\s*["'](\d{15,25})["']/)?.[1] || "";
 }
 
-function verificationLogChannelId() {
+export function verificationLogChannelId() {
   if (!cachedVerificationLogChannelId) {
     const candidates = [
       ...candidateBotFiles("bot", "config", "config.local.js"),
@@ -144,7 +144,7 @@ function verificationLogChannelId() {
   return channelId && !channelId.includes("CHANNEL_ID") ? channelId : "";
 }
 
-function warnVerificationLog(message, context = {}) {
+export function warnVerificationLog(message, context = {}) {
   console.warn("Verification log", {
     message,
     cwd: process.cwd(),
@@ -152,13 +152,13 @@ function warnVerificationLog(message, context = {}) {
   });
 }
 
-function tokenFingerprint(token) {
+export function tokenFingerprint(token) {
   const value = String(token || "");
   if (value.length <= 10) return value ? `${value.length} chars` : "";
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
-function logVerificationConfirm(message, context = {}) {
+export function logVerificationConfirm(message, context = {}) {
   console.info("Discord link confirm", {
     message,
     cwd: process.cwd(),
@@ -227,7 +227,7 @@ async function postVerificationLogSafely(payload) {
   }
 }
 
-function slugify(value) {
+export function slugify(value) {
   return requireString(value)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -235,7 +235,7 @@ function slugify(value) {
     .slice(0, 80) || `resource-${Date.now()}`;
 }
 
-function toRoman(value) {
+export function toRoman(value) {
   const number = Math.max(1, Math.min(3999, Number(value) || 1));
   const numerals = [
     [1000, "M"], [900, "CM"], [500, "D"], [400, "CD"],
@@ -253,7 +253,7 @@ function toRoman(value) {
   return result;
 }
 
-function fromRoman(value) {
+export function fromRoman(value) {
   const map = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
   const source = String(value || "").toUpperCase();
   const text = source.match(/\b[IVXLCDM]+\b/g)?.at(-1) || "";
@@ -266,7 +266,7 @@ function fromRoman(value) {
   return total || 0;
 }
 
-function articleOrderFrom(value, fallback = 1) {
+export function articleOrderFrom(value, fallback = 1) {
   const text = requireString(value);
   const explicit = text.match(/\d+/)?.[0];
   const parsed = explicit ? Number(explicit) : fromRoman(text);
@@ -280,7 +280,7 @@ function articleOrderFrom(value, fallback = 1) {
   return Math.max(1, Math.floor(order));
 }
 
-function regulationOrderFrom(entry, index) {
+export function regulationOrderFrom(entry, index) {
   const explicit = Number(entry?.displayOrder);
   if (Number.isFinite(explicit) && explicit > 0) return explicit;
   const anchorNumber = String(entry?.anchor || "").match(/reg-\d+-(\d+)/i)?.[1];
@@ -289,11 +289,11 @@ function regulationOrderFrom(entry, index) {
   return Number(labelNumber) || index + 1;
 }
 
-function regulationAnchor(articleOrder, regulationOrder) {
+export function regulationAnchor(articleOrder, regulationOrder) {
   return `reg-${String(articleOrder).padStart(2, "0")}-${String(regulationOrder).padStart(2, "0")}`;
 }
 
-function withIncrementedOrder(row, orderColumn = "display_order") {
+export function withIncrementedOrder(row, orderColumn = "display_order") {
   return {
     [orderColumn]: (Number(row?.[orderColumn]) || 0) + 1
   };
@@ -338,7 +338,7 @@ async function shiftLibraryDocumentOrders(libraryKey, targetOrder, excludeId = "
   }
 }
 
-function insertAtDisplayOrder(items, item, targetOrder) {
+export function insertAtDisplayOrder(items, item, targetOrder) {
   const order = Math.max(1, Math.floor(Number(targetOrder) || 1));
 
   items.forEach(existing => {
@@ -351,7 +351,7 @@ function insertAtDisplayOrder(items, item, targetOrder) {
   items.push(item);
 }
 
-function resolveEntryDisplayOrders(entries = []) {
+export function resolveEntryDisplayOrders(entries = []) {
   const normalized = entries.map((entry, index) => {
     const requestedOrder = regulationOrderFrom(entry, index);
     const originalOrder = Number(entry?.originalDisplayOrder);
@@ -386,11 +386,11 @@ function resolveEntryDisplayOrders(entries = []) {
   return resolved.sort((left, right) => left.index - right.index);
 }
 
-function isMissingSchemaError(error) {
+export function isMissingSchemaError(error) {
   return /does not exist|Could not find the table|column .* does not exist/i.test(String(error?.message || ""));
 }
 
-const COUNCIL_RANKS = {
+export const COUNCIL_RANKS = {
   council: 60,
   emperorPowerbase: 65,
   emperor: 151,
@@ -398,25 +398,25 @@ const COUNCIL_RANKS = {
   groupOwner: 255
 };
 
-const COUNCIL_COUNTING_RANKS = [COUNCIL_RANKS.council, COUNCIL_RANKS.emperorPowerbase, COUNCIL_RANKS.emperor];
-const COUNCIL_VOTING_RANKS = [...COUNCIL_COUNTING_RANKS, COUNCIL_RANKS.projectManager, COUNCIL_RANKS.groupOwner];
-const COUNCIL_VETO_RANKS = [COUNCIL_RANKS.emperor, COUNCIL_RANKS.projectManager, COUNCIL_RANKS.groupOwner];
+export const COUNCIL_COUNTING_RANKS = [COUNCIL_RANKS.council, COUNCIL_RANKS.emperorPowerbase, COUNCIL_RANKS.emperor];
+export const COUNCIL_VOTING_RANKS = [...COUNCIL_COUNTING_RANKS, COUNCIL_RANKS.projectManager, COUNCIL_RANKS.groupOwner];
+export const COUNCIL_VETO_RANKS = [COUNCIL_RANKS.emperor, COUNCIL_RANKS.projectManager, COUNCIL_RANKS.groupOwner];
 
-function councilRank(profile) {
+export function councilRank(profile) {
   return Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0);
 }
 
-function councilRoleForRank(rank) {
+export function councilRoleForRank(rank) {
   return {
-    [COUNCIL_RANKS.council]: "Council",
-    [COUNCIL_RANKS.emperorPowerbase]: "Emperor's Powerbase",
-    [COUNCIL_RANKS.emperor]: "Emperor",
+    [COUNCIL_RANKS.council]: "Dark Council",
+    [COUNCIL_RANKS.emperorPowerbase]: "High Command",
+    [COUNCIL_RANKS.emperor]: "High Command",
     [COUNCIL_RANKS.projectManager]: "Project Manager",
-    [COUNCIL_RANKS.groupOwner]: "Group Owner"
+    [COUNCIL_RANKS.groupOwner]: "Owner"
   }[rank] || "";
 }
 
-function councilPermissions(profile) {
+export function councilPermissions(profile) {
   const rank = councilRank(profile);
   const isSuperUser = Boolean(profile?.isSuperUser);
   const floorAccess = profile ? checkPageAccess(profile, "dark-council/council-floor") : { authorized: false };
@@ -435,7 +435,7 @@ function councilPermissions(profile) {
   };
 }
 
-function canViewInquisitorOverview(profile) {
+export function canViewInquisitorOverview(profile) {
   const roles = profile?.authorityRoles || {};
 
   return Boolean(
@@ -448,15 +448,15 @@ function canViewInquisitorOverview(profile) {
   );
 }
 
-function hasDarkCouncilPlus(profile) {
+export function hasDarkCouncilPlus(profile) {
   return Boolean(hasCoreAccess(profile) || Object.values(profile?.authorityRoles || {}).some(Boolean));
 }
 
-function canWriteDivisionWeeklyReport(profile, division) {
+export function canWriteDivisionWeeklyReport(profile, division) {
   return canWriteDivisionReport(profile, division).authorized;
 }
 
-function canWriteBoardBroadcast(profile) {
+export function canWriteBoardBroadcast(profile) {
   const division1ic = Object.values(profile?.divisions || {}).some(tier => tierAtLeast(tier, "1ic"));
   return Boolean(
     hasCoreAccess(profile) ||
@@ -466,7 +466,7 @@ function canWriteBoardBroadcast(profile) {
   );
 }
 
-function boardChannelsFor(profile) {
+export function boardChannelsFor(profile) {
   if (hasCoreAccess(profile) || ["upper", "overseer"].includes(profile?.highRank) || hasDarkCouncilPlus(profile)) {
     return ["holonet", "reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil"];
   }
@@ -476,12 +476,12 @@ function boardChannelsFor(profile) {
     .map(([division]) => division);
 }
 
-function clampDurationHours(value) {
+export function clampDurationHours(value) {
   const hours = Number(value) || 24;
   return Math.max(24, Math.min(168, Math.floor(hours)));
 }
 
-function publicImageUrl(path) {
+export function publicImageUrl(path) {
   const value = requireString(path);
   if (!value) return "";
   if (/^https?:\/\//i.test(value)) return value;
@@ -491,12 +491,12 @@ function publicImageUrl(path) {
   return "";
 }
 
-function isLocalHostname(hostname = "") {
+export function isLocalHostname(hostname = "") {
   const normalized = String(hostname || "").toLowerCase();
   return normalized === "localhost" || normalized.endsWith(".localhost") || normalized === "127.0.0.1" || normalized === "::1" || /^\d+\.\d+\.\d+\.\d+$/.test(normalized);
 }
 
-function normalizeSiteUrl(value) {
+export function normalizeSiteUrl(value) {
   const rawValue = String(value || "").trim();
   if (!rawValue) return "";
 
@@ -512,11 +512,11 @@ function normalizeSiteUrl(value) {
   }
 }
 
-function headerFirstValue(value) {
+export function headerFirstValue(value) {
   return String(value || "").split(",")[0].trim();
 }
 
-function requestRootOrigin(req) {
+export function requestRootOrigin(req) {
   const forwardedProto = headerFirstValue(req?.headers?.["x-forwarded-proto"]);
   const forwardedHost = headerFirstValue(req?.headers?.["x-forwarded-host"]);
   const host = forwardedHost || headerFirstValue(req?.headers?.host);
@@ -525,7 +525,7 @@ function requestRootOrigin(req) {
   return normalizeSiteUrl(origin);
 }
 
-function canonicalOAuthOrigin(origin) {
+export function canonicalOAuthOrigin(origin) {
   const normalized = normalizeSiteUrl(origin);
   if (!normalized) return "";
 
@@ -540,14 +540,14 @@ function canonicalOAuthOrigin(origin) {
   }
 }
 
-function oauthRedirectUri(req) {
+export function oauthRedirectUri(req) {
   const origin = canonicalOAuthOrigin(requestRootOrigin(req));
   if (origin) return `${origin}/api/auth/callback`;
   const configured = normalizeSiteUrl(String(process.env.ROBLOX_REDIRECT_URI || ""));
   return configured || `${DEFAULT_SITE_ORIGIN}/api/auth/callback`;
 }
 
-function normalizeOauthRedirectUri(value) {
+export function normalizeOauthRedirectUri(value) {
   const normalized = normalizeSiteUrl(value);
   if (!normalized) return "";
 
@@ -561,14 +561,14 @@ function normalizeOauthRedirectUri(value) {
   }
 }
 
-function encodeOAuthStateCookie({ state, redirectUri }) {
+export function encodeOAuthStateCookie({ state, redirectUri }) {
   return Buffer.from(JSON.stringify({
     state,
     redirectUri: normalizeOauthRedirectUri(redirectUri)
   })).toString("base64url");
 }
 
-function decodeOAuthStateCookie(value) {
+export function decodeOAuthStateCookie(value) {
   const rawValue = requireString(value);
   if (!rawValue) return { state: "", redirectUri: "" };
 
@@ -583,27 +583,27 @@ function decodeOAuthStateCookie(value) {
   }
 }
 
-function statesMatch(left, right) {
+export function statesMatch(left, right) {
   const leftBuffer = Buffer.from(requireString(left));
   const rightBuffer = Buffer.from(requireString(right));
   return leftBuffer.length > 0 && leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-function lookupUrlForRequest(req, username) {
+export function lookupUrlForRequest(req, username) {
   const base = normalizeSiteUrl(requestRootOrigin(req) || process.env.NEXT_PUBLIC_SITE_URL || process.env.HOLONET_BASE_URL || "").replace(/\/$/, "");
   const path = `/lookup?username=${encodeURIComponent(username)}`;
   return base ? `${base}${path}` : path;
 }
 
-function encodeInList(values) {
+export function encodeInList(values) {
   return `(${values.map(value => String(value).replace(/[(),]/g, "")).join(",")})`;
 }
 
-function detailTableFor(resourceType) {
+export function detailTableFor(resourceType) {
   return `resource_${resourceType}s`;
 }
 
-function normalizeSubClauses(value) {
+export function normalizeSubClauses(value) {
   if (!Array.isArray(value)) return [];
 
   return value.map((item, index) => {
@@ -831,7 +831,7 @@ async function confirmDiscordLink(req) {
   };
 }
 
-function readJsonBody(req) {
+export function readJsonBody(req) {
   if (typeof req.body === "string") {
     return req.body ? JSON.parse(req.body) : {};
   }
@@ -1393,12 +1393,12 @@ async function loadNexusOverview(profile, rootOrigin = "") {
   return rows;
 }
 
-function canonicalDivisionId(value) {
+export function canonicalDivisionId(value) {
   const normalized = requireString(value).toLowerCase();
   return listDivisions().find(division => division.id.toLowerCase() === normalized)?.id || "";
 }
 
-function rosterDefinitionForDivision(division) {
+export function rosterDefinitionForDivision(division) {
   if (division === "highranks") return ROBLOX_GROUPS.HIGH_RANKS;
   if (division === "darkCouncil") return ROBLOX_GROUPS.DARK_COUNCIL;
   return ROBLOX_GROUPS.DIVISIONS[division];
@@ -1441,7 +1441,7 @@ async function fetchDivisionRoster(division) {
   return members.filter(member => member.robloxId);
 }
 
-function normalizeReportMember(row, index = 0) {
+export function normalizeReportMember(row, index = 0) {
   return {
     robloxId: String(row.roblox_id || ""),
     username: row.username || "",
@@ -1456,7 +1456,7 @@ function normalizeReportMember(row, index = 0) {
   };
 }
 
-function normalizeWeeklyReport(row, members = []) {
+export function normalizeWeeklyReport(row, members = []) {
   const reportMembers = members.map(normalizeReportMember);
   return {
     id: row.id,
@@ -1497,7 +1497,7 @@ async function loadWeeklyReports(division = "") {
   return (rows || []).map(row => normalizeWeeklyReport(row, memberMap.get(String(row.id)) || []));
 }
 
-function clockScopeForDivision(division) {
+export function clockScopeForDivision(division) {
   return {
     reavers: "reavers",
     dhg: "dhg",
@@ -1508,7 +1508,7 @@ function clockScopeForDivision(division) {
   }[division] || "";
 }
 
-function shiftTotalSeconds(row, now = Date.now()) {
+export function shiftTotalSeconds(row, now = Date.now()) {
   const baseSeconds = row.status === "active"
     ? Math.max(0, Math.floor((now - new Date(row.started_at).getTime()) / 1000))
     : Number(row.duration_seconds || 0);
@@ -1516,7 +1516,7 @@ function shiftTotalSeconds(row, now = Date.now()) {
   return Math.max(0, baseSeconds + Number(row.adjustment_seconds || 0));
 }
 
-function formatMemberShift(totalSeconds) {
+export function formatMemberShift(totalSeconds) {
   const seconds = Math.max(0, Number(totalSeconds) || 0);
   return {
     hours: Math.floor(seconds / 3600),
@@ -1524,7 +1524,7 @@ function formatMemberShift(totalSeconds) {
   };
 }
 
-function inFilter(values) {
+export function inFilter(values) {
   return `in.(${values.map(value => `"${String(value).replace(/"/g, '\\"')}"`).join(",")})`;
 }
 
@@ -1613,7 +1613,7 @@ async function resetClockShiftsForReport(division, members = [], reportAt = new 
   });
 }
 
-function reportTotals(members) {
+export function reportTotals(members) {
   return members.reduce((totals, member) => ({
     hours: totals.hours + (Number(member.hours) || 0),
     minutes: totals.minutes + (Number(member.minutes) || 0),
@@ -1622,7 +1622,7 @@ function reportTotals(members) {
   }), { hours: 0, minutes: 0, eventsHosted: 0, eventsAttended: 0 });
 }
 
-function reportMemberRows(reportId, members = []) {
+export function reportMemberRows(reportId, members = []) {
   return members.filter(Boolean).map((member, index) => ({
     report_id: reportId,
     roblox_id: requireString(member.robloxId),
@@ -1638,7 +1638,7 @@ function reportMemberRows(reportId, members = []) {
   })).filter(row => row.roblox_id);
 }
 
-function normalizeIncomingReportMember(member) {
+export function normalizeIncomingReportMember(member) {
   if (!member || typeof member !== "object") return null;
 
   const robloxId = requireString(member.robloxId || member.roblox_id || member["roblox id"]);
@@ -1721,7 +1721,7 @@ async function writeWeeklyReport(auth, body) {
   return { ok: true, status: 200, payload: { ok: true, id: created?.id } };
 }
 
-function inspectionSectionsFor(division, sections = []) {
+export function inspectionSectionsFor(division, sections = []) {
   const fallback = {
     dhg: ["Attendance", "Combat", "Jailing", "Guarding", "Codex", "Formations"],
     reavers: ["Attendance", "Combat", "Assassinations", "Codex", "Formations"],
@@ -1738,7 +1738,7 @@ function inspectionSectionsFor(division, sections = []) {
   })).filter(section => section.name);
 }
 
-function calculateInspectionOverall(sections, bonusPercentage = 0) {
+export function calculateInspectionOverall(sections, bonusPercentage = 0) {
   const subtotal = sections.reduce((sum, section) => {
     if (!section.outOf || !section.weightedPercentage) return sum;
     return sum + (section.achievedScore / section.outOf) * section.weightedPercentage;
@@ -1746,7 +1746,7 @@ function calculateInspectionOverall(sections, bonusPercentage = 0) {
   return Math.round((subtotal + (Number(bonusPercentage) || 0)) * 100) / 100;
 }
 
-function normalizeInspectionSection(row, index = 0) {
+export function normalizeInspectionSection(row, index = 0) {
   return {
     name: row.name || "",
     outOf: Number(row.out_of) || 0,
@@ -1756,7 +1756,7 @@ function normalizeInspectionSection(row, index = 0) {
   };
 }
 
-function normalizeInspection(row, sections = []) {
+export function normalizeInspection(row, sections = []) {
   const normalizedSections = sections.map(normalizeInspectionSection);
   return {
     id: row.id,
@@ -1798,7 +1798,7 @@ async function loadInspections(division = "") {
   return (rows || []).map(row => normalizeInspection(row, sectionMap.get(String(row.id)) || []));
 }
 
-function inspectionSectionRows(inspectionId, sections = []) {
+export function inspectionSectionRows(inspectionId, sections = []) {
   return sections.map((section, index) => ({
     inspection_id: inspectionId,
     name: requireString(section.name),
@@ -2030,7 +2030,7 @@ async function loadRobloxProfileSummary(robloxId) {
   };
 }
 
-function personnelLookupWarnings({ accountAgeDays, friendsCount, badgeCount }) {
+export function personnelLookupWarnings({ accountAgeDays, friendsCount, badgeCount }) {
   const warnings = [];
 
   if (accountAgeDays !== null && accountAgeDays < 30) {
@@ -2103,7 +2103,7 @@ async function loadPendingRetirements() {
   ).catch(() => []);
 }
 
-function activityItem({ id, source, type, title, scope = "", at, meta = {} }) {
+export function activityItem({ id, source, type, title, scope = "", at, meta = {} }) {
   return {
     id: String(id || `${source}-${title}-${at}`),
     source,
@@ -2115,7 +2115,7 @@ function activityItem({ id, source, type, title, scope = "", at, meta = {} }) {
   };
 }
 
-function pagedActivity(items, page = 1, pageSize = 20, source = "all") {
+export function pagedActivity(items, page = 1, pageSize = 20, source = "all") {
   const filtered = source === "all" ? items : items.filter(item => item.source === source);
   const sorted = filtered
     .filter(item => item.at)
@@ -2388,7 +2388,7 @@ async function fetchCouncilEligibleSnapshot() {
   };
 }
 
-function normalizeCouncilVote(row) {
+export function normalizeCouncilVote(row) {
   return {
     id: row.id,
     proposalId: row.proposal_id,
@@ -2403,7 +2403,7 @@ function normalizeCouncilVote(row) {
   };
 }
 
-function voteCounts(votes = []) {
+export function voteCounts(votes = []) {
   return votes.reduce((counts, vote) => {
     if (vote.vote === "yes") counts.yes += 1;
     if (vote.vote === "no") counts.no += 1;
@@ -2428,7 +2428,7 @@ function voteCounts(votes = []) {
   });
 }
 
-function derivedCouncilStatus(proposal, votes = []) {
+export function derivedCouncilStatus(proposal, votes = []) {
   if (["vetoed", "withdrawn", "passed", "failed"].includes(proposal.status)) return proposal.status;
 
   const openedAt = new Date(proposal.opens_at || proposal.created_at);
@@ -2661,7 +2661,7 @@ async function reopenCouncilProposal(auth, body) {
   return { ok: true, status: 200, payload: { ok: true, proposals: await loadCouncilProposals() } };
 }
 
-function normalizeTimelineEntry(entry) {
+export function normalizeTimelineEntry(entry) {
   return {
     id: entry.id,
     title: entry.title,
@@ -2736,1096 +2736,5 @@ async function writeTimelineEntry(auth, body) {
   return { ok: true, status: 200, payload: { ok: true, entries: await loadTimelineEntries(true) } };
 }
 
-export const LEGACY_API_HANDLERS = {
-  "auth/login": async (req, res) => {
-    const clientID = process.env.ROBLOX_CLIENT_ID;
-    const redirectUri = oauthRedirectUri(req);
-    const state = createRandomToken();
-    const scope = encodeURIComponent("openid profile");
-    const robloxAuthUrl = `https://apis.roblox.com/oauth/v1/authorize?client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=code&state=${encodeURIComponent(state)}`;
 
-    console.info("Roblox OAuth login", {
-      host: req?.headers?.host || "",
-      redirectUri
-    });
-
-    res.setHeader("Set-Cookie", serializeCookie(STATE_COOKIE, encodeOAuthStateCookie({ state, redirectUri }), {
-      maxAge: OAUTH_STATE_MAX_AGE_SECONDS
-    }));
-    return res.redirect(robloxAuthUrl);
-  },
-  "auth/logout": async (req, res) => {
-    try {
-      const token = getCookie(req, SESSION_COOKIE);
-      await deleteSessionToken(token);
-      res.setHeader("Set-Cookie", clearCookie(SESSION_COOKIE));
-      return res.status(200).json({ ok: true });
-    } catch (err) {
-      res.setHeader("Set-Cookie", clearCookie(SESSION_COOKIE));
-      return res.status(500).json({ ok: false, error: err.message });
-    }
-  },
-  "auth/check-status": async (req, res) => {
-    try {
-      await cleanupExpiredSessions();
-      const session = await getSessionUser(req);
-
-      if (!session.authenticated) {
-        return res.status(200).json({ bound: false, reason: session.reason });
-      }
-
-      return res.status(200).json({
-        bound: true,
-        robloxId: session.user.roblox_id,
-        robloxUsername: session.user.roblox_username
-      });
-    } catch (err) {
-      return res.status(500).json({ bound: false, error: err.message });
-    }
-  },
-  "discord-link/confirm": async (req, res) => {
-    try {
-      const result = await confirmDiscordLink(req);
-      return res.status(result.status).json(result.payload);
-    } catch (err) {
-      return res.status(500).json({ ok: false, error: err.message });
-    }
-  },
-  "auth/callback": async (req, res) => {
-    const { code, state, error } = req.query;
-
-    if (error) {
-      return res.redirect(`/account.html?status=error&msg=${encodeURIComponent(error)}`);
-    }
-
-    if (!code || !state) {
-      return res.redirect("/account.html?status=error&msg=Invalid+callback+payload");
-    }
-
-    const expected = decodeOAuthStateCookie(getCookie(req, STATE_COOKIE));
-
-    if (!statesMatch(state, expected.state)) {
-      res.setHeader("Set-Cookie", clearCookie(STATE_COOKIE));
-      return res.redirect("/account.html?status=error&msg=OAuth+state+verification+failed");
-    }
-
-    try {
-      const tokenRedirectUri = expected.redirectUri || oauthRedirectUri(req);
-      const tokenResponse = await fetch("https://apis.roblox.com/oauth/v1/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          client_id: process.env.ROBLOX_CLIENT_ID,
-          client_secret: process.env.ROBLOX_CLIENT_SECRET,
-          grant_type: "authorization_code",
-          code,
-          redirect_uri: tokenRedirectUri
-        })
-      });
-
-      const tokenData = await tokenResponse.json();
-      if (!tokenResponse.ok) {
-        throw new Error(tokenData.error_description || "Failed token transaction exchange");
-      }
-
-      const userResponse = await fetch("https://apis.roblox.com/oauth/v1/userinfo", {
-        headers: { Authorization: `Bearer ${tokenData.access_token}` }
-      });
-
-      const userData = await userResponse.json();
-      if (!userResponse.ok) {
-        throw new Error("Could not fetch Roblox identity profile data.");
-      }
-
-      const robloxId = String(userData.sub);
-      const robloxUsername = userData.preferred_username;
-      const robloxDisplayName = userData.name;
-
-      await deleteSessionToken(getCookie(req, SESSION_COOKIE));
-
-      const { token, expiresAt } = await createSessionForUser({
-        robloxId,
-        robloxUsername,
-        robloxDisplayName
-      });
-
-      res.setHeader("Set-Cookie", [
-        clearCookie(STATE_COOKIE),
-        serializeCookie(SESSION_COOKIE, token, {
-          maxAge: SESSION_MAX_AGE_SECONDS,
-          expires: expiresAt
-        })
-      ]);
-
-      return res.redirect("/account.html?status=success");
-    } catch (err) {
-      res.setHeader("Set-Cookie", clearCookie(STATE_COOKIE));
-      return res.redirect(`/account.html?status=error&msg=${encodeURIComponent(err.message)}`);
-    }
-  },
-  "auth/check-access": async (req, res) => {
-    const page = getQueryParam(req, "page");
-    let pageIsUnknown = false;
-
-    try {
-      if (page) {
-        const unknownCheck = checkPageAccess({
-          isSuperUser: false,
-          hasFullAccess: false,
-          divisions: {},
-          highRank: "none"
-        }, page);
-
-        pageIsUnknown = unknownCheck.reason === "UNKNOWN_RESOURCE";
-
-        if (unknownCheck.authorized) {
-          return res.status(200).json(unknownCheck);
-        }
-      }
-
-      const auth = await getAuthContext(req, { optional: true });
-      if (!auth.authenticated) {
-        if (pageIsUnknown) {
-          return res.status(200).json({
-            authorized: false,
-            reason: "UNKNOWN_RESOURCE"
-          });
-        }
-
-        return res.status(200).json({
-          authorized: false,
-          reason: auth.reason || "SESSION_REQUIRED"
-        });
-      }
-      const profile = auth.profile;
-
-      if (page) {
-        const access = checkPageAccess(profile, page);
-        return res.status(200).json({
-          ...access,
-          profile,
-          permissions: {
-            canAccessAdmin: canAccessAdmin(profile).authorized,
-            canAccessPersonnelLookup: canAccessPersonnelLookup(profile).authorized,
-            canAccessNexus: canAccessNexus(profile).authorized,
-            canAccessRegistry: canAccessRegistry(profile).authorized
-          }
-        });
-      }
-
-      return res.status(200).json({
-        authorized: true,
-        profile,
-        permissions: {
-          canAccessAdmin: canAccessAdmin(profile).authorized,
-          canAccessPersonnelLookup: canAccessPersonnelLookup(profile).authorized,
-          canAccessNexus: canAccessNexus(profile).authorized,
-          canAccessRegistry: canAccessRegistry(profile).authorized
-        }
-      });
-    } catch (err) {
-      return res.status(500).json({ authorized: false, error: err.message });
-    }
-  },
-  library: async (req, res) => {
-    try {
-      const libraryKey = requireString(getQueryParam(req, "library")).toLowerCase();
-      if (libraryKey === "archives") {
-        try {
-          if (req.method !== "GET") {
-            return res.status(400).json({ ok: false, reason: "ARCHIVES_USE_ARCHIVE_ENDPOINT" });
-          }
-
-          const auth = await getAuthContext(req, { optional: true });
-          const canEdit = auth.authenticated ? canEditLibrary(auth.profile, "archives").authorized : false;
-          const articles = await ensureArchivesSeeded();
-
-          return res.status(200).json({
-            ok: true,
-            library: "archives",
-            canEdit,
-            articles,
-            documents: articles
-          });
-        } catch (error) {
-          if (req.method === "GET" && isMissingSchemaError(error)) {
-            const articles = (ARCHIVE_SEED.articles || []).map(article => ({
-              id: article.slug,
-              slug: article.slug,
-              articleNumber: article.articleNumber || "ARTICLE 1",
-              title: article.title,
-              body: article.body,
-              imageBucket: article.imagePath ? "archives" : "",
-              imagePath: article.imagePath || "",
-              imageAlt: article.imageAlt || article.title,
-              imageUrl: "",
-              status: article.status || "published",
-              displayOrder: article.displayOrder || 0
-            }));
-
-            return res.status(200).json({
-              ok: true,
-              library: "archives",
-              canEdit: false,
-              migrationRequired: true,
-              articles,
-              documents: articles
-            });
-          }
-
-          return res.status(500).json({ ok: false, error: error.message });
-        }
-      }
-
-      if (libraryKey !== "codex") {
-        return res.status(400).json({ ok: false, reason: "UNKNOWN_LIBRARY" });
-      }
-
-      if (req.method === "GET") {
-        const auth = await getAuthContext(req, { optional: true });
-        const canEdit = auth.authenticated
-          ? canEditLibrary(auth.profile, libraryKey).authorized
-          : false;
-
-        const documents = await ensureLibrarySeeded(libraryKey);
-        return res.status(200).json({
-          ok: true,
-          library: libraryKey,
-          canEdit,
-          documents
-        });
-      }
-
-      const auth = await getAuthContext(req);
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
-      }
-
-      const permission = canEditLibrary(auth.profile, libraryKey);
-      if (!permission.authorized) {
-        return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
-      }
-
-      if (req.method === "POST" || req.method === "PATCH") {
-        const result = await writeLibraryDocument(libraryKey, typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {}));
-        return res.status(result.status).json(result.payload);
-      }
-
-      if (req.method === "DELETE") {
-        const id = requireString(getQueryParam(req, "id"));
-        if (!id) {
-          return res.status(400).json({ ok: false, reason: "DOCUMENT_ID_REQUIRED" });
-        }
-
-        await deleteLibraryDocument(id);
-        return res.status(200).json({ ok: true });
-      }
-
-      return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-    } catch (error) {
-      if (req.method === "GET" && isMissingSchemaError(error)) {
-        const libraryKey = requireString(getQueryParam(req, "library")).toLowerCase();
-        return res.status(200).json({
-          ok: true,
-          library: libraryKey,
-          canEdit: false,
-          migrationRequired: true,
-          documents: (LIBRARY_SEED[libraryKey]?.documents || []).map(document => ({
-            ...document,
-            id: document.slug
-          }))
-        });
-      }
-
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  archives: async (req, res) => {
-    try {
-      if (req.method === "GET") {
-        const auth = await getAuthContext(req, { optional: true });
-        const canEdit = auth.authenticated ? canEditLibrary(auth.profile, "archives").authorized : false;
-        const articles = await ensureArchivesSeeded();
-
-        return res.status(200).json({
-          ok: true,
-          library: "archives",
-          canEdit,
-          articles,
-          documents: articles
-        });
-      }
-
-      const auth = await getAuthContext(req);
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
-      }
-
-      const permission = canEditLibrary(auth.profile, "archives");
-      if (!permission.authorized) {
-        return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
-      }
-
-      if (req.method === "POST" || req.method === "PATCH") {
-        const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-        const result = await writeArchiveArticle(body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if (req.method === "DELETE") {
-        const id = requireString(getQueryParam(req, "id"));
-        if (!id) {
-          return res.status(400).json({ ok: false, reason: "ARTICLE_ID_REQUIRED" });
-        }
-
-        await deleteArchiveArticle(id);
-        return res.status(200).json({ ok: true });
-      }
-
-      return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-    } catch (error) {
-      if (req.method === "GET" && isMissingSchemaError(error)) {
-        const articles = (ARCHIVE_SEED.articles || []).map(article => ({
-          id: article.slug,
-          slug: article.slug,
-          articleNumber: article.articleNumber || "ARTICLE 1",
-          title: article.title,
-          body: article.body,
-          imageBucket: article.imagePath ? "archives" : "",
-          imagePath: article.imagePath || "",
-          imageAlt: article.imageAlt || article.title,
-          imageUrl: "",
-          status: article.status || "published",
-          displayOrder: article.displayOrder || 0
-        }));
-
-        return res.status(200).json({
-          ok: true,
-          library: "archives",
-          canEdit: false,
-          migrationRequired: true,
-          articles,
-          documents: articles
-        });
-      }
-
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  resources: async (req, res) => {
-    try {
-      const division = getQueryParam(req, "division");
-      const requestedType = getQueryParam(req, "type");
-      const resourceType = {
-        handbooks: "handbook",
-        documents: "handbook",
-        transmissions: "transmission",
-        activity: "tracker",
-        trackers: "tracker",
-        reports: "report"
-      }[requestedType];
-      const detailTable = detailTableFor(resourceType);
-
-      if (!division || !resourceType || !detailTable) {
-        return res.status(400).json({ ok: false, reason: "UNKNOWN_RESOURCE_TYPE" });
-      }
-
-      await cleanupRetiredHandbooks();
-
-      const auth = await getAuthContext(req);
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason });
-      }
-
-      const pageKey = `${division}_${{
-        handbooks: "handbooks",
-        documents: "handbooks",
-        transmissions: "transmissions",
-        activity: "activity",
-        trackers: "activity",
-        reports: "reports"
-      }[requestedType]}`;
-      const access = checkPageAccess(auth.profile, pageKey);
-      if (!access.authorized) {
-        return res.status(200).json({ ok: false, authorized: false, reason: access.reason || "ACCESS_DENIED" });
-      }
-
-      if (req.method === "POST" || req.method === "PATCH") {
-        if (resourceType === "handbook") {
-          return res.status(405).json({ ok: false, reason: "HANDBOOK_UPLOADS_DISABLED" });
-        }
-
-        const writeAccess = checkResourceWriteAccess(auth.profile, { division, resourceType });
-        if (!writeAccess.authorized) {
-          return res.status(200).json({ ok: false, authorized: false, reason: writeAccess.reason });
-        }
-
-        const result = await writeResource({
-          division,
-          resourceType,
-          detailTable,
-          body: resourceType === "transmission"
-            ? { ...(typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {})), status: "published", visibility: "restricted" }
-            : req.body || {},
-          authorName: authAuthorName(auth)
-        });
-
-        return res.status(result.status).json(result.payload);
-      }
-
-      if (req.method === "DELETE") {
-        if (resourceType === "handbook") {
-          return res.status(405).json({ ok: false, reason: "HANDBOOK_UPLOADS_DISABLED" });
-        }
-
-        const writeAccess = checkResourceWriteAccess(auth.profile, { division, resourceType });
-        if (!writeAccess.authorized) {
-          return res.status(200).json({ ok: false, authorized: false, reason: writeAccess.reason });
-        }
-
-        const result = await deleteResource({
-          division,
-          resourceType,
-          detailTable,
-          id: getQueryParam(req, "id")
-        });
-
-        return res.status(result.status).json(result.payload);
-      }
-
-      if (req.method !== "GET") {
-        return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-      }
-
-      const resources = await loadPublishedResources(division, resourceType);
-      const rows = resources?.length
-        ? await normalizeRows(resources, await loadDetailRows(detailTable, resources.map(resource => resource.id)), resourceType)
-        : [];
-
-      if (resourceType === "handbook") {
-        const slotCatalog = getHandbookSlots(division);
-        const sortedRows = rows.slice().sort((left, right) => {
-          const leftSlot = getHandbookSlot(division, left.slotKey || "");
-          const rightSlot = getHandbookSlot(division, right.slotKey || "");
-          return (leftSlot?.order || left.displayOrder || 0) - (rightSlot?.order || right.displayOrder || 0);
-        });
-
-        return res.status(200).json({
-          ok: true,
-          authorized: true,
-          canWrite: false,
-          canUpload: false,
-          slotCatalog,
-          resources: sortedRows
-        });
-      }
-
-      return res.status(200).json({
-        ok: true,
-        authorized: true,
-        canWrite: checkResourceWriteAccess(auth.profile, { division, resourceType }).authorized,
-        resources: rows
-      });
-    } catch (error) {
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  board: async (req, res) => {
-    try {
-      const auth = await getAuthContext(req, { optional: true });
-
-      if (req.method === "GET") {
-        const canWrite = auth.authenticated ? canWriteBoardBroadcast(auth.profile) : false;
-        return res.status(200).json({
-          ok: true,
-          canWrite,
-          channels: canWrite ? boardChannelsFor(auth.profile) : [],
-          transmissions: await loadBoardTransmissions()
-        });
-      }
-
-      if (req.method === "POST") {
-        if (!auth.authenticated) {
-          return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
-        }
-
-        if (!canWriteBoardBroadcast(auth.profile)) {
-          return res.status(200).json({ ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" });
-        }
-
-        const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-        const channel = requireString(body.channel || "holonet");
-        const allowedChannels = boardChannelsFor(auth.profile);
-        if (!allowedChannels.includes(channel)) {
-          return res.status(200).json({ ok: false, authorized: false, reason: "CHANNEL_NOT_AUTHORIZED" });
-        }
-
-        const result = await writeResource({
-          division: channel,
-          resourceType: "transmission",
-          detailTable: "resource_transmissions",
-          body: {
-            ...body,
-            status: "published",
-            visibility: "public"
-          },
-          authorName: authAuthorName(auth)
-        });
-
-        return res.status(result.status).json({ ...result.payload, transmissions: await loadBoardTransmissions() });
-      }
-
-      if (req.method !== "GET") {
-        return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-      }
-    } catch (error) {
-      if (isMissingSchemaError(error)) {
-        return res.status(200).json({ ok: true, migrationRequired: true, transmissions: [] });
-      }
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  nexus: async (req, res) => {
-    try {
-      const auth = await getAuthContext(req);
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
-      }
-
-      const permission = canAccessNexus(auth.profile);
-      if (!permission.authorized) {
-        return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
-      }
-
-      if (req.method !== "GET") {
-        return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-      }
-
-      return res.status(200).json({
-        ok: true,
-        authorized: true,
-        canInspect: hasHighCommandAccess(auth.profile),
-        divisions: await loadNexusOverview(auth.profile, requestRootOrigin(req))
-      });
-    } catch (error) {
-      if (isMissingSchemaError(error)) {
-        return res.status(200).json({ ok: true, authorized: true, migrationRequired: true, divisions: [] });
-      }
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  "weekly-reports": async (req, res) => {
-    try {
-      const auth = await getAuthContext(req);
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
-      }
-
-      const division = requireString(getQueryParam(req, "division")).toLowerCase();
-      if (req.method === "GET") {
-        const viewAccess = division
-          ? canViewDivisionReports(auth.profile, division)
-          : { authorized: false, reason: "UNKNOWN_DIVISION" };
-        if (!viewAccess.authorized) {
-          return res.status(200).json({ ok: false, authorized: false, reason: viewAccess.reason || "ACCESS_DENIED" });
-        }
-
-        const canWrite = division ? canWriteDivisionWeeklyReport(auth.profile, division) : false;
-        const draft = getQueryParam(req, "draft") === "1";
-        return res.status(200).json({
-          ok: true,
-          authorized: true,
-          canWrite,
-          roster: draft && canWrite ? await buildWeeklyReportRoster(division) : [],
-          reports: await loadWeeklyReports(division)
-        });
-      }
-
-      if (req.method === "POST" || req.method === "PATCH") {
-        const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-        const result = await writeWeeklyReport(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-    } catch (error) {
-      if (isMissingSchemaError(error)) {
-        return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED" });
-      }
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  "division-roster": async (req, res) => {
-    try {
-      if (req.method !== "GET") {
-        return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-      }
-
-      const auth = await getAuthContext(req);
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
-      }
-
-      const division = canonicalDivisionId(getQueryParam(req, "division"));
-      const divisionConfig = getDivision(division);
-      if (!divisionConfig || !rosterDefinitionForDivision(division)) {
-        return res.status(400).json({ ok: false, reason: "UNKNOWN_DIVISION" });
-      }
-
-      const accessKey = divisionConfig.access?.activity || divisionConfig.access?.trackers || `${division}_activity`;
-      const access = checkPageAccess(auth.profile, accessKey);
-      if (!access.authorized) {
-        return res.status(200).json({ ok: false, authorized: false, reason: access.reason || "ACCESS_DENIED" });
-      }
-
-      const members = (await buildWeeklyReportRoster(division))
-        .sort((left, right) => (
-          Number(right.rank || 0) - Number(left.rank || 0)
-          || String(left.username || left.displayName || "").localeCompare(String(right.username || right.displayName || ""))
-        ));
-
-      return res.status(200).json({
-        ok: true,
-        authorized: true,
-        members
-      });
-    } catch (error) {
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  inspections: async (req, res) => {
-    try {
-      const auth = await getAuthContext(req);
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
-      }
-
-      const division = requireString(getQueryParam(req, "division")).toLowerCase();
-      if (req.method === "GET") {
-        return res.status(200).json({
-          ok: true,
-          authorized: true,
-          canWrite: hasHighCommandAccess(auth.profile),
-          inspections: await loadInspections(division)
-        });
-      }
-
-      if (req.method === "POST" || req.method === "PATCH") {
-        const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-        const result = await writeInspection(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-    } catch (error) {
-      if (isMissingSchemaError(error)) {
-        return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED" });
-      }
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  "personnel-lookup": async (req, res) => {
-    try {
-      const username = requireString(req.method === "POST" ? req.body?.username : getQueryParam(req, "username"));
-      if (!username) {
-        return res.status(400).json({ ok: false, reason: "USERNAME_REQUIRED" });
-      }
-
-      const resolved = await resolveUserByUsername(username);
-      if (!resolved?.id) {
-        return res.status(200).json({ ok: false, reason: "USER_NOT_FOUND" });
-      }
-
-      const { user, groups, accountAgeDays, friendsCount, badgeCount } = await loadRobloxProfileSummary(resolved.id);
-      const mainGroupMembership = (groups.data || []).find(
-        membership => membership?.group?.id === ROBLOX_GROUPS.HIGH_RANKS.groupId
-      );
-      const divisionMemberships = Object.entries(ROBLOX_GROUPS.DIVISIONS)
-        .map(([divisionKey, definition]) => {
-          const membership = (groups.data || []).find(item => item?.group?.id === definition.groupId);
-          if (!membership) return null;
-          return {
-            divisionKey,
-            label: divisionKey === "dhg" ? "Dark Honor Guard" : divisionKey === "inquisitors" ? "Inquisitors" : divisionKey.charAt(0).toUpperCase() + divisionKey.slice(1),
-            rankName: membership.role?.name || "Unknown",
-            rank: membership.role?.rank || 0,
-            joinedAt: membership.joinedAt || membership.joined_at || null
-          };
-        })
-        .filter(Boolean);
-      const warnings = personnelLookupWarnings({ accountAgeDays, friendsCount, badgeCount });
-
-      return res.status(200).json({
-        ok: true,
-        authorized: true,
-        user: {
-          robloxId: String(resolved.id),
-          username: resolved.name || username,
-          displayName: resolved.displayName || user.displayName || resolved.name || username,
-          created: user.created || null,
-          accountAgeDays,
-          friendsCount,
-          badgeCount,
-          profileUrl: `https://www.roblox.com/users/${resolved.id}/profile`,
-          mainGroup: mainGroupMembership ? {
-            inGroup: true,
-            rankName: mainGroupMembership.role?.name || "Unknown",
-            rank: mainGroupMembership.role?.rank || 0,
-            joinedAt: mainGroupMembership.joinedAt || mainGroupMembership.joined_at || null
-          } : {
-            inGroup: false,
-            rankName: "",
-            rank: 0,
-            joinedAt: null
-          },
-          divisionMemberships,
-          warnings
-        }
-      });
-    } catch (error) {
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  "council-floor": async (req, res) => {
-    try {
-      const auth = await getAuthContext(req);
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
-      }
-
-      const permissions = councilPermissions(auth.profile);
-      if (!permissions.canView) {
-        return res.status(200).json({ ok: false, authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" });
-      }
-
-      if (req.method === "GET") {
-        let roleSnapshot = null;
-        try {
-          roleSnapshot = await fetchCouncilEligibleSnapshot();
-        } catch {
-          roleSnapshot = { snapshot: [], countingEligibleCount: 0, majorityCount: 0 };
-        }
-
-        return res.status(200).json({
-          ok: true,
-          authorized: true,
-          permissions,
-          roleSnapshot,
-          proposals: await loadCouncilProposals()
-        });
-      }
-
-      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-      const action = requireString(body.action || (req.method === "POST" ? "create" : "")).toLowerCase();
-
-      if (req.method === "POST" && action === "create") {
-        const result = await createCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "vote") {
-        const result = await writeCouncilVote(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "veto") {
-        const result = await vetoCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if ((req.method === "POST" || req.method === "PATCH") && action === "reopen") {
-        const result = await reopenCouncilProposal(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-    } catch (error) {
-      if (isMissingSchemaError(error)) {
-        if (req.method !== "GET") {
-          return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED" });
-        }
-
-        return res.status(200).json({
-          ok: true,
-          migrationRequired: true,
-          authorized: true,
-          permissions: {},
-          roleSnapshot: { snapshot: [], countingEligibleCount: 0, majorityCount: 0 },
-          proposals: []
-        });
-      }
-
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  "group-timeline": async (req, res) => {
-    try {
-      const auth = await getAuthContext(req, { optional: true });
-      const canEdit = auth.authenticated ? canAccessAdmin(auth.profile).authorized : false;
-
-      if (req.method === "GET") {
-        return res.status(200).json({
-          ok: true,
-          canEdit,
-          entries: await loadTimelineEntries(canEdit)
-        });
-      }
-
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
-      }
-
-      if (req.method === "POST" || req.method === "PATCH") {
-        const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-        const result = await writeTimelineEntry(auth, body);
-        return res.status(result.status).json(result.payload);
-      }
-
-      if (req.method === "DELETE") {
-        const permission = canAccessAdmin(auth.profile);
-        if (!permission.authorized) {
-          return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
-        }
-
-        const id = requireString(getQueryParam(req, "id"));
-        if (!id) {
-          return res.status(400).json({ ok: false, reason: "TIMELINE_ID_REQUIRED" });
-        }
-
-        await supabaseRest(`group_timeline_entries?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
-        return res.status(200).json({ ok: true, entries: await loadTimelineEntries(true) });
-      }
-
-      return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-    } catch (error) {
-      if (isMissingSchemaError(error)) {
-        return res.status(200).json({ ok: true, migrationRequired: true, canEdit: false, entries: [] });
-      }
-
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  "admin/overview": async (req, res) => {
-    try {
-      const auth = await getAuthContext(req);
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
-      }
-
-      const permission = canAccessAdmin(auth.profile);
-      if (!permission.authorized) {
-        return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
-      }
-
-      const [counts, health, pendingRetirements, activity] = await Promise.all([
-        loadCounts(),
-        loadAdminHealth(),
-        loadPendingRetirements(),
-        loadRecentActivity()
-      ]);
-
-      return res.status(200).json({
-        ok: true,
-        counts,
-        health,
-        pendingRetirements,
-        activity
-      });
-    } catch (error) {
-      if (isMissingSchemaError(error)) {
-        return res.status(200).json({
-          ok: true,
-          migrationRequired: true,
-          counts: {
-            codexArticles: 0,
-            archiveArticles: 0,
-            activeOverrides: 0,
-            activeBotLinks: 0,
-            activeShifts: 0,
-            publishedResources: 0,
-            pendingRetirements: []
-          },
-          health: { ok: false, checks: [] },
-          pendingRetirements: [],
-          activity: { items: [], page: 1, pageSize: 20, totalApprox: 0, hasNext: false, filters: ["all"] }
-        });
-      }
-
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  "admin/activity": async (req, res) => {
-    try {
-      const auth = await getAuthContext(req);
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
-      }
-
-      const permission = canAccessAdmin(auth.profile);
-      if (!permission.authorized) {
-        return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
-      }
-
-      const activity = await loadRecentActivity({
-        page: Number(getQueryParam(req, "page")) || 1,
-        pageSize: Number(getQueryParam(req, "pageSize")) || 20,
-        source: requireString(getQueryParam(req, "source"), "all") || "all"
-      });
-
-      return res.status(200).json({ ok: true, activity });
-    } catch (error) {
-      if (isMissingSchemaError(error)) {
-        return res.status(200).json({ ok: true, activity: { items: [], page: 1, pageSize: 20, totalApprox: 0, hasNext: false, filters: ["all"] } });
-      }
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  "admin/retirements": async (req, res) => {
-    try {
-      const auth = await getAuthContext(req);
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
-      }
-
-      const permission = canAccessAdmin(auth.profile);
-      if (!permission.authorized) {
-        return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
-      }
-
-      if (req.method === "GET") {
-        return res.status(200).json({ ok: true, retirements: await loadPendingRetirements() });
-      }
-
-      if (req.method === "POST" || req.method === "PATCH") {
-        const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-        const action = requireString(body.action).toLowerCase();
-        const id = requireString(body.id);
-
-        if (action !== "restore" || !id) {
-          return res.status(400).json({ ok: false, reason: "RETIREMENT_ACTION_REQUIRED" });
-        }
-
-        const result = await restoreHandbookRetirement(id, auth);
-        return res.status(result.status).json(result.payload);
-      }
-
-      return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-    } catch (error) {
-      if (isMissingSchemaError(error)) {
-        return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED" });
-      }
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  "admin/overrides": async (req, res) => {
-    try {
-      const auth = await getAuthContext(req);
-      if (!auth.authenticated) {
-        return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
-      }
-
-      const permission = canAccessAdmin(auth.profile);
-      if (!permission.authorized) {
-        return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
-      }
-
-      if (req.method === "GET") {
-        return res.status(200).json({ ok: true, overrides: await loadOverrides() });
-      }
-
-      if (req.method === "POST") {
-        const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-        const robloxId = requireString(body.robloxId) || await resolveRobloxId(requireString(body.username));
-        const effect = requireString(body.effect).toLowerCase();
-        const scopeType = requireString(body.scopeType).toLowerCase();
-        const scopeKey = requireString(body.scopeKey);
-        const reason = requireString(body.reason);
-
-        if (!robloxId || !["grant", "revoke"].includes(effect) || !["page", "division", "library", "capability"].includes(scopeType) || !scopeKey || !reason) {
-          return res.status(400).json({ ok: false, reason: "OVERRIDE_FIELDS_REQUIRED" });
-        }
-
-        await supabaseRest("access_overrides", {
-          method: "POST",
-          body: JSON.stringify({
-            roblox_id: robloxId,
-            effect,
-            scope_type: scopeType,
-            scope_key: scopeKey,
-            reason,
-            created_by: String(auth.user.roblox_id),
-            created_at: new Date().toISOString(),
-            expires_at: body.expiresAt || null,
-            active: true
-          })
-        });
-
-        await supabaseRest("bot_audit_logs", {
-          method: "POST",
-          body: JSON.stringify({
-            action: "admin.override.create",
-            roblox_user_id: String(auth.user.roblox_id),
-            metadata: { targetRobloxId: robloxId, effect, scopeType, scopeKey }
-          })
-        }).catch(() => null);
-
-        return res.status(200).json({ ok: true, overrides: await loadOverrides() });
-      }
-
-      if (req.method === "DELETE") {
-        const id = requireString(getQueryParam(req, "id"));
-        if (!id) {
-          return res.status(400).json({ ok: false, reason: "OVERRIDE_ID_REQUIRED" });
-        }
-
-        const [existing] = await supabaseRest(`access_overrides?id=eq.${encodeURIComponent(id)}&select=*`).catch(() => []);
-        await supabaseRest(`access_overrides?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
-        await supabaseRest("bot_audit_logs", {
-          method: "POST",
-          body: JSON.stringify({
-            action: "admin.override.remove",
-            roblox_user_id: String(auth.user.roblox_id),
-            metadata: existing ? { targetRobloxId: existing.roblox_id, effect: existing.effect, scopeType: existing.scope_type, scopeKey: existing.scope_key } : { overrideId: id }
-          })
-        }).catch(() => null);
-
-        return res.status(200).json({ ok: true, overrides: await loadOverrides() });
-      }
-
-      return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
-    } catch (error) {
-      if (isMissingSchemaError(error)) {
-        return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED" });
-      }
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-  },
-  "unknown-resource": async (req, res) => {
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.status(200).send(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Restricted Node - Sith Holonet</title>
-  <style>
-    html,
-    body {
-      background: #0e0000;
-      margin: 0;
-      min-height: 100%;
-    }
-  </style>
-</head>
-<body>
-  <div style="min-height:100vh;display:grid;place-items:center;color:#ff3b4f;font-family:'Share Tech Mono',monospace;text-align:center;padding:24px;">
-    <div>
-      <h1 style="font-family:'Orbitron',sans-serif;letter-spacing:.2em;">[ RESTRICTED NODE ]</h1>
-      <p style="letter-spacing:.12em;text-transform:uppercase;">ACCESS DENIED: RESOURCE UNKNOWN</p>
-      <p><a href="/registry" style="color:#ff3b4f;text-decoration:none;border:1px solid currentColor;padding:10px 18px;display:inline-block;">GO BACK</a></p>
-    </div>
-  </div>
-</body>
-</html>`);
-  }
-};
+export { VERIFICATION_LOG_COLOR, VERIFICATION_WARNING_COLOR, VERIFICATION_WARNING_ROLE_IDS, DEFAULT_SITE_ORIGIN, OAUTH_STATE_MAX_AGE_SECONDS, COUNCIL_RANKS, COUNCIL_COUNTING_RANKS, COUNCIL_VOTING_RANKS, COUNCIL_VETO_RANKS, cachedDiscordToken, cachedVerificationLogChannelId, getQueryParam, requireString, authAuthorName, readTextFileIfExists, escapeRegExp, candidateRepoRoots, candidateBotFiles, readEnvValue, readEnvValueFromCandidates, discordToken, parseVerificationLogChannelId, verificationLogChannelId, warnVerificationLog, tokenFingerprint, logVerificationConfirm, slugify, toRoman, fromRoman, articleOrderFrom, regulationOrderFrom, regulationAnchor, withIncrementedOrder, insertAtDisplayOrder, resolveEntryDisplayOrders, isMissingSchemaError, councilRank, councilRoleForRank, councilPermissions, canViewInquisitorOverview, hasDarkCouncilPlus, canWriteDivisionWeeklyReport, canWriteBoardBroadcast, boardChannelsFor, clampDurationHours, publicImageUrl, isLocalHostname, normalizeSiteUrl, headerFirstValue, requestRootOrigin, canonicalOAuthOrigin, oauthRedirectUri, normalizeOauthRedirectUri, encodeOAuthStateCookie, decodeOAuthStateCookie, statesMatch, lookupUrlForRequest, encodeInList, detailTableFor, normalizeSubClauses, readJsonBody, canonicalDivisionId, rosterDefinitionForDivision, normalizeReportMember, normalizeWeeklyReport, clockScopeForDivision, shiftTotalSeconds, formatMemberShift, inFilter, reportTotals, reportMemberRows, normalizeIncomingReportMember, inspectionSectionsFor, calculateInspectionOverall, normalizeInspectionSection, normalizeInspection, inspectionSectionRows, personnelLookupWarnings, activityItem, pagedActivity, normalizeCouncilVote, voteCounts, derivedCouncilStatus, normalizeTimelineEntry, getAuthContext, timingSafeEqual, existsSync, readFileSync, path, canAccessAdmin, canAccessNexus, canAccessPersonnelLookup, canAccessRegistry, canEditLibrary, canViewDivisionReports, canWriteDivisionReport, checkPageAccess, checkResourceWriteAccess, hasCoreAccess, hasHighCommandAccess, clearCookie, cleanupExpiredSessions, createRandomToken, createSessionForUser, createSignedStorageUrl, deleteSessionToken, getCookie, getSessionUser, removeStorageObjects, serializeCookie, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, STATE_COOKIE, supabaseRest, ROBLOX_GROUPS, tierAtLeast, ARCHIVE_SEED, LIBRARY_SEED, getHandbookSlot, getHandbookSlots, divisionLockedHref, getDivision, listDivisions, extractGoogleFileId, extractGoogleTabId, googleWorkspaceKindFromUrl };

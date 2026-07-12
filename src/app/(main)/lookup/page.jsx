@@ -24,7 +24,7 @@ export default function LookupPage() {
               </div>
             </form>
             <div className="personnel-results" id="personnel-results">
-              <p className="personnel-empty">Awaiting personnel query.</p>
+              <p className="personnel-empty">Awaiting query.</p>
             </div>
           </div>
         </section>

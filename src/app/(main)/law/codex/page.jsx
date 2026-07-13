@@ -1,5 +1,5 @@
 import { supabaseRest } from "../../../../lib/api-helpers.js";
-import PageScripts from "../../../../components/PageScripts.jsx";
+import { PageScripts } from "../../../../components/PageScripts.jsx";
 
 export const metadata = {
   title: "Sith Codex - The Holonet"

@@ -162,7 +162,7 @@ export default function MandateV2Page() {
                   <div className="pos-item border-right border-bottom">
                     <h5>HEAD OF DIVISIONS</h5>
                     <p>JUL - AUG 23</p>
-                    <p>NOV - APR 23</p>
+                    <p>NOV - APR 24</p>
                   </div>
                   <div className="pos-item border-bottom">
                     <h5>HEAD OF INSTRUCTION</h5>
@@ -171,7 +171,7 @@ export default function MandateV2Page() {
                   <div className="pos-item border-right border-bottom">
                     <h5>PURVEYOR OF TRUTH</h5>
                     <p>JUN - AUG 23</p>
-                    <p>JUN - PRES. 23</p>
+                    <p>JUN - PRES</p>
                   </div>
                   <div className="pos-item border-right border-bottom">
                     <h5>REAVER OVERSEER</h5>

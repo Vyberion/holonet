@@ -1,6 +1,8 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  getAuthContext, path, checkPageAccess, createSignedStorageUrl, removeStorageObjects, supabaseRest, extractGoogleFileId, extractGoogleTabId, googleWorkspaceKindFromUrl
+  getAuthContext, path, checkPageAccess, createSignedStorageUrl, removeStorageObjects, supabaseRest,
+  listStorageObjects, uploadStorageObject, exportGoogleDocPdf, fetchGoogleFileMetadata,
+  extractGoogleFileId, extractGoogleTabId, googleWorkspaceKindFromUrl
 } from "../../../lib/api-helpers.js";
 
 

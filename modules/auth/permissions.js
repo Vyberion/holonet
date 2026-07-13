@@ -33,6 +33,8 @@ const PAGE_ACCESS = {
   lookup: { public: true },
   personnel: { public: true },
   home: { public: true },
+  mandate: { superUserOnly: true },
+  wrath: { superUserOnly: true },
   reavers_home: { division: "reavers", minimumTier: "member" },
   reavers_info: { public: true },
   reavers_handbooks: { division: "reavers", minimumTier: "member" },
@@ -459,6 +461,13 @@ export function checkPageAccess(profile, page) {
       return { ...override, pageKey };
     }
 
+    return { authorized: false, pageKey, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
+  }
+
+  if (rule.superUserOnly) {
+    if (profile?.isSuperUser) {
+      return { authorized: true, pageKey };
+    }
     return { authorized: false, pageKey, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
   }
 

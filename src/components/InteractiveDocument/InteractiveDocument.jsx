@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { OldGuardPlayer } from "../../../components/OldGuardPlayer.jsx";
+import { OldGuardPlayer } from "../OldGuardPlayer.jsx";
 
-export function InteractiveMandate({ hero, content, videoPlaybackId }) {
+export function InteractiveDocument({ hero, content, videoPlaybackId, audioSrc = "/assets/music/galaxy/suspense.mp3" }) {
   const containerRef = useRef(null);
   const [progress, setProgress] = useState(0);
   const targetProgressRef = useRef(0);
@@ -50,7 +50,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
         audioRef.current.pause();
       }
     };
-    
+
     const handleSpotifyPause = () => {
       // Only resume background music if the intro video is actually finished
       // and we are intended to be playing
@@ -61,7 +61,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
 
     window.addEventListener('mandate-spotify-play', handleSpotifyPlay);
     window.addEventListener('mandate-spotify-pause', handleSpotifyPause);
-    
+
     return () => {
       window.removeEventListener('mandate-spotify-play', handleSpotifyPlay);
       window.removeEventListener('mandate-spotify-pause', handleSpotifyPause);
@@ -229,7 +229,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
     const updateMouseVariables = () => {
       document.documentElement.style.setProperty('--mouse-x', `${lastClientX}px`);
       document.documentElement.style.setProperty('--mouse-y', `${lastClientY + window.scrollY}px`);
-      
+
       if (hoveredGlowElement) {
         const rect = hoveredGlowElement.getBoundingClientRect();
         const x = lastClientX - rect.left;
@@ -313,7 +313,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
 
   return (
     <div ref={containerRef} className="interactive-mandate-wrapper">
-      <audio ref={audioRef} src="/assets/music/galaxy/suspense.mp3" loop />
+      <audio ref={audioRef} src={audioSrc} loop />
 
       {/* INTRO VIDEO OVERLAY — stays on top until finished */}
       {videoPlaybackId && (

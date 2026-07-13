@@ -43,6 +43,31 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
     }
   }, [introVideoFinished]);
 
+  // Sync background music with Spotify player
+  useEffect(() => {
+    const handleSpotifyPlay = () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+    
+    const handleSpotifyPause = () => {
+      // Only resume background music if the intro video is actually finished
+      // and we are intended to be playing
+      if (audioRef.current && introVideoFinishedRef.current) {
+        audioRef.current.play().catch(e => console.warn("Audio autoplay blocked:", e));
+      }
+    };
+
+    window.addEventListener('mandate-spotify-play', handleSpotifyPlay);
+    window.addEventListener('mandate-spotify-pause', handleSpotifyPause);
+    
+    return () => {
+      window.removeEventListener('mandate-spotify-play', handleSpotifyPlay);
+      window.removeEventListener('mandate-spotify-pause', handleSpotifyPause);
+    };
+  }, []);
+
   const locked = progress < 1;
   const lockedRef = useRef(locked);
   lockedRef.current = locked; // Keep perfectly synced with every render

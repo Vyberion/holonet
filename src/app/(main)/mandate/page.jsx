@@ -2,6 +2,7 @@ import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../../components/PageScripts.jsx";
 import { holonetMetadata } from "../../../lib/metadata.js";
 import { InteractiveMandate } from "./InteractiveMandate.jsx";
+import { SpotifyEmbed } from "../../../components/SpotifyEmbed.jsx";
 import "./v2.css";
 
 export const metadata = holonetMetadata({
@@ -243,7 +244,7 @@ export default function MandateV2Page() {
                 <p>The legacy of our great Order should be judged by what we achieve next, not by our past from eras ago. I have spoken with the Supreme Lord Reagant Group Dictator Ancient One Senior Advisor Manar_Aktuun regarding his views on the future of our group and whether our visions are compatible. Given my history, I honestly did not expect these to align as closely as they did. Nevertheless, the question is no longer whether we share the same vision, it is how we begin to move forward. After all, we can reclaim the Sith Order.</p>
                 <p className="v2-italic animate-on-scroll stagger-3">Only the strong shall inherit the stars. By my Authority and Hand, with Mind and Will:</p>
                 <div className="v2-signature animate-on-scroll stagger-4">Vyberon<br /></div>
-                <iframe data-testid="embed-iframe" style={{ borderRadius: "12px" }} src="https://open.spotify.com/embed/track/48v2zlOv10W8F4RWg7eWy1?utm_source=generator&theme=0&si=d317b391208240f2" width="100%" height="352" frameBorder="0" allowFullScreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                <SpotifyEmbed uri="spotify:track:48v2zlOv10W8F4RWg7eWy1" />
               </div>
             </section>
           </div>

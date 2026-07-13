@@ -1,16 +1,7 @@
 import {
-  isMissingSchemaError, getAuthContext, path, canEditLibrary, createSignedStorageUrl, removeStorageObjects, supabaseRest
+  isMissingSchemaError, getAuthContext, canEditLibrary, createSignedStorageUrl, removeStorageObjects, supabaseRest, uploadStorageObject
 } from "../../../lib/api-helpers.js";
 
-
-import { getAuthContext } from "../../../../modules/auth/auth-context.js";
-import { canEditLibrary } from "../../../../modules/auth/permissions.js";
-import {
-  createSignedStorageUrl,
-  removeStorageObjects,
-  supabaseRest,
-  uploadStorageObject
-} from "../../../../modules/auth/session-store.js";
 
 const COTS_BUCKET = "cots";
 const COTS_ROW_KEY = "current";
@@ -85,9 +76,6 @@ function text(value, fallback = "") {
   return String(value ?? fallback).trim();
 }
 
-function isMissingSchemaError(error) {
-  return /does not exist|Could not find the table|schema cache|bucket not found/i.test(String(error?.message || ""));
-}
 
 function cloneDefaultState() {
   return JSON.parse(JSON.stringify(DEFAULT_COTS_STATE));

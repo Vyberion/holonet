@@ -1,3 +1,8 @@
+import {
+  isMissingSchemaError, getAuthContext, path, canEditLibrary, createSignedStorageUrl, removeStorageObjects, supabaseRest
+} from "../../../lib/api-helpers.js";
+
+
 import { getAuthContext } from "../../../../modules/auth/auth-context.js";
 import { canEditLibrary } from "../../../../modules/auth/permissions.js";
 import {

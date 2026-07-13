@@ -413,7 +413,7 @@ body {
 
 .v2-text-content p {
   margin-bottom: 25px;
-  font-family: var(--font-mono);
+  font-family: 'Share Tech Mono', monospace;
 }
 
 .v2-text-content p:last-child {
@@ -490,7 +490,7 @@ body {
   margin: 0;
   font-size: 0.95rem;
   line-height: 1.6;
-  font-family: var(--font-mono);
+  font-family: 'Share Tech Mono', monospace;
 }
 
 /* Record Section */
@@ -582,7 +582,7 @@ body {
   font-size: 0.85rem;
   font-weight: 600;
   color: #fff;
-  font-family: var(--font-mono);
+  font-family: 'Share Tech Mono', monospace;
 }
 
 /* ==================== Responsive ==================== */

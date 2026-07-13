@@ -166,7 +166,7 @@ export function logVerificationConfirm(message, context = {}) {
   });
 }
 
-async function postVerificationLog({ title, description, fields = [], color = VERIFICATION_LOG_COLOR, content = "", allowedRoleIds = [] }) {
+export async function postVerificationLog({ title, description, fields = [], color = VERIFICATION_LOG_COLOR, content = "", allowedRoleIds = [] }) {
   const token = discordToken();
   const channelId = verificationLogChannelId();
   if (!token || !channelId) {
@@ -215,7 +215,7 @@ async function postVerificationLog({ title, description, fields = [], color = VE
   return true;
 }
 
-async function postVerificationLogSafely(payload) {
+export async function postVerificationLogSafely(payload) {
   try {
     return await postVerificationLog(payload);
   } catch (error) {
@@ -299,7 +299,7 @@ export function withIncrementedOrder(row, orderColumn = "display_order") {
   };
 }
 
-async function shiftDisplayOrders({ table, targetOrder, scope = "", excludeId = "" }) {
+export async function shiftDisplayOrders({ table, targetOrder, scope = "", excludeId = "" }) {
   const order = Number(targetOrder);
   if (!Number.isFinite(order) || order < 1) return;
 
@@ -317,7 +317,7 @@ async function shiftDisplayOrders({ table, targetOrder, scope = "", excludeId = 
   }
 }
 
-async function shiftLibraryDocumentOrders(libraryKey, targetOrder, excludeId = "") {
+export async function shiftLibraryDocumentOrders(libraryKey, targetOrder, excludeId = "") {
   const order = Number(targetOrder);
   if (!Number.isFinite(order) || order < 1) return;
 
@@ -621,7 +621,7 @@ export function normalizeSubClauses(value) {
   }).filter(item => item.body);
 }
 
-async function resolveRobloxId(username) {
+export async function resolveRobloxId(username) {
   const response = await fetch("https://users.roblox.com/v1/usernames/users", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -644,7 +644,7 @@ async function resolveRobloxId(username) {
   return String(resolved.id);
 }
 
-async function confirmDiscordLink(req) {
+export async function confirmDiscordLink(req) {
   const requestHost = requireString(req?.headers?.host);
   logVerificationConfirm("Received confirm request.", { host: requestHost });
 
@@ -839,7 +839,7 @@ export function readJsonBody(req) {
   return req.body || {};
 }
 
-async function cleanupRetiredHandbooks() {
+export async function cleanupRetiredHandbooks() {
   const now = encodeURIComponent(new Date().toISOString());
   const retirements = await supabaseRest(
     `resource_handbook_retirements?purge_after=lt.${now}&select=id,storage_bucket,storage_path`
@@ -855,7 +855,7 @@ async function cleanupRetiredHandbooks() {
   }
 }
 
-async function loadArchiveArticles() {
+export async function loadArchiveArticles() {
   const articles = await supabaseRest(
     "archive_articles?select=id,slug,title,body,image_bucket,image_path,image_alt,status,display_order,created_at,updated_at&order=display_order.asc,created_at.asc"
   );
@@ -884,7 +884,7 @@ async function loadArchiveArticles() {
   return normalized.sort((a, b) => a.displayOrder - b.displayOrder || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
-async function seedArchives() {
+export async function seedArchives() {
   const articles = ARCHIVE_SEED.articles || [];
   for (const article of articles) {
     await supabaseRest(
@@ -909,7 +909,7 @@ async function seedArchives() {
   return loadArchiveArticles();
 }
 
-async function ensureArchivesSeeded() {
+export async function ensureArchivesSeeded() {
   try {
     const existing = await loadArchiveArticles();
     if (existing.length) return existing;
@@ -934,7 +934,7 @@ async function ensureArchivesSeeded() {
   }
 }
 
-async function writeArchiveArticle(body) {
+export async function writeArchiveArticle(body) {
   const id = requireString(body.id);
   const title = requireString(body.title);
   const articleBody = requireString(body.body);
@@ -988,13 +988,13 @@ async function writeArchiveArticle(body) {
   return { ok: true, status: 200, payload: { ok: true, id: article.id } };
 }
 
-async function deleteArchiveArticle(id) {
+export async function deleteArchiveArticle(id) {
   await supabaseRest(`archive_articles?id=eq.${encodeURIComponent(id)}`, {
     method: "DELETE"
   });
 }
 
-async function loadLibraryDocuments(libraryKey) {
+export async function loadLibraryDocuments(libraryKey) {
   const documents = await supabaseRest(
     `library_documents?library_key=eq.${encodeURIComponent(libraryKey)}&select=id,library_key,slug,article_number,title,status,display_order,created_at,updated_at&order=display_order.asc,created_at.asc`
   );
@@ -1038,7 +1038,7 @@ async function loadLibraryDocuments(libraryKey) {
   }).sort((a, b) => a.displayOrder - b.displayOrder || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
-async function seedLibrary(libraryKey) {
+export async function seedLibrary(libraryKey) {
   const seed = LIBRARY_SEED[libraryKey];
   if (!seed?.documents?.length) return [];
 
@@ -1081,7 +1081,7 @@ async function seedLibrary(libraryKey) {
   return loadLibraryDocuments(libraryKey);
 }
 
-async function ensureLibrarySeeded(libraryKey) {
+export async function ensureLibrarySeeded(libraryKey) {
   try {
     const existing = await loadLibraryDocuments(libraryKey);
     if (existing.length) return existing;
@@ -1097,7 +1097,7 @@ async function ensureLibrarySeeded(libraryKey) {
   }
 }
 
-async function writeLibraryDocument(libraryKey, body) {
+export async function writeLibraryDocument(libraryKey, body) {
   const documentId = requireString(body.id);
   const title = requireString(body.title);
   const articleOrder = articleOrderFrom(body.articleNumber, body.displayOrder);
@@ -1173,7 +1173,7 @@ async function writeLibraryDocument(libraryKey, body) {
   return { ok: true, status: 200, payload: { ok: true, id: document.id } };
 }
 
-async function deleteLibraryDocument(id) {
+export async function deleteLibraryDocument(id) {
   await supabaseRest(`library_entries?document_id=eq.${encodeURIComponent(id)}`, {
     method: "DELETE"
   });
@@ -1183,18 +1183,18 @@ async function deleteLibraryDocument(id) {
   });
 }
 
-async function loadPublishedResources(division, resourceType) {
+export async function loadPublishedResources(division, resourceType) {
   return supabaseRest(
     `registry_resources?division_key=eq.${encodeURIComponent(division)}&resource_type=eq.${encodeURIComponent(resourceType)}&status=eq.published&select=id,division_key,slug,title,description,visibility,status,display_order,created_at,updated_at&order=display_order.asc,created_at.desc`
   );
 }
 
-async function loadDetailRows(detailTable, resourceIds) {
+export async function loadDetailRows(detailTable, resourceIds) {
   const ids = encodeURIComponent(encodeInList(resourceIds));
   return supabaseRest(`${detailTable}?resource_id=in.${ids}&select=*`);
 }
 
-async function normalizeRows(resources, detailRows, resourceType) {
+export async function normalizeRows(resources, detailRows, resourceType) {
   const detailsById = new Map((detailRows || []).map(row => [row.resource_id, row]));
 
   return Promise.all(resources.map(async resource => {
@@ -1279,7 +1279,7 @@ async function normalizeRows(resources, detailRows, resourceType) {
   }));
 }
 
-async function loadBoardTransmissions() {
+export async function loadBoardTransmissions() {
   const resources = await supabaseRest(
     "registry_resources?resource_type=eq.transmission&status=eq.published&select=id,division_key,slug,title,description,visibility,status,display_order,created_at,updated_at&order=updated_at.desc,created_at.desc&limit=40"
   );
@@ -1297,7 +1297,7 @@ async function loadBoardTransmissions() {
     }));
 }
 
-async function loadNexusOverview(profile, rootOrigin = "") {
+export async function loadNexusOverview(profile, rootOrigin = "") {
   const divisions = listDivisions().filter(division => ["reavers", "dhg", "inquisitors", "dreadmasters"].includes(division.id));
   const rows = await Promise.all(divisions.map(async division => {
     if (division.id === "inquisitors" && !canViewInquisitorOverview(profile)) {
@@ -1404,7 +1404,7 @@ export function rosterDefinitionForDivision(division) {
   return ROBLOX_GROUPS.DIVISIONS[division];
 }
 
-async function fetchDivisionRoster(division) {
+export async function fetchDivisionRoster(division) {
   const definition = rosterDefinitionForDivision(division);
   if (!definition?.groupId) return [];
 
@@ -1472,7 +1472,7 @@ export function normalizeWeeklyReport(row, members = []) {
   };
 }
 
-async function loadWeeklyReportMembers(reportIds = []) {
+export async function loadWeeklyReportMembers(reportIds = []) {
   const ids = [...new Set(reportIds.map(value => String(value || "")).filter(Boolean))];
   if (!ids.length) return new Map();
 
@@ -1488,7 +1488,7 @@ async function loadWeeklyReportMembers(reportIds = []) {
   }, new Map());
 }
 
-async function loadWeeklyReports(division = "") {
+export async function loadWeeklyReports(division = "") {
   const filter = division ? `division_key=eq.${encodeURIComponent(division)}&` : "";
   const rows = await supabaseRest(
     `division_weekly_reports?${filter}status=eq.published&select=id,division_key,week_start,author_id,author_name,status,created_at,updated_at&order=week_start.desc,created_at.desc&limit=40`
@@ -1528,7 +1528,7 @@ export function inFilter(values) {
   return `in.(${values.map(value => `"${String(value).replace(/"/g, '\\"')}"`).join(",")})`;
 }
 
-async function loadVerificationLinksForRobloxIds(robloxIds = []) {
+export async function loadVerificationLinksForRobloxIds(robloxIds = []) {
   const ids = [...new Set(robloxIds.map(value => String(value || "")).filter(Boolean))];
   if (!ids.length) return new Map();
 
@@ -1544,7 +1544,7 @@ async function loadVerificationLinksForRobloxIds(robloxIds = []) {
   }, new Map());
 }
 
-async function loadClockShiftTotalsForRoster(division, members = []) {
+export async function loadClockShiftTotalsForRoster(division, members = []) {
   const scope = clockScopeForDivision(division);
   const robloxIds = [...new Set(members.map(member => String(member.robloxId || "")).filter(Boolean))];
   if (!scope || !robloxIds.length) return new Map();
@@ -1576,7 +1576,7 @@ async function loadClockShiftTotalsForRoster(division, members = []) {
   }, new Map());
 }
 
-async function buildWeeklyReportRoster(division) {
+export async function buildWeeklyReportRoster(division) {
   const roster = await fetchDivisionRoster(division);
   const shiftTotals = await loadClockShiftTotalsForRoster(division, roster);
 
@@ -1586,7 +1586,7 @@ async function buildWeeklyReportRoster(division) {
   }));
 }
 
-async function resetClockShiftsForReport(division, members = [], reportAt = new Date().toISOString()) {
+export async function resetClockShiftsForReport(division, members = [], reportAt = new Date().toISOString()) {
   const scope = clockScopeForDivision(division);
   const robloxIds = [...new Set(members.map(member => String(member.robloxId || "")).filter(Boolean))];
   if (!scope || !robloxIds.length) return;
@@ -1657,7 +1657,7 @@ export function normalizeIncomingReportMember(member) {
   };
 }
 
-async function replaceWeeklyReportMembers(reportId, members = []) {
+export async function replaceWeeklyReportMembers(reportId, members = []) {
   if (!reportId) return;
 
   await supabaseRest(`division_weekly_report_members?report_id=eq.${encodeURIComponent(reportId)}`, {
@@ -1673,7 +1673,7 @@ async function replaceWeeklyReportMembers(reportId, members = []) {
   });
 }
 
-async function writeWeeklyReport(auth, body) {
+export async function writeWeeklyReport(auth, body) {
   const division = requireString(body.division).toLowerCase();
   if (!ROBLOX_GROUPS.DIVISIONS[division]) {
     return { ok: false, status: 400, payload: { ok: false, reason: "UNKNOWN_DIVISION" } };
@@ -1773,7 +1773,7 @@ export function normalizeInspection(row, sections = []) {
   };
 }
 
-async function loadInspectionSections(inspectionIds = []) {
+export async function loadInspectionSections(inspectionIds = []) {
   const ids = [...new Set(inspectionIds.map(value => String(value || "")).filter(Boolean))];
   if (!ids.length) return new Map();
 
@@ -1789,7 +1789,7 @@ async function loadInspectionSections(inspectionIds = []) {
   }, new Map());
 }
 
-async function loadInspections(division = "") {
+export async function loadInspections(division = "") {
   const filter = division ? `division_key=eq.${encodeURIComponent(division)}&` : "";
   const rows = await supabaseRest(
     `division_inspections?${filter}select=id,division_key,held_on,cadence,author_id,author_name,bonus_percentage,overall_score,notes,created_at,updated_at&order=held_on.desc,created_at.desc&limit=40`
@@ -1809,7 +1809,7 @@ export function inspectionSectionRows(inspectionId, sections = []) {
   })).filter(row => row.name);
 }
 
-async function replaceInspectionSections(inspectionId, sections = []) {
+export async function replaceInspectionSections(inspectionId, sections = []) {
   if (!inspectionId) return;
 
   await supabaseRest(`division_inspection_sections?inspection_id=eq.${encodeURIComponent(inspectionId)}`, {
@@ -1825,7 +1825,7 @@ async function replaceInspectionSections(inspectionId, sections = []) {
   });
 }
 
-async function writeInspection(auth, body) {
+export async function writeInspection(auth, body) {
   if (!hasHighCommandAccess(auth.profile)) {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
   }
@@ -1868,7 +1868,7 @@ async function writeInspection(auth, body) {
   return { ok: true, status: 200, payload: { ok: true, id: created?.id } };
 }
 
-async function writeResource({ division, resourceType, detailTable, body, authorName }) {
+export async function writeResource({ division, resourceType, detailTable, body, authorName }) {
   if (typeof body === "string") {
     body = body ? JSON.parse(body) : {};
   }
@@ -1956,7 +1956,7 @@ async function writeResource({ division, resourceType, detailTable, body, author
   return { ok: true, status: 200, payload: { ok: true, id: resource.id } };
 }
 
-async function deleteResource({ division, resourceType, detailTable, id }) {
+export async function deleteResource({ division, resourceType, detailTable, id }) {
   const resourceId = requireString(id);
   if (!resourceId) {
     return { ok: false, status: 400, payload: { ok: false, reason: "RESOURCE_ID_REQUIRED" } };
@@ -1978,7 +1978,7 @@ async function deleteResource({ division, resourceType, detailTable, id }) {
   return { ok: true, status: 200, payload: { ok: true } };
 }
 
-async function resolveUserByUsername(username) {
+export async function resolveUserByUsername(username) {
   const response = await fetch("https://users.roblox.com/v1/usernames/users", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1996,7 +1996,7 @@ async function resolveUserByUsername(username) {
   return payload.data?.[0] || null;
 }
 
-async function loadRobloxProfileSummary(robloxId) {
+export async function loadRobloxProfileSummary(robloxId) {
   const [userResponse, groupResponse] = await Promise.all([
     fetch(`https://users.roblox.com/v1/users/${robloxId}`),
     fetch(`https://groups.roblox.com/v1/users/${robloxId}/groups/roles`)
@@ -2048,7 +2048,7 @@ export function personnelLookupWarnings({ accountAgeDays, friendsCount, badgeCou
   return warnings;
 }
 
-async function fetchBadgeCount(userId) {
+export async function fetchBadgeCount(userId) {
   let count = 0;
   let cursor = "";
 
@@ -2075,7 +2075,7 @@ async function fetchBadgeCount(userId) {
   return count;
 }
 
-async function loadCounts() {
+export async function loadCounts() {
   const [documents, archives, overrides, retirements, botLinks, activeShifts, resources] = await Promise.all([
     supabaseRest("library_documents?library_key=eq.codex&select=id").catch(() => []),
     loadArchiveArticles().catch(() => []),
@@ -2097,7 +2097,7 @@ async function loadCounts() {
   };
 }
 
-async function loadPendingRetirements() {
+export async function loadPendingRetirements() {
   return supabaseRest(
     "resource_handbook_retirements?select=id,resource_id,division_key,slot_key,storage_bucket,storage_path,file_name,file_size_bytes,mime_type,retired_at,purge_after&order=purge_after.asc"
   ).catch(() => []);
@@ -2134,7 +2134,7 @@ export function pagedActivity(items, page = 1, pageSize = 20, source = "all") {
   };
 }
 
-async function loadRecentActivity({ page = 1, pageSize = 20, source = "all" } = {}) {
+export async function loadRecentActivity({ page = 1, pageSize = 20, source = "all" } = {}) {
   const [
     resources,
     documents,
@@ -2264,7 +2264,7 @@ async function loadRecentActivity({ page = 1, pageSize = 20, source = "all" } = 
   return pagedActivity(items, page, pageSize, source);
 }
 
-async function loadAdminHealth() {
+export async function loadAdminHealth() {
   const checks = await Promise.all([
     supabaseRest("division_weekly_report_members?select=id&limit=1").then(() => ({ key: "weeklyReportMembers", ok: true })).catch(error => ({ key: "weeklyReportMembers", ok: false, reason: error.message })),
     supabaseRest("division_inspection_sections?select=id&limit=1").then(() => ({ key: "inspectionSections", ok: true })).catch(error => ({ key: "inspectionSections", ok: false, reason: error.message })),
@@ -2279,11 +2279,11 @@ async function loadAdminHealth() {
   };
 }
 
-async function loadOverrides() {
+export async function loadOverrides() {
   return supabaseRest("access_overrides?select=*&order=created_at.desc").catch(() => []);
 }
 
-async function restoreHandbookRetirement(id, auth = null) {
+export async function restoreHandbookRetirement(id, auth = null) {
   const [retirement] = await supabaseRest(
     `resource_handbook_retirements?id=eq.${encodeURIComponent(id)}&select=*`
   );
@@ -2358,7 +2358,7 @@ async function restoreHandbookRetirement(id, auth = null) {
   return { ok: true, status: 200, payload: { ok: true, retirements: await loadPendingRetirements() } };
 }
 
-async function fetchCouncilEligibleSnapshot() {
+export async function fetchCouncilEligibleSnapshot() {
   const response = await fetch(`https://groups.roblox.com/v1/groups/${ROBLOX_GROUPS.HIGH_RANKS.groupId}/roles`);
   if (!response.ok) {
     throw new Error("COUNCIL_ROLE_SYNC_FAILED");
@@ -2448,7 +2448,7 @@ export function derivedCouncilStatus(proposal, votes = []) {
   return "open";
 }
 
-async function loadCouncilProposals() {
+export async function loadCouncilProposals() {
   const proposals = await supabaseRest(
     "council_proposals?select=*&order=created_at.desc"
   );
@@ -2484,6 +2484,11 @@ async function loadCouncilProposals() {
       opensAt: row.opens_at,
       closesAt: row.closes_at,
       durationHours: row.duration_hours,
+      authors: Array.isArray(row.authors) ? row.authors : [],
+      coAuthors: Array.isArray(row.co_authors) ? row.co_authors : [],
+      legalFormat: Boolean(row.legal_format),
+      parentBillId: row.parent_bill_id || null,
+      amendmentIteration: row.amendment_iteration || 0,
       eligibleSnapshot: Array.isArray(row.eligible_snapshot) ? row.eligible_snapshot : [],
       majorityCount: row.majority_count || 0,
       countingEligibleCount: row.counting_eligible_count || 0,
@@ -2497,7 +2502,7 @@ async function loadCouncilProposals() {
   });
 }
 
-async function createCouncilProposal(auth, body) {
+export async function createCouncilProposal(auth, body) {
   const permissions = councilPermissions(auth.profile);
   if (!permissions.canPropose) {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
@@ -2507,6 +2512,9 @@ async function createCouncilProposal(auth, body) {
   const title = requireString(body.title);
   const proposalBody = requireString(body.body);
   const durationHours = clampDurationHours(body.durationHours || body.duration_hours);
+  const authors = Array.isArray(body.authors) ? body.authors : (body.authors ? String(body.authors).split(",").map(s => s.trim()) : []);
+  const coAuthors = Array.isArray(body.coAuthors) ? body.coAuthors : (body.coAuthors ? String(body.coAuthors).split(",").map(s => s.trim()) : []);
+  const legalFormat = Boolean(body.legalFormat);
 
   if (!["legislation", "motion", "councillor_election"].includes(proposalType) || !title || !proposalBody) {
     return { ok: false, status: 400, payload: { ok: false, reason: "PROPOSAL_FIELDS_REQUIRED" } };
@@ -2528,6 +2536,10 @@ async function createCouncilProposal(auth, body) {
       opens_at: opensAt.toISOString(),
       closes_at: closesAt.toISOString(),
       duration_hours: durationHours,
+      authors,
+      co_authors: coAuthors,
+      legal_format: legalFormat,
+      amendment_iteration: 0,
       eligible_snapshot: roleSnapshot.snapshot,
       counting_eligible_count: roleSnapshot.countingEligibleCount,
       majority_count: roleSnapshot.majorityCount
@@ -2537,7 +2549,66 @@ async function createCouncilProposal(auth, body) {
   return { ok: true, status: 200, payload: { ok: true, proposals: await loadCouncilProposals() } };
 }
 
-async function writeCouncilVote(auth, body) {
+export async function amendCouncilProposal(auth, body) {
+  const permissions = councilPermissions(auth.profile);
+  // During an amendment phase, anyone on the council can propose an amendment.
+  // We assume anyone with `canPropose` or just `canVote`? The plan says "anyone on the Council".
+  // `canPropose` is usually restricted. Let's use `canVote` which covers all active councilors.
+  if (!permissions.canVote) {
+    return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
+  }
+
+  const parentId = requireString(body.proposalId || body.proposal_id);
+  const proposalType = requireString(body.proposalType || body.proposal_type || "legislation");
+  const title = requireString(body.title);
+  const proposalBody = requireString(body.body);
+  const durationHours = clampDurationHours(body.durationHours || body.duration_hours);
+  const authors = Array.isArray(body.authors) ? body.authors : (body.authors ? String(body.authors).split(",").map(s => s.trim()) : []);
+  const coAuthors = Array.isArray(body.coAuthors) ? body.coAuthors : (body.coAuthors ? String(body.coAuthors).split(",").map(s => s.trim()) : []);
+  const legalFormat = Boolean(body.legalFormat);
+  const amendmentIteration = Number(body.amendmentIteration) || 1;
+
+  if (!parentId || !title || !proposalBody) {
+    return { ok: false, status: 400, payload: { ok: false, reason: "PROPOSAL_FIELDS_REQUIRED" } };
+  }
+
+  // Set the parent status to "amended" so it doesn't just look like a standard failed/closed vote
+  await supabaseRest(`council_proposals?id=eq.${encodeURIComponent(parentId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status: "amended" })
+  });
+
+  const roleSnapshot = await fetchCouncilEligibleSnapshot();
+  const opensAt = new Date();
+  const closesAt = new Date(opensAt.getTime() + durationHours * 60 * 60 * 1000);
+
+  await supabaseRest("council_proposals", {
+    method: "POST",
+    body: JSON.stringify({
+      proposal_type: proposalType,
+      title,
+      body: proposalBody,
+      status: "open",
+      created_by: String(auth.user.roblox_id),
+      created_by_name: auth.user.roblox_username || auth.user.roblox_display_name || String(auth.user.roblox_id),
+      opens_at: opensAt.toISOString(),
+      closes_at: closesAt.toISOString(),
+      duration_hours: durationHours,
+      authors,
+      co_authors: coAuthors,
+      legal_format: legalFormat,
+      parent_bill_id: parentId,
+      amendment_iteration: amendmentIteration,
+      eligible_snapshot: roleSnapshot.snapshot,
+      counting_eligible_count: roleSnapshot.countingEligibleCount,
+      majority_count: roleSnapshot.majorityCount
+    })
+  });
+
+  return { ok: true, status: 200, payload: { ok: true, proposals: await loadCouncilProposals() } };
+}
+
+export async function writeCouncilVote(auth, body) {
   const permissions = councilPermissions(auth.profile);
   if (!permissions.canVote) {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" } };
@@ -2572,7 +2643,7 @@ async function writeCouncilVote(auth, body) {
   return { ok: true, status: 200, payload: { ok: true, proposals: await loadCouncilProposals() } };
 }
 
-async function vetoCouncilProposal(auth, body) {
+export async function vetoCouncilProposal(auth, body) {
   const permissions = councilPermissions(auth.profile);
   if (!permissions.canVeto) {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" } };
@@ -2597,7 +2668,7 @@ async function vetoCouncilProposal(auth, body) {
   return { ok: true, status: 200, payload: { ok: true, proposals: await loadCouncilProposals() } };
 }
 
-async function reopenCouncilProposal(auth, body) {
+export async function reopenCouncilProposal(auth, body) {
   const permissions = councilPermissions(auth.profile);
   if (!permissions.canReopen) {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" } };
@@ -2682,7 +2753,7 @@ export function normalizeTimelineEntry(entry) {
   };
 }
 
-async function loadTimelineEntries(includeDrafts = false) {
+export async function loadTimelineEntries(includeDrafts = false) {
   const statusFilter = includeDrafts ? "" : "status=eq.published&";
   const entries = await supabaseRest(
     `group_timeline_entries?${statusFilter}select=*&order=start_date.asc,display_order.asc,created_at.asc`
@@ -2690,7 +2761,7 @@ async function loadTimelineEntries(includeDrafts = false) {
   return (entries || []).map(normalizeTimelineEntry);
 }
 
-async function writeTimelineEntry(auth, body) {
+export async function writeTimelineEntry(auth, body) {
   const permission = canAccessAdmin(auth.profile);
   if (!permission.authorized) {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: permission.reason } };

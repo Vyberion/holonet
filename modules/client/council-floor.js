@@ -121,12 +121,15 @@ function renderProposal(proposal, permissions) {
         </div>
         <span class="council-status council-status--${escapeHtml(proposal.status)}">${escapeHtml(proposal.status)}</span>
       </div>
-      <p class="hub-summary">${escapeHtml(proposal.body)}</p>
+      <p class="hub-summary ${proposal.legalFormat ? 'council-legal-format' : ''}">${escapeHtml(proposal.body)}</p>
       <div class="council-proposal-meta">
         <span>Opened ${escapeHtml(formatDate(proposal.opensAt))}</span>
         ${renderCloseMeta(proposal)}
         <span>Majority ${escapeHtml(proposal.majorityCount)} / ${escapeHtml(proposal.countingEligibleCount)}</span>
       </div>
+      ${proposal.authors && proposal.authors.length ? `<p class="hub-summary council-authors"><strong>Authors:</strong> ${escapeHtml(proposal.authors.join(", "))}</p>` : ""}
+      ${proposal.coAuthors && proposal.coAuthors.length ? `<p class="hub-summary council-authors"><strong>Co-Authors:</strong> ${escapeHtml(proposal.coAuthors.join(", "))}</p>` : ""}
+      ${proposal.parentBillId ? `<p class="hub-summary council-amendment"><em>Amendment Iteration: ${escapeHtml(proposal.amendmentIteration)}</em></p>` : ""}
       ${renderResultPanel(proposal)}
       <div class="council-actions">
         ${canVote ? `
@@ -144,6 +147,7 @@ function renderProposal(proposal, permissions) {
           </select>
           <button type="button" class="resource-editor-open" data-council-reopen>REOPEN</button>
         ` : ""}
+        ${!open && permissions.canVote ? `<button type="button" class="resource-editor-open" data-council-amend>AMEND</button>` : ""}
       </div>
       ${proposal.vetoedBy ? `<p class="hub-empty">Vetoed by ${escapeHtml(proposal.vetoedByName || proposal.vetoedBy)}${proposal.vetoReason ? `: ${escapeHtml(proposal.vetoReason)}` : ""}</p>` : ""}
       ${renderVotes(proposal.votes || [])}
@@ -164,11 +168,13 @@ function ensureProposalOverlay() {
         <button type="button" class="resource-editor-close" data-council-close>CLOSE</button>
       </div>
       <form class="resource-editor-form" id="council-editor-form">
+        <input type="hidden" name="proposalId" id="council-editor-parent-id">
+        <input type="hidden" name="amendmentIteration" id="council-editor-amend-iter">
         <div class="resource-editor-field">
           <label>Type</label>
           <select name="proposalType">
-            <option value="motion">Motion</option>
             <option value="legislation">Legislation</option>
+            <option value="motion">Motion</option>
             <option value="councillor_election">Councillor Election</option>
           </select>
         </div>
@@ -177,8 +183,22 @@ function ensureProposalOverlay() {
           <input name="title" required>
         </div>
         <div class="resource-editor-field">
+          <label>Authors (comma separated)</label>
+          <input name="authors">
+        </div>
+        <div class="resource-editor-field">
+          <label>Co-Authors (comma separated)</label>
+          <input name="coAuthors">
+        </div>
+        <div class="resource-editor-field">
           <label>Body</label>
-          <textarea name="body" required></textarea>
+          <textarea name="body" required style="min-height: 200px;"></textarea>
+        </div>
+        <div class="resource-editor-field">
+          <label class="hub-checkbox" style="display: flex; gap: 8px; align-items: center;">
+            <input type="checkbox" name="legalFormat" value="true"> 
+            <span>Enable strict legal document layout</span>
+          </label>
         </div>
         <div class="resource-editor-field">
           <label>Duration</label>
@@ -276,11 +296,17 @@ async function initCouncilFloor() {
       const status = overlay.querySelector("[data-council-status]");
       status.textContent = "";
       form.reset();
+      form.elements.proposalId.value = "";
+      form.elements.amendmentIteration.value = "0";
+
       form.onsubmit = async submitEvent => {
         submitEvent.preventDefault();
         status.textContent = "Opening vote...";
         try {
-          const payload = await sendCouncilAction({ action: "create", ...Object.fromEntries(new FormData(form).entries()) });
+          const formData = new FormData(form);
+          const data = Object.fromEntries(formData.entries());
+          data.legalFormat = formData.get("legalFormat") === "true";
+          const payload = await sendCouncilAction({ action: "create", ...data });
           overlay.classList.remove("active");
           if (!applyActionPayload(payload)) await hydrate();
         } catch (error) {
@@ -292,6 +318,45 @@ async function initCouncilFloor() {
     }
 
     if (!proposal) return;
+
+    const amendButton = event.target.closest("[data-council-amend]");
+    if (amendButton) {
+      const propData = latestPayload.proposals.find(p => p.id === proposal.dataset.proposalId);
+      if (!propData) return;
+
+      const overlay = ensureProposalOverlay();
+      const form = overlay.querySelector("#council-editor-form");
+      const status = overlay.querySelector("[data-council-status]");
+      status.textContent = "";
+      form.reset();
+
+      // Populate fields
+      form.elements.proposalId.value = propData.id;
+      form.elements.amendmentIteration.value = (propData.amendmentIteration || 0) + 1;
+      form.elements.proposalType.value = propData.proposalType || "legislation";
+      form.elements.title.value = propData.title;
+      form.elements.body.value = propData.body;
+      form.elements.authors.value = (propData.authors || []).join(", ");
+      form.elements.coAuthors.value = (propData.coAuthors || []).join(", ");
+      if (form.elements.legalFormat) form.elements.legalFormat.checked = propData.legalFormat || false;
+
+      form.onsubmit = async submitEvent => {
+        submitEvent.preventDefault();
+        status.textContent = "Opening vote...";
+        try {
+          const formData = new FormData(form);
+          const data = Object.fromEntries(formData.entries());
+          data.legalFormat = formData.get("legalFormat") === "true";
+          const payload = await sendCouncilAction({ action: "amend", ...data });
+          overlay.classList.remove("active");
+          if (!applyActionPayload(payload)) await hydrate();
+        } catch (error) {
+          status.textContent = error.message.replace(/_/g, " ");
+        }
+      };
+      overlay.classList.add("active");
+      return;
+    }
 
     const voteButton = event.target.closest("[data-council-vote]");
     if (voteButton) {

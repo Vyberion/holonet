@@ -244,12 +244,17 @@ function renderHub(division) {
   const leftPanels = [];
   const rightPanels = [];
 
-  if (hasDocuments) leftPanels.push(documentsPanel);
-  leftPanels.push(transmissionsPanel);
+  if (division.id === "highranks") {
+    leftPanels.push(transmissionsPanel);
+    rightPanels.push(documentsPanel);
+  } else {
+    if (hasDocuments) leftPanels.push(documentsPanel);
+    leftPanels.push(transmissionsPanel);
 
-  if (hasPages) rightPanels.push(pagesPanel);
-  if (hasActivity) rightPanels.push(activityPanel);
-  if (hasReports) rightPanels.push(reportsPanel);
+    if (hasPages) rightPanels.push(pagesPanel);
+    if (hasActivity) rightPanels.push(activityPanel);
+    if (hasReports) rightPanels.push(reportsPanel);
+  }
 
   const leftColumn = leftPanels.length ? `<div class="hub-column">\n          ${leftPanels.join("\n          ")}\n        </div>` : "";
   const rightColumn = rightPanels.length ? `\n        <aside class="hub-column">\n          ${rightPanels.join("\n          ")}\n        </aside>` : "";

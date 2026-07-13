@@ -22,7 +22,7 @@ export default function MandateV2Page() {
     >
       <div className="v2-bg"></div>
       <InteractiveMandate
-        videoPlaybackId="02OyJ9da02hFxdv7D9BBNXzUBqUjgqrJ7hJcVfYHjbv38"
+        videoPlaybackId="yy4W01x02TPhZcppBYZmL552Xd02WzyOF8g2OqZFJf00bYE"
         hero={
           <section className="v2-hero">
             <div className="hero-content">
@@ -206,24 +206,24 @@ export default function MandateV2Page() {
 
                 <div className="v2-pillars animate-on-scroll stagger-5" style={{ marginTop: '40px' }}>
                   <div className="v2-pillars-header">
-                      <span className="triangle-icon">▸</span> ACHIEVEMENTS
-                    </div>
-                    <div className="v2-pillar animate-on-scroll stagger-1">
-                      <h4>THE HOLONET</h4>
-                      <p>I have recently released the very Holonet this page is apart of, as I wanted to begin the transition to a truly centralised database area with a better logging and member management system. It wasn't necessary from a frontend perspective, but I believe even the standards of our documents should should always be improved. I vehemently reject the statement: "Why fix what isn't broken?" Instead, I say: "Why not improve what isn't perfect?"</p>
-                    </div>
-                    <div className="v2-pillar animate-on-scroll stagger-2">
-                      <h4>PAST DATABASES</h4>
-                      <p>I created the last 2 sites used prior, first the Notion and then later the Google Site that first bore the domain this page uses, used for a combined total of more than 3 years.</p>
-                    </div>
-                    <div className="v2-pillar animate-on-scroll stagger-3">
-                      <h4>COMBAT PROFICIENCY</h4>
-                      <p>Albeit seemingly a moot point these days, I am decently proficient in combat. I believe the Emperor should be a steward to all values of the Order, prowess in combat duly included.</p>
-                    </div>
-                    <div className="v2-pillar animate-on-scroll stagger-4">
-                      <h4>HIGH COMMAND</h4>
-                      <p>I have served in this position before. While not a perfect reign by any means, my four months on the Throne and nine months as High Command (one of which was spent as the High Command Reaver Overseer rather than the Head of Divisions) boosted my experience first-hand required for the role.</p>
-                    </div>
+                    <span className="triangle-icon">▸</span> ACHIEVEMENTS
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-1">
+                    <h4>THE HOLONET</h4>
+                    <p>I have recently released the very Holonet this page is apart of, as I wanted to begin the transition to a truly centralised database area with a better logging and member management system. It wasn't necessary from a frontend perspective, but I believe even the standards of our documents should should always be improved. I vehemently reject the statement: "Why fix what isn't broken?" Instead, I say: "Why not improve what isn't perfect?"</p>
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-2">
+                    <h4>PAST DATABASES</h4>
+                    <p>I created the last 2 sites used prior, first the Notion and then later the Google Site that first bore the domain this page uses, used for a combined total of more than 3 years.</p>
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-3">
+                    <h4>COMBAT PROFICIENCY</h4>
+                    <p>Albeit seemingly a moot point these days, I am decently proficient in combat. I believe the Emperor should be a steward to all values of the Order, prowess in combat duly included.</p>
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-4">
+                    <h4>HIGH COMMAND</h4>
+                    <p>I have served in this position before. While not a perfect reign by any means, my four months on the Throne and nine months as High Command (one of which was spent as the High Command Reaver Overseer rather than the Head of Divisions) boosted my experience first-hand required for the role.</p>
+                  </div>
                   <div className="v2-pillar animate-on-scroll stagger-5">
                     <h4>CENTRALIZED DOCUMENTS</h4>
                     <p>They may have since changed, but I was responsible for the first generally long-lasting, centralized documents during my second term as Wrath. This was understandably superceded, but I will always make an effort to push for a consistent quality and raise the standards of the Order. Small improvements are always still improvements.</p>

@@ -22,7 +22,7 @@ export default function MandateV2Page() {
     >
       <div className="v2-bg"></div>
       <InteractiveMandate
-        videoPlaybackId="yy4W01x02TPhZcppBYZmL552Xd02WzyOF8g2OqZFJf00bYE"
+        videoPlaybackId="4x1bb1pN7Lj02wApu002MIhgKCvSbWiQieAibyzFSgPkY"
         hero={
           <section className="v2-hero">
             <div className="hero-content">

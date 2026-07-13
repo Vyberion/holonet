@@ -121,7 +121,7 @@ function renderProposal(proposal, permissions) {
         </div>
         <span class="council-status council-status--${escapeHtml(proposal.status)}">${escapeHtml(proposal.status)}</span>
       </div>
-      <p class="hub-summary ${proposal.legalFormat ? 'council-legal-format' : ''}">${escapeHtml(proposal.body)}</p>
+      <p class="hub-summary">${escapeHtml(proposal.body)}</p>
       <div class="council-proposal-meta">
         <span>Opened ${escapeHtml(formatDate(proposal.opensAt))}</span>
         ${renderCloseMeta(proposal)}
@@ -194,12 +194,7 @@ function ensureProposalOverlay() {
           <label>Body</label>
           <textarea name="body" required style="min-height: 200px;"></textarea>
         </div>
-        <div class="resource-editor-field">
-          <label class="hub-checkbox" style="display: flex; gap: 8px; align-items: center;">
-            <input type="checkbox" name="legalFormat" value="true"> 
-            <span>Enable strict legal document layout</span>
-          </label>
-        </div>
+
         <div class="resource-editor-field">
           <label>Duration</label>
           <select name="durationHours">
@@ -305,7 +300,7 @@ async function initCouncilFloor() {
         try {
           const formData = new FormData(form);
           const data = Object.fromEntries(formData.entries());
-          data.legalFormat = formData.get("legalFormat") === "true";
+
           const payload = await sendCouncilAction({ action: "create", ...data });
           overlay.classList.remove("active");
           if (!applyActionPayload(payload)) await hydrate();
@@ -338,7 +333,7 @@ async function initCouncilFloor() {
       form.elements.body.value = propData.body;
       form.elements.authors.value = (propData.authors || []).join(", ");
       form.elements.coAuthors.value = (propData.coAuthors || []).join(", ");
-      if (form.elements.legalFormat) form.elements.legalFormat.checked = propData.legalFormat || false;
+
 
       form.onsubmit = async submitEvent => {
         submitEvent.preventDefault();
@@ -346,7 +341,7 @@ async function initCouncilFloor() {
         try {
           const formData = new FormData(form);
           const data = Object.fromEntries(formData.entries());
-          data.legalFormat = formData.get("legalFormat") === "true";
+
           const payload = await sendCouncilAction({ action: "amend", ...data });
           overlay.classList.remove("active");
           if (!applyActionPayload(payload)) await hydrate();

@@ -99,7 +99,7 @@ async function replyLookup(interaction, { discordUser, link, robloxUser }) {
       const divisionLines = Object.entries(ROBLOX_GROUPS.DIVISIONS)
         .map(([key, definition]) => {
           const membership = membershipFor(groupRoles, definition.groupId);
-          return membership ? `\\- ${divisionLabel(key)}: ${membership.role?.name || "Unknown"} (${membership.role?.rank || 0})` : "";
+          return membership ? `${divisionLabel(key)}: ${membership.role?.name || "Unknown"}` : "";
         })
         .filter(Boolean);
 
@@ -111,11 +111,10 @@ async function replyLookup(interaction, { discordUser, link, robloxUser }) {
         textDisplayV2(`### @${username}\nAccount Created: ${robloxUnixTimestamp ? `<t:${robloxUnixTimestamp}:F>` : "Unknown"}`)
       ];
 
-      const groupContent = textDisplayV2(`Main Group: ${mainGroup ? `${mainGroup.role?.name || "Unknown"} (${mainGroup.role?.rank || 0})` : "Not in group"}${divisionLines.length ? `\nDivisions:\n${divisionLines.join("\n")}` : ""}`);
+      const groupContent = textDisplayV2(`Main Group: ${mainGroup ? mainGroup.role?.name || "Unknown" : "Not in group"}${divisionLines.length ? `\n${divisionLines.join("\n")}` : ""}`);
 
       containers.push(containerV2([
         sectionV2(avatarBustUrl, sectionContent),
-        separatorV2(),
         groupContent,
         separatorV2(),
         textDisplayV2(`## Description\n${loadedRobloxUser.description || "*No description*"}`)

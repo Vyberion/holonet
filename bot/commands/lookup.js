@@ -99,7 +99,7 @@ async function replyLookup(interaction, { discordUser, link, robloxUser }) {
       const divisionLines = Object.entries(ROBLOX_GROUPS.DIVISIONS)
         .map(([key, definition]) => {
           const membership = membershipFor(groupRoles, definition.groupId);
-          return membership ? `\- ${divisionLabel(key)}: ${membership.role?.name || "Unknown"} (${membership.role?.rank || 0})` : "";
+          return membership ? `\\- ${divisionLabel(key)}: ${membership.role?.name || "Unknown"} (${membership.role?.rank || 0})` : "";
         })
         .filter(Boolean);
 

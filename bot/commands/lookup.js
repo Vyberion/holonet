@@ -108,14 +108,11 @@ async function replyLookup(interaction, { discordUser, link, robloxUser }) {
       const sectionContent = [
         textDisplayV2(`### [${displayName}](${lookupUrl(username)}) (${robloxUserId})`),
         textDisplayV2(`## Roblox Information`),
-        textDisplayV2(`### @${username}`)
+        textDisplayV2(`### @${username}\nAccount Created: ${robloxUnixTimestamp ? `<t:${robloxUnixTimestamp}:F>` : "Unknown"}\nMain Group: ${mainGroup ? mainGroup.role?.name || "Unknown" : "Not in group"}${divisionLines.length ? `\n${divisionLines.join("\n")}` : ""}`)
       ];
-
-      const groupContent = textDisplayV2(`Account Created: ${robloxUnixTimestamp ? `<t:${robloxUnixTimestamp}:F>` : "Unknown"}\nMain Group: ${mainGroup ? mainGroup.role?.name || "Unknown" : "Not in group"}${divisionLines.length ? `\n${divisionLines.join("\n")}` : ""}`);
 
       containers.push(containerV2([
         sectionV2(avatarBustUrl, sectionContent),
-        groupContent,
         separatorV2(),
         textDisplayV2(`## Description\n${loadedRobloxUser.description || "*No description*"}`)
       ]));
@@ -141,9 +138,8 @@ async function replyLookup(interaction, { discordUser, link, robloxUser }) {
     containers.push(containerV2([
       sectionV2(discordAvatarUrl, [
         textDisplayV2(`## Discord Information`),
-        textDisplayV2(`### <@${discordUserInfo.id}>`)
-      ]),
-      textDisplayV2(`Account Created: <t:${discordUnixTimestamp}:F>`)
+        textDisplayV2(`### <@${discordUserInfo.id}>\nAccount Created: <t:${discordUnixTimestamp}:F>`)
+      ])
     ]));
   }
 

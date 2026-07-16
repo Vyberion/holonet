@@ -106,16 +106,10 @@ async function replyLookup(interaction, { discordUser, link, robloxUser }) {
       const robloxUnixTimestamp = loadedRobloxUser.created ? Math.floor(new Date(loadedRobloxUser.created).getTime() / 1000) : 0;
 
       const robloxContent = [
-        textDisplayV2(`### [${displayName}](${lookupUrl(username)}) (${robloxUserId})`),
-        textDisplayV2(`## Roblox Information`),
-        textDisplayV2(`### @${username}`),
-        textDisplayV2(`Account Created: ${robloxUnixTimestamp ? `<t:${robloxUnixTimestamp}:F>` : "Unknown"}`),
-        textDisplayV2(`Main Group: ${mainGroup ? `${mainGroup.role?.name || "Unknown"} (${mainGroup.role?.rank || 0})` : "Not in group"}`)
+        textDisplayV2(`### [${displayName}](${lookupUrl(username)}) (${robloxUserId})\n## Roblox Information`),
+        textDisplayV2(`### @${username}\nAccount Created: ${robloxUnixTimestamp ? `<t:${robloxUnixTimestamp}:F>` : "Unknown"}`),
+        textDisplayV2(`Main Group: ${mainGroup ? `${mainGroup.role?.name || "Unknown"} (${mainGroup.role?.rank || 0})` : "Not in group"}${divisionLines.length ? `\nDivisions:\n${divisionLines.join("\n")}` : ""}`)
       ];
-
-      if (divisionLines.length) {
-        robloxContent.push(textDisplayV2(`Divisions:\n${divisionLines.join("\n")}`));
-      }
 
       containers.push(containerV2([
         sectionV2(avatarBustUrl, robloxContent),

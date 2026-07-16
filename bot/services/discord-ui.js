@@ -51,7 +51,8 @@ export function textModal(customId, title, fields) {
 export function componentsV2Message(containers) {
   return {
     flags: 32768,
-    components: containers
+    components: containers,
+    allowedMentions: { parse: [] }
   };
 }
 

@@ -47,3 +47,46 @@ export function textModal(customId, title, fields) {
   });
   return modal;
 }
+
+export function componentsV2Message(containers) {
+  return {
+    flags: 32768,
+    components: containers
+  };
+}
+
+export function containerV2(components, color = config.theme.color) {
+  return {
+    type: 17,
+    accent_color: color,
+    components
+  };
+}
+
+export function sectionV2(thumbnailUrl, components) {
+  const accessory = thumbnailUrl ? {
+    type: 11,
+    media: { url: thumbnailUrl }
+  } : undefined;
+  
+  return {
+    type: 9,
+    accessory,
+    components
+  };
+}
+
+export function textDisplayV2(content) {
+  return {
+    type: 10,
+    content
+  };
+}
+
+export function separatorV2() {
+  return {
+    type: 14,
+    divider: true,
+    spacing: 1
+  };
+}

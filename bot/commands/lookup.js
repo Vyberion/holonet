@@ -1,8 +1,8 @@
 import { SlashCommandBuilder } from "discord.js";
 import { config } from "../config/index.js";
 import { botErrorPayload } from "../services/bot-errors.js";
-import { embed, ephemeral, errorEmbed } from "../services/discord-ui.js";
-import { loadGroupRoles, loadRobloxUser } from "../services/roblox.js";
+import { embed, ephemeral, errorEmbed, componentsV2Message, containerV2, sectionV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
+import { loadGroupRoles, loadRobloxUser, loadRobloxAvatarBust } from "../services/roblox.js";
 import { supabase } from "../services/supabase.js";
 import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
 
@@ -71,45 +71,74 @@ async function loadRobloxUserByInput(value) {
   return match?.id ? loadRobloxUser(match.id).catch(() => match) : null;
 }
 
-function lookupLines({ discordUser, link, groupRoles, robloxUser }) {
-  const mainGroup = membershipFor(groupRoles, ROBLOX_GROUPS.HIGH_RANKS.groupId);
-  const divisionLines = Object.entries(ROBLOX_GROUPS.DIVISIONS)
-    .map(([key, definition]) => {
-      const membership = membershipFor(groupRoles, definition.groupId);
-      return membership ? `${divisionLabel(key)}: ${membership.role?.name || "Unknown"} (${membership.role?.rank || 0})` : "";
-    })
-    .filter(Boolean);
-  const username = robloxUser?.name || robloxUser?.displayName || link?.roblox_user_id || robloxUser?.id;
-
-  return [
-    `Discord: ${discordUser ? `<@${discordUser.id}>` : link?.discord_user_id ? `<@${link.discord_user_id}>` : "Not linked"}`,
-    `Roblox: ${username} (${robloxUser?.id || link?.roblox_user_id})`,
-    `Main Group: ${mainGroup ? `${mainGroup.role?.name || "Unknown"} (${mainGroup.role?.rank || 0})` : "Not in group"}`,
-    ...(divisionLines.length ? [`Divisions: ${divisionLines.join(", ")}`] : [])
-  ];
-}
-
 async function replyLookup(interaction, { discordUser, link, robloxUser }) {
+  const containers = [];
+
+  // Roblox Container
   const robloxUserId = robloxUser?.id || link?.roblox_user_id;
   if (!robloxUserId) {
-    await interaction.reply({ embeds: [errorEmbed("That user is not linked.")] });
-    return;
+    containers.push(containerV2([
+      sectionV2(null, [textDisplayV2(`# Roblox Information\n*Not linked to any Roblox account.*`)])
+    ]));
+  } else {
+    const [groupRoles, loadedRobloxUser, avatarBustUrl] = await Promise.all([
+      loadGroupRoles(robloxUserId),
+      robloxUser?.name ? robloxUser : loadRobloxUser(robloxUserId).catch(() => robloxUser),
+      loadRobloxAvatarBust(robloxUserId)
+    ]);
+
+    if (!loadedRobloxUser) {
+      containers.push(containerV2([
+        sectionV2(null, [textDisplayV2(`# Roblox Information\n*Failed to load Roblox account (${robloxUserId}).*`)])
+      ]));
+    } else {
+      const username = loadedRobloxUser.name || loadedRobloxUser.displayName || link?.roblox_user_id || loadedRobloxUser.id;
+      const displayName = loadedRobloxUser.displayName || loadedRobloxUser.name || username;
+      
+      const mainGroup = membershipFor(groupRoles, ROBLOX_GROUPS.HIGH_RANKS.groupId);
+      const divisionLines = Object.entries(ROBLOX_GROUPS.DIVISIONS)
+        .map(([key, definition]) => {
+          const membership = membershipFor(groupRoles, definition.groupId);
+          return membership ? `${divisionLabel(key)}: ${membership.role?.name || "Unknown"} (${membership.role?.rank || 0})` : "";
+        })
+        .filter(Boolean);
+        
+      const robloxUnixTimestamp = loadedRobloxUser.created ? Math.floor(new Date(loadedRobloxUser.created).getTime() / 1000) : 0;
+      
+      const robloxText = `## [${displayName}](https://www.roblox.com/users/${robloxUserId}/profile) (${robloxUserId})\n# Roblox Information\n@${username}\nAccount Created: ${robloxUnixTimestamp ? `<t:${robloxUnixTimestamp}:F>` : "Unknown"}\nMain Group: ${mainGroup ? `${mainGroup.role?.name || "Unknown"} (${mainGroup.role?.rank || 0})` : "Not in group"}\nDivisions: ${divisionLines.length ? divisionLines.join(", ") : "None"}`;
+
+      containers.push(containerV2([
+        sectionV2(avatarBustUrl, [textDisplayV2(robloxText)]),
+        separatorV2(),
+        textDisplayV2(`# Description\n${loadedRobloxUser.description || "*No description*"}`)
+      ]));
+    }
   }
 
-  const [groupRoles, loadedRobloxUser] = await Promise.all([
-    loadGroupRoles(robloxUserId),
-    robloxUser?.name ? robloxUser : loadRobloxUser(robloxUserId).catch(() => robloxUser)
-  ]);
+  // Discord Container
+  let discordUserInfo = discordUser;
+  if (!discordUserInfo && link?.discord_user_id) {
+    try {
+      discordUserInfo = await interaction.client.users.fetch(link.discord_user_id);
+    } catch(e) {}
+  }
 
-  const username = loadedRobloxUser?.name || loadedRobloxUser?.displayName || link?.roblox_user_id || loadedRobloxUser?.id;
-  await interaction.reply({
-    embeds: [embed("Lookup", lookupLines({
-      discordUser,
-      link,
-      groupRoles,
-      robloxUser: loadedRobloxUser
-    }).join("\n"), { url: lookupUrl(username) })]
-  });
+  if (!discordUserInfo) {
+    containers.push(containerV2([
+      sectionV2(null, [textDisplayV2(`# Discord Information\n*Not linked to any Discord account.*`)])
+    ]));
+  } else {
+    const discordUnixTimestamp = Math.floor(discordUserInfo.createdTimestamp / 1000);
+    const discordAvatarUrl = discordUserInfo.displayAvatarURL({ size: 4096 });
+    
+    containers.push(containerV2([
+      sectionV2(discordAvatarUrl, [
+        textDisplayV2(`# Discord Information\n## <@${discordUserInfo.id}>\nAccount Created: <t:${discordUnixTimestamp}:F>`)
+      ])
+    ]));
+  }
+
+  await interaction.reply(componentsV2Message(containers));
 }
 
 export async function handleCommand(interaction) {
@@ -126,11 +155,6 @@ export async function handleCommand(interaction) {
 
     if (discordUser) {
       const link = await loadLinkByDiscordUserId(discordUser.id);
-      if (!link) {
-        await interaction.reply({ embeds: [errorEmbed("That Discord user is not linked.")] });
-        return true;
-      }
-
       await replyLookup(interaction, { discordUser, link, robloxUser: null });
       return true;
     }

@@ -19,6 +19,18 @@ export async function loadRobloxUser(robloxUserId) {
   return response.json();
 }
 
+export async function loadRobloxAvatarBust(robloxUserId) {
+  try {
+    const url = `https://thumbnails.roblox.com/v1/users/avatar-bust?userIds=${robloxUserId}&size=420x420&format=Png&isCircular=false`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return payload?.data?.[0]?.imageUrl || null;
+  } catch (error) {
+    return null;
+  }
+}
+
 async function fetchBadgeCount(robloxUserId) {
   let count = 0;
   let cursor = "";

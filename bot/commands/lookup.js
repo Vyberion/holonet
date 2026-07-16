@@ -105,7 +105,7 @@ async function replyLookup(interaction, { discordUser, link, robloxUser }) {
         
       const robloxUnixTimestamp = loadedRobloxUser.created ? Math.floor(new Date(loadedRobloxUser.created).getTime() / 1000) : 0;
       
-      const robloxText = `## [${displayName}](https://www.roblox.com/users/${robloxUserId}/profile) (${robloxUserId})\n# Roblox Information\n@${username}\nAccount Created: ${robloxUnixTimestamp ? `<t:${robloxUnixTimestamp}:F>` : "Unknown"}\nMain Group: ${mainGroup ? `${mainGroup.role?.name || "Unknown"} (${mainGroup.role?.rank || 0})` : "Not in group"}\nDivisions: ${divisionLines.length ? divisionLines.join(", ") : "None"}`;
+      const robloxText = `## [${displayName}](${lookupUrl(username)}) (${robloxUserId})\n# Roblox Information\n## @${username}\nAccount Created: ${robloxUnixTimestamp ? `<t:${robloxUnixTimestamp}:F>` : "Unknown"}\nMain Group: ${mainGroup ? `${mainGroup.role?.name || "Unknown"} (${mainGroup.role?.rank || 0})` : "Not in group"}${divisionLines.length ? `\nDivisions: ${divisionLines.join(", ")}` : ""}`;
 
       containers.push(containerV2([
         sectionV2(avatarBustUrl, [textDisplayV2(robloxText)]),

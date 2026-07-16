@@ -85,8 +85,7 @@ function lookupLines({ discordUser, link, groupRoles, robloxUser }) {
     `Discord: ${discordUser ? `<@${discordUser.id}>` : link?.discord_user_id ? `<@${link.discord_user_id}>` : "Not linked"}`,
     `Roblox: ${username} (${robloxUser?.id || link?.roblox_user_id})`,
     `Main Group: ${mainGroup ? `${mainGroup.role?.name || "Unknown"} (${mainGroup.role?.rank || 0})` : "Not in group"}`,
-    ...(divisionLines.length ? [`Divisions: ${divisionLines.join(", ")}`] : []),
-    `Lookup: ${lookupUrl(username)}`
+    ...(divisionLines.length ? [`Divisions: ${divisionLines.join(", ")}`] : [])
   ];
 }
 
@@ -102,13 +101,14 @@ async function replyLookup(interaction, { discordUser, link, robloxUser }) {
     robloxUser?.name ? robloxUser : loadRobloxUser(robloxUserId).catch(() => robloxUser)
   ]);
 
+  const username = loadedRobloxUser?.name || loadedRobloxUser?.displayName || link?.roblox_user_id || loadedRobloxUser?.id;
   await interaction.reply({
-    embeds: [embed("Holonet Lookup", lookupLines({
+    embeds: [embed("Lookup", lookupLines({
       discordUser,
       link,
       groupRoles,
       robloxUser: loadedRobloxUser
-    }).join("\n"))]
+    }).join("\n"), { url: lookupUrl(username) })]
   });
 }
 

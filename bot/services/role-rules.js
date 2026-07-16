@@ -53,7 +53,12 @@ function pushRangeRules(ids, ranges = []) {
 
 export function managedRoleIdsFromConfig(sourceConfig, options = {}) {
   const roles = sourceConfig?.roles?.managed || {};
-  const ids = [sourceConfig?.roles?.verified, options.unlinkedRoleId];
+  const ids = [
+    sourceConfig?.roles?.verified,
+    sourceConfig?.roles?.verifiedNonHighRank,
+    sourceConfig?.roles?.unlinked,
+    options.unlinkedRoleId
+  ];
 
   pushRankRules(ids, roles.DARK_COUNCIL?.ranks);
   pushRangeRules(ids, roles.DARK_COUNCIL?.ranges);

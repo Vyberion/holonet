@@ -583,14 +583,7 @@ function renderSection(mount, division, section, entries, canWrite, options = {}
         </div>
         <p class="hub-summary">${escapeHtml(descriptionForSection(division, section))}</p>
       </div>
-      ${["transmissions", "reports", "activity"].includes(section) ? `
-        <div class="hub-status-grid division-section-status-grid">
-          <div class="hub-status-cell"><span class="hub-label">Status</span><span class="hub-value">ACTIVE</span></div>
-          <div class="hub-status-cell"><span class="hub-label">Division</span><span class="hub-value">${escapeHtml(division.shortName || division.name)}</span></div>
-          <div class="hub-status-cell"><span class="hub-label">${section === "activity" ? "Activity" : escapeHtml(section)}</span><span class="hub-value">${section === "activity" ? `${escapeHtml(entries?.length || 0)} MEMBERS` : `${escapeHtml(entries?.length || 0)} ENTRIES`}</span></div>
-        </div>
-      ` : ""}
-
+      ${""}
       <section class="hub-panel">
         ${section === "activity" ? "" : `
           <div class="hub-panel-head">

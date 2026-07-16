@@ -1,0 +1,315 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import MuxPlayer from "@mux/mux-player-react";
+
+export function InteractiveMandate({ hero, content }) {
+  const containerRef = useRef(null);
+  const videoRef = useRef(null);
+  
+  // "pending" (waiting for start), "playing" (video active), "finished" (hero sequence active)
+  const [introState, setIntroState] = useState("pending"); 
+  
+  const [progress, setProgress] = useState(0);
+  const targetProgressRef = useRef(0);
+  const currentProgressRef = useRef(0);
+  const rafRef = useRef(null);
+
+  const locked = progress < 1;
+
+  // Animation Loop for buttery smooth easing (Lerp)
+  useEffect(() => {
+    const loop = () => {
+      const target = targetProgressRef.current;
+      const current = currentProgressRef.current;
+      
+      // If we're close enough, snap to exact target
+      if (Math.abs(target - current) < 0.001) {
+        if (current !== target) {
+          currentProgressRef.current = target;
+          setProgress(target);
+        }
+      } else {
+        // Easing function: moves 8% of the distance per frame
+        const next = current + (target - current) * 0.08;
+        currentProgressRef.current = next;
+        setProgress(next);
+      }
+      
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    
+    rafRef.current = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  // Lock body scroll and pin to top while transitioning or during cinematic intro
+  useEffect(() => {
+    if (locked || introState !== "finished") {
+      document.body.style.setProperty('overflow', 'hidden', 'important');
+      window.scrollTo(0, 0);
+    } else {
+      document.body.style.removeProperty('overflow');
+    }
+    return () => {
+      document.body.style.removeProperty('overflow');
+    };
+  }, [locked, introState]);
+
+  // Force scroll to 0 on every render while locked (belt AND suspenders)
+  useEffect(() => {
+    if (locked || introState !== "finished") {
+      window.scrollTo(0, 0);
+    }
+  });
+
+  // Wheel events — ALWAYS active, uses ref for latest progress
+  useEffect(() => {
+    const handleWheel = (e) => {
+      // Block wheel events entirely until the video finishes
+      if (introState !== "finished") {
+        e.preventDefault();
+        return;
+      }
+
+      const p = targetProgressRef.current;
+      const isCurrentlyLocked = currentProgressRef.current < 1;
+
+      // LOCKED: intercept all wheel events, drive target progress
+      if (isCurrentlyLocked) {
+        e.preventDefault();
+        let step = e.deltaY / window.innerHeight; // Faster base scroll speed
+        if (step < 0) step *= 1.66; // Matches previous absolute upward speed
+        let next = p + step;
+        if (next < 0) next = 0;
+        if (next > 1) next = 1;
+        targetProgressRef.current = next;
+        window.scrollTo(0, 0);
+        return;
+      }
+
+      // UNLOCKED: at top of page and scrolling UP → re-enter transition
+      if (window.scrollY <= 0 && e.deltaY < 0) {
+        e.preventDefault();
+        let step = e.deltaY / window.innerHeight;
+        step *= 1.66; // Matches previous absolute upward speed
+        let next = 1 + step; // step is negative, brings progress below 1
+        if (next < 0) next = 0;
+        targetProgressRef.current = next;
+        
+        // Instantly trigger the locked state to prevent native scroll escaping
+        if (currentProgressRef.current === 1) {
+          currentProgressRef.current = 0.999;
+          setProgress(0.999);
+        }
+        window.scrollTo(0, 0);
+        return;
+      }
+
+      // UNLOCKED, not at top: native scroll handles it
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, [introState]); 
+
+  // Touch events — same logic, ALWAYS active
+  useEffect(() => {
+    let lastTouchY = 0;
+
+    const handleTouchStart = (e) => {
+      lastTouchY = e.touches[0].clientY;
+    };
+
+    const handleTouchMove = (e) => {
+      // Block swipe events entirely until the video finishes
+      if (introState !== "finished") {
+        e.preventDefault();
+        return;
+      }
+
+      const touchY = e.touches[0].clientY;
+      const delta = lastTouchY - touchY; // positive = finger swipe up = scroll down
+      lastTouchY = touchY;
+      
+      const p = targetProgressRef.current;
+      const isCurrentlyLocked = currentProgressRef.current < 1;
+
+      if (isCurrentlyLocked) {
+        e.preventDefault();
+        let step = delta / window.innerHeight; // Faster base scroll speed
+        if (step < 0) step *= 1.66; // Matches previous absolute upward speed
+        let next = p + step;
+        if (next < 0) next = 0;
+        if (next > 1) next = 1;
+        targetProgressRef.current = next;
+        window.scrollTo(0, 0);
+        return;
+      }
+
+      if (window.scrollY <= 0 && delta < 0) {
+        e.preventDefault();
+        let step = delta / window.innerHeight;
+        step *= 1.66; // Matches previous absolute upward speed
+        let next = 1 + step;
+        if (next < 0) next = 0;
+        targetProgressRef.current = next;
+        
+        // Instantly trigger the locked state to prevent native scroll escaping
+        if (currentProgressRef.current === 1) {
+          currentProgressRef.current = 0.999;
+          setProgress(0.999);
+        }
+        window.scrollTo(0, 0);
+        return;
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, [introState]);
+
+  // Mouse spotlight, IntersectionObserver, glow effects
+  useEffect(() => {
+    const handleGlobalMouseMove = (e) => {
+      document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`);
+      document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`);
+    };
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+        }
+      });
+    }, { threshold: 0.15, rootMargin: "0px 0px -50px 0px" });
+
+    const scrollElements = document.querySelectorAll('.animate-on-scroll');
+    scrollElements.forEach(el => observer.observe(el));
+
+    const glowElements = document.querySelectorAll('.pos-item, .v2-quote-box');
+
+    const handleGlowMove = (e) => {
+      const el = e.currentTarget;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const shineX = (x / rect.width) * 100;
+      const shineY = (y / rect.height) * 100;
+      el.style.setProperty('--shine-x', `${shineX}%`);
+      el.style.setProperty('--shine-y', `${shineY}%`);
+    };
+
+    const handleGlowLeave = (e) => {
+      const el = e.currentTarget;
+      el.style.setProperty('--shine-x', `50%`);
+      el.style.setProperty('--shine-y', `50%`);
+    };
+
+    glowElements.forEach(el => {
+      el.addEventListener('mousemove', handleGlowMove);
+      el.addEventListener('mouseleave', handleGlowLeave);
+    });
+
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      observer.disconnect();
+      glowElements.forEach(el => {
+        el.removeEventListener('mousemove', handleGlowMove);
+        el.removeEventListener('mouseleave', handleGlowLeave);
+      });
+    };
+  }, []);
+
+  // Phase 1: progress 0→0.3 — hero fades out (quick)
+  // Phase 2: progress 0.3→1.0 — content fades in (locked, no movement)
+  let heroOpacity = 1;
+  let contentOpacity = 0;
+
+  if (progress <= 0.3) {
+    heroOpacity = 1 - (progress / 0.3);
+    contentOpacity = 0;
+  } else {
+    heroOpacity = 0;
+    contentOpacity = (progress - 0.3) / 0.7;
+  }
+
+  // The hero is only shown once the intro is finished.
+  const isIntroFinished = introState === "finished";
+
+  return (
+    <div ref={containerRef} className="interactive-mandate-wrapper">
+      
+      {/* CINEMATIC INTRO SEQUENCE */}
+      <div className={`v2-cinematic-intro ${introState}`}>
+        {/* Placeholder Playback ID. Replace when you upload the video! */}
+        <MuxPlayer
+          ref={videoRef}
+          playbackId="8TMIBxxLXd5BKfnDq3nU6xki2lvlXaJ9I00xrNkZ9k3k" 
+          controls={false}
+          autoPlay={false}
+          muted={false} // Audio permitted since it requires user interaction (START button)
+          onEnded={() => setIntroState("finished")}
+          style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }}
+        />
+        
+        {introState === "pending" && (
+          <div className="v2-intro-overlay">
+            <button 
+              className="v2-intro-start-btn"
+              onClick={() => {
+                setIntroState("playing");
+                if (videoRef.current) {
+                  videoRef.current.play();
+                }
+              }}
+            >
+              START
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* HERO — fixed overlay, fades out during Phase 1 */}
+      {isIntroFinished && (
+        <div className="v2-hero-wrapper splash-fade-in" style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          zIndex: 15,
+          opacity: heroOpacity,
+          transform: `scale(${1 + (1 - heroOpacity) * 0.05})`,
+          pointerEvents: 'none',
+          display: heroOpacity > 0.01 ? 'flex' : 'none',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          {hero}
+        </div>
+      )}
+
+      {/*
+        CONTENT — always in the document flow.
+        While locked, "scroll-reveal-override" disables all child CSS animations
+        so our wrapper opacity is the sole control. Nothing moves.
+        When unlocked, the class is removed and normal scroll-reveal resumes.
+      */}
+      <div
+        className={locked ? 'scroll-reveal-override' : ''}
+        style={{
+          opacity: (locked || !isIntroFinished) ? contentOpacity : 1,
+          pointerEvents: (locked || !isIntroFinished) ? 'none' : 'auto',
+          display: isIntroFinished ? 'block' : 'none',
+        }}
+      >
+        {content}
+      </div>
+
+    </div>
+  );
+}

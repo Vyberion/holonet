@@ -294,9 +294,7 @@ const DIVISIONS = {
     activity: [],
     actions: [
       { label: "Open Handbooks", href: divisionLockedHref("highranks", "handbooks"), minimumTier: "lower" },
-      { label: "Open Transmissions", href: divisionLockedHref("highranks", "transmissions"), minimumTier: "lower" },
-      { label: "Open Reports", href: divisionLockedHref("highranks", "reports"), minimumTier: "lower" },
-      { label: "Open Activity", href: divisionLockedHref("highranks", "activity"), minimumTier: "lower" }
+      { label: "Open Transmissions", href: divisionLockedHref("highranks", "transmissions"), minimumTier: "lower" }
     ]
   },
 
@@ -324,7 +322,6 @@ const DIVISIONS = {
     activity: [],
     actions: [
       { label: "Open Council Floor", href: divisionLockedHref("darkCouncil", "council-floor"), minimumTier: "council" },
-      { label: "Open Handbooks", href: divisionLockedHref("darkCouncil", "handbooks"), minimumTier: "powerbase" },
       { label: "Open Transmissions", href: divisionLockedHref("darkCouncil", "transmissions"), minimumTier: "powerbase" },
       { label: "Open Reports", href: divisionLockedHref("darkCouncil", "reports"), minimumTier: "powerbase" },
       { label: "Open Activity", href: divisionLockedHref("darkCouncil", "activity"), minimumTier: "powerbase" }

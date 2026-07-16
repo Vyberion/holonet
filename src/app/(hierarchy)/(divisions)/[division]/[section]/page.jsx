@@ -188,7 +188,7 @@ export default async function DivisionSectionPage({ params }) {
             <p className="hub-summary">{divisionSingularName(division)} handbook and guide archive.</p>
           </div>
         </div>
-        <div className="codex-document document-shell" style={{ marginTop: 0 }}>
+        <div className="codex-document document-shell" style={{ marginTop: 18 }}>
           <article className="codex-article handbook-viewer-panel">
             <div className="article-content pdf-terminal">
               <div

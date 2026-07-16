@@ -14,7 +14,7 @@ import {
 } from "./role-rules.js";
 
 const ROBLOX_RANK_DELEGATE_DISCORD_IDS = new Set(["1046546991360004136"]);
-const UNLINKED_ROLE_ID = "1340850135680155674";
+const UNLINKED_ROLE_ID = config.roles?.unlinked || "1340850135680155674";
 const UNVERIFIED_REMOVED_ROLE_IDS = ["1340829015484928053"];
 
 function isMainGroupMember(profile) {
@@ -26,11 +26,13 @@ export function managedRoleIds() {
 }
 
 function roleIdsForProfile(profile) {
+  const ids = [config.roles?.verified];
+
   if (!isMainGroupMember(profile)) {
-    return [];
+    if (config.roles?.verifiedNonHighRank) ids.push(config.roles.verifiedNonHighRank);
+    return compactRoleIds(ids);
   }
 
-  const ids = [config.roles?.verified];
   const ranks = rawRanksFromProfile(profile);
   const managed = config.roles?.managed || {};
 
@@ -223,11 +225,18 @@ export async function syncMemberRoles(member, actorDiscordId = member.id) {
   if (add.length) await member.roles.add(add, "Holonet role sync");
 
   if (!verified) {
+    let nicknameUpdated = false;
+    if (member.manageable && member.nickname) {
+      assertBotGuildPermissions(member, ["ManageNicknames"]);
+      await member.setNickname(null, "Holonet unlink sync");
+      nicknameUpdated = true;
+    }
+
     await audit("roles.sync", {
       actorDiscordId,
       targetDiscordId: member.id,
       robloxUserId: null,
-      metadata: { added: add, removed: remove, unlinked: true }
+      metadata: { added: add, removed: remove, unlinked: true, nicknameUpdated }
     });
 
     return {
@@ -237,7 +246,7 @@ export async function syncMemberRoles(member, actorDiscordId = member.id) {
       removed: remove,
       roleIds: wanted,
       nickname: "",
-      nicknameUpdated: false,
+      nicknameUpdated,
       unlinked: true
     };
   }

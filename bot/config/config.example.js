@@ -131,6 +131,8 @@ export default {
   },
   roles: {
     verified: "1134203786328543392",
+    unlinked: "1340850135680155674",
+    verifiedNonHighRank: "1333584681945268255",
     managed: {
       DARK_COUNCIL: {
         ranks: {

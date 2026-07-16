@@ -95,7 +95,7 @@ const DIVISION_SUBDOMAIN_ROUTES = {
 
 function buildMarquee() {
   const track = document.querySelector('.marquee-track');
-  if (!track) return;
+  if (!track || track.children.length > 0) return;
   const full = [...MARQUEE_ITEMS, ...MARQUEE_ITEMS];
   full.forEach((item, i) => {
     const span = document.createElement('span');
@@ -141,7 +141,8 @@ updateSignalReadout();
 setInterval(updateSignalReadout, 1000);
 
 function initCardCorruption() {
-  document.querySelectorAll('.nav-card, .dir-card').forEach(card => {
+  document.querySelectorAll('.nav-card:not([data-corrupt-bound]), .dir-card:not([data-corrupt-bound])').forEach(card => {
+    card.setAttribute('data-corrupt-bound', 'true');
     const titleEl = card.querySelector('.card-title, .dir-card-title');
     if (!titleEl) return;
 
@@ -321,6 +322,11 @@ function boot() {
   initDivisionLayoutFixes();
   setTimeout(initCardCorruption, 500);
 }
+window.initHolonetMain = function() {
+  buildMarquee();
+  setTimeout(initCardCorruption, 500);
+  initDivisionLayoutFixes();
+};
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', boot);
 } else {

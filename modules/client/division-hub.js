@@ -241,24 +241,47 @@ function renderHub(division) {
   const hasActivity = division.id !== "highranks";
   const hasReports = division.id !== "highranks";
 
-  const leftPanels = [];
-  const rightPanels = [];
+  let leftColumn = "";
+  let rightColumn = "";
+  let gridClass = "hub-grid";
 
-  if (division.id === "highranks") {
-    leftPanels.push(transmissionsPanel);
-    rightPanels.push(documentsPanel);
+  if (division.id === "darkCouncil") {
+    gridClass = "hub-grid hub-grid--triple";
+    leftColumn = `
+        <div class="hub-column">
+          ${transmissionsPanel}
+        </div>
+        <div class="hub-column">
+          ${activityPanel}
+          ${reportsPanel}
+        </div>
+    `;
+    rightColumn = `
+        <aside class="hub-column">
+          ${pagesPanel}
+        </aside>
+    `;
   } else {
-    if (hasDocuments) leftPanels.push(documentsPanel);
-    leftPanels.push(transmissionsPanel);
+    const leftPanels = [];
+    const rightPanels = [];
 
-    if (hasPages) rightPanels.push(pagesPanel);
-    if (hasActivity) rightPanels.push(activityPanel);
-    if (hasReports) rightPanels.push(reportsPanel);
+    if (division.id === "highranks") {
+      if (hasDocuments) leftPanels.push(documentsPanel);
+      leftPanels.push(transmissionsPanel);
+      if (hasPages) rightPanels.push(pagesPanel);
+    } else {
+      if (hasDocuments) leftPanels.push(documentsPanel);
+      leftPanels.push(transmissionsPanel);
+
+      if (hasPages) rightPanels.push(pagesPanel);
+      if (hasActivity) rightPanels.push(activityPanel);
+      if (hasReports) rightPanels.push(reportsPanel);
+    }
+
+    leftColumn = leftPanels.length ? `<div class="hub-column">\n          ${leftPanels.join("\n          ")}\n        </div>` : "";
+    rightColumn = rightPanels.length ? `\n        <aside class="hub-column">\n          ${rightPanels.join("\n          ")}\n        </aside>` : "";
+    gridClass = (leftPanels.length && rightPanels.length) ? "hub-grid" : "hub-grid hub-grid--single";
   }
-
-  const leftColumn = leftPanels.length ? `<div class="hub-column">\n          ${leftPanels.join("\n          ")}\n        </div>` : "";
-  const rightColumn = rightPanels.length ? `\n        <aside class="hub-column">\n          ${rightPanels.join("\n          ")}\n        </aside>` : "";
-  const gridClass = (leftPanels.length && rightPanels.length) ? "hub-grid" : "hub-grid hub-grid--single";
 
   if (division.loadError) {
     return `

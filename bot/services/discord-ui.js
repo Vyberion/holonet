@@ -2,11 +2,15 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlag
 import { config } from "../config/index.js";
 
 export function embed(title, description, options = {}) {
-  return new EmbedBuilder()
+  const builder = new EmbedBuilder()
     .setColor(options.color || config.theme.color)
     .setTitle(title)
     .setDescription(description || "")
     .setTimestamp(new Date());
+    
+  if (options.url) builder.setURL(options.url);
+  
+  return builder;
 }
 
 export function errorEmbed(message) {

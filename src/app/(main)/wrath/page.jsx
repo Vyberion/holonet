@@ -133,9 +133,6 @@ export default function WrathApplicationPage() {
                 <p>[Your closing statement and final pitch to the readers.]</p>
                 <p className="v2-italic animate-on-scroll stagger-3">[Your concluding sign-off phrase]:</p>
                 <div className="v2-signature animate-on-scroll stagger-4">[Your Name]<br /></div>
-
-                {/* Optional Spotify Embed */}
-                <SpotifyEmbed uri="spotify:track:48v2zlOv10W8F4RWg7eWy1" />
               </div>
             </section>
           </div>

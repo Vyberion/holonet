@@ -22,7 +22,7 @@ export function SpotifyEmbed({ uri, width = "100%", height = "352" }) {
         uri: uri,
         width: width,
         height: height,
-        theme: '0'
+        theme: 'dark'
       }, (controller) => {
         controllerRef.current = controller;
         controller.addListener('playback_update', e => {

@@ -281,13 +281,12 @@ export async function handleCommand(interaction) {
     const username = robloxUser?.name || robloxUser?.displayName || verified.link.roblox_user_id;
 
     await interaction.reply({
-      embeds: [embed("Holonet Lookup", [
+      embeds: [embed("Lookup", [
         `Discord: <@${user.id}>`,
         `Roblox: ${username} (${verified.link.roblox_user_id})`,
         `Main Group: ${mainGroup ? `${mainGroup.role?.name || "Unknown"} (${mainGroup.role?.rank || 0})` : "Not in group"}`,
-        ...(divisionLines.length ? [`Divisions: ${divisionLines.join(", ")}`] : []),
-        `Lookup: ${lookupUrl(username)}`
-      ].join("\n"))]
+        ...(divisionLines.length ? [`Divisions: ${divisionLines.join(", ")}`] : [])
+      ].join("\n"), { url: lookupUrl(username) })]
     });
     return true;
   }
@@ -305,6 +304,13 @@ export async function handleCommand(interaction) {
 
     await unlinkDiscordUser(user.id, interaction.user.id);
     await interaction.reply({ embeds: [successEmbed("Unlinked", selfUnlink ? "Your Discord account has been unlinked." : `<@${user.id}> has been unlinked.`)] });
+    
+    try {
+      const memberToSync = await interaction.guild.members.fetch(user.id);
+      if (memberToSync) await syncMemberRoles(memberToSync, interaction.user.id);
+    } catch (e) {
+      // Ignore if member is no longer in the server
+    }
     await postVerificationLog(interaction.client, {
       title: "Discord Unlinked",
       description: selfUnlink ? `<@${interaction.user.id}> unlinked their Discord account.` : `<@${interaction.user.id}> unlinked <@${user.id}>.`,

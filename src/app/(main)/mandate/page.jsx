@@ -60,8 +60,8 @@ export default function MandateV2Page() {
               <div className="v2-text-content animate-on-scroll stagger-2">
                 <p className="v2-greeting">To the Lords and Aspirants of the Sith Order:</p>
                 <p>For too long, the Order has lacked direction and has been weakened as a result. We have bickered over the remnants of what little we have while it has drifted away from the principles that once made it what it was.</p>
-                <p>The Order has grown stagnant, it has been utterly bloated by those who mistake pettiness with one another for what we were meant to become; a succession of leaders have lacked the will required to return it to its former glory and our passion has been allowed to erode. Time has dulled its edge and complacency has been allowed to spread corner to corner. This must end.</p>
-                <p>I proclaim that my second campaign begins today. I am returning with a clear intent; I want to restore the Order to its original glory, and when that has been done, I want to bring it into the future. Oftentimes, the future of the Sith has been diluted by overly specific, misdirected decrees from day one in charge. Changes are often introduced without true consultation with other aspects of the group, patchy and isolated from the issues that they are meant to fix. Hence, this mandate does not contain a list of strict promises, because I believe the path forward is more than one document and must adapt to whatever challenges we come across in the future.</p>
+                <p>The Order has grown stagnant, utterly bloated by those who mistake pettiness with one another for what we were meant to become; a succession of leaders have lacked the will required to return it to its former glory and our passion has been allowed to erode. Time has dulled its edge and complacency has been allowed to spread corner to corner. This must end.</p>
+                <p>I proclaim that my second campaign begins today. I am returning with a clear intent; I want to restore the Order to its original glory, and when that has been done, I want to bring it into the future. Oftentimes, the future of the Sith has been diluted by overly specific, misdirected decrees. Changes are often introduced without true consultation with other aspects of the group, patchy and isolated from the issues that they are meant to fix. Hence, this mandate does not contain a list of strict promises, because I believe the path forward is more than one document and must adapt to whatever challenges we come across in the future. This mandate will serve as a guiding  framework for the direction of the Order under my reign.</p>
 
               </div>
             </section>
@@ -98,7 +98,7 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-6">
                     <h4>PILLAR OF UNITY</h4>
-                    <p>Splinter groups that operate against the best interests of the Order will not be tolerated. External allegiances may of course exist, but those who actively divide the Order and our members will be strictly prohibited at first sight.</p>
+                    <p>Splinter groups that operate against the best interests of the Order will not be tolerated. External allegiances may of course exist, but those who actively divide the Order and its members will be strictly prohibited and outlawed.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-7">
                     <h4>PILLAR OF ARCHIVAL</h4>
@@ -106,7 +106,38 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-8">
                     <h4>PILLAR OF DOCTRINE</h4>
-                    <p>The Sith Order is not an army, and we will stop operating under the delusion that we are soldiers. We are a religious order, and our focus will return to such. Therefore, we will stop lying with the militaristic and bureaucratic mindset that has infected the Order.</p>
+                    <p>The Sith Order is not an army, and we will stop operating under the delusion that we are soldiers. We are a religious order, and our focus will return to such. The militaristic and bureaucratic mindset that has dominated the Order must be shed. </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="v2-page v2-plan animate-on-scroll">
+              <div className="v2-header-bar animate-on-scroll stagger-1">
+                <div className="v2-header-accent"></div>
+                <h3>VISION</h3>
+              </div>
+              <div className="v2-text-content animate-on-scroll stagger-2">
+                <p>The philosophy outlined above serves as the foundation of my mandate. However, a foundation without a plan is meaningless. The future of the Order requires more than recognition of its problems. To address them properly, this mandate will be guided by these four principles:</p>
+                <div className="v2-pillars animate-on-scroll stagger-3" style={{ marginTop: '30px' }}>
+                  <div className="v2-pillars-header">
+                    <span className="triangle-icon">▸</span> PATH FORWARD
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-1">
+                    <h4>GRADUAL REFORM</h4>
+                    <p>The restoration of the Sith Order will not come through sudden reform or temporary changes. The path ahead will require patience; lasting progress cannot be rushed, and we will avoid disruptive shifts in favor of calculated, enduring development.</p>
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-2">
+                    <h4>EVALUATED CHANGES</h4>
+                    <p>This mandate is not intended to dictate every decision before it is made, but to establish the principles that guide those decisions. Every reform must serve a clear purpose, be carefully considered, and be judged by its impact on the Order as a whole.</p>
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-3">
+                    <h4>MEMBER INPUT</h4>
+                    <p>The future of the Order cannot be built through leadership acting in isolation. Meaningful reform requires an understanding of the members who make up the Order itself. Their experiences and perspectives are invaluable in identifying the challenges that must be addressed.</p>
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-4">
+                    <h4>LASTING LEGACY</h4>
+                    <p>The goal is to create something capable of enduring. The Order must move beyond temporary solutions and build further traditions and principles that remain long after individual leaders are gone.</p>
                   </div>
                 </div>
               </div>
@@ -199,7 +230,7 @@ export default function MandateV2Page() {
               </div>
 
               <div className="v2-text-content animate-on-scroll stagger-4">
-                <p>My experience within the Order has given me an enriched perspective. I have witnessed, while not necessarily majorly notable, the evolution of our systems, and the larger challenges that face the group. I have gained an understanding of both the strengths that must be protected and the weaknesses that must be addressed.</p>
+                <p>My experience within the Order has given me an elevated perspective; I have witnessed, while not majorly notable, the evolution of our systems, and the larger challenges that face the group. I have gained an understanding of both the strengths that must be protected and the weaknesses that must be addressed.</p>
 
                 <p>I have seen how ambition can be lost through the poor direction of those who wield it. I have seen how systems can become detached from their purpose. I have seen how temporary fixes often fail to deal with the deeper issues. I have seen what this Order needs. These lessons learned form the base of my vision and so I approach this position with a deeply rooted understanding of what it takes.</p>
 
@@ -211,11 +242,11 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-1">
                     <h4>THE HOLONET</h4>
-                    <p>I have recently released the very Holonet this page is apart of, as I wanted to begin the transition to a truly centralised database area with a better logging and member management system. It wasn't strictly necessary from a frontend/public facing perspective, but I believe even the standards of our documents should always be improved. I vehemently reject the statement: "Why fix what isn't broken?" Instead, I say: "Why not improve what isn't perfect?"</p>
+                    <p>I have recently released the very Holonet this page is a part of, as I wanted to begin the transition to a truly centralised database area with a better logging and member management system. It wasn't strictly necessary from a frontend/public facing perspective, but I believe even the standards of our documents should always be improved. I vehemently reject the statement: "Why fix what isn't broken?" Instead, I say: "Why not improve what isn't perfect?"</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-2">
                     <h4>PAST DATABASES</h4>
-                    <p>I created the last 2 sites used prior, first the Notion and then later the Google Site that first bore the domain this page uses, used for a combined total of more than 3 years.</p>
+                    <p></p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-3">
                     <h4>COMBAT PROFICIENCY</h4>
@@ -226,8 +257,8 @@ export default function MandateV2Page() {
                     <p>I have served in this position before. While not a perfect reign by any means, my four months on the Throne and nine months as High Command (one of which was spent as the High Command Reaver Overseer rather than the Head of Divisions) boosted my first-hand experience in the role.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-5">
-                    <h4>CENTRALIZED DOCUMENTS</h4>
-                    <p>They may have since changed, but I was responsible for the first generally long-lasting, centralized documents during my second term as Wrath. This was understandably superceded, but I will always push for a consistent quality and raise the standards of the Order. Small improvements are always still improvements.</p>
+                    <h4>CENTRALIZATION</h4>
+                    <p>They may have since changed, but I was responsible for the first generally long-lasting, centralized documents during my second term as Wrath. This was understandably superseded, but I will always push for a consistent quality and raise the standards of our documentation and, by extension, the Order. Alongside these efforts, I created the last two sites used prior, first the Notion and then later the Google Site that first bore the domain this page uses, which served the Order for a combined total of more than 3 years. Small improvements are always still improvements.</p>
                   </div>
                 </div>
               </div>
@@ -241,7 +272,7 @@ export default function MandateV2Page() {
               <div className="v2-text-content animate-on-scroll stagger-2">
                 <p>The Sith Order shall be more than just a shadow of its former self. To deny such a thing is to wallow in its failures.</p>
                 <p>We cannot cling to the status quo. If nothing changes, neither will the Order. It requires a willingness to adapt and pursue a vision for what it can become. Given this responsibility again, I intend to dedicate my whole term and beyond to restoring purpose and making ambition meaningful and a central part of our identity again.</p>
-                <p>The legacy of our great Order should be judged by what we achieve next, not by our past from eras ago. I have spoken with the Supreme Lord Reagant Group Dictator Ancient One Senior Advisor Manar_Aktuun regarding his views on the future of our group and whether our visions are compatible. Given my history, I honestly did not expect these to align as closely as they did. Nevertheless, the question is no longer whether we share the same vision, it is how we begin to move forward. After all, we can reclaim the Sith Order.</p>
+                <p>The legacy of our great Order should be judged by what we achieve next, not by our past from eons ago. I have spoken with the Supreme Lord Reagant Group Dictator Ancient One Senior Advisor Manar_Aktuun regarding his views on the future of our group and whether our visions are compatible. Given my history, I honestly did not expect these to align as closely as they did. Nevertheless, the question is no longer whether we share the same vision, it is how we begin to move forward. After all, we can reclaim the Sith Order.</p>
                 <p className="v2-italic animate-on-scroll stagger-3">Only the strong shall inherit the stars. By my Authority and Hand, with Mind and Will:</p>
                 <div className="v2-signature animate-on-scroll stagger-4">Vyberon<br /></div>
                 <SpotifyEmbed uri="spotify:track:48v2zlOv10W8F4RWg7eWy1" />

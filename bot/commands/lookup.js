@@ -94,17 +94,17 @@ async function replyLookup(interaction, { discordUser, link, robloxUser }) {
     } else {
       const username = loadedRobloxUser.name || loadedRobloxUser.displayName || link?.roblox_user_id || loadedRobloxUser.id;
       const displayName = loadedRobloxUser.displayName || loadedRobloxUser.name || username;
-      
+
       const mainGroup = membershipFor(groupRoles, ROBLOX_GROUPS.HIGH_RANKS.groupId);
       const divisionLines = Object.entries(ROBLOX_GROUPS.DIVISIONS)
         .map(([key, definition]) => {
           const membership = membershipFor(groupRoles, definition.groupId);
-          return membership ? `- ${divisionLabel(key)}: ${membership.role?.name || "Unknown"} (${membership.role?.rank || 0})` : "";
+          return membership ? `\- ${divisionLabel(key)}: ${membership.role?.name || "Unknown"} (${membership.role?.rank || 0})` : "";
         })
         .filter(Boolean);
-        
+
       const robloxUnixTimestamp = loadedRobloxUser.created ? Math.floor(new Date(loadedRobloxUser.created).getTime() / 1000) : 0;
-      
+
       const robloxText = `### [${displayName}](${lookupUrl(username)}) (${robloxUserId})\n## Roblox Information\n### @${username}\nAccount Created: ${robloxUnixTimestamp ? `<t:${robloxUnixTimestamp}:F>` : "Unknown"}\nMain Group: ${mainGroup ? `${mainGroup.role?.name || "Unknown"} (${mainGroup.role?.rank || 0})` : "Not in group"}${divisionLines.length ? `\nDivisions:\n${divisionLines.join("\n")}` : ""}`;
 
       containers.push(containerV2([
@@ -120,7 +120,7 @@ async function replyLookup(interaction, { discordUser, link, robloxUser }) {
   if (!discordUserInfo && link?.discord_user_id) {
     try {
       discordUserInfo = await interaction.client.users.fetch(link.discord_user_id);
-    } catch(e) {}
+    } catch (e) { }
   }
 
   if (!discordUserInfo) {
@@ -130,7 +130,7 @@ async function replyLookup(interaction, { discordUser, link, robloxUser }) {
   } else {
     const discordUnixTimestamp = Math.floor(discordUserInfo.createdTimestamp / 1000);
     const discordAvatarUrl = discordUserInfo.displayAvatarURL({ size: 4096 });
-    
+
     containers.push(containerV2([
       sectionV2(discordAvatarUrl, [
         textDisplayV2(`## Discord Information\n### <@${discordUserInfo.id}>\nAccount Created: <t:${discordUnixTimestamp}:F>`)

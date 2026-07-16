@@ -59,19 +59,19 @@ export function containerV2(components, color = config.theme.color) {
   return {
     type: 17,
     accent_color: color,
-    components
+    components: components.flat()
   };
 }
 
 export function sectionV2(thumbnailUrl, components) {
-  const accessory = thumbnailUrl ? {
-    type: 11,
-    media: { url: thumbnailUrl }
-  } : undefined;
-  
+  if (!thumbnailUrl) return components;
+
   return {
     type: 9,
-    accessory,
+    accessory: {
+      type: 11,
+      media: { url: thumbnailUrl }
+    },
     components
   };
 }

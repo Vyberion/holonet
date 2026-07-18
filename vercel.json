@@ -1,9 +1,0 @@
-{
-  "cleanUrls": true,
-  "crons": [
-    {
-      "path": "/api/cron/handbook-pdf-refresh",
-      "schedule": "*/10 * * * *"
-    }
-  ]
-}

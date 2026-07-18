@@ -4,7 +4,6 @@ import { holonetMetadata } from "../../../lib/metadata.js";
 import { InteractiveMandate } from "./InteractiveMandate.jsx";
 import { SpotifyEmbed } from "../../../components/SpotifyEmbed.jsx";
 import "./v2.css";
-import "../../../components/InteractiveDocument/document-v2.css";
 
 export const metadata = holonetMetadata({
   title: "The Mandate",

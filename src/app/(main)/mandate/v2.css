@@ -30,6 +30,8 @@ header,
   width: 100% !important;
   border: none !important;
   background: transparent !important;
+  display: block !important;
+  align-items: stretch !important;
 }
 
 body {

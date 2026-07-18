@@ -69,7 +69,24 @@ export default function HomePage() {
       </nav>
 
       <div className="marquee-wrap" aria-hidden="true">
-        <div className="marquee-track" style={{ color: "var(--text-dim)" }} />
+        <div className="marquee-track" style={{ color: "var(--text-dim)" }}>
+          {Array(2).fill([
+            "PEACE IS A LIE, THERE IS ONLY PASSION",
+            "✦",
+            "THROUGH PASSION, I GAIN STRENGTH",
+            "✦",
+            "THROUGH STRENGTH, I GAIN POWER",
+            "✦",
+            "THROUGH POWER, I GAIN VICTORY",
+            "✦",
+            "THROUGH VICTORY, MY CHAINS ARE BROKEN",
+            "✦",
+            "THE FORCE SHALL FREE ME",
+            "✦"
+          ]).flat().map((item, i) => (
+            <span key={i} className={item === "✦" ? "sep" : ""}>{item}</span>
+          ))}
+        </div>
       </div>
 
       <style>{`

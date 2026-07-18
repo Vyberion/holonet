@@ -317,6 +317,7 @@ export function HolonetFrame({
   showHeader = true,
   showStatusBar = true,
   showNav = true,
+  showFooter = true,
   theme = "",
   releaseIntro = null
 }) {
@@ -487,18 +488,20 @@ export function HolonetFrame({
 
         <main className={mainClassName}>{children}</main>
 
-        <footer>
-          <p className="footer-glyph" style={{ color: "var(--text-dim)" }}>
-            Peace is a lie - There is only passion
-          </p>
-          <p className="footer-sig" style={{ color: "var(--text-dim)" }}>
-            Made by Vyberon
-          </p>
-          <nav className="footer-links" aria-label="Legal links">
-            <a href="/the-serious-stuff/terms-of-service">Terms</a>
-            <a href="/the-serious-stuff/privacy-policy">Privacy</a>
-          </nav>
-        </footer>
+        {showFooter ? (
+          <footer>
+            <p className="footer-glyph" style={{ color: "var(--text-dim)" }}>
+              Peace is a lie - There is only passion
+            </p>
+            <p className="footer-sig" style={{ color: "var(--text-dim)" }}>
+              Made by Vyberon
+            </p>
+            <nav className="footer-links" aria-label="Legal links">
+              <a href="/the-serious-stuff/terms-of-service">Terms</a>
+              <a href="/the-serious-stuff/privacy-policy">Privacy</a>
+            </nav>
+          </footer>
+        ) : null}
 
         {includeSearchOverlay ? (
           <div id="search-overlay">

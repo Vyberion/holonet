@@ -18,6 +18,7 @@ export default function MandateV2Page() {
       showHeader={false}
       showStatusBar={false}
       showNav={false}
+      showFooter={false}
       mainClassName="mandate-v2-main"
       includeSearchOverlay={false}
     >

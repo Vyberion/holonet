@@ -58,13 +58,13 @@ export default function MandateV2Page() {
                 <div className="v2-header-accent"></div>
                 <h3>PROCLAMATION</h3>
               </div>
-              <div className="v2-text-content animate-on-scroll stagger-2">
-                <p className="v2-greeting">To the Lords and Aspirants of the Sith Order:</p>
-                <p>For too long, the Order has lacked direction and has been weakened as a result. We have bickered over the remnants of what little we have while it has drifted away from the principles that once made it what it was.</p>
-                <p>The Order has grown stagnant relative to its past, bloated by those who mistake pettiness with one another for strength; a succession of leaders has lacked the will and foresight required to return it to its former glory and our passion has been allowed to erode. Time has dulled its edge and complacency has been allowed to spread from corner to corner. This must end.</p>
-                <p>Today, I proclaim the beginning of my third campaign in total, for a second term on the throne. I have returned with a clear objective: to restore the Sith Order and, when that has been done, prepare it for the future. My priority will be to reinforce the identity of the Order as a living institution, not one that is sidelined by the trivialisation of its traditions and laws.</p>
-                <p>Before any more has been written, I must state that I have grown to disdain applications that blindly promise hard changes, like political manifestos in which half the promises are unkept. This is by no means a dismissal of my own vision or capabilities, nor that of any other candidate. No one can predict the future of the Order, nor should its future depend upon a single person's brainstorming.</p>
-                <p>Therefore, this mandate is a declaration of the principles that will guide the throne under my reign.</p>
+              <div className="v2-text-content">
+                <p className="v2-greeting animate-on-scroll stagger-2">To the Lords and Aspirants of the Sith Order:</p>
+                <p className="animate-on-scroll stagger-3">For too long, the Order has lacked direction and has been weakened as a result. We have bickered over the remnants of what little we have while it has drifted away from the principles that once made it what it was.</p>
+                <p className="animate-on-scroll stagger-4">The Order has grown stagnant relative to its past, bloated by those who mistake pettiness with one another for strength; a succession of leaders has lacked the will and foresight required to return it to its former glory and our passion has been allowed to erode. Time has dulled its edge and complacency has been allowed to spread from corner to corner. This must end.</p>
+                <p className="animate-on-scroll stagger-5">Today, I proclaim the beginning of my third campaign in total, for a second term on the throne. I have returned with a clear objective: to restore the Sith Order and, when that has been done, prepare it for the future. My priority will be to reinforce the identity of the Order as a living institution, not one that is sidelined by the trivialisation of its traditions and laws.</p>
+                <p className="animate-on-scroll stagger-6">Before any more has been written, I must state that I have grown to disdain applications that blindly promise hard changes, like political manifestos in which half the promises are unkept. This is by no means a dismissal of my own vision or capabilities, nor that of any other candidate. No one can predict the future of the Order, nor should its future depend upon a single person's brainstorming.</p>
+                <p className="animate-on-scroll stagger-7">Therefore, this mandate is a declaration of the principles that will guide the throne under my reign.</p>
               </div>
             </section>
 
@@ -204,12 +204,12 @@ export default function MandateV2Page() {
                 </div>
               </div>
 
-              <div className="v2-text-content animate-on-scroll stagger-4">
-                <p>I have witnessed, while not majorly notable, the evolution of our systems, and the larger challenges that face the group. I have gained an understanding of both the strengths that must be protected and the weaknesses that must be addressed.</p>
+              <div className="v2-text-content">
+                <p className="animate-on-scroll stagger-4">I have witnessed, while not majorly notable, the evolution of our systems, and the larger challenges that face the group. I have gained an understanding of both the strengths that must be protected and the weaknesses that must be addressed.</p>
 
-                <p>I have seen how ambition can be lost through the poor direction of those who wield it. I have seen how systems can become detached from their purpose. I have seen how temporary fixes often fail to deal with the deeper issues. I have seen what this Order needs. These lessons learned form the basis of my vision and so I approach this position with a deeply rooted understanding of what it takes.</p>
+                <p className="animate-on-scroll stagger-5">I have seen how ambition can be lost through the poor direction of those who wield it. I have seen how systems can become detached from their purpose. I have seen how temporary fixes often fail to deal with the deeper issues. I have seen what this Order needs. These lessons learned form the basis of my vision and so I approach this position with a deeply rooted understanding of what it takes.</p>
 
-                <p style={{ marginTop: '40px' }}>With the same sentiment as my last application: I am not one for boasting on and on about personal achievements, nor diminishing the accolades of my rivals during this period. However, I will state a few of my achievements as to not fall flat.</p>
+                <p className="animate-on-scroll stagger-6" style={{ marginTop: '40px' }}>With the same sentiment as my last application: I am not one for boasting on and on about personal achievements, nor diminishing the accolades of my rivals during this period. However, I will state a few of my achievements as to not fall flat.</p>
 
                 <div className="v2-pillars animate-on-scroll stagger-5" style={{ marginTop: '40px' }}>
                   <div className="v2-pillars-header">
@@ -244,10 +244,10 @@ export default function MandateV2Page() {
                 <div className="v2-header-accent"></div>
                 <h3>ULTIMATUM</h3>
               </div>
-              <div className="v2-text-content animate-on-scroll stagger-2">
-                <p>The Sith Order shall be more than just a shadow of its former self. To deny such a thing is to wallow in its failures.</p>
-                <p>We cannot cling to the status quo. If nothing changes, neither will the Order. It requires a willingness to adapt and pursue a vision for what it can become. Given this responsibility again, I intend to dedicate my whole term and beyond to restoring purpose and making ambition meaningful and a central part of our identity again.</p>
-                <p>The legacy of our great Order should be judged by what we achieve next, not by our past from eons ago. I have recently spoken with the Supreme Lord Reagant Group Dictator Ancient One Senior Advisor Manar_Aktuun regarding his views on the future of our group and whether our visions are compatible. Honestly, given my history, I was surprised to find that they are. Therefore, the question is no longer whether we share the same mindset, but how we begin working on it. I accept any burden willingly. </p>
+              <div className="v2-text-content">
+                <p className="animate-on-scroll stagger-2">The Sith Order shall be more than just a shadow of its former self. To deny such a thing is to wallow in its failures.</p>
+                <p className="animate-on-scroll stagger-3">We cannot cling to the status quo. If nothing changes, neither will the Order. It requires a willingness to adapt and pursue a vision for what it can become. Given this responsibility again, I intend to dedicate my whole term and beyond to restoring purpose and making ambition meaningful and a central part of our identity again.</p>
+                <p className="animate-on-scroll stagger-4">The legacy of our great Order should be judged by what we achieve next, not by our past from eons ago. I have recently spoken with the Supreme Lord Reagant Group Dictator Ancient One Senior Advisor Manar_Aktuun regarding his views on the future of our group and whether our visions are compatible. Honestly, given my history, I was surprised to find that they are. Therefore, the question is no longer whether we share the same mindset, but how we begin working on it. I accept any burden willingly. </p>
                 <p className="v2-italic animate-on-scroll stagger-3">Only the strong shall inherit the stars. By my hand and authority, with mind and will:</p>
                 <div className="v2-signature animate-on-scroll stagger-4">Vyberon<br /></div>
                 <SpotifyEmbed uri="spotify:track:48v2zlOv10W8F4RWg7eWy1" />

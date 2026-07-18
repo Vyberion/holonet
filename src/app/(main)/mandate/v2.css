@@ -44,6 +44,7 @@ body {
 .mandate-v2-main {
   position: relative;
   width: 100%;
+  max-width: 100% !important;
   min-height: 100vh;
   z-index: 10;
   background-color: transparent;

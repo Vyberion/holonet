@@ -1,8 +1,10 @@
 import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../../components/PageScripts.jsx";
 import { holonetMetadata } from "../../../lib/metadata.js";
+import { InteractiveMandate } from "./InteractiveMandate.jsx";
 import { InteractiveDocument } from "../../../components/InteractiveDocument/InteractiveDocument.jsx";
 import { SpotifyEmbed } from "../../../components/SpotifyEmbed.jsx";
+import "./v2.css";
 import "../../../components/InteractiveDocument/document-v2.css";
 
 export const metadata = holonetMetadata({
@@ -23,6 +25,7 @@ export default function MandateV2Page() {
       includeSearchOverlay={false}
     >
       <div className="v2-bg"></div>
+      <InteractiveMandate>
       <InteractiveDocument
         videoPlaybackId="4x1bb1pN7Lj02wApu002MIhgKCvSbWiQieAibyzFSgPkY"
         hero={
@@ -256,6 +259,7 @@ export default function MandateV2Page() {
           </div>
         }
       />
+      </InteractiveMandate>
 
       <PageScripts guarded scripts={["/js/main.js", "/modules/client/site.js"]} />
     </HolonetFrame>

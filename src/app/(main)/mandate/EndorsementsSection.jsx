@@ -68,7 +68,7 @@ const ENDORSEMENTS = [
   {
     id: "HuenArcalis",
     username: "HuenArcalis",
-    occupation: "High Inquisitor, Former Darth Ravage & Darth Grand Inquisitor",
+    occupation: "High Inquisitor, Former Darth Ravage & Grand Inquisitor",
     hasLetter: true,
     content: "In my humble opinion, Vyberon, Reaver Lord, deserves the position as Emperor more than others through his past and future contributions towards the Order, creating websites while others laid back with feet up."
   },

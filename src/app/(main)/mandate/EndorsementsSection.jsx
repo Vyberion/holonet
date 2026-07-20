@@ -108,8 +108,10 @@ export function EndorsementsSection() {
               <div className="endorsement-info">
                 <h4>{endorser.username}</h4>
                 <p className="endorsement-occupation">{endorser.occupation}</p>
-                {endorser.hasLetter && (
+                {endorser.hasLetter ? (
                   <span className="read-letter-badge">Read Letter ▸</span>
+                ) : (
+                  <span className="read-letter-badge no-statement">NO STATEMENT</span>
                 )}
               </div>
             </div>

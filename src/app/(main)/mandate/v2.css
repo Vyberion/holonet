@@ -917,6 +917,11 @@ body {
   letter-spacing: 0.1em;
 }
 
+.read-letter-badge.no-statement {
+  color: var(--sith-text-dim);
+  opacity: 0.7;
+}
+
 /* Letter Overlay */
 .letter-overlay {
   position: fixed;

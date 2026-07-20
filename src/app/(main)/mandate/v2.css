@@ -1009,12 +1009,13 @@ body {
 }
 
 .discord-pfp:hover {
-  transform: rotate(360deg) scale(1.2);
-  box-shadow: 0 0 20px 5px rgba(211, 26, 56, 0.5);
+  animation: none !important;
+  transform: rotate(360deg) scale(1.2) !important;
+  box-shadow: 0 0 20px 5px rgba(211, 26, 56, 0.5) !important;
 }
 
 .epic-transition {
-  animation: pfp-epic 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: pfp-epic 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: center center;
 }
 

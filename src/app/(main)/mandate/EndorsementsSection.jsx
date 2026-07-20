@@ -157,12 +157,12 @@ export function EndorsementsSection() {
 
           {activeLetter && (
             <div className="discord-message-layout">
-              <div className="discord-pfp-container">
+              <div className="discord-pfp-container epic-transition">
                 <img
                   key={activeLetter.id}
                   src={`/assets/mandate/${activeLetter.id}.webp`}
                   alt={activeLetter.username}
-                  className="discord-pfp epic-transition"
+                  className="discord-pfp"
                   onError={(e) => { e.target.src = 'https://i.imgur.com/7I9WbJ0.png' }}
                 />
               </div>

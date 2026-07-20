@@ -211,7 +211,14 @@ export default function MandateV2Page() {
 
                 <p className="animate-on-scroll stagger-5">I have seen how ambition can be lost through the poor direction of those who wield it. I have seen how systems can become detached from their purpose. I have seen how temporary fixes often fail to deal with the deeper issues. I have seen what this Order needs. These lessons learned form the basis of my vision and so I approach this position with a deeply rooted understanding of what it takes.</p>
 
-                <p className="animate-on-scroll stagger-6" style={{ marginTop: '40px' }}>With the same sentiment as my last application: I am not one for boasting on and on about personal achievements, nor diminishing the accolades of my rivals during this period. However, I will state a few of my achievements as to not fall flat.</p>
+                <div className="v2-pillars-header" style={{ marginTop: '40px' }}>
+                  <span className="triangle-icon">▸</span> CURRENT OCCUPATION
+                </div>
+                <p className="animate-on-scroll stagger-6">
+                  My current rank is Reaver Lord. I joined the Reavers shortly before my exams, which required me to take an inactivity notice. Upon my return, I immediately jumped back into attending events and improving my combat. I attended Manar's promotion tournament and won it, earning my ascension to Senior Reaver, and doing so, showing that combat is still held to high regards in my division. Since then, I have ascended further to Reaver Lord, where I continue to host events and work to continuously elevate the division's standards. While I have yet to induct any new aspirants, I am closely watching several prospects who have shown a willingness to improve and earn a place in the division.
+                </p>
+
+                <p className="animate-on-scroll stagger-7">With the same sentiment as my last application, I am not one for boasting on and on about personal achievements, nor diminishing the accolades of my rivals during this period. However, I will state a few of my achievements as to not fall flat.</p>
 
                 <div className="v2-pillars animate-on-scroll stagger-5" style={{ marginTop: '40px' }}>
                   <div className="v2-pillars-header">

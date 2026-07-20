@@ -1004,6 +1004,7 @@ body {
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--sith-red);
+  box-shadow: 0 0 10px 2px var(--sith-red);
   transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s;
 }
 
@@ -1013,7 +1014,7 @@ body {
 }
 
 .epic-transition {
-  animation: pfp-epic 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: pfp-epic 1.5s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: center center;
 }
 

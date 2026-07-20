@@ -359,7 +359,7 @@ body {
   font-style: italic;
   font-size: 1.1rem;
   margin: 0;
-  color: #ddd;
+  color: #fff;
 }
 
 /* Inner Pages Header */
@@ -404,7 +404,7 @@ body {
 .v2-text-content {
   font-size: 1.05rem;
   line-height: 1.8;
-  color: #ccc;
+  color: #fff;
 }
 
 .v2-greeting {

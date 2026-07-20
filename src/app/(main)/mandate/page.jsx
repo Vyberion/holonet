@@ -98,7 +98,7 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-5">
                     <h4>PILLAR OF INFLUENCE</h4>
-                    <p>As one of my highest priorities, we will heavily explore revising the current powerbase system to genuinely maximize the importance of building a genuine following. Power should absolutely be built and actively maintained. The Order should not be shaped by friend groups.</p>
+                    <p>As one of my highest priorities, we will heavily explore revising the current powerbase system to maximize the importance of building a genuine following. Power should absolutely be built and actively maintained. The Order should not be shaped by friend groups.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-6">
                     <h4>PILLAR OF UNITY</h4>

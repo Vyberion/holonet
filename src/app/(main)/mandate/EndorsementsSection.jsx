@@ -8,7 +8,7 @@ const ENDORSEMENTS = [
     username: "thegodfr0g",
     occupation: "Former General Malgus, Reaver Commander & High Inquisitor",
     hasLetter: true,
-    content: `Back in 2023 I had the pleasure of serving alongside Owen, back when we were both Reaver Lords cutting our teeth together. It was then I could see his clear cut ability to openly communicate with fellow HRs while leading a division strong.\n\nWhen we sat together on the council, myself as Warmaster, him as Darth Baras, it gave me a front row seat to see how he thinks. Owen is a smart chap with strong ideologies, he doesn't want power for powers sake, he's got a vision for the order, and I think everyone should respect that, these visions also prove Owen's vast patience, which is a virtue not every Sith can claim.\n\nBeyond this, he's a genuinely good friend and someone I'd trust to lead the order to take over the GALAXY!!\n\nreaper of souls,`
+    content: `Back in 2023 I had the pleasure of serving alongside Owen, back when we were both Reaver Lords cutting our teeth together. It was then I could see his clear cut ability to openly communicate with fellow HRs while leading a division strong.\n\nWhen we sat together on the council, myself as Warmaster, him as Darth Baras, it gave me a front row seat to see how he thinks. Owen is a smart chap with strong ideologies, he doesn't want power for powers sake, he's got a vision for the order, and I think everyone should respect that, these visions also prove Owen's vast patience, which is a virtue not every Sith can claim.\n\nBeyond this, he's a genuinely good friend and someone I'd trust to lead the order to take over the GALAXY!!\n\nReaper of souls,`
   },
   {
     id: "BarrakudaCERO",

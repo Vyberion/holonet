@@ -132,12 +132,12 @@ export function EndorsementsSection() {
                   key={activeLetter.id}
                   src={`/assets/mandate/${activeLetter.id}.webp`}
                   alt={activeLetter.username}
-                  className="discord-pfp"
+                  className="discord-pfp epic-transition"
                   onError={(e) => { e.target.src = 'https://i.imgur.com/7I9WbJ0.png' }}
                 />
               </div>
               <div className="discord-message-body" key={`body-${activeLetter.id}`}>
-                <div className="discord-header discord-stagger" style={{ animationDelay: '1s' }}>
+                <div className="discord-header">
                   <span className="discord-username">{activeLetter.username}</span>
                   <span className="discord-role">{activeLetter.occupation}</span>
                 </div>
@@ -146,22 +146,13 @@ export function EndorsementsSection() {
                     // Filter out empty lines to not waste space/index
                     if (!paragraph.trim()) return null;
                     return (
-                      <p
-                        key={index}
-                        className="discord-stagger"
-                        style={{ animationDelay: `${1 + (index * 0.15)}s` }}
-                      >
+                      <p key={index}>
                         {paragraph}
                       </p>
                     );
                   })}
 
-                  <div
-                    className="discord-signature discord-stagger"
-                    style={{
-                      animationDelay: `${1 + (activeLetter.content.split('\n').filter(p => p.trim()).length * 0.15)}s`
-                    }}
-                  >
+                  <div className="discord-signature">
                     {activeLetter.username}
                   </div>
                 </div>

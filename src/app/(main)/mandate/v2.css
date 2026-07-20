@@ -1002,6 +1002,29 @@ body {
   box-shadow: 0 0 20px 5px rgba(211, 26, 56, 0.5);
 }
 
+.epic-transition {
+  animation: pfp-epic 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: center center;
+}
+
+@keyframes pfp-epic {
+  0% {
+    transform: scale(4) rotate(-360deg);
+    opacity: 0;
+    box-shadow: 0 0 50px 20px var(--sith-red);
+  }
+  50% {
+    transform: scale(2) rotate(10deg);
+    opacity: 1;
+    box-shadow: 0 0 30px 10px var(--sith-red);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    box-shadow: 0 0 10px 2px var(--sith-red);
+  }
+}
+
 .discord-message-body {
   flex-grow: 1;
   /* Removed the fade-in here so children stagger properly */

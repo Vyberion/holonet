@@ -132,7 +132,7 @@ export function EndorsementsSection() {
                   key={activeLetter.id}
                   src={`/assets/mandate/${activeLetter.id}.webp`}
                   alt={activeLetter.username}
-                  className="discord-pfp epic-transition"
+                  className="discord-pfp"
                   onError={(e) => { e.target.src = 'https://i.imgur.com/7I9WbJ0.png' }}
                 />
               </div>

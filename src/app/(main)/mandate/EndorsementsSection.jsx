@@ -90,10 +90,13 @@ const ENDORSEMENTS = [
 
 export function EndorsementsSection() {
   const [activeLetter, setActiveLetter] = useState(null);
+  const [animatingPfp, setAnimatingPfp] = useState(false);
 
   const openLetter = (endorsement) => {
     if (endorsement.hasLetter) {
       setActiveLetter(endorsement);
+      setAnimatingPfp(true);
+      setTimeout(() => setAnimatingPfp(false), 1500);
       document.body.style.overflow = "hidden";
     }
   };
@@ -157,12 +160,12 @@ export function EndorsementsSection() {
 
           {activeLetter && (
             <div className="discord-message-layout">
-              <div className="discord-pfp-container epic-transition">
+              <div className="discord-pfp-container">
                 <img
                   key={activeLetter.id}
                   src={`/assets/mandate/${activeLetter.id}.webp`}
                   alt={activeLetter.username}
-                  className="discord-pfp"
+                  className={`discord-pfp ${animatingPfp ? 'epic-transition' : ''}`}
                   onError={(e) => { e.target.src = 'https://i.imgur.com/7I9WbJ0.png' }}
                 />
               </div>

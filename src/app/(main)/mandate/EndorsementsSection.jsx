@@ -91,10 +91,12 @@ const ENDORSEMENTS = [
 export function EndorsementsSection() {
   const [activeLetter, setActiveLetter] = useState(null);
   const [animatingPfp, setAnimatingPfp] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   const openLetter = (endorsement) => {
     if (endorsement.hasLetter) {
       setActiveLetter(endorsement);
+      setIsClosing(false);
       setAnimatingPfp(true);
       setTimeout(() => setAnimatingPfp(false), 1500);
       document.body.style.overflow = "hidden";
@@ -102,8 +104,12 @@ export function EndorsementsSection() {
   };
 
   const closeLetter = () => {
-    setActiveLetter(null);
+    setIsClosing(true);
     document.body.style.overflow = "";
+    setTimeout(() => {
+      setActiveLetter(null);
+      setIsClosing(false);
+    }, 500);
   };
 
   return (
@@ -113,7 +119,6 @@ export function EndorsementsSection() {
           <div className="v2-header-accent"></div>
           <h3>ENDORSEMENTS</h3>
         </div>
-
         <div className="v2-text-content">
           <p className="animate-on-scroll stagger-2">
             The following individuals have pledged their support and placed their trust in my mandate.
@@ -151,7 +156,7 @@ export function EndorsementsSection() {
       </section>
 
       {/* Letter Overlay */}
-      <div className={`letter-overlay ${activeLetter ? 'is-open' : ''}`}>
+      <div className={`letter-overlay ${activeLetter && !isClosing ? 'is-open' : ''}`}>
         <div className="letter-overlay-bg" onClick={closeLetter}></div>
         <div className="letter-content-container">
           <button className="letter-back-btn" onClick={closeLetter}>

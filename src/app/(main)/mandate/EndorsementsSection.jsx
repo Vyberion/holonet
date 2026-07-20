@@ -142,11 +142,7 @@ export function EndorsementsSection() {
               <div className="endorsement-info">
                 <h4>{endorser.username}</h4>
                 <p className="endorsement-occupation">{endorser.occupation}</p>
-                {endorser.hasLetter ? (
-                  <span className="read-letter-badge">READ ▸</span>
-                ) : (
-                  <span className="read-letter-badge no-statement">NO STATEMENT</span>
-                )}
+                <span className="read-letter-badge">READ ▸</span>
               </div>
             </div>
           ))}
@@ -188,7 +184,7 @@ export function EndorsementsSection() {
                     );
                   })}
 
-                  <div className="discord-signature">
+                  <div className="discord-signature" style={{ marginTop: activeLetter.hasLetter && activeLetter.content ? '40px' : '0' }}>
                     {activeLetter.username}
                   </div>
                 </div>

@@ -82,7 +82,7 @@ const ENDORSEMENTS = [
   {
     id: "Chakalaka3786",
     username: "Chakalaka3786",
-    occupation: "Former Darth & My Wife",
+    occupation: "My Beloved Wife of Five Years, Former Darth",
     hasLetter: true,
     content: "Can I be servant 1?"
   }
@@ -94,13 +94,11 @@ export function EndorsementsSection() {
   const [isClosing, setIsClosing] = useState(false);
 
   const openLetter = (endorsement) => {
-    if (endorsement.hasLetter) {
-      setActiveLetter(endorsement);
-      setIsClosing(false);
-      setAnimatingPfp(true);
-      setTimeout(() => setAnimatingPfp(false), 1500);
-      document.body.style.overflow = "hidden";
-    }
+    setActiveLetter(endorsement);
+    setIsClosing(false);
+    setAnimatingPfp(true);
+    setTimeout(() => setAnimatingPfp(false), 1500);
+    document.body.style.overflow = "hidden";
   };
 
   const closeLetter = () => {
@@ -145,7 +143,7 @@ export function EndorsementsSection() {
                 <h4>{endorser.username}</h4>
                 <p className="endorsement-occupation">{endorser.occupation}</p>
                 {endorser.hasLetter ? (
-                  <span className="read-letter-badge">Read Letter ▸</span>
+                  <span className="read-letter-badge">READ ▸</span>
                 ) : (
                   <span className="read-letter-badge no-statement">NO STATEMENT</span>
                 )}
@@ -180,7 +178,7 @@ export function EndorsementsSection() {
                   <span className="discord-role">{activeLetter.occupation}</span>
                 </div>
                 <div className="discord-content">
-                  {activeLetter.content.split('\n').map((paragraph, index) => {
+                  {activeLetter.hasLetter && activeLetter.content && activeLetter.content.split('\n').map((paragraph, index) => {
                     // Filter out empty lines to not waste space/index
                     if (!paragraph.trim()) return null;
                     return (

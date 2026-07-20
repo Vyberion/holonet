@@ -836,13 +836,10 @@ body {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-}
-
-.endorsement-card.has-letter {
   cursor: pointer;
 }
 
-.endorsement-card.has-letter:hover {
+.endorsement-card:hover {
   background: rgba(211, 26, 56, 0.1);
   border-color: rgba(211, 26, 56, 0.8);
   transform: translateY(-5px);

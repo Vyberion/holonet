@@ -5,6 +5,8 @@ import { InteractiveMandate } from "./InteractiveMandate.jsx";
 import { SpotifyEmbed } from "../../../components/SpotifyEmbed.jsx";
 import "./v2.css";
 
+import { EndorsementsSection } from "./EndorsementsSection.jsx";
+
 export const metadata = holonetMetadata({
   title: "The Mandate",
   description: "Only the strong shall inherit the stars."
@@ -238,6 +240,8 @@ export default function MandateV2Page() {
                 </div>
               </div>
             </section>
+
+            <EndorsementsSection />
 
             <section className="v2-page v2-ultimatum animate-on-scroll">
               <div className="v2-header-bar animate-on-scroll stagger-1">

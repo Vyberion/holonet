@@ -261,9 +261,11 @@ export default function MandateV2Page() {
                 <p className="animate-on-scroll stagger-2">The Sith Order shall be more than just a shadow of its former self. To deny such a thing is to wallow in its failures.</p>
                 <p className="animate-on-scroll stagger-3">We cannot cling to the status quo. If nothing changes, neither will the Order. It requires a willingness to adapt and pursue a vision for what it can become. Given this responsibility again, I intend to dedicate my whole term and beyond to restoring purpose and making ambition meaningful and a central part of our identity again.</p>
                 <p className="animate-on-scroll stagger-4">The legacy of our great Order should be judged by what we achieve next, not by our past from eons ago. I have recently spoken with the Supreme Lord Reagant Group Dictator Ancient One Senior Advisor Manar_Aktuun regarding his views on the future of our group and whether our visions are compatible. Honestly, given my history, I was surprised to find that they are. Therefore, the question is no longer whether we share the same mindset, but how we begin working on it. I accept any burden willingly. </p>
-                <p className="v2-italic animate-on-scroll stagger-3">Only the strong shall inherit the stars. By my hand and authority, with mind and will:</p>
-                <div className="v2-signature animate-on-scroll stagger-4">Vyberon<br /></div>
-                <SpotifyEmbed uri="spotify:track:48v2zlOv10W8F4RWg7eWy1" />
+                <p className="v2-italic animate-on-scroll stagger-5">Only the strong shall inherit the stars. By my hand and authority, with mind and will:</p>
+                <div className="v2-signature animate-on-scroll stagger-6">Vyberon<br /></div>
+                <div className="animate-on-scroll stagger-7">
+                  <SpotifyEmbed uri="spotify:track:48v2zlOv10W8F4RWg7eWy1" />
+                </div>
               </div>
             </section>
           </div>

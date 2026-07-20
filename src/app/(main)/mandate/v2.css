@@ -852,13 +852,17 @@ body {
 .endorsement-card::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: radial-gradient(circle at var(--shine-x, 50%) var(--shine-y, 50%), rgba(211, 26, 56, 0.15) 0%, transparent 60%);
   z-index: 0;
   opacity: 0;
   transition: opacity 0.5s;
   pointer-events: none;
 }
+
 .endorsement-card:hover::before {
   opacity: 1;
 }
@@ -917,15 +921,13 @@ body {
   letter-spacing: 0.1em;
 }
 
-.read-letter-badge.no-statement {
-  color: var(--sith-text-dim);
-  opacity: 0.7;
-}
-
 /* Letter Overlay */
 .letter-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -942,7 +944,10 @@ body {
 
 .letter-overlay-bg {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.9);
   backdrop-filter: blur(10px);
 }
@@ -1018,11 +1023,13 @@ body {
     opacity: 0;
     box-shadow: 0 0 50px 20px var(--sith-red);
   }
+
   50% {
     transform: scale(2) rotate(10deg);
     opacity: 1;
     box-shadow: 0 0 30px 10px var(--sith-red);
   }
+
   100% {
     transform: scale(1) rotate(0deg);
     opacity: 1;
@@ -1076,6 +1083,7 @@ body {
   margin-top: 0;
   margin-bottom: 1em;
 }
+
 .discord-content p:last-of-type {
   margin-bottom: 0;
 }
@@ -1093,16 +1101,16 @@ body {
   .v2-endorsements-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .letter-content-container {
     padding: 60px 20px 20px 20px;
   }
-  
+
   .discord-message-layout {
     flex-direction: column;
     gap: 15px;
   }
-  
+
   .discord-header {
     flex-direction: column;
     align-items: flex-start;

@@ -59,18 +59,25 @@ const ENDORSEMENTS = [
     hasLetter: false
   },
   {
+    id: "Athlios_Aktuun",
+    username: "Athlios_Aktuun",
+    occupation: "34.5th Sith Emperor, Sith Architect, Former Lord Wrath",
+    hasLetter: false,
+    content: "I have worked with Vyber several times even being apart of his High Command during his last reign, I can without a doubt recommend him as the next Emperor for several reasons. Vyber has continuously shown the willingness to work and has always made an attempt to make this order better than it has been, with him constantly outputting new ideas and systems to make the group function better as a whole. With his time as Reaver Lord and previous positions, he has been one of the most effective leaders that TSO has seen and unlike some Emperor's he doesn't just repeat mistakes and do the same bare minimum effort that most do. He puts in an attempt to make the game better for everyone. He is my recommendation for the next Emperor."
+  },
+  {
+    id: "HuenArcalis",
+    username: "HuenArcalis",
+    occupation: "High Inquisitor, Former Darth Ravage & Darth Grand Inquisitor",
+    hasLetter: true,
+    content: "In my humble opinion, Vyberon, Reaver Lord, deserves the position as Emperor more than others through his past and future contributions towards the Order, creating websites while others laid back with feet up."
+  },
+  {
     id: "Zalivore",
     username: "Zalivore",
     occupation: "Former Darth Aruk",
     hasLetter: true,
     content: "Mf how the fuck would I remember some shit on star wars roblox from 5 years ago?"
-  },
-  {
-    id: "Athlios_Aktuun",
-    username: "Athlios_Aktuun",
-    occupation: "34.5th Sith Emperor, Sith Architect, Former Lord Wrath",
-    hasLetter: false,
-    content: "TBD"
   },
   {
     id: "Chakalaka3786",

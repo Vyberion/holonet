@@ -1009,9 +1009,8 @@ body {
 }
 
 .discord-pfp:hover {
-  animation: none !important;
-  transform: rotate(360deg) scale(1.2) !important;
-  box-shadow: 0 0 20px 5px rgba(211, 26, 56, 0.5) !important;
+  transform: rotate(15deg) scale(1.05) !important;
+  box-shadow: 0 0 15px 3px rgba(211, 26, 56, 0.6) !important;
 }
 
 .epic-transition {

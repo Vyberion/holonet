@@ -42,14 +42,14 @@ const ENDORSEMENTS = [
     id: "Apexivix",
     username: "Apexivix",
     occupation: "Guard Commander, Former Darth Nox",
-    hasLetter: true,
+    hasLetter: false,
     content: `TBD`
   },
   {
     id: "Skellvex",
     username: "Skellvex",
     occupation: "Former Lord Wrath & Lord Voice",
-    hasLetter: true,
+    hasLetter: false,
     content: `TBD`
   },
   {
@@ -62,7 +62,7 @@ const ENDORSEMENTS = [
     id: "Athlios_Aktuun",
     username: "Athlios_Aktuun",
     occupation: "34.5th Sith Emperor, Sith Architect, Former Lord Wrath",
-    hasLetter: false,
+    hasLetter: true,
     content: "I have worked with Vyber several times even being apart of his High Command during his last reign, I can without a doubt recommend him as the next Emperor for several reasons. Vyber has continuously shown the willingness to work and has always made an attempt to make this order better than it has been, with him constantly outputting new ideas and systems to make the group function better as a whole. With his time as Reaver Lord and previous positions, he has been one of the most effective leaders that TSO has seen and unlike some Emperor's he doesn't just repeat mistakes and do the same bare minimum effort that most do. He puts in an attempt to make the game better for everyone. He is my recommendation for the next Emperor."
   },
   {

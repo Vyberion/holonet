@@ -12,17 +12,27 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
 
   const [introVideoFinished, setIntroVideoFinished] = useState(!videoPlaybackId);
   const introVideoFinishedRef = useRef(!videoPlaybackId);
+  const scrollEnabledRef = useRef(!videoPlaybackId);
   const [introVideoStarted, setIntroVideoStarted] = useState(false);
   const audioRef = useRef(null);
 
-  // Sync music fade-in with the 3.5s video fade-out
+  useEffect(() => {
+    if (introVideoFinished) {
+      const timer = setTimeout(() => {
+        scrollEnabledRef.current = true;
+      }, 1750);
+      return () => clearTimeout(timer);
+    }
+  }, [introVideoFinished]);
+
+  // Sync music fade-in with the 1.75s video fade-out
   useEffect(() => {
     if (introVideoFinished && audioRef.current) {
       const audio = audioRef.current;
       audio.volume = 0;
       audio.play().catch(e => console.warn("Audio autoplay blocked:", e));
 
-      const duration = 3500; // Matches the 3.5s opacity transition
+      const duration = 1750; // Matches the 1.75s opacity transition
       const steps = 35;
       const stepTime = duration / steps;
       let currentStep = 0;
@@ -127,7 +137,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
       // LOCKED: intercept all wheel events, drive target progress
       if (isCurrentlyLocked) {
         e.preventDefault();
-        if (!introVideoFinishedRef.current) return; // Block scrolling until video finishes
+        if (!scrollEnabledRef.current) return; // Block scrolling until video finishes
 
         let step = e.deltaY / window.innerHeight; // Faster base scroll speed
         if (step < 0) step *= 1.66; // Matches previous absolute upward speed
@@ -182,7 +192,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
 
       if (isCurrentlyLocked) {
         e.preventDefault();
-        if (!introVideoFinishedRef.current) return; // Block scrolling until video finishes
+        if (!scrollEnabledRef.current) return; // Block scrolling until video finishes
 
         let step = delta / window.innerHeight; // Faster base scroll speed
         if (step < 0) step *= 1.66; // Matches previous absolute upward speed
@@ -323,7 +333,7 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
           zIndex: 20,
           opacity: introVideoFinished ? 0 : 1,
           pointerEvents: introVideoFinished ? 'none' : 'auto',
-          transition: 'opacity 3.5s ease-out',
+          transition: 'opacity 1.75s ease-out',
           background: '#050102'
         }}>
           <OldGuardPlayer

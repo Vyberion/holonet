@@ -42,21 +42,22 @@ const ENDORSEMENTS = [
     id: "Apexivix",
     username: "Apexivix",
     occupation: "Guard Commander, Former Darth Nox",
-    hasLetter: false,
-    content: `TBD`
+    hasLetter: true,
+    content: `I would like to officially give my endorsement to Owen/Vyberon for the position of Emperor. Ever since I first met Owen those many years ago as a young soul in our beloved order, he has been an excellent friend and ally through times good and bad. As it stands, I don't see anyone currently in the order with the capability and passion to make the changes the order requires if it wishes to progress instead of just basic survival. Over the past years I have known him, he has always been of great assistance whenever I have needed it. He gave me the opportunity to lead the Dread Masters, and I will always be eternally grateful for that and the guidance he gave during my tenure. I see a clear plan of action from Owen, and I'm impressed by the dedication he holds for the order. Alongside this, everyone should recognise his accomplishments, absolutely qualifying him for a second term on the throne.`
   },
   {
     id: "Skellvex",
     username: "Skellvex",
     occupation: "Former Lord Wrath & Lord Voice",
-    hasLetter: false,
-    content: `TBD`
+    hasLetter: true,
+    content: `There are moments in history when uncertainty demands not debate, but decisive leadership. Such a moment now stands before us.\n\nI give my strongest recommendation that Vyberon once again be elevated to the mantle of Emperor. Unity is not measured by loud declarations, but by unwavering resolve, patience, and the ability to guide others toward a greater future. These are qualities Vyberon has demonstrated time and time again.\n\nThe Order cannot endure through hesitation. It is forged through order, unity, and the confidence to make difficult decisions for the greater good. Vyberon possesses these virtues in abundance, inspiring loyalty not through empty promises, but through purpose, conviction, and a clear call to action.\n\nI served under Vyberon's leadership as a member of High Command for many moons, and throughout my years serving this Order, I found that only he possessed the vision and capability to drive meaningful innovation within our existing game technology and mechanics. It is he who crafted the very website every single one of you uses today, even while serving in his current position within the Order.\n\nI have no doubt that under his rule, The Order will emerge stronger, more disciplined, and more prosperous than ever before. As Emperor, he will enact the changes necessary to improve the experience of every member. With confidence, I say that Vyberon will usher this group into a new era—an era defined by virtue, progress, and meaningful change.`
   },
   {
     id: "JessieVylorian",
     username: "JessieVylorian",
     occupation: "Darth Marr",
-    hasLetter: false
+    hasLetter: true,
+    content: "In my opinion, Vyber deserves the position of Emperor due to his past positions and because of how much I have seen him contribute to the Order."
   },
   {
     id: "Athlios_Aktuun",
@@ -98,12 +99,12 @@ export function EndorsementsSection() {
     setIsClosing(false);
     setAnimatingPfp(true);
     setTimeout(() => setAnimatingPfp(false), 1500);
-    document.body.style.overflow = "hidden";
+    document.body.classList.add("letter-open");
   };
 
   const closeLetter = () => {
     setIsClosing(true);
-    document.body.style.overflow = "";
+    document.body.classList.remove("letter-open");
     setTimeout(() => {
       setActiveLetter(null);
       setIsClosing(false);

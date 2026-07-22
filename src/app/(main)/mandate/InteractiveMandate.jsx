@@ -135,6 +135,8 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
       const isCurrentlyLocked = currentProgressRef.current < 1;
 
       // LOCKED: intercept all wheel events, drive target progress
+      if (e.target.closest('.letter-overlay')) return;
+
       if (isCurrentlyLocked) {
         e.preventDefault();
         if (!scrollEnabledRef.current) return; // Block scrolling until video finishes
@@ -189,6 +191,8 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
 
       const p = targetProgressRef.current;
       const isCurrentlyLocked = currentProgressRef.current < 1;
+
+      if (e.target.closest('.letter-overlay')) return;
 
       if (isCurrentlyLocked) {
         e.preventDefault();

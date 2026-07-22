@@ -189,9 +189,9 @@ function schedulePostLinkRoleSync(interaction, link) {
 
 async function replyLink(interaction) {
   const link = await createLinkToken(interaction.user);
-  await interaction.reply({
+  await interaction.reply(ephemeral({
     embeds: [embed("Holonet Verification", `Open the Holonet Account page and log in with Roblox to finish linking.\n\n${link.url}`)]
-  });
+  }));
   schedulePostLinkRoleSync(interaction, link);
 }
 

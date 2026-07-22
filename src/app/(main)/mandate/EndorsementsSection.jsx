@@ -143,7 +143,7 @@ export function EndorsementsSection() {
               <div className="endorsement-info">
                 <h4>{endorser.username}</h4>
                 <p className="endorsement-occupation">{endorser.occupation}</p>
-                <span className="read-letter-badge">READ ▸</span>
+                <span className="read-letter-badge">READ LETTER  ▸</span>
               </div>
             </div>
           ))}

@@ -82,11 +82,11 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-1">
                     <h4>PILLAR OF PURPOSE</h4>
-                    <p>Our actions should not exist for their own sake. This Order requires purpose, and so I will personally look for the best ways possible to make sure it becomes relevant once again. Furthermore, I wish for it to be a place where one can be proud to say that they are a part of, not one that is ridiculed by its own members.</p>
+                    <p>Our actions must not exist for their own sake. This Order demands purpose, and I will personally drive the effort to discover the most effective ways to make it relevant once again. Furthermore, I wish for it to be an environment where members arare proud of what they are apart of, not one that is ridiculed by its own members.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-2">
                     <h4>PILLAR OF RECRUITMENT</h4>
-                    <p>We will explore all pathways to save the Order from stagnation. With the lack of internal opportunities, we must look outward to grow. This includes, and primarily stems from, integration with the potential upcoming Battlegrounds game to secure a steady influx of new Aspirants.</p>
+                    <p>I will pursue all pathways to save the Order from stagnation. With the lack of internal opportunities, we must look outward to grow. This includes, and primarily stems from, integration with the potential upcoming Battlegrounds game to secure a steady influx of new Aspirants.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-3">
                     <h4>PILLAR OF PROGRESSION</h4>
@@ -98,7 +98,7 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-5">
                     <h4>PILLAR OF INFLUENCE</h4>
-                    <p>As one of my highest priorities, we will heavily explore revising the current powerbase system to maximize the importance of building a genuine following. Power should absolutely be built and actively maintained. The Order should not be shaped by friend groups.</p>
+                    <p>As one of my highest priorities, I will strongly sperhead a revision of the current powerbase system to maximize the importance of building a genuine following. Power should absolutely be built and actively maintained. The Order should not be shaped by friend groups.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-6">
                     <h4>PILLAR OF UNITY</h4>
@@ -114,7 +114,7 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-9">
                     <h4>PILLAR OF CANON</h4>
-                    <p>We will explore establishing a formal Group Canon that provides a solid baseline for continued roleplay. Every member should be able to take part in a coherent setting. In conjunction with and as an integral part of the Order's history, the canon would be preserved.</p>
+                    <p>I intend on laying the groundwork to establish a formal Group Canon that provides a solid baseline for continued roleplay. Every member should be able to take part in a coherent setting. In conjunction with and as an integral part of the Order's history, the canon would be preserved.</p>
                   </div>
                 </div>
               </div>

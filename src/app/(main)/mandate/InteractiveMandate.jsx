@@ -347,8 +347,11 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
             playbackId={videoPlaybackId}
             onPlay={() => setIntroVideoStarted(true)}
             onEnded={() => {
-              introVideoFinishedRef.current = true;
-              setIntroVideoFinished(true);
+              // Hold on black for 2 seconds before triggering the fade-out
+              setTimeout(() => {
+                introVideoFinishedRef.current = true;
+                setIntroVideoFinished(true);
+              }, 2000);
             }}
           />
           <button

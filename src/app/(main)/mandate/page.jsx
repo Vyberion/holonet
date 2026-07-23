@@ -122,6 +122,7 @@ export default function MandateV2Page() {
                 <h3>DIRECTIVES</h3>
               </div>
               <div className="v2-text-content animate-on-scroll stagger-2">
+                <p>As established in my Proclamation, I will not clarify any specific changes per se. I will not commit to any one rigid way of achieving my ideal specific reforms, as is with the intent of my ideology. I will, however, clarify my stances on audits and reviews, explaining my intent to revise certain aspects of the Order, but not if such changes are deemed not as necessary as they first seemed to be, or if they are deemed detrimental or overzealous.</p>
 
                 <div className="v2-pillars">
                   <div className="v2-pillars-header">
@@ -129,7 +130,7 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-3">
                     <h4>THE POWERBASE ACT</h4>
-                    <p>I seek to refine the Powerbase system to dismantle informal friend group politics that currently dictate standing. I look to ensure an actively used, useful framework that protects these principles. Influence must not be granted by association.</p>
+                    <p>I seek to refine the Powerbase system to dismantle informal friend group politics that currently dictate standing. I look to ensure an actively used, useful framework that protects these principles. Influence should not be granted by association.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-4">
                     <h4>THE KAGGATH ACT</h4>
@@ -151,7 +152,7 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-7">
                     <h4>THE COUNCIL DECREE</h4>
-                    <p>While I dont intend on returning weekly useless meetings, I don't intend on having none at all. When deemed necesasry, updates on the direction of the Throne will be published. However it is important to clarify that transparency is not a virtue we intrinsically uphold.</p>
+                    <p>While I dont intend on returning weekly useless meetings, I don't intend on having none at all. When deemed necesasry, updates on the direction of the Throne will be published. However, it is important to clarify that transparency is not a virtue we intrinsically uphold as Sith.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-8">
                     <h4>THE ALIGNMENT DECREE</h4>

@@ -90,7 +90,7 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-3">
                     <h4>PILLAR OF PROGRESSION</h4>
-                    <p>The current systems for events and rank progression will be subject to revision. However, no immediate or major change is expected. The Order functions as is, but a comprehensive audit of what is and what can be is by no means harmful. We must ensure that participation is meaningful, but more than simply function over form.</p>
+                    <p>The current systems for events and rank progression will be subject to revision. However, no immediate change is expected. The Order functions as is, but a comprehensive audit of what is and what can be is by no means harmful. We must ensure that participation is meaningful, but more than simply function over form.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-4">
                     <h4>PILLAR OF RIVALRY</h4>
@@ -98,7 +98,7 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-5">
                     <h4>PILLAR OF UNITY</h4>
-                    <p>Splinter groups that operate against the best interests of the Order will not be tolerated. External allegiances may of course exist, but those who actively divide the Order and its members should be strictly outlawed.</p>
+                    <p>Splinter groups that operate against the best interests of the Order will not be tolerated. External allegiances may of course exist, but those who actively divide the Order and its members will be strictly outlawed.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-6">
                     <h4>PILLAR OF DOCTRINE</h4>
@@ -156,7 +156,7 @@ export default function MandateV2Page() {
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-8">
                     <h4>THE ALIGNMENT DECREE</h4>
-                    <p>Let me be clear: I will not make unsanctioned and wildly unpopular changes. Necessary changes may be made, but I will do my best to measure them against the best interests of the Order.</p>
+                    <p>Let me be clear: change will not be pursued without purpose. Necessary reforms will be enacted where required, with consideration given to their impact and purpose.</p>
                   </div>
                 </div>
 
@@ -256,10 +256,13 @@ export default function MandateV2Page() {
 
                 <div className="v2-record-section animate-on-scroll stagger-5">
                   <div className="v2-pillars-header">
-                    CURRENT OCCUPATION
+                    <span className="triangle-icon">▸</span> CURRENT OCCUPATION
                   </div>
                   <p className="animate-on-scroll stagger-1">
                     My current rank is Reaver Lord. I joined the Reavers shortly before my exams, which required me to take an inactivity notice. Upon my return, I immediately jumped back into attending events and improving my combat. I attended Manar's promotion tournament and won it, earning my ascension to Senior Reaver, and doing so, showing that combat is still held to high regards in my division. Since then, I have ascended further to Reaver Lord, where I continue to host events and work to continuously elevate the division's standards. While I have yet to induct any new aspirants, I am closely watching several prospects who have shown a willingness to improve and earn a place in the division.
+                  </p>
+                  <p className="animate-on-scroll stagger-2">
+                    In these trying times, it is difficult to maintain the standards we set, and it is often difficult to remain active. I believe that I have reasonably managed to do both, and while there have been times where I have had to take breaks, I have always returned with a renewed sense of motivation.
                   </p>
                 </div>
 

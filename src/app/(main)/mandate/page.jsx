@@ -254,7 +254,7 @@ export default function MandateV2Page() {
                 <p className="animate-on-scroll stagger-5">I have seen how ambition can be lost through the poor direction of those who wield it. I have seen how systems can become detached from their purpose. I have seen how temporary fixes often fail to deal with the deeper issues. I have seen what this Order needs. These lessons learned form the basis of my vision and so I approach this position with a deeply rooted understanding of what it takes.</p>
 
                 <div className="v2-record-section animate-on-scroll stagger-5">
-                  <div className="v2-pillars-header" style>
+                  <div className="v2-pillars-header">
                     CURRENT OCCUPATION
                   </div>
                   <p className="animate-on-scroll stagger-1">

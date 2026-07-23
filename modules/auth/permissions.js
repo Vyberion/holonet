@@ -477,7 +477,7 @@ export function checkPageAccess(profile, page) {
       return { ...override, pageKey };
     }
 
-    const rank = councilRank(profile);
+    const rank = Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0);
     if (profile?.isSuperUser || rank === 254 || rank === 255) {
       return { authorized: true, pageKey };
     }

@@ -62,7 +62,7 @@ body.letter-open {
   transform: translateX(-50%);
   width: 100vw;
   height: 100%;
-  background: radial-gradient(500px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(80, 0, 10, 0.5) 0%, rgba(10, 0, 5, 0.95) 60%, rgba(0, 0, 0, 1) 100%);
+  background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(80, 0, 10, 0.5) 0%, rgba(10, 0, 5, 0.95) 60%, rgba(0, 0, 0, 1) 100%);
   z-index: 0;
   transition: background 0.3s ease-out;
   pointer-events: none;
@@ -155,7 +155,7 @@ body.letter-open {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(250px circle at var(--shine-x, 50%) var(--shine-y, 50%), rgba(211, 26, 56, 0.15) 0%, transparent 80%);
+  background: radial-gradient(350px circle at var(--shine-x, 50%) var(--shine-y, 50%), rgba(211, 26, 56, 0.15) 0%, transparent 80%);
   z-index: 0;
   pointer-events: none;
   opacity: 0;
@@ -935,9 +935,9 @@ body.letter-open {
   right: 0;
   bottom: 0;
   z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.5s ease;
@@ -949,7 +949,7 @@ body.letter-open {
 }
 
 .letter-overlay-bg {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -963,13 +963,8 @@ body.letter-open {
   z-index: 1001;
   width: 100%;
   max-width: 800px;
-  max-height: 90vh;
-  max-height: 90dvh;
   box-sizing: border-box;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
+  margin: 5vh auto;
   padding: 80px 40px 40px 40px;
   background: radial-gradient(circle at top right, rgba(80, 0, 10, 0.2), rgba(10, 0, 5, 0.95)), #050102;
   border: 1px solid rgba(211, 26, 56, 0.5);

@@ -185,14 +185,16 @@ export function InteractiveMandate({ hero, content, videoPlaybackId }) {
     };
 
     const handleTouchMove = (e) => {
+      // Bail immediately for overlay touches — must be first to avoid
+      // blocking iOS native scroll inside the letter popup.
+      if (e.target.closest('.letter-overlay')) return;
+
       const touchY = e.touches[0].clientY;
       const delta = lastTouchY - touchY; // positive = finger swipe up = scroll down
       lastTouchY = touchY;
 
       const p = targetProgressRef.current;
       const isCurrentlyLocked = currentProgressRef.current < 1;
-
-      if (e.target.closest('.letter-overlay')) return;
 
       if (isCurrentlyLocked) {
         e.preventDefault();

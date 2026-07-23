@@ -100,7 +100,7 @@ export default {
             "90": { mode: "prefix", value: "Guard Captain" },
             "80": { mode: "prefix", value: "Guard Lieutenant" },
             "60": { mode: "prefix", value: "Senior Guard" },
-            "50": { mode: "prefix", value: "Guardsman" },
+            "50": { mode: "prefix", value: "Guard" },
             "30": { mode: "prefix", value: "Guard Initiate" }
           }
         },

@@ -66,17 +66,17 @@ export default function MandateV2Page() {
                 <p className="animate-on-scroll stagger-4">The Order has grown stagnant relative to its past, bloated by those who mistake pettiness with one another for strength; a succession of leaders has lacked the will and foresight required to return it to its former glory and our passion has been allowed to erode. Time has dulled its edge and complacency has been allowed to spread from corner to corner. This must end.</p>
                 <p className="animate-on-scroll stagger-5">Today, I proclaim the beginning of my third campaign in total, for a second term on the throne. I have returned with a clear objective: to restore the Sith Order and, when that has been done, prepare it for the future. My priority will be to reinforce the identity of the Order as a living institution, not one that is sidelined by the trivialisation of its traditions and laws.</p>
                 <p className="animate-on-scroll stagger-6">Before any more has been written, I must state that I have grown to disdain applications that blindly promise hard changes, like political manifestos in which half the promises are unkept. This is by no means a dismissal of my own vision or capabilities, nor that of any other candidate. No one can predict the future of the Order, nor should its future depend upon a single person's brainstorming.</p>
-                <p className="animate-on-scroll stagger-7">Therefore, this mandate is a declaration of the principles that will guide the throne under my reign.</p>
+                <p className="animate-on-scroll stagger-7">Therefore, this mandate is a declaration of the principles and ideals that will guide the throne under my reign. Again, I understand there may be a lot of ambiguity in my wording and even in my explicit directives, this is intentional. I will not chain myself to any one path.</p>
               </div>
             </section>
 
             <section className="v2-page v2-intent animate-on-scroll">
               <div className="v2-header-bar animate-on-scroll stagger-1">
                 <div className="v2-header-accent"></div>
-                <h3>INTENT</h3>
+                <h3>IDEOLOGY</h3>
               </div>
-              <div className="v2-text-content animate-on-scroll stagger-2">
-                <div className="v2-pillars animate-on-scroll stagger-3">
+              <div className="v2-text-content animate-on-scroll stagger-3">
+                <div className="v2-pillars">
                   <div className="v2-pillars-header">
                     <span className="triangle-icon">▸</span> PILLARS OF INTENT
                   </div>
@@ -97,26 +97,68 @@ export default function MandateV2Page() {
                     <p>Petty infighting is a waste of time. Internal rivalry must serve a purpose, and so we will foster meaningful competition. Destructive conflict threatens the Order and will be treated as treason.</p>
                   </div>
                   <div className="v2-pillar animate-on-scroll stagger-5">
-                    <h4>PILLAR OF INFLUENCE</h4>
-                    <p>As one of my highest priorities, I will strongly sperhead a revision of the current powerbase system to maximize the importance of building a genuine following. Power should absolutely be built and actively maintained. The Order should not be shaped by friend groups.</p>
-                  </div>
-                  <div className="v2-pillar animate-on-scroll stagger-6">
                     <h4>PILLAR OF UNITY</h4>
                     <p>Splinter groups that operate against the best interests of the Order will not be tolerated. External allegiances may of course exist, but those who actively divide the Order and its members should be strictly outlawed.</p>
                   </div>
-                  <div className="v2-pillar animate-on-scroll stagger-7">
+                  <div className="v2-pillar animate-on-scroll stagger-6">
                     <h4>PILLAR OF DOCTRINE</h4>
                     <p>The Sith Order is not an army, and we will stop operating under the delusion that we are soldiers. While the Order consists of soldiers and warriors, we are an esoteric order and our focus will return to such. The militaristic mindset that has dominated the Order must be shed.</p>
                   </div>
-                  <div className="v2-pillar animate-on-scroll stagger-8">
+                  <div className="v2-pillar animate-on-scroll stagger-7">
                     <h4>PILLAR OF ARCHIVAL</h4>
                     <p>We have lost too much of our history. It is my priority to make sure no more of it is lost, and preserve as much as we can from here on out. Moving forward, the documentation of our lore and history will be preserved.</p>
                   </div>
-                  <div className="v2-pillar animate-on-scroll stagger-9">
+                  <div className="v2-pillar animate-on-scroll stagger-8">
                     <h4>PILLAR OF CANON</h4>
                     <p>I intend on laying the groundwork to establish a formal Group Canon that provides a solid baseline for continued roleplay. Every member should be able to take part in a coherent setting. In conjunction with and as an integral part of the Order's history, the canon would be preserved.</p>
                   </div>
                 </div>
+              </div>
+            </section>
+
+            <section className="v2-page v2-mandate-actions animate-on-scroll">
+              <div className="v2-header-bar animate-on-scroll stagger-1">
+                <div className="v2-header-accent"></div>
+                <h3>DIRECTIVES</h3>
+              </div>
+              <div className="v2-text-content animate-on-scroll stagger-2">
+
+                <div className="v2-pillars">
+                  <div className="v2-pillars-header">
+                    <span className="triangle-icon">▸</span> ACTS
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-3">
+                    <h4>THE POWERBASE ACT</h4>
+                    <p>I seek to refine the Powerbase system to dismantle informal friend group politics that currently dictate standing. I look to ensure an actively used, useful framework that protects these principles. Influence must not be granted by association.</p>
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-4">
+                    <h4>THE KAGGATH ACT</h4>
+                    <p>I intend to explore adjustments to the Kaggath system. The goal is to revise the current framework so that it serves as a meaningful instrument of interpersonal rivalry rather than a flat, empty, rarely used means to ascend the ranks.</p>
+                  </div>
+                </div>
+
+                <div className="v2-pillars">
+                  <div className="v2-pillars-header">
+                    <span className="triangle-icon">▸</span> DECREES
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-5">
+                    <h4>THE ARCHIVAL DECREE</h4>
+                    <p>Starting from day one, lore will be consolidated. I intend on establishing a definitive Canon to provide a unified lore timeline for the Order.</p>
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-6">
+                    <h4>THE NARRATION DECREE</h4>
+                    <p>The framing of the Order as a boot camp must end. I will immediately review all areas of the Order to ensure we align with our true principles.</p>
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-7">
+                    <h4>THE COUNCIL DECREE</h4>
+                    <p>While I dont intend on returning weekly useless meetings, I don't intend on having none at all. When deemed necesasry, updates on the direction of the Throne will be published. However it is important to clarify that transparency is not a virtue we intrinsically uphold.</p>
+                  </div>
+                  <div className="v2-pillar animate-on-scroll stagger-8">
+                    <h4>THE ALIGNMENT DECREE</h4>
+                    <p>Let me be clear: I will not make unsanctioned and wildly unpopular changes. Necessary changes may be made, but I will do my best to measure them against the best interests of the Order.</p>
+                  </div>
+                </div>
+
               </div>
             </section>
 
@@ -211,8 +253,8 @@ export default function MandateV2Page() {
 
                 <p className="animate-on-scroll stagger-5">I have seen how ambition can be lost through the poor direction of those who wield it. I have seen how systems can become detached from their purpose. I have seen how temporary fixes often fail to deal with the deeper issues. I have seen what this Order needs. These lessons learned form the basis of my vision and so I approach this position with a deeply rooted understanding of what it takes.</p>
 
-                <div className="v2-record-section animate-on-scroll stagger-5" style={{ marginTop: '40px' }}>
-                  <div className="v2-pillars-header" style={{ marginBottom: '20px' }}>
+                <div className="v2-record-section animate-on-scroll stagger-5">
+                  <div className="v2-pillars-header" style>
                     CURRENT OCCUPATION
                   </div>
                   <p className="animate-on-scroll stagger-1">
@@ -222,7 +264,7 @@ export default function MandateV2Page() {
 
                 <p className="animate-on-scroll stagger-7">With the same sentiment as my last application, I am not one for boasting on and on about personal achievements, nor diminishing the accolades of my rivals during this period. However, I will state a few of my achievements as to not fall flat.</p>
 
-                <div className="v2-pillars animate-on-scroll stagger-5" style={{ marginTop: '40px' }}>
+                <div className="v2-pillars animate-on-scroll stagger-5">
                   <div className="v2-pillars-header">
                     <span className="triangle-icon">▸</span> ACHIEVEMENTS
                   </div>

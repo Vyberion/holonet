@@ -373,8 +373,9 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
 #cots-editor-overlay {
   align-items: flex-start;
   background:
-    radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 12%, transparent), transparent 68%),
-    var(--theme-bg, var(--void));
+    radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 9%, transparent), transparent 68%),
+    linear-gradient(rgba(0, 0, 0, 0.46), rgba(0, 0, 0, 0.46)),
+    color-mix(in srgb, var(--theme-bg, var(--void)) 86%, transparent);
   backdrop-filter: blur(10px) saturate(0.82);
   -webkit-backdrop-filter: blur(10px) saturate(0.82);
   display: none;

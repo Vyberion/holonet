@@ -970,8 +970,8 @@ body.letter-open {
   background: radial-gradient(circle at top right, rgba(80, 0, 10, 0.2), rgba(10, 0, 5, 0.95)), #050102;
   border: 1px solid rgba(211, 26, 56, 0.5);
   box-shadow: 0 0 50px rgba(211, 26, 56, 0.2);
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .letter-back-btn {
@@ -1001,7 +1001,6 @@ body.letter-open {
   display: flex;
   gap: 20px;
   position: relative;
-  flex: 1;
   min-height: 0;
 }
 

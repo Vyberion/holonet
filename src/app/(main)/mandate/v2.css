@@ -935,9 +935,6 @@ body.letter-open {
   right: 0;
   bottom: 0;
   z-index: 1000;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.5s ease;
@@ -959,12 +956,19 @@ body.letter-open {
 }
 
 .letter-content-container {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 1001;
-  width: 100%;
+  width: calc(100% - 40px);
   max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   box-sizing: border-box;
-  margin: 5vh auto;
+  margin: 0;
   padding: 80px 40px 40px 40px;
   background: radial-gradient(circle at top right, rgba(80, 0, 10, 0.2), rgba(10, 0, 5, 0.95)), #050102;
   border: 1px solid rgba(211, 26, 56, 0.5);

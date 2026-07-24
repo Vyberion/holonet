@@ -33,7 +33,7 @@ const PAGE_ACCESS = {
   lookup: { public: true },
   personnel: { public: true },
   home: { public: true },
-  mandate: { mandateAccess: true },
+  mandate: { public: true },
   wrath: { superUserOnly: true },
   reavers_home: { division: "reavers", minimumTier: "member" },
   reavers_info: { public: true },

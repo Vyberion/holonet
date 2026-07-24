@@ -674,7 +674,7 @@ body.letter-open {
   }
 
   .v2-proclamation {
-    padding-top: 10vh;
+    padding-top: 16px;
   }
 
   .v2-header-bar {
@@ -964,15 +964,14 @@ body.letter-open {
   width: calc(100% - 40px);
   max-width: 800px;
   max-height: 90vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
   box-sizing: border-box;
   margin: 0;
   padding: 80px 40px 40px 40px;
   background: radial-gradient(circle at top right, rgba(80, 0, 10, 0.2), rgba(10, 0, 5, 0.95)), #050102;
   border: 1px solid rgba(211, 26, 56, 0.5);
   box-shadow: 0 0 50px rgba(211, 26, 56, 0.2);
+  display: flex;
+  flex-direction: column;
 }
 
 .letter-back-btn {
@@ -1002,6 +1001,8 @@ body.letter-open {
   display: flex;
   gap: 20px;
   position: relative;
+  flex: 1;
+  min-height: 0;
 }
 
 .discord-pfp-container {
@@ -1050,7 +1051,9 @@ body.letter-open {
 
 .discord-message-body {
   flex-grow: 1;
-  /* Removed the fade-in here so children stagger properly */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .discord-header {
@@ -1058,6 +1061,7 @@ body.letter-open {
   align-items: baseline;
   gap: 10px;
   margin-bottom: 10px;
+  flex-shrink: 0;
 }
 
 .discord-username {
@@ -1075,6 +1079,11 @@ body.letter-open {
 }
 
 .discord-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  min-height: 0;
   font-family: 'Share Tech Mono', monospace;
   color: #ccc;
   line-height: 1.7;

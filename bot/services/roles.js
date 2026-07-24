@@ -160,8 +160,18 @@ function hasHigherSharedRobloxRank(actorProfile, targetProfile) {
   });
 }
 
+const UPDATE_ROLES_BYPASS_ROLES = new Set([
+  "1164544685222658138",
+  "1150992093435666432",
+  "1150907546773749820"
+]);
+
 export function canUpdateMemberRoles(actorProfile, targetProfile, actorMember = null, actorDiscordId = "") {
   if (canManageBot(actorProfile, actorMember)) return true;
+  
+  const hasBypassRole = actorMember?.roles?.cache?.some(role => UPDATE_ROLES_BYPASS_ROLES.has(role.id));
+  if (hasBypassRole) return true;
+
   if (!ROBLOX_RANK_DELEGATE_DISCORD_IDS.has(String(actorDiscordId))) return false;
   return hasHigherSharedRobloxRank(actorProfile, targetProfile);
 }

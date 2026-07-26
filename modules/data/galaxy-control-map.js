@@ -28,7 +28,7 @@ const galaxyPlanetTextures = folder => {
 const REMOTE_PLANET_TEXTURES_ENABLED = true;
 
 const onlyPlanetTextures = (folder, keys) => {
-  if (!REMOTE_PLANET_TEXTURES_ENABLED && folder !== "korriban") return {};
+  if (!REMOTE_PLANET_TEXTURES_ENABLED) return {};
   const textures = galaxyPlanetTextures(folder);
   return Object.fromEntries(keys.flatMap(key => [
     [key, textures[key]],

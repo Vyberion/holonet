@@ -104,19 +104,7 @@ const SECTOR_TESSELLATION_CELLS = {
   "rishi-maze": [[14, 15, 7, 9]],
   "ilum-frontier": [[15, 17, 6, 8]]
 };
-const KORRIBAN_TEXTURE_URLS = [
-  "/api/galaxy-texture/korriban/diffuse.png",
-  "/api/galaxy-texture/korriban/bump.png",
-  "/api/galaxy-texture/korriban/roughness.png",
-  "/api/galaxy-texture/korriban/clouds.png"
-];
-const KORRIBAN_TEXTURE_PATHS = {
-  diffuse: KORRIBAN_TEXTURE_URLS[0],
-  bump: KORRIBAN_TEXTURE_URLS[1],
-  roughness: KORRIBAN_TEXTURE_URLS[2],
-  clouds: KORRIBAN_TEXTURE_URLS[3]
-};
-const KORRIBAN_MAX_TEXTURE_SIZE = 4096;
+const PLANET_MAX_TEXTURE_SIZE = 4096;
 const PREVIEW_MAX_TEXTURE_SIZE = 1024;
 const PLANET_TEXTURE_KEYS = [
   ["diffuse", true],
@@ -290,10 +278,8 @@ function loadOptionalPlanetTexture(loader, url, options) {
 }
 
 function planetTextureEntries(body) {
-  const texturePaths = body.id === "korriban" ? KORRIBAN_TEXTURE_PATHS : body.textures || null;
-  const textureKeys = body.id === "korriban"
-    ? PLANET_TEXTURE_KEYS.filter(([key]) => Object.prototype.hasOwnProperty.call(KORRIBAN_TEXTURE_PATHS, key))
-    : PLANET_TEXTURE_KEYS;
+  const texturePaths = body.textures || null;
+  const textureKeys = PLANET_TEXTURE_KEYS;
 
   return textureKeys
     .map(([key, color]) => ({ key, color, url: texturePaths?.[key], previewUrl: texturePaths?.[`${key}Preview`] }))
@@ -301,7 +287,7 @@ function planetTextureEntries(body) {
 }
 
 function maxTextureSizeForLayer(quality = "full") {
-  return quality === "preview" ? PREVIEW_MAX_TEXTURE_SIZE : KORRIBAN_MAX_TEXTURE_SIZE;
+  return quality === "preview" ? PREVIEW_MAX_TEXTURE_SIZE : PLANET_MAX_TEXTURE_SIZE;
 }
 
 function previewUrlForTextureUrl(url) {
@@ -1385,7 +1371,7 @@ function makePlanetTextures(body) {
     for (let i = 0; i < 320; i += 1) {
       ctx.globalAlpha = randRange(rnd, 0.045, 0.2);
       ctx.fillStyle = rnd() > 0.56 ? accent : dark;
-      ctx.fillRect(0, rnd() * height, width, randRange(rnd, body.id === "korriban" ? 1 : 1, body.id === "korriban" ? 24 : 12));
+      ctx.fillRect(0, rnd() * height, width, randRange(rnd, 1, 12));
     }
 
     for (let i = 0; i < 260; i += 1) {
@@ -1395,28 +1381,13 @@ function makePlanetTextures(body) {
       ctx.ellipse(
         rnd() * width,
         rnd() * height,
-        randRange(rnd, body.id === "korriban" ? 8 : 4, body.id === "korriban" ? 86 : 42),
-        randRange(rnd, 2, body.id === "korriban" ? 26 : 14),
+        randRange(rnd, 4, 42),
+        randRange(rnd, 2, 14),
         rnd() * TAU,
         0,
         TAU
       );
       ctx.fill();
-    }
-
-    if (body.id === "korriban") {
-      for (let i = 0; i < 78; i += 1) {
-        ctx.globalAlpha = randRange(rnd, 0.07, 0.18);
-        ctx.strokeStyle = colorWithAlpha("#ffd0a0", 1);
-        ctx.lineWidth = randRange(rnd, 1, 4);
-        ctx.beginPath();
-        const y = rnd() * height;
-        ctx.moveTo(-40, y);
-        for (let x = 0; x <= width + 80; x += 80) {
-          ctx.lineTo(x, y + Math.sin(x * 0.015 + rnd() * TAU) * randRange(rnd, 3, 18));
-        }
-        ctx.stroke();
-      }
     }
 
     ctx.globalAlpha = 1;
@@ -2513,6 +2484,7 @@ export function GalaxyMapExperience({ map }) {
   const [quality, setQuality] = useState("high");
   const [reducedMotion, setReducedMotion] = useState(false);
   const [transition, setTransition] = useState({ kind: "galaxy", token: 0, active: false, phase: "idle" });
+  const [initialDeepLinkProcessed, setInitialDeepLinkProcessed] = useState(false);
   const transitionTimersRef = useRef([]);
   const hyperspaceAudioRef = useRef(null);
   const planetTransitionRunRef = useRef(0);
@@ -2741,6 +2713,25 @@ export function GalaxyMapExperience({ map }) {
     scheduleHyperspaceArrivalSound,
     reducedMotion
   ]);
+
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !ready || initialDeepLinkProcessed || transition.active) return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const planetId = params.get("planet")?.toLowerCase();
+    const sectorId = params.get("sector")?.toLowerCase();
+    
+    if (planetId) {
+      setInitialDeepLinkProcessed(true);
+      selectPlanet(planetId);
+    } else if (sectorId) {
+      setInitialDeepLinkProcessed(true);
+      selectSector(sectorId);
+    } else {
+      setInitialDeepLinkProcessed(true);
+    }
+  }, [ready, initialDeepLinkProcessed, transition.active, selectPlanet, selectSector]);
 
   const zoomOut = useCallback(() => {
     if (view.mode === "planet") {

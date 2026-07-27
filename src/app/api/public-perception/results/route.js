@@ -1,5 +1,5 @@
-import { executeLegacyHandler } from "../../../../../lib/legacy-api-adapter.js";
-import { getAuthContext, canAccessAdmin } from "../../../../../lib/api-helpers.js";
+import { executeLegacyHandler } from "../../../../lib/legacy-api-adapter.js";
+import { getAuthContext, canAccessAdmin } from "../../../../lib/api-helpers.js";
 import { supabaseRest } from "../../../../../modules/auth/session-store.js";
 
 const handler = async (req, res) => {

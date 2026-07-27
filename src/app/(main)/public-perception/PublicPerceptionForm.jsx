@@ -130,7 +130,8 @@ export function PublicPerceptionForm() {
           max="10"
           value={formData[name]}
           onChange={handleChange}
-          style={{ flex: "2", cursor: "pointer", accentColor: "var(--brand)" }}
+          className="sith-slider"
+          style={{ flex: "2" }}
         />
         <span style={{ fontSize: "0.8rem", color: "var(--text-dim)", flex: "1", textAlign: "left" }}>{rightLabel || "10 - Excellent"}</span>
       </div>
@@ -155,7 +156,7 @@ export function PublicPerceptionForm() {
 
   return (
     <div className="codex-shell">
-      <div className="codex-document" style={{ width: "100%", maxWidth: "800px", margin: "0 auto", padding: "2rem 1rem" }}>
+      <div className="codex-document">
         <article className="codex-article">
           <div className="article-header">
             <span className="article-number">FEEDBACK FORM</span>
@@ -163,7 +164,7 @@ export function PublicPerceptionForm() {
           </div>
           <div className="article-content">
             <p style={{ marginBottom: "2rem", color: "var(--text-dim)" }}>
-              This form gathers information on the public perception of the Order to guide our reign.
+              This form gathers information on the public perception of the Order.
               Fields marked with <span style={{ color: "var(--danger, #ff4444)" }}>*</span> are mandatory.
             </p>
 
@@ -276,17 +277,7 @@ export function PublicPerceptionForm() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{
-                    padding: "0.75rem 2rem",
-                    backgroundColor: "var(--brand)",
-                    color: "#fff",
-                    border: "1px solid var(--border-color)",
-                    cursor: submitting ? "not-allowed" : "pointer",
-                    textTransform: "uppercase",
-                    letterSpacing: "1px",
-                    fontWeight: "bold",
-                    opacity: submitting ? 0.7 : 1
-                  }}
+                  className="sith-submit-btn"
                 >
                   {submitting ? "Transmitting..." : "Submit Answers"}
                 </button>
@@ -296,6 +287,60 @@ export function PublicPerceptionForm() {
           </div>
         </article>
       </div>
+
+      <style>{`
+        .sith-slider {
+          -webkit-appearance: none;
+          width: 100%;
+          background: transparent;
+        }
+        .sith-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          height: 16px;
+          width: 16px;
+          border-radius: 50%;
+          background: var(--theme-accent, var(--red-bright, #ff0000));
+          cursor: pointer;
+          margin-top: -6px;
+          box-shadow: 0 0 8px var(--theme-accent-glow, var(--red-glow, rgba(255,0,0,0.5)));
+          transition: transform 0.1s;
+        }
+        .sith-slider::-webkit-slider-thumb:hover {
+          transform: scale(1.2);
+        }
+        .sith-slider::-webkit-slider-runnable-track {
+          width: 100%;
+          height: 4px;
+          cursor: pointer;
+          background: rgba(255, 0, 0, 0.15);
+          border: 1px solid rgba(255, 0, 0, 0.3);
+          border-radius: 2px;
+        }
+
+        .sith-submit-btn {
+          appearance: none;
+          background: rgba(255, 0, 0, 0.05);
+          border: 1px solid var(--theme-accent, var(--red-bright, #ff0000));
+          color: var(--theme-accent, var(--red-bright, #ff0000));
+          font-family: 'Orbitron', monospace;
+          font-size: 0.85rem;
+          font-weight: 700;
+          letter-spacing: 0.15em;
+          padding: 0.8rem 2.5rem;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .sith-submit-btn:hover:not(:disabled) {
+          background: rgba(255, 0, 0, 0.15);
+          box-shadow: 0 0 15px var(--theme-accent-glow, var(--red-glow, rgba(255,0,0,0.3)));
+          letter-spacing: 0.2em;
+        }
+        .sith-submit-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+      `}</style>
     </div>
   );
 }

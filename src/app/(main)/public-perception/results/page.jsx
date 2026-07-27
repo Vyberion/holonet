@@ -32,8 +32,8 @@ export default function PublicPerceptionResultsPage() {
 
   return (
     <HolonetFrame title="PERCEPTION RESULTS" subtitle="ADMIN CONSOLE" includeSearchOverlay>
-      <div className="codex-shell" style={{ overflowY: "auto", padding: "2rem" }}>
-        <article className="codex-article" style={{ maxWidth: "1200px", margin: "0 auto" }}>
+      <div className="codex-shell">
+        <article className="codex-article">
           <div className="article-header">
             <span className="article-number">RESTRICTED ACCESS</span>
             <h2 className="article-title">Survey Results</h2>

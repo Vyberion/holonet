@@ -119,23 +119,31 @@ export function PublicPerceptionForm() {
   }
 
   const SliderField = ({ label, name, leftLabel, rightLabel }) => (
-    <div className="form-group" style={{ marginBottom: "2rem" }}>
-      <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--text-bright)", fontWeight: "bold" }}>
-        {label} <span style={{ color: "var(--brand)" }}>({formData[name]})</span>
+    <div className="form-group" style={{ marginBottom: "2.5rem" }}>
+      <label style={{ display: "block", marginBottom: "1rem", color: "var(--text-bright)", fontWeight: "bold" }}>
+        {label} <span style={{ color: "var(--danger, #ff4444)" }}>*</span>
       </label>
-      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-        <span style={{ fontSize: "0.8rem", color: "var(--text-dim)", flex: "1", textAlign: "right" }}>{leftLabel || "1 - Poor"}</span>
-        <input
-          type="range"
-          name={name}
-          min="1"
-          max="10"
-          value={formData[name]}
-          onChange={handleChange}
-          className="sith-slider"
-          style={{ flex: "2" }}
-        />
-        <span style={{ fontSize: "0.8rem", color: "var(--text-dim)", flex: "1", textAlign: "left" }}>{rightLabel || "10 - Excellent"}</span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+        <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", flexShrink: 0, minWidth: "100px", textAlign: "right" }}>{leftLabel || "1 - Poor"}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", flex: 1, gap: "0.2rem", maxWidth: "700px" }}>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+            <div key={num} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.6rem" }}>
+              <label style={{ fontSize: "0.9rem", color: "var(--text)", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace" }} htmlFor={`${name}-${num}`}>
+                {num}
+              </label>
+              <input
+                type="radio"
+                id={`${name}-${num}`}
+                name={name}
+                value={num}
+                checked={Number(formData[name]) === num}
+                onChange={() => setFormData(prev => ({ ...prev, [name]: num }))}
+                className="sith-radio"
+              />
+            </div>
+          ))}
+        </div>
+        <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", flexShrink: 0, minWidth: "100px", textAlign: "left" }}>{rightLabel || "10 - Excellent"}</span>
       </div>
     </div>
   );
@@ -291,65 +299,39 @@ export function PublicPerceptionForm() {
       </div>
 
       <style>{`
-        .sith-slider {
+        .sith-radio {
           -webkit-appearance: none;
           appearance: none;
-          width: 100%;
-          background: transparent;
-          position: relative;
-          z-index: 20;
-          cursor: pointer;
-        }
-        .sith-slider:focus {
+          width: 20px;
+          height: 20px;
+          border: 2px solid rgba(255, 0, 0, 0.4);
+          border-radius: 50%;
+          background: rgba(0, 0, 0, 0.5);
           outline: none;
-        }
-        
-        /* WebKit (Chrome, Safari, Edge) */
-        .sith-slider::-webkit-slider-runnable-track {
-          width: 100%;
-          height: 6px;
+          transition: all 0.2s ease;
           cursor: pointer;
-          background: rgba(255, 0, 0, 0.15);
-          border: 1px solid rgba(255, 0, 0, 0.3);
-          border-radius: 3px;
+          margin: 0;
         }
-        .sith-slider::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          height: 18px;
-          width: 18px;
+        .sith-radio:hover {
+          border-color: var(--red-bright, #ff0000);
+          box-shadow: 0 0 8px var(--red-glow, rgba(255,0,0,0.5));
+        }
+        .sith-radio:checked {
+          border-color: var(--red-bright, #ff0000);
+          background: var(--red-bright, #ff0000);
+          box-shadow: 0 0 12px var(--red-glow, rgba(255,0,0,0.6));
+          position: relative;
+        }
+        .sith-radio:checked::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 8px;
+          height: 8px;
           border-radius: 50%;
-          background: var(--theme-accent, var(--red-bright, #ff0000));
-          cursor: pointer;
-          margin-top: -7px;
-          box-shadow: 0 0 10px var(--theme-accent-glow, var(--red-glow, rgba(255,0,0,0.5)));
-          transition: transform 0.1s;
-        }
-        .sith-slider::-webkit-slider-thumb:hover {
-          transform: scale(1.2);
-        }
-
-        /* Mozilla (Firefox) */
-        .sith-slider::-moz-range-track {
-          width: 100%;
-          height: 6px;
-          cursor: pointer;
-          background: rgba(255, 0, 0, 0.15);
-          border: 1px solid rgba(255, 0, 0, 0.3);
-          border-radius: 3px;
-        }
-        .sith-slider::-moz-range-thumb {
-          height: 18px;
-          width: 18px;
-          border-radius: 50%;
-          background: var(--theme-accent, var(--red-bright, #ff0000));
-          cursor: pointer;
-          border: none;
-          box-shadow: 0 0 10px var(--theme-accent-glow, var(--red-glow, rgba(255,0,0,0.5)));
-          transition: transform 0.1s;
-        }
-        .sith-slider::-moz-range-thumb:hover {
-          transform: scale(1.2);
+          background: #000;
         }
 
         .sith-submit-btn {

@@ -43,7 +43,9 @@ export function PublicPerceptionForm() {
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    let { name, value, type, checked } = e.target;
+    if (type === "range") value = Number(value);
+    
     setFormData(prev => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value
@@ -291,30 +293,63 @@ export function PublicPerceptionForm() {
       <style>{`
         .sith-slider {
           -webkit-appearance: none;
+          appearance: none;
           width: 100%;
           background: transparent;
+          position: relative;
+          z-index: 20;
+          cursor: pointer;
+        }
+        .sith-slider:focus {
+          outline: none;
+        }
+        
+        /* WebKit (Chrome, Safari, Edge) */
+        .sith-slider::-webkit-slider-runnable-track {
+          width: 100%;
+          height: 6px;
+          cursor: pointer;
+          background: rgba(255, 0, 0, 0.15);
+          border: 1px solid rgba(255, 0, 0, 0.3);
+          border-radius: 3px;
         }
         .sith-slider::-webkit-slider-thumb {
           -webkit-appearance: none;
-          height: 16px;
-          width: 16px;
+          appearance: none;
+          height: 18px;
+          width: 18px;
           border-radius: 50%;
           background: var(--theme-accent, var(--red-bright, #ff0000));
           cursor: pointer;
-          margin-top: -6px;
-          box-shadow: 0 0 8px var(--theme-accent-glow, var(--red-glow, rgba(255,0,0,0.5)));
+          margin-top: -7px;
+          box-shadow: 0 0 10px var(--theme-accent-glow, var(--red-glow, rgba(255,0,0,0.5)));
           transition: transform 0.1s;
         }
         .sith-slider::-webkit-slider-thumb:hover {
           transform: scale(1.2);
         }
-        .sith-slider::-webkit-slider-runnable-track {
+
+        /* Mozilla (Firefox) */
+        .sith-slider::-moz-range-track {
           width: 100%;
-          height: 4px;
+          height: 6px;
           cursor: pointer;
           background: rgba(255, 0, 0, 0.15);
           border: 1px solid rgba(255, 0, 0, 0.3);
-          border-radius: 2px;
+          border-radius: 3px;
+        }
+        .sith-slider::-moz-range-thumb {
+          height: 18px;
+          width: 18px;
+          border-radius: 50%;
+          background: var(--theme-accent, var(--red-bright, #ff0000));
+          cursor: pointer;
+          border: none;
+          box-shadow: 0 0 10px var(--theme-accent-glow, var(--red-glow, rgba(255,0,0,0.5)));
+          transition: transform 0.1s;
+        }
+        .sith-slider::-moz-range-thumb:hover {
+          transform: scale(1.2);
         }
 
         .sith-submit-btn {

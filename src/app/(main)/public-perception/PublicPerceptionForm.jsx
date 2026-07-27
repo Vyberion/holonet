@@ -125,7 +125,7 @@ export function PublicPerceptionForm() {
       </label>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1.5rem" }}>
         <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", textAlign: "right" }}>{leftLabel || "Poor"}</span>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", flex: 1, maxWidth: "700px" }}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
             <div key={num} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.6rem" }}>
               <label style={{ fontSize: "0.9rem", color: "var(--text)", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace" }} htmlFor={`${name}-${num}`}>

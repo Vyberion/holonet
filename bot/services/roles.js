@@ -196,7 +196,15 @@ export function canUpdateMemberRoles(actorProfile, targetProfile, actorMember = 
     const actorRankNum = Number(actorRank || 0);
     const targetRankNum = Number(targetRanks.get(scope) || 0);
     
-    return actorRankNum >= minRequired && targetRankNum > 0 && actorRankNum > targetRankNum;
+    if (actorRankNum >= minRequired) {
+      if (targetRankNum > 0 && actorRankNum > targetRankNum) return true;
+      
+      const isDivisionalScope = ["reavers", "dhg", "inquisitors", "dreadmasters"].includes(scope);
+      const targetHighRankNum = Number(targetRanks.get("highranks") || 0);
+      if (isDivisionalScope && targetHighRankNum > 0 && targetHighRankNum <= 43) return true;
+    }
+    
+    return false;
   });
 }
 

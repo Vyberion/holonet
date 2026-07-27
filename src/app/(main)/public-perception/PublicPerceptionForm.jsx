@@ -123,9 +123,9 @@ export function PublicPerceptionForm() {
       <label style={{ display: "block", marginBottom: "1rem", color: "var(--text-bright)", fontWeight: "bold" }}>
         {label} <span style={{ color: "var(--danger, #ff4444)" }}>*</span>
       </label>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
-        <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", flexShrink: 0, minWidth: "100px", textAlign: "right" }}>{leftLabel || "1 - Poor"}</span>
-        <div style={{ display: "flex", justifyContent: "space-between", flex: 1, gap: "0.2rem", maxWidth: "700px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1.5rem" }}>
+        <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", textAlign: "right" }}>{leftLabel || "Poor"}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
             <div key={num} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.6rem" }}>
               <label style={{ fontSize: "0.9rem", color: "var(--text)", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace" }} htmlFor={`${name}-${num}`}>
@@ -143,7 +143,7 @@ export function PublicPerceptionForm() {
             </div>
           ))}
         </div>
-        <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", flexShrink: 0, minWidth: "100px", textAlign: "left" }}>{rightLabel || "10 - Excellent"}</span>
+        <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", textAlign: "left" }}>{rightLabel || "Excellent"}</span>
       </div>
     </div>
   );
@@ -190,14 +190,14 @@ export function PublicPerceptionForm() {
               <div className="regulation" style={{ marginBottom: "3rem" }}>
                 <h3 className="reg-title">Section I: Group-Wide Assessment</h3>
 
-                <SliderField name="strictness" label="1.1 How would you rate the current strictness of the Order?" leftLabel="1 - Not strict enough" rightLabel="10 - Too strict" />
-                <SliderField name="progression" label="1.2 How satisfied are you with progression?" leftLabel="1 - Very Dissatisfied" rightLabel="10 - Very Satisfied" />
-                <SliderField name="eventQuality" label="1.3 How would you rate the quality of events hosted?" leftLabel="1 - Poor" rightLabel="10 - Excellent" />
-                <SliderField name="scheduling" label="1.4 How well does the scheduling of events accommodate you?" leftLabel="1 - Poorly" rightLabel="10 - Excellently" />
-                <SliderField name="transparency" label="1.5 How transparent do you feel the leadership has been?" leftLabel="1 - Not transparent" rightLabel="10 - Highly transparent" />
-                <SliderField name="powerbaseSystem" label="1.6 How effective is the current Powerbase system?" leftLabel="1 - Ineffective" rightLabel="10 - Highly effective" />
-                <SliderField name="divisionalBalance" label="1.7 How balanced do you feel the divisions are?" leftLabel="1 - Unbalanced" rightLabel="10 - Perfectly balanced" />
-                <SliderField name="overallCulture" label="1.8 How would you rate the overall culture of the Order?" leftLabel="1 - Poor" rightLabel="10 - Excellent" />
+                <SliderField name="strictness" label="1.1 How would you rate the current strictness of the Order?" leftLabel="Not strict enough" rightLabel="Too strict" />
+                <SliderField name="progression" label="1.2 How satisfied are you with progression?" leftLabel="Very Dissatisfied" rightLabel="Very Satisfied" />
+                <SliderField name="eventQuality" label="1.3 How would you rate the quality of events hosted?" leftLabel="Poor" rightLabel="Excellent" />
+                <SliderField name="scheduling" label="1.4 How well does the scheduling of events accommodate you?" leftLabel="Poorly" rightLabel="Excellently" />
+                <SliderField name="transparency" label="1.5 How transparent do you feel the leadership has been?" leftLabel="Not transparent" rightLabel="Highly transparent" />
+                <SliderField name="powerbaseSystem" label="1.6 How effective is the current Powerbase system?" leftLabel="Ineffective" rightLabel="Highly effective" />
+                <SliderField name="divisionalBalance" label="1.7 How balanced do you feel the divisions are?" leftLabel="Unbalanced" rightLabel="Perfectly balanced" />
+                <SliderField name="overallCulture" label="1.8 How would you rate the overall culture of the Order?" leftLabel="Poor" rightLabel="Excellent" />
               </div>
 
               {/* SECTION 2 */}

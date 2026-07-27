@@ -155,7 +155,7 @@ export function PublicPerceptionForm() {
   );
 
   return (
-    <div className="codex-shell">
+    <div className="codex-shell" style={{ display: "block" }}>
       <div className="codex-document">
         <article className="codex-article">
           <div className="article-header">

@@ -32,7 +32,7 @@ export default function PublicPerceptionResultsPage() {
 
   return (
     <HolonetFrame title="PERCEPTION RESULTS" subtitle="ADMIN CONSOLE" includeSearchOverlay>
-      <div className="codex-shell">
+      <div className="codex-shell" style={{ display: "block" }}>
         <article className="codex-article">
           <div className="article-header">
             <span className="article-number">RESTRICTED ACCESS</span>

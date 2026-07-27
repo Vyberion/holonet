@@ -123,8 +123,8 @@ export function PublicPerceptionForm() {
       <label style={{ display: "block", marginBottom: "1rem", color: "var(--text-bright)", fontWeight: "bold" }}>
         {label} <span style={{ color: "var(--danger, #ff4444)" }}>*</span>
       </label>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1.5rem" }}>
-        <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", textAlign: "right" }}>{leftLabel || "Poor"}</span>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "1.5rem" }}>
+        <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", textAlign: "right", paddingBottom: "3px" }}>{leftLabel || "Poor"}</span>
         <div style={{ display: "flex", justifyContent: "space-between", flex: 1, maxWidth: "700px" }}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
             <div key={num} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.6rem" }}>
@@ -143,7 +143,7 @@ export function PublicPerceptionForm() {
             </div>
           ))}
         </div>
-        <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", textAlign: "left" }}>{rightLabel || "Excellent"}</span>
+        <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", textAlign: "left", paddingBottom: "3px" }}>{rightLabel || "Excellent"}</span>
       </div>
     </div>
   );

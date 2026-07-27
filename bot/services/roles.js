@@ -150,13 +150,23 @@ function robloxRankPairs(profile) {
   ];
 }
 
+const UPDATE_ROLES_MIN_RANKS = {
+  highranks: 50,
+  reavers: 15,
+  dhg: 80,
+  inquisitors: 155,
+  dreadmasters: 30
+};
+
 function hasHigherSharedRobloxRank(actorProfile, targetProfile) {
   if (!actorProfile || !targetProfile) return false;
 
   const targetRanks = new Map(robloxRankPairs(targetProfile));
   return robloxRankPairs(actorProfile).some(([scope, actorRank]) => {
-    const targetRank = Number(targetRanks.get(scope) || 0);
-    return Number(actorRank || 0) > 0 && targetRank > 0 && Number(actorRank) > targetRank;
+    const actorRankNum = Number(actorRank || 0);
+    const targetRankNum = Number(targetRanks.get(scope) || 0);
+    
+    return actorRankNum > 0 && targetRankNum > 0 && actorRankNum > targetRankNum;
   });
 }
 
@@ -172,8 +182,22 @@ export function canUpdateMemberRoles(actorProfile, targetProfile, actorMember = 
   const hasBypassRole = actorMember?.roles?.cache?.some(role => UPDATE_ROLES_BYPASS_ROLES.has(role.id));
   if (hasBypassRole) return true;
 
-  if (!ROBLOX_RANK_DELEGATE_DISCORD_IDS.has(String(actorDiscordId))) return false;
-  return hasHigherSharedRobloxRank(actorProfile, targetProfile);
+  if (ROBLOX_RANK_DELEGATE_DISCORD_IDS.has(String(actorDiscordId))) {
+    if (hasHigherSharedRobloxRank(actorProfile, targetProfile)) return true;
+  }
+
+  if (!actorProfile || !targetProfile) return false;
+
+  const targetRanks = new Map(robloxRankPairs(targetProfile));
+  return robloxRankPairs(actorProfile).some(([scope, actorRank]) => {
+    const minRequired = UPDATE_ROLES_MIN_RANKS[scope];
+    if (minRequired === undefined) return false;
+    
+    const actorRankNum = Number(actorRank || 0);
+    const targetRankNum = Number(targetRanks.get(scope) || 0);
+    
+    return actorRankNum >= minRequired && targetRankNum > 0 && actorRankNum > targetRankNum;
+  });
 }
 
 export function canManageEmperorVote(profile, member = null) {

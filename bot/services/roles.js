@@ -233,6 +233,68 @@ export function inferScope(profile) {
   return "";
 }
 
+function addRolesForScope(scopeName, set) {
+  const managed = config.roles?.managed || {};
+  let ranks, ranges;
+  
+  if (scopeName === "highranks") {
+    ranks = managed.HIGH_RANKS?.ranks;
+    ranges = managed.HIGH_RANKS?.ranges;
+  } else if (scopeName === "darkCouncil") {
+    ranks = managed.DARK_COUNCIL?.ranks;
+    ranges = managed.DARK_COUNCIL?.ranges;
+  } else {
+    ranks = managed.DIVISIONS?.[scopeName]?.ranks;
+    ranges = managed.DIVISIONS?.[scopeName]?.ranges;
+  }
+
+  if (ranks) {
+    Object.values(ranks).forEach(rule => {
+      roleIdsFromRule(rule).forEach(id => set.add(id));
+    });
+  }
+  if (ranges) {
+    ranges.forEach(range => {
+      roleIdsFromRule(range).forEach(id => set.add(id));
+    });
+  }
+}
+
+let exclusiveRolesCache = null;
+
+export function getExclusiveScopeRoles(targetScope) {
+  if (!exclusiveRolesCache) {
+    exclusiveRolesCache = {};
+  }
+  if (exclusiveRolesCache[targetScope]) {
+    return exclusiveRolesCache[targetScope];
+  }
+
+  const allOtherRoles = new Set();
+  const targetRoles = new Set();
+  const scopes = ["highranks", "darkCouncil", "reavers", "dhg", "inquisitors", "dreadmasters"];
+  
+  for (const scope of scopes) {
+    if (scope === targetScope) {
+      addRolesForScope(scope, targetRoles);
+    } else {
+      addRolesForScope(scope, allOtherRoles);
+    }
+  }
+
+  const exclusive = [...targetRoles].filter(id => !allOtherRoles.has(id));
+  exclusiveRolesCache[targetScope] = exclusive;
+  return exclusive;
+}
+
+export function isMemberInScope(member, scope) {
+  if (scope === "all") return true;
+  if (!member) return false;
+  
+  const exclusiveRoles = getExclusiveScopeRoles(scope);
+  return exclusiveRoles.some(roleId => member.roles.cache.has(roleId));
+}
+
 export async function getVerifiedProfile(discordUserId) {
   const { data, error } = await supabase
     .from("verification_links")

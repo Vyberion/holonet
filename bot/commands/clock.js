@@ -4,7 +4,7 @@ import { config } from "../config/index.js";
 import { postActivityLog } from "../services/activity-log.js";
 import { botErrorMessage } from "../services/bot-errors.js";
 import { embed, ephemeral, errorEmbed, successEmbed, textModal } from "../services/discord-ui.js";
-import { canAdjustTime, canManageBot, getVerifiedProfile, inferScope } from "../services/roles.js";
+import { canAdjustTime, canManageBot, getVerifiedProfile, inferScope, isMemberInScope } from "../services/roles.js";
 import { setShiftRemindersEnabled } from "../services/shift-reminders.js";
 import { supabase } from "../services/supabase.js";
 import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
@@ -204,7 +204,56 @@ async function replyScopeLeaderboard(interaction, scope, page = 0, update = fals
   const access = await requireScopeTimeAccess(interaction, scope);
   if (!access.allowed) return;
 
-  const payload = leaderboardEmbed(scope, await loadScopeLeaderboard(scope), page);
+  const rawRows = await loadScopeLeaderboard(scope);
+  const rows = [];
+  
+  if (scope === "all") {
+    rows.push(...rawRows);
+  } else {
+    // Only resolve as many users as we need for the current page to avoid rate limits
+    const targetValidCount = (page + 1) * LEADERBOARD_PAGE_SIZE;
+    
+    // We fetch in parallel batches to speed up the process
+    const batchSize = 5;
+    for (let i = 0; i < rawRows.length && rows.length < targetValidCount; i += batchSize) {
+      const batch = rawRows.slice(i, i + batchSize);
+      const profiles = await Promise.all(
+        batch.map(row => getVerifiedProfile(row.discordUserId).catch(() => null))
+      );
+      
+      for (let j = 0; j < batch.length; j++) {
+        const row = batch[j];
+        const verified = profiles[j];
+        if (!verified) continue;
+
+        let inScope = false;
+        if (scope === "darkCouncil") inScope = Number(verified.profile.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) > 0;
+        else if (scope === "highranks") inScope = Number(verified.profile.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0) > 0;
+        else {
+          // For divisions, they must have at least 'member' tier in the division
+          const DIVISION_TIERS = ["none", "member", "nco", "co", "2ic", "1ic", "overseer"];
+          const tier = verified.profile.divisions?.[scope] || "none";
+          inScope = DIVISION_TIERS.indexOf(tier) >= DIVISION_TIERS.indexOf("member");
+        }
+
+        if (inScope) rows.push(row);
+      }
+    }
+  }
+
+  // Calculate total pages based on rawRows to ensure pagination buttons appear
+  // (Even though some rawRows might be invalid, it's a good upper bound)
+  const totalPagesUpperBound = Math.max(1, Math.ceil(rawRows.length / LEADERBOARD_PAGE_SIZE));
+  const safePage = Math.min(Math.max(0, page), totalPagesUpperBound - 1);
+  
+  // Extract just the page we want from our validated rows
+  const pageRows = rows.slice(safePage * LEADERBOARD_PAGE_SIZE, (safePage + 1) * LEADERBOARD_PAGE_SIZE);
+
+  const payload = {
+    embeds: [embed(`${scopeLabel(scope)} Leaderboard`, pageRows.length ? pageRows.map((row, index) => `**Rank:** ${safePage * LEADERBOARD_PAGE_SIZE + index + 1}\n**User:** <@${row.discordUserId}>\n**Total time:** ${formatDurationLong(row.totalSeconds)}`).join("\n\n") : "No time recorded.")],
+    components: [leaderboardRow(scope, safePage, totalPagesUpperBound)]
+  };
+
   if (update) await interaction.update(payload);
   else await interaction.reply(ephemeral(payload));
 }

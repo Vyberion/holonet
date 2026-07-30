@@ -294,7 +294,9 @@ const DIVISIONS = {
     activity: [],
     actions: [
       { label: "Open Handbooks", href: divisionLockedHref("highranks", "handbooks"), minimumTier: "lower" },
-      { label: "Open Transmissions", href: divisionLockedHref("highranks", "transmissions"), minimumTier: "lower" }
+      { label: "Open Transmissions", href: divisionLockedHref("highranks", "transmissions"), minimumTier: "lower" },
+      { label: "Open Reports", href: divisionLockedHref("highranks", "reports"), minimumTier: "lower" },
+      { label: "Open Activity", href: divisionLockedHref("highranks", "activity"), minimumTier: "lower" }
     ]
   },
 

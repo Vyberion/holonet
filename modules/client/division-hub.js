@@ -237,9 +237,9 @@ function renderHub(division) {
   const reportsPanel = renderPanel("reports", "Reports", renderRows(reports, "NO REPORTS", { kind: "reports", division }));
 
   const hasDocuments = division.id !== "darkCouncil";
-  const hasPages = division.id !== "highranks";
-  const hasActivity = division.id !== "highranks";
-  const hasReports = division.id !== "highranks";
+  const hasPages = true;
+  const hasActivity = true;
+  const hasReports = true;
 
   let leftColumn = "";
   let rightColumn = "";
@@ -265,18 +265,12 @@ function renderHub(division) {
     const leftPanels = [];
     const rightPanels = [];
 
-    if (division.id === "highranks") {
-      if (hasDocuments) leftPanels.push(documentsPanel);
-      leftPanels.push(transmissionsPanel);
-      if (hasPages) rightPanels.push(pagesPanel);
-    } else {
-      if (hasDocuments) leftPanels.push(documentsPanel);
-      leftPanels.push(transmissionsPanel);
+    if (hasDocuments) leftPanels.push(documentsPanel);
+    leftPanels.push(transmissionsPanel);
 
-      if (hasPages) rightPanels.push(pagesPanel);
-      if (hasActivity) rightPanels.push(activityPanel);
-      if (hasReports) rightPanels.push(reportsPanel);
-    }
+    if (hasPages) rightPanels.push(pagesPanel);
+    if (hasActivity) rightPanels.push(activityPanel);
+    if (hasReports) rightPanels.push(reportsPanel);
 
     leftColumn = leftPanels.length ? `<div class="hub-column">\n          ${leftPanels.join("\n          ")}\n        </div>` : "";
     rightColumn = rightPanels.length ? `\n        <aside class="hub-column">\n          ${rightPanels.join("\n          ")}\n        </aside>` : "";

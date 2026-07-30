@@ -228,7 +228,7 @@ export function inferScope(profile) {
 
   if (divisionScope) return divisionScope;
   if (Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) > 0) return "darkCouncil";
-  if (highRankValue >= 44 && highRankValue <= 53) return "highranks";
+  if ([44, 45, 50, 53].includes(highRankValue)) return "highranks";
 
   return "";
 }

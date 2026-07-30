@@ -145,7 +145,15 @@ export function HolonetNav() {
   const showDivisionReturn = divisionContext && !["home", "info"].includes(divisionContext.section);
   const centerLinks = [
     { href: "https://www.thesithorder.org", page: "home", prefix: "00", label: "Home" },
-    { href: "https://www.thesithorder.org/codex", page: "codex", prefix: "01", label: "Codex" },
+    {
+      href: "https://www.thesithorder.org/codex",
+      page: "codex",
+      prefix: "01",
+      label: "Codex",
+      dropdown: [
+        { href: "https://www.thesithorder.org/codex/statutes", page: "statutes", label: "Statutes" }
+      ]
+    },
     {
       href: "https://www.thesithorder.org/archives",
       page: "archives",

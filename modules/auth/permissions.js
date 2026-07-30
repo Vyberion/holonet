@@ -486,3 +486,16 @@ export function checkPageAccess(profile, page) {
 
   return { authorized: false, pageKey, reason: "UNKNOWN_RESOURCE" };
 }
+
+export function canEditStatutes(profile) {
+  if (profile?.isSuperUser || profile?.hasFullAccess) {
+    return { authorized: true, reason: coreAccessReason(profile) };
+  }
+
+  const roles = profile?.authorityRoles || {};
+  if (roles.emperor || roles.groupOwner || roles.projectManager) {
+    return { authorized: true, reason: "EMPEROR_AUTHORITY" };
+  }
+
+  return { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
+}

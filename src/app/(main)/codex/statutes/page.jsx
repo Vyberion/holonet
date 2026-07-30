@@ -158,69 +158,77 @@ function StatutesPageContent() {
     }
   }, [statutes, loading, editingStatute, isCreating]);
 
-  const renderStatuteGridCard = (statute, isDraft) => (
-    <article 
+  const renderStatuteGridCard = (statute, isDraft, index) => (
+    <div 
       key={statute.id} 
-      className="codex-article" 
-      style={{ 
-        background: "rgba(0,0,0,0.3)", 
-        padding: "1.5rem", 
-        border: "1px solid rgba(255,255,255,0.1)",
-        cursor: "pointer",
-        transition: "all 0.2s ease",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between"
-      }}
+      className="nav-card" 
+      style={{ cursor: "pointer", textDecoration: "none", height: "100%", display: "flex", flexDirection: "column" }}
       onClick={() => router.push(`${pathname}?id=${statute.id}`)}
-      onMouseEnter={(e) => e.currentTarget.style.borderColor = "var(--red-bright)"}
-      onMouseLeave={(e) => e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"}
     >
-      <div className="article-header" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-        <span className="article-number" style={{ fontSize: "0.7rem", opacity: 0.7 }}>ARCHIVE ID: {statute.id.split('-')[0].toUpperCase()}</span>
-        <h2 className="article-title" style={{ fontSize: "1.2rem", margin: 0, marginBottom: "1rem" }}>{statute.title}</h2>
+      <div className="card-inner-border" aria-hidden="true" />
+      <div className="card-corners" aria-hidden="true" />
+      <div className="card-vline" aria-hidden="true" />
+      <div className="card-scan" aria-hidden="true" />
+      
+      <div className="card-bg-glyph" aria-hidden="true">{getRomanNumeral((index % 5) + 1)}</div>
+      <div className="card-hex" aria-hidden="true">0x{statute.id.substring(0, 2).toUpperCase()}&nbsp;&nbsp;ARCHIVE</div>
+      
+      <div className="card-data" aria-hidden="true">
+        STATUS: {isDraft ? "DRAFT" : "PUBLISHED"}<br />
+        UPDATED: {new Date(statute.updated_at).toLocaleDateString()}<br />
       </div>
+      
+      <span className="card-category">Archive ID &mdash; {statute.id.split('-')[0].toUpperCase()}</span>
+      <h2 className="card-title">{statute.title}</h2>
+      <p className="card-desc">Read Statute.</p>
 
-      <div>
-        <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.5)", marginBottom: "1rem" }}>
-          Published: {new Date(statute.updated_at).toLocaleDateString()}
+      {canEdit && (
+        <div style={{ marginTop: "auto", display: "flex", gap: "1rem", position: "relative", zIndex: 10, paddingTop: "1.5rem" }}>
+          {isDraft && (
+            <button 
+              type="button" 
+              className="hub-write-btn" 
+              onClick={(e) => { e.stopPropagation(); publishStatute(statute); }}
+            >
+              PUBLISH
+            </button>
+          )}
+          <button 
+            type="button" 
+            className="hub-write-btn" 
+            onClick={(e) => { e.stopPropagation(); setEditingStatute(statute); }}
+          >
+            EDIT
+          </button>
         </div>
-
-        {canEdit && (
-          <div style={{ display: "flex", gap: "0.5rem", marginTop: "auto" }}>
-            {isDraft && <button type="button" className="hub-write-btn" onClick={(e) => { e.stopPropagation(); publishStatute(statute); }}>PUBLISH</button>}
-            <button type="button" className="hub-write-btn" onClick={(e) => { e.stopPropagation(); setEditingStatute(statute); }}>EDIT</button>
-          </div>
-        )}
-      </div>
-    </article>
+      )}
+    </div>
   );
 
   return (
     <HolonetFrame title="STATUTES" subtitle="LEGISLATIVE ARCHIVE" includeSearchOverlay>
       <style>{`
-        .statutes-toolbar::after { display: none !important; }
         .back-btn:hover { color: var(--red-bright) !important; text-shadow: 0 0 5px var(--red-glow); }
+        .statutes-grid-layout {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
+        }
+        @media (max-width: 1100px) {
+          .statutes-grid-layout {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 768px) {
+          .statutes-grid-layout {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
       
       {viewingStatute ? (
         // READER MODE
-        <div className="codex-shell">
-          <aside className="codex-contents" data-library-contents>
-            <div className="codex-contents-panel">
-              <div className="codex-contents-header">
-                <h2 className="codex-contents-title">SECTIONS</h2>
-              </div>
-              <div className="codex-contents-list">
-                {viewingStatute.sections?.map((section, sIndex) => (
-                  <div key={section.id || sIndex} className="contents-article">
-                    <a className="contents-link" href={`#section-${sIndex}`}>SECTION ${getRomanNumeral(sIndex + 1)}</a>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </aside>
-          
+        <div className="codex-shell" style={{ display: "block" }}>
           <div className="codex-document" data-library-document="codex">
             <div className="codex-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <button 
@@ -281,14 +289,13 @@ function StatutesPageContent() {
         </div>
       ) : (
         // GRID MODE
-        <div className="codex-shell">
-          <aside className="codex-contents" data-library-contents></aside>
+        <div className="codex-shell" style={{ display: "block" }}>
           <div className="codex-document" data-library-document="codex">
-            <div className="codex-toolbar statutes-toolbar" style={{ borderBottom: "none", width: "100%", justifyContent: "flex-end" }}>
-              {canEdit && (
+            {canEdit && (
+              <div className="codex-toolbar">
                 <button type="button" className="hub-write-btn" onClick={() => setIsCreating(true)}>WRITE STATUTE</button>
-              )}
-            </div>
+              </div>
+            )}
 
             {loading ? (
               <p>Loading archives...</p>
@@ -298,19 +305,19 @@ function StatutesPageContent() {
               <div className="statutes-list-container">
                 {canEdit && statutes.filter(s => !s.is_published).length > 0 && (
                   <>
-                    <h2 className="codex-section-title" style={{ fontFamily: "Orbitron, monospace", color: "var(--red-bright)", fontSize: "1.2rem", letterSpacing: "0.2em", borderBottom: "1px solid var(--border)", paddingBottom: "1rem", marginBottom: "2rem" }}>DRAFTS</h2>
-                    <div className="statutes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: "2rem", marginBottom: "4rem" }}>
-                      {statutes.filter(s => !s.is_published).map((statute) => renderStatuteGridCard(statute, true))}
+                    <h2 id="drafts" className="codex-section-title" style={{ fontFamily: "Orbitron, monospace", color: "var(--red-bright)", fontSize: "1.2rem", letterSpacing: "0.2em", borderBottom: "1px solid var(--border)", paddingBottom: "1rem", marginBottom: "2rem" }}>DRAFTS</h2>
+                    <div className="statutes-grid-layout" style={{ marginBottom: "4rem" }}>
+                      {statutes.filter(s => !s.is_published).map((statute, index) => renderStatuteGridCard(statute, true, index))}
                     </div>
                   </>
                 )}
 
                 {canEdit && statutes.filter(s => s.is_published).length > 0 && (
-                  <h2 className="codex-section-title" style={{ fontFamily: "Orbitron, monospace", color: "var(--red-bright)", fontSize: "1.2rem", letterSpacing: "0.2em", borderBottom: "1px solid var(--border)", paddingBottom: "1rem", marginBottom: "2rem", marginTop: statutes.filter(s => !s.is_published).length > 0 ? "0" : "0" }}>PUBLISHED</h2>
+                  <h2 id="published" className="codex-section-title" style={{ fontFamily: "Orbitron, monospace", color: "var(--red-bright)", fontSize: "1.2rem", letterSpacing: "0.2em", borderBottom: "1px solid var(--border)", paddingBottom: "1rem", marginBottom: "2rem", marginTop: statutes.filter(s => !s.is_published).length > 0 ? "0" : "0" }}>PUBLISHED</h2>
                 )}
 
-                <div className="statutes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: "2rem" }}>
-                  {statutes.filter(s => s.is_published).map((statute) => renderStatuteGridCard(statute, false))}
+                <div className="statutes-grid-layout">
+                  {statutes.filter(s => s.is_published).map((statute, index) => renderStatuteGridCard(statute, false, index))}
                 </div>
               </div>
             )}

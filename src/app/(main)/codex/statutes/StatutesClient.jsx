@@ -5,6 +5,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { HolonetFrame } from "../../../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../../../components/PageScripts.jsx";
 import { StatuteEditor } from "../../../../components/StatuteEditor.jsx";
+import { processStatuteSlugs } from "../../../../lib/slugUtils.js";
 
 function getRomanNumeral(num) {
   const lookup = { M: 1000, CM: 900, D: 500, CD: 400, C: 100, XC: 90, L: 50, XL: 40, X: 10, IX: 9, V: 5, IV: 4, I: 1 };
@@ -40,7 +41,7 @@ function toRoman(value) {
   return result;
 }
 
-function StatutesPageContent() {
+function StatutesPageContent({ initialSlug }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -53,7 +54,7 @@ function StatutesPageContent() {
   const [isCreating, setIsCreating] = useState(false);
 
   const viewingId = searchParams.get("id");
-  const viewingStatute = statutes.find(s => s.id === viewingId);
+  const viewingStatute = statutes.find(s => s.slug === initialSlug || s.id === viewingId);
 
   useEffect(() => {
     fetchStatutes();
@@ -83,7 +84,7 @@ function StatutesPageContent() {
       const res = await fetch("/api/codex/statutes");
       const data = await res.json();
       if (data.ok) {
-        setStatutes(data.data);
+        setStatutes(processStatuteSlugs(data.data));
       }
     } catch (err) {
       console.error(err);
@@ -186,7 +187,7 @@ function StatutesPageContent() {
         className="dir-card"
         data-status={status}
         aria-label={`${statute.title} - ${isDraft ? "draft" : "published"}`}
-        onClick={() => router.push(`${pathname}?id=${statute.id}`)}
+        onClick={() => router.push(`/codex/statutes/${statute.slug}`)}
         style={{ cursor: "pointer" }}
       >
         <div className="dir-card-frame" aria-hidden="true" />
@@ -255,6 +256,17 @@ function StatutesPageContent() {
           </aside>
           
           <div className="codex-document" data-library-document="codex">
+            <a href="/codex/statutes" className="back-btn" style={{ 
+                    color: "var(--text-dim)", 
+                    textDecoration: "none", 
+                    fontSize: "0.9rem", 
+                    letterSpacing: "0.1em",
+                    display: "inline-block",
+                    marginBottom: "1rem",
+                    fontFamily: "Orbitron, sans-serif"
+                  }}>
+                    &lt; RETURN TO STATUTES
+                  </a>
             <div className="codex-toolbar" style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
               {canEdit && (
                 <div style={{ display: "flex", gap: "1rem" }}>
@@ -375,10 +387,10 @@ function StatutesPageContent() {
   );
 }
 
-export default function StatutesClient() {
+export default function StatutesClient({ initialSlug }) {
   return (
     <Suspense fallback={<div>Loading archives...</div>}>
-      <StatutesPageContent />
+      <StatutesPageContent initialSlug={initialSlug} />
     </Suspense>
   );
 }

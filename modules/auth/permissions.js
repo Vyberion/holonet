@@ -321,9 +321,15 @@ export function canViewDivisionReports(profile, division) {
     };
   }
 
-  return hasAnyDarkCouncilAuthority(profile)
-    ? { authorized: true, reason: "DARK_COUNCIL_AUTHORITY" }
-    : { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
+  if (division !== "inquisitors" && hasAnyDarkCouncilAuthority(profile)) {
+    return { authorized: true, reason: "DARK_COUNCIL_AUTHORITY" };
+  }
+  
+  if (division === "inquisitors" && hasHighCommandAccess(profile)) {
+    return { authorized: true, reason: "HIGH_COMMAND_AUTHORITY" };
+  }
+
+  return { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
 }
 
 export function canWriteDivisionReport(profile, division) {
@@ -429,8 +435,20 @@ export function checkPageAccess(profile, page) {
 
     const actualTier = profile.divisions[rule.division] || "none";
     const hasTransmissionAuthority = pageKey.endsWith("_transmissions") && hasAnyDarkCouncilAuthority(profile);
-    const inquisitorAccess = canAccessDivisionPagesForInquisitors(profile, rule.division);
-    const authorized = inquisitorAccess || tierAtLeast(actualTier, rule.minimumTier) || hasTransmissionAuthority;
+    const roles = profile?.authorityRoles || {};
+
+    let authorized = false;
+    
+    if (rule.division === "inquisitors") {
+      const isMember = tierAtLeast(actualTier, rule.minimumTier);
+      const isOverseer = roles.inquisitoriusOverseer;
+      const isHighCommand = hasHighCommandAccess(profile);
+      authorized = isMember || isOverseer || isHighCommand || hasTransmissionAuthority;
+    } else {
+      const inquisitorAccess = canAccessDivisionPagesForInquisitors(profile, rule.division);
+      const hasDarkCouncilAccess = hasAnyDarkCouncilAuthority(profile);
+      authorized = inquisitorAccess || tierAtLeast(actualTier, rule.minimumTier) || hasTransmissionAuthority || hasDarkCouncilAccess;
+    }
 
     return {
       authorized,
@@ -446,7 +464,14 @@ export function checkPageAccess(profile, page) {
     }
 
     const inquisitorAccess = canAccessDivisionPagesForInquisitors(profile, "highranks");
-    const authorized = inquisitorAccess || tierListAtLeast(HIGH_RANK_TIERS, profile.highRank, rule.highRankMinimumTier);
+    const roles = profile?.authorityRoles || {};
+    const isHighRankOverseer = roles.highRanksOverseer;
+    const hasDarkCouncilAccess = hasAnyDarkCouncilAuthority(profile);
+
+    const authorized = inquisitorAccess || 
+                       tierListAtLeast(HIGH_RANK_TIERS, profile.highRank, rule.highRankMinimumTier) ||
+                       isHighRankOverseer ||
+                       hasDarkCouncilAccess;
 
     return {
       authorized,

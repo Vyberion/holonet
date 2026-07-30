@@ -24,7 +24,6 @@ function getLetter(num) {
 export default function StatutesPage() {
   const [statutes, setStatutes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
   const [canEdit, setCanEdit] = useState(false);
   
   const [editingStatute, setEditingStatute] = useState(null);
@@ -104,10 +103,14 @@ export default function StatutesPage() {
     }
   };
 
-  const filteredStatutes = statutes.filter(s => 
-    s.title.toLowerCase().includes(search.toLowerCase()) || 
-    JSON.stringify(s.sections).toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    if (!loading && !editingStatute && !isCreating) {
+      // Need a small timeout to let React render the DOM first
+      setTimeout(() => {
+        window.initHolonetSearch?.();
+      }, 100);
+    }
+  }, [statutes, loading, editingStatute, isCreating]);
 
   return (
     <HolonetFrame title="STATUTES" subtitle="LEGISLATIVE ARCHIVE" includeSearchOverlay>
@@ -121,26 +124,19 @@ export default function StatutesPage() {
           />
         ) : (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2rem" }}>
-              <input 
-                type="text" 
-                placeholder="Search Statutes..." 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{ padding: "0.5rem 1rem", fontSize: "1.1rem", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.2)", color: "white", width: "300px" }}
-              />
-              {canEdit && (
-                <button className="h-button" onClick={() => setIsCreating(true)}>+ Create Statute</button>
-              )}
-            </div>
+            {canEdit && (
+              <div className="codex-toolbar">
+                <button type="button" className="hub-write-btn" onClick={() => setIsCreating(true)}>WRITE STATUTE</button>
+              </div>
+            )}
 
             {loading ? (
               <p>Loading archives...</p>
-            ) : filteredStatutes.length === 0 ? (
+            ) : statutes.length === 0 ? (
               <p>No statutes found.</p>
             ) : (
               <div className="statutes-list" style={{ display: "flex", flexDirection: "column", gap: "3rem" }}>
-                {filteredStatutes.map((statute) => (
+                {statutes.map((statute) => (
                   <article key={statute.id} className="codex-article" style={{ background: "rgba(0,0,0,0.3)", padding: "2rem", border: "1px solid rgba(255,255,255,0.1)" }}>
                     <div className="article-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <div>
@@ -199,7 +195,7 @@ export default function StatutesPage() {
         )}
       </div>
 
-      <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} />
+      <PageScripts scripts={["/js/main.js", "/modules/client/site.js", "/js/search.js"]} />
     </HolonetFrame>
   );
 }

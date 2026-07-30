@@ -116,84 +116,82 @@ export default function StatutesPage() {
     <HolonetFrame title="STATUTES" subtitle="LEGISLATIVE ARCHIVE" includeSearchOverlay>
       <div className="codex-shell" style={{ padding: "2rem" }}>
         
-        {editingStatute || isCreating ? (
-          <StatuteEditor 
-            initialData={editingStatute} 
-            onSave={(data) => saveStatute({ ...editingStatute, ...data })}
-            onCancel={() => { setEditingStatute(null); setIsCreating(false); }}
-          />
-        ) : (
-          <>
-            {canEdit && (
-              <div className="codex-toolbar">
-                <button type="button" className="hub-write-btn" onClick={() => setIsCreating(true)}>WRITE STATUTE</button>
-              </div>
-            )}
+        {canEdit && (
+          <div className="codex-toolbar">
+            <button type="button" className="hub-write-btn" onClick={() => setIsCreating(true)}>WRITE STATUTE</button>
+          </div>
+        )}
 
-            {loading ? (
-              <p>Loading archives...</p>
-            ) : statutes.length === 0 ? (
-              <p>No statutes found.</p>
-            ) : (
-              <div className="statutes-list" style={{ display: "flex", flexDirection: "column", gap: "3rem" }}>
-                {statutes.map((statute) => (
-                  <article key={statute.id} className="codex-article" style={{ background: "rgba(0,0,0,0.3)", padding: "2rem", border: "1px solid rgba(255,255,255,0.1)" }}>
-                    <div className="article-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div>
-                        <span className="article-number">ARCHIVE ID: {statute.id.split('-')[0].toUpperCase()}</span>
-                        <h2 className="article-title">{statute.title}</h2>
-                      </div>
-                      {canEdit && (
-                        <div style={{ display: "flex", gap: "0.5rem" }}>
-                          <button className="h-button secondary small" onClick={() => setEditingStatute(statute)}>Edit</button>
-                          <button className="h-button danger small" onClick={() => deleteStatute(statute.id)}>Delete</button>
-                        </div>
-                      )}
+        {loading ? (
+          <p>Loading archives...</p>
+        ) : statutes.length === 0 ? (
+          <p>No statutes found.</p>
+        ) : (
+          <div className="statutes-list" style={{ display: "flex", flexDirection: "column", gap: "3rem" }}>
+            {statutes.map((statute) => (
+              <article key={statute.id} className="codex-article" style={{ background: "rgba(0,0,0,0.3)", padding: "2rem", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <div className="article-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <span className="article-number">ARCHIVE ID: {statute.id.split('-')[0].toUpperCase()}</span>
+                    <h2 className="article-title">{statute.title}</h2>
+                  </div>
+                  {canEdit && (
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <button className="h-button secondary small" onClick={() => setEditingStatute(statute)}>Edit</button>
+                      <button className="h-button danger small" onClick={() => deleteStatute(statute.id)}>Delete</button>
                     </div>
-                    
-                    <div className="article-content" style={{ marginTop: "2rem" }}>
-                      {statute.sections?.map((section, sIndex) => (
-                        <div key={section.id || sIndex} className="regulation" style={{ marginBottom: "2rem" }}>
-                          <h3 className="reg-title" style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "1rem" }}>
-                            SECTION {getRomanNumeral(sIndex + 1)}: {section.text}
-                          </h3>
-                          
-                          <div style={{ paddingLeft: "1.5rem" }}>
-                            {section.clauses?.map((clause, cIndex) => (
-                              <div key={clause.id || cIndex} style={{ marginBottom: "1rem" }}>
-                                <p className="reg-text">({getLetter(cIndex + 1)}) {clause.text}</p>
-                                
-                                <div style={{ paddingLeft: "2rem", marginTop: "0.5rem" }}>
-                                  {clause.subClauses?.map((subClause, scIndex) => (
-                                    <div key={subClause.id || scIndex} style={{ marginBottom: "0.5rem" }}>
-                                      <p className="reg-text">{scIndex + 1}. {subClause.text}</p>
-                                      
-                                      <div style={{ paddingLeft: "2rem", marginTop: "0.5rem" }}>
-                                        {subClause.subSubClauses?.map((subSubClause, sscIndex) => (
-                                          <p key={subSubClause.id || sscIndex} className="reg-text">
-                                            {getRomanNumeral(sscIndex + 1).toLowerCase()}. {subSubClause.text}
-                                          </p>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  ))}
+                  )}
+                </div>
+                
+                <div className="article-content" style={{ marginTop: "2rem" }}>
+                  {statute.sections?.map((section, sIndex) => (
+                    <div key={section.id || sIndex} className="regulation" style={{ marginBottom: "2rem" }}>
+                      <h3 className="reg-title" style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "1rem" }}>
+                        SECTION {getRomanNumeral(sIndex + 1)}: {section.text}
+                      </h3>
+                      
+                      <div style={{ paddingLeft: "1.5rem" }}>
+                        {section.clauses?.map((clause, cIndex) => (
+                          <div key={clause.id || cIndex} style={{ marginBottom: "1rem" }}>
+                            <p className="reg-text">({getLetter(cIndex + 1)}) {clause.text}</p>
+                            
+                            <div style={{ paddingLeft: "2rem", marginTop: "0.5rem" }}>
+                              {clause.subClauses?.map((subClause, scIndex) => (
+                                <div key={subClause.id || scIndex} style={{ marginBottom: "0.5rem" }}>
+                                  <p className="reg-text">{scIndex + 1}. {subClause.text}</p>
+                                  
+                                  <div style={{ paddingLeft: "2rem", marginTop: "0.5rem" }}>
+                                    {subClause.subSubClauses?.map((subSubClause, sscIndex) => (
+                                      <p key={subSubClause.id || sscIndex} className="reg-text">
+                                        {getRomanNumeral(sscIndex + 1).toLowerCase()}. {subSubClause.text}
+                                      </p>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                    <div style={{ marginTop: "2rem", fontSize: "0.8rem", color: "rgba(255,255,255,0.5)" }}>
-                      Last updated by {statute.updated_by} on {new Date(statute.updated_at).toLocaleDateString()}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </>
+                  ))}
+                </div>
+                <div style={{ marginTop: "2rem", fontSize: "0.8rem", color: "rgba(255,255,255,0.5)" }}>
+                  Last updated by {statute.updated_by} on {new Date(statute.updated_at).toLocaleDateString()}
+                </div>
+              </article>
+            ))}
+          </div>
         )}
       </div>
+
+      {(editingStatute || isCreating) && (
+        <StatuteEditor 
+          initialData={editingStatute} 
+          onSave={(data) => saveStatute({ ...editingStatute, ...data })}
+          onCancel={() => { setEditingStatute(null); setIsCreating(false); }}
+        />
+      )}
 
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js", "/js/search.js"]} />
     </HolonetFrame>

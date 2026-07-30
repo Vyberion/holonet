@@ -23,6 +23,9 @@ function getLetter(num) {
 async function publishToDiscord(statute) {
   const token = process.env.DISCORD_TOKEN;
   const channelId = "1522333034018377768";
+  
+  console.log(`[DEBUG] Discord publish triggered. Token starts with: ${token ? token.substring(0, 5) : "UNDEFINED"} | Length: ${token ? token.length : 0}`);
+  
   if (!token || !channelId) {
     console.warn("DISCORD_TOKEN missing, cannot publish to Discord");
     return;

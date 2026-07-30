@@ -9,6 +9,7 @@ import {
   isPublicInfoDivision
 } from "../../modules/data/divisions/index.js";
 import { preloadHierarchyImages } from "../lib/preload-images.js";
+import Link from "next/link";
 
 function readCachedAccess() {
   try {
@@ -86,7 +87,7 @@ function NavLink({ href, page, prefix, label, account = false, children, activeP
   const isActive = activePage === page || (page === "index" && activePage === "home");
 
   return (
-    <a
+    <Link
       href={href}
       className={`nav-link${account ? " account-link" : ""}${isActive ? " active" : ""}`}
       data-page={page}
@@ -101,7 +102,7 @@ function NavLink({ href, page, prefix, label, account = false, children, activeP
           <span className="nav-link-label">{label}</span>
         </>
       )}
-    </a>
+    </Link>
   );
 }
 
@@ -148,30 +149,30 @@ export function HolonetNav() {
   const showDivisionReturn = (divisionContext && !["home", "info"].includes(divisionContext.section)) || isStatuteReader;
   const returnHref = isStatuteReader ? "/codex/statutes" : (divisionContext?.base || "/");
   const centerLinks = [
-    { href: "https://www.thesithorder.org", page: "home", prefix: "00", label: "Home" },
+    { href: "/", page: "home", prefix: "00", label: "Home" },
     {
-      href: "https://www.thesithorder.org/codex",
+      href: "/codex",
       page: "codex",
       prefix: "01",
       label: "Codex",
       dropdown: [
-        { href: "https://www.thesithorder.org/codex/statutes", page: "statutes", label: "Statutes" }
+        { href: "/codex/statutes", page: "statutes", label: "Statutes" }
       ]
     },
     {
-      href: "https://www.thesithorder.org/archives",
+      href: "/archives",
       page: "archives",
       prefix: "02",
       label: "Archives",
       dropdown: [
-        { href: "https://www.thesithorder.org/cots", page: "cots", label: "CoTS" },
-        { href: "https://www.thesithorder.org/galaxy", page: "galaxy", label: "Galaxy" },
-        { href: "https://www.thesithorder.org/emperors", page: "emperors", label: "Emperors" }
+        { href: "/cots", page: "cots", label: "CoTS" },
+        { href: "/galaxy", page: "galaxy", label: "Galaxy" },
+        { href: "/emperors", page: "emperors", label: "Emperors" }
       ]
     },
-    { href: "https://www.thesithorder.org/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
+    { href: "/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
     ...(access?.permissions?.canAccessRegistry
-      ? [{ href: "https://www.thesithorder.org/registry", page: "registry", prefix: "04", label: "Registry" }]
+      ? [{ href: "/registry", page: "registry", prefix: "04", label: "Registry" }]
       : [])
   ];
 

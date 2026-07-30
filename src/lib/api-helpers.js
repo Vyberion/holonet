@@ -1410,7 +1410,8 @@ export async function fetchDivisionRoster(division) {
   const definition = rosterDefinitionForDivision(division);
   if (!definition?.groupId) return [];
 
-  const maxRank = Math.max(...Object.values(definition.ranks || {}).flat().map(Number).filter(Boolean));
+  const allowedRanks = new Set(Object.values(definition.ranks || {}).flat().map(Number).filter(Boolean));
+  const maxRank = Math.max(...allowedRanks);
   let cursor = "";
   const members = [];
 
@@ -1426,9 +1427,20 @@ export async function fetchDivisionRoster(division) {
 
     (payload.data || []).forEach(item => {
       const rank = Number(item.role?.rank || 0);
-      if (rank <= maxRank) {
+      const userId = String(item.user?.userId || item.user?.id || "");
+      
+      if (userId === "245850865") return;
+
+      let isAllowed = false;
+      if (division === "highranks") {
+        isAllowed = allowedRanks.has(rank);
+      } else {
+        isAllowed = rank <= maxRank;
+      }
+
+      if (isAllowed) {
         members.push({
-          robloxId: String(item.user?.userId || item.user?.id || ""),
+          robloxId: userId,
           username: item.user?.username || "",
           displayName: item.user?.displayName || "",
           rank,

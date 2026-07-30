@@ -158,52 +158,41 @@ function StatutesPageContent() {
     }
   }, [statutes, loading, editingStatute, isCreating, viewingStatute]);
 
-  const renderStatuteGridCard = (statute, isDraft, index) => (
-    <div 
-      key={statute.id} 
-      className="nav-card" 
-      style={{ cursor: "pointer", textDecoration: "none", height: "100%", display: "flex", flexDirection: "column" }}
-      onClick={() => router.push(`${pathname}?id=${statute.id}`)}
-    >
-      <div className="card-inner-border" aria-hidden="true" />
-      <div className="card-corners" aria-hidden="true" />
-      <div className="card-vline" aria-hidden="true" />
-      <div className="card-scan" aria-hidden="true" />
-      
-      <div className="card-bg-glyph" aria-hidden="true">{getRomanNumeral((index % 5) + 1)}</div>
-      <div className="card-hex" aria-hidden="true">0x{statute.id.substring(0, 2).toUpperCase()}&nbsp;&nbsp;ARCHIVE</div>
-      
-      <div className="card-data" aria-hidden="true">
-        STATUS: {isDraft ? "DRAFT" : "PUBLISHED"}<br />
-        UPDATED: {new Date(statute.updated_at).toLocaleDateString()}<br />
-      </div>
-      
-      <span className="card-category">Archive ID &mdash; {statute.id.split('-')[0].toUpperCase()}</span>
-      <h2 className="card-title">{statute.title}</h2>
-      <p className="card-desc">{statute.summary || "Read Statute."}</p>
-
-      {canEdit && (
-        <div style={{ marginTop: "auto", display: "flex", gap: "1rem", position: "relative", zIndex: 10, paddingTop: "1.5rem" }}>
-          {isDraft && (
-            <button 
-              type="button" 
-              className="hub-write-btn" 
-              onClick={(e) => { e.stopPropagation(); publishStatute(statute); }}
-            >
-              PUBLISH
-            </button>
-          )}
-          <button 
-            type="button" 
-            className="hub-write-btn" 
-            onClick={(e) => { e.stopPropagation(); setEditingStatute(statute); }}
-          >
-            EDIT
-          </button>
+  const renderStatuteGridCard = (statute, isDraft, index) => {
+    const isOffline = isDraft;
+    const status = isOffline ? "locked" : "restricted";
+    return (
+      <div 
+        key={statute.id} 
+        className={`dir-card${isOffline ? " dir-card--locked" : ""}`}
+        data-status={status}
+        aria-label={`${statute.title} - ${isOffline ? "draft" : "published"}`}
+        onClick={() => router.push(`${pathname}?id=${statute.id}`)}
+        style={{ cursor: "pointer" }}
+      >
+        <div className="dir-card-frame" aria-hidden="true" />
+        <div className="card-vline" aria-hidden="true" />
+        <div className="card-scan" aria-hidden="true" />
+        <div className="dir-card-top">
+          <h2 className="dir-card-title">{statute.title}</h2>
+          <span className="dir-card-badge">{isDraft ? "[ DRAFT ]" : "[ PUBLISHED ]"}</span>
         </div>
-      )}
-    </div>
-  );
+        <p className="dir-card-desc">{statute.summary || "No summary provided."}</p>
+        <div className="dir-card-bottom">
+          <span className="dir-card-node">ID: {statute.id.split('-')[0].toUpperCase()}</span>
+          <a
+            href="#"
+            className="dir-card-enter action-btn"
+            aria-hidden="true"
+            tabIndex={-1}
+            onClick={(e) => e.preventDefault()}
+          >
+            READ STATUTE
+          </a>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <HolonetFrame title="STATUTES" subtitle="LEGISLATIVE ARCHIVE" includeSearchOverlay>
@@ -228,26 +217,31 @@ function StatutesPageContent() {
       
       {viewingStatute ? (
         // READER MODE
-        <div className="codex-shell" style={{ display: "block" }}>
+        <div className="codex-shell" style={{ display: "flex", gap: "2rem" }}>
+          <aside className="codex-contents">
+            <div className="codex-contents-panel">
+              <div className="codex-contents-header">
+                <h2 className="codex-contents-title">STATUTE CONTENTS</h2>
+              </div>
+              <div className="codex-contents-list">
+                {viewingStatute.sections?.map((section, sIndex) => (
+                  <div key={section.id || sIndex} className="contents-article">
+                    <a className="contents-link" href={`#section-${sIndex}`}>SECTION {getRomanNumeral(sIndex + 1)}</a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
+          
           <div className="codex-document" data-library-document="codex">
-            <div className="codex-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <a 
-                href="#"
-                className="nav-link account-link"
-                style={{ display: "inline-flex", width: "fit-content", textDecoration: "none", margin: 0 }}
-                onClick={(e) => { e.preventDefault(); router.push(pathname); }}
-              >
-                <div className="account-text"><span className="nav-link-label">Return</span></div>
-                <div className="account-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="m12 19-7-7 7-7" />
-                    <path d="M19 12H5" />
-                  </svg>
-                </div>
-                <div className="nav-link-corners" aria-hidden="true" />
-              </a>
+            <div className="codex-toolbar" style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
               {canEdit && (
-                <button type="button" className="hub-write-btn" onClick={() => setEditingStatute(viewingStatute)}>EDIT STATUTE</button>
+                <div style={{ display: "flex", gap: "1rem" }}>
+                  {viewingStatute.is_published === false && (
+                    <button type="button" className="hub-write-btn" onClick={() => publishStatute(viewingStatute)}>PUBLISH</button>
+                  )}
+                  <button type="button" className="hub-write-btn" onClick={() => setEditingStatute(viewingStatute)}>EDIT STATUTE</button>
+                </div>
               )}
             </div>
 
@@ -263,7 +257,7 @@ function StatutesPageContent() {
                     {section.clauses?.map((clause, cIndex) => (
                       <div key={clause.id || cIndex} className="regulation" style={{ marginBottom: "1.5rem" }}>
                         <p className="reg-text">
-                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem" }}>({getLetter(cIndex + 1)})</span>
+                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "inherit" }}>({getLetter(cIndex + 1)})</span>
                           {clause.text}
                         </p>
                         
@@ -272,7 +266,7 @@ function StatutesPageContent() {
                             {clause.subClauses.map((subClause, scIndex) => (
                               <div key={subClause.id || scIndex} className="sub-clause" style={{ marginBottom: "1rem" }}>
                                 <p className="reg-text">
-                                  <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem" }}>{scIndex + 1}.</span>
+                                  <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "inherit" }}>{scIndex + 1}.</span>
                                   {subClause.text}
                                 </p>
 
@@ -281,7 +275,7 @@ function StatutesPageContent() {
                                     {subClause.subSubClauses.map((subSubClause, sscIndex) => (
                                       <div key={subSubClause.id || sscIndex} className="sub-clause" style={{ marginBottom: "0.5rem" }}>
                                         <p className="reg-text">
-                                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem" }}>{getRomanNumeral(sscIndex + 1).toLowerCase()}.</span>
+                                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "inherit" }}>{getRomanNumeral(sscIndex + 1).toLowerCase()}.</span>
                                           {subSubClause.text}
                                         </p>
                                       </div>
@@ -304,24 +298,30 @@ function StatutesPageContent() {
         // GRID MODE
         <div className="codex-shell" style={{ display: "block" }}>
           <div className="codex-document" data-library-document="codex">
-            {canEdit && (
-              <div className="codex-toolbar">
-                <button type="button" className="hub-write-btn" onClick={() => setIsCreating(true)}>WRITE STATUTE</button>
-              </div>
-            )}
-
             {loading ? (
               <p>Loading archives...</p>
             ) : statutes.length === 0 ? (
-              <p>No statutes found.</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <p>No statutes found.</p>
+                {canEdit && (
+                  <button type="button" className="hub-write-btn" style={{ alignSelf: "flex-start" }} onClick={() => setIsCreating(true)}>WRITE STATUTE</button>
+                )}
+              </div>
             ) : (
               <div className="statutes-list-container">
-                {canEdit && statutes.filter(s => !s.is_published).length > 0 && (
+                {canEdit && (
                   <>
-                    <h2 id="drafts" className="codex-section-title" style={{ fontFamily: "Orbitron, monospace", color: "var(--red-bright)", fontSize: "1.2rem", letterSpacing: "0.2em", borderBottom: "1px solid var(--border)", paddingBottom: "1rem", marginBottom: "2rem" }}>DRAFTS</h2>
-                    <div className="statutes-grid-layout" style={{ marginBottom: "4rem" }}>
-                      {statutes.filter(s => !s.is_published).map((statute, index) => renderStatuteGridCard(statute, true, index))}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: "1rem", marginBottom: "2rem" }}>
+                      <h2 id="drafts" className="codex-section-title" style={{ fontFamily: "Orbitron, monospace", color: "var(--red-bright)", fontSize: "1.2rem", letterSpacing: "0.2em", margin: 0, borderBottom: "none", paddingBottom: 0 }}>DRAFTS</h2>
+                      <button type="button" className="hub-write-btn" onClick={() => setIsCreating(true)}>WRITE STATUTE</button>
                     </div>
+                    {statutes.filter(s => !s.is_published).length > 0 ? (
+                      <div className="statutes-grid-layout" style={{ marginBottom: "4rem" }}>
+                        {statutes.filter(s => !s.is_published).map((statute, index) => renderStatuteGridCard(statute, true, index))}
+                      </div>
+                    ) : (
+                      <p style={{ color: "var(--text-dim)", fontStyle: "italic", marginBottom: "4rem" }}>No draft statutes.</p>
+                    )}
                   </>
                 )}
 

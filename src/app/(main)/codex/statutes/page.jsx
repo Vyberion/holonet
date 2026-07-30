@@ -114,10 +114,13 @@ export default function StatutesPage() {
 
   return (
     <HolonetFrame title="STATUTES" subtitle="LEGISLATIVE ARCHIVE" includeSearchOverlay>
-      <div className="codex-shell" style={{ padding: "2rem" }}>
+      <style>{`
+        .statutes-toolbar::after { display: none !important; }
+      `}</style>
+      <div className="codex-shell" style={{ display: "flex", flexDirection: "column", padding: "2rem" }}>
         
         {canEdit && (
-          <div className="codex-toolbar">
+          <div className="codex-toolbar statutes-toolbar" style={{ borderBottom: "none", width: "100%", justifyContent: "flex-end" }}>
             <button type="button" className="hub-write-btn" onClick={() => setIsCreating(true)}>WRITE STATUTE</button>
           </div>
         )}

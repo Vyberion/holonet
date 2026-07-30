@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 function generateId() {
   return Math.random().toString(36).substring(2, 9);
@@ -121,8 +122,8 @@ export function StatuteEditor({ initialData, onSave, onCancel }) {
     setIsSaving(false);
   };
 
-  return (
-    <div id="library-editor-overlay" className="active" onClick={(e) => e.target.id === "library-editor-overlay" && onCancel()}>
+  const modalContent = (
+    <div id="library-editor-overlay" className="active" style={{ zIndex: 99999 }} onClick={(e) => e.target.id === "library-editor-overlay" && onCancel()}>
       <div className="resource-editor-container library-editor-container" role="dialog" aria-modal="true" aria-labelledby="library-editor-title">
         
         <div className="resource-editor-topbar">
@@ -246,4 +247,6 @@ export function StatuteEditor({ initialData, onSave, onCancel }) {
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : null;
 }

@@ -120,7 +120,7 @@ export default function StatutesPage() {
       <div className="codex-shell" style={{ display: "flex", flexDirection: "column", padding: "2rem" }}>
         
         {canEdit && (
-          <div className="codex-toolbar statutes-toolbar" style={{ borderBottom: "none", width: "100%", justifyContent: "flex-end" }}>
+          <div className="codex-toolbar statutes-toolbar" style={{ borderBottom: "none", width: "100%", justifyContent: "flex-start", marginBottom: "2rem" }}>
             <button type="button" className="hub-write-btn" onClick={() => setIsCreating(true)}>WRITE STATUTE</button>
           </div>
         )}

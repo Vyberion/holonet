@@ -159,14 +159,13 @@ function StatutesPageContent() {
   }, [statutes, loading, editingStatute, isCreating, viewingStatute]);
 
   const renderStatuteGridCard = (statute, isDraft, index) => {
-    const isOffline = isDraft;
-    const status = isOffline ? "locked" : "restricted";
+    const status = "restricted";
     return (
       <div 
         key={statute.id} 
-        className={`dir-card${isOffline ? " dir-card--locked" : ""}`}
+        className="dir-card"
         data-status={status}
-        aria-label={`${statute.title} - ${isOffline ? "draft" : "published"}`}
+        aria-label={`${statute.title} - ${isDraft ? "draft" : "published"}`}
         onClick={() => router.push(`${pathname}?id=${statute.id}`)}
         style={{ cursor: "pointer" }}
       >
@@ -226,7 +225,7 @@ function StatutesPageContent() {
               <div className="codex-contents-list">
                 {viewingStatute.sections?.map((section, sIndex) => (
                   <div key={section.id || sIndex} className="contents-article">
-                    <a className="contents-link" href={`#section-${sIndex}`}>SECTION {getRomanNumeral(sIndex + 1)}</a>
+                    <a className="contents-link" href={`#section-${sIndex}`}>{section.text || `SECTION ${getRomanNumeral(sIndex + 1)}`}</a>
                   </div>
                 ))}
               </div>
@@ -257,7 +256,7 @@ function StatutesPageContent() {
                     {section.clauses?.map((clause, cIndex) => (
                       <div key={clause.id || cIndex} className="regulation" style={{ marginBottom: "1.5rem" }}>
                         <p className="reg-text">
-                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "inherit" }}>({getLetter(cIndex + 1)})</span>
+                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "0.85em" }}>({getLetter(cIndex + 1)})</span>
                           {clause.text}
                         </p>
                         

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   divisionIdFromRouteSlug,
   divisionIdFromSubdomain,
@@ -139,16 +139,12 @@ export function HolonetNav() {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [access, setAccess] = useState(readInitialAccess);
   const [hostname, setHostname] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchParams = useSearchParams();
   const pathname = usePathname();
   const activePage = currentPageKey(pathname);
   const divisionContext = currentDivisionContext(pathname, hostname);
   
-  useEffect(() => {
-    setSearchQuery(window.location.search);
-  }, [pathname]);
-
-  const isStatuteReader = activePage === "codex" && pathname.includes("/statutes") && searchQuery.includes("id=");
+  const isStatuteReader = activePage === "codex" && pathname.includes("/statutes") && searchParams?.has("id");
   const showDivisionReturn = (divisionContext && !["home", "info"].includes(divisionContext.section)) || isStatuteReader;
   const returnHref = isStatuteReader ? "/codex/statutes" : (divisionContext?.base || "/");
   const centerLinks = [

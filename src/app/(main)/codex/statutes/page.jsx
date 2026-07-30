@@ -232,7 +232,7 @@ function StatutesPageContent() {
             grid-template-columns: 1fr;
           }
         }
-        .contents-link { text-transform: uppercase; transition: color 0.2s ease, text-shadow 0.2s ease; }
+        .contents-link { transition: color 0.2s ease, text-shadow 0.2s ease; }
         .contents-link:hover { color: var(--red-bright); text-shadow: 0 0 5px var(--red-glow); }
       `}</style>
       
@@ -280,7 +280,7 @@ function StatutesPageContent() {
                     {section.clauses?.map((clause, cIndex) => (
                       <div key={clause.id || cIndex} className="regulation" style={{ marginBottom: "1.5rem" }}>
                         <p className="reg-text">
-                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "0.85em" }}>({getLetter(cIndex + 1)})</span>
+                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "0.85em", color: "inherit" }}>({getLetter(cIndex + 1)})</span>
                           {clause.text}
                         </p>
                         
@@ -289,7 +289,7 @@ function StatutesPageContent() {
                             {clause.subClauses.map((subClause, scIndex) => (
                               <div key={subClause.id || scIndex} className="sub-clause" style={{ marginBottom: "1rem" }}>
                                 <p className="reg-text">
-                                  <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "0.85em" }}>{scIndex + 1}.</span>
+                                  <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "0.85em", color: "inherit" }}>{scIndex + 1}.</span>
                                   {subClause.text}
                                 </p>
 
@@ -298,7 +298,7 @@ function StatutesPageContent() {
                                     {subClause.subSubClauses.map((subSubClause, sscIndex) => (
                                       <div key={subSubClause.id || sscIndex} className="sub-clause" style={{ marginBottom: "0.5rem" }}>
                                         <p className="reg-text">
-                                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "0.85em" }}>{getRomanNumeral(sscIndex + 1).toLowerCase()}.</span>
+                                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "0.85em", color: "inherit" }}>{getRomanNumeral(sscIndex + 1).toLowerCase()}.</span>
                                           {subSubClause.text}
                                         </p>
                                       </div>

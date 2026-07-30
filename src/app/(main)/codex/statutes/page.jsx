@@ -156,7 +156,7 @@ function StatutesPageContent() {
         window.initHolonetSearch?.();
       }, 100);
     }
-  }, [statutes, loading, editingStatute, isCreating]);
+  }, [statutes, loading, editingStatute, isCreating, viewingStatute]);
 
   const renderStatuteGridCard = (statute, isDraft, index) => (
     <div 
@@ -180,7 +180,7 @@ function StatutesPageContent() {
       
       <span className="card-category">Archive ID &mdash; {statute.id.split('-')[0].toUpperCase()}</span>
       <h2 className="card-title">{statute.title}</h2>
-      <p className="card-desc">Read Statute.</p>
+      <p className="card-desc">{statute.summary || "Read Statute."}</p>
 
       {canEdit && (
         <div style={{ marginTop: "auto", display: "flex", gap: "1rem", position: "relative", zIndex: 10, paddingTop: "1.5rem" }}>
@@ -231,14 +231,21 @@ function StatutesPageContent() {
         <div className="codex-shell" style={{ display: "block" }}>
           <div className="codex-document" data-library-document="codex">
             <div className="codex-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <button 
-                type="button" 
-                className="back-btn"
-                style={{ background: "transparent", border: "none", color: "var(--theme-color)", fontFamily: "Orbitron, monospace", fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}
-                onClick={() => router.push(pathname)}
+              <a 
+                href="#"
+                className="nav-link account-link"
+                style={{ display: "inline-flex", width: "fit-content", textDecoration: "none", margin: 0 }}
+                onClick={(e) => { e.preventDefault(); router.push(pathname); }}
               >
-                &larr; BACK TO ARCHIVES
-              </button>
+                <div className="account-text"><span className="nav-link-label">Return</span></div>
+                <div className="account-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m12 19-7-7 7-7" />
+                    <path d="M19 12H5" />
+                  </svg>
+                </div>
+                <div className="nav-link-corners" aria-hidden="true" />
+              </a>
               {canEdit && (
                 <button type="button" className="hub-write-btn" onClick={() => setEditingStatute(viewingStatute)}>EDIT STATUTE</button>
               )}
@@ -254,23 +261,29 @@ function StatutesPageContent() {
                   
                   <div className="article-content">
                     {section.clauses?.map((clause, cIndex) => (
-                      <div key={clause.id || cIndex} className="regulation">
-                        <h3 className="reg-title">REGULATION {getLetter(cIndex + 1).toUpperCase()}</h3>
-                        <p className="reg-text">{clause.text}</p>
+                      <div key={clause.id || cIndex} className="regulation" style={{ marginBottom: "1.5rem" }}>
+                        <p className="reg-text">
+                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem" }}>({getLetter(cIndex + 1)})</span>
+                          {clause.text}
+                        </p>
                         
                         {clause.subClauses?.length > 0 && (
-                          <div style={{ marginTop: "1rem" }}>
+                          <div style={{ marginTop: "1rem", paddingLeft: "1.5rem" }}>
                             {clause.subClauses.map((subClause, scIndex) => (
-                              <div key={subClause.id || scIndex} className="sub-clause">
-                                <span className="sub-marker">Sub-Section {toRoman ? toRoman(scIndex + 1) : getRomanNumeral(scIndex + 1)}</span>
-                                <p className="reg-text">{subClause.text}</p>
+                              <div key={subClause.id || scIndex} className="sub-clause" style={{ marginBottom: "1rem" }}>
+                                <p className="reg-text">
+                                  <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem" }}>{scIndex + 1}.</span>
+                                  {subClause.text}
+                                </p>
 
                                 {subClause.subSubClauses?.length > 0 && (
-                                  <div style={{ paddingLeft: "1.5rem", marginTop: "0.5rem", borderLeft: "1px solid rgba(255,255,255,0.1)" }}>
+                                  <div style={{ paddingLeft: "1.5rem", marginTop: "0.5rem" }}>
                                     {subClause.subSubClauses.map((subSubClause, sscIndex) => (
-                                      <div key={subSubClause.id || sscIndex} className="sub-clause" style={{ marginTop: "0.5rem" }}>
-                                        <span className="sub-marker" style={{ fontSize: "0.7rem", opacity: 0.7 }}>Provision {getRomanNumeral(sscIndex + 1).toLowerCase()}</span>
-                                        <p className="reg-text" style={{ fontSize: "0.85rem", opacity: 0.9 }}>{subSubClause.text}</p>
+                                      <div key={subSubClause.id || sscIndex} className="sub-clause" style={{ marginBottom: "0.5rem" }}>
+                                        <p className="reg-text">
+                                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem" }}>{getRomanNumeral(sscIndex + 1).toLowerCase()}.</span>
+                                          {subSubClause.text}
+                                        </p>
                                       </div>
                                     ))}
                                   </div>

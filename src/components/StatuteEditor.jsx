@@ -25,6 +25,7 @@ function getLetter(num) {
 
 export function StatuteEditor({ initialData, onSave, onCancel, onDelete }) {
   const [title, setTitle] = useState(initialData?.title || "");
+  const [summary, setSummary] = useState(initialData?.summary || "");
   const [sections, setSections] = useState(initialData?.sections || []);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -118,7 +119,7 @@ export function StatuteEditor({ initialData, onSave, onCancel, onDelete }) {
       return;
     }
     setIsSaving(true);
-    await onSave({ title, sections });
+    await onSave({ title, summary, sections });
     setIsSaving(false);
   };
 
@@ -143,6 +144,17 @@ export function StatuteEditor({ initialData, onSave, onCancel, onDelete }) {
               onChange={(e) => setTitle(e.target.value.toUpperCase())} 
               placeholder="e.g. THE TREASON ACT"
               required 
+            />
+          </div>
+
+          <div className="resource-editor-field">
+            <label>Short Summary</label>
+            <textarea 
+              name="summary" 
+              value={summary} 
+              onChange={(e) => setSummary(e.target.value)} 
+              placeholder="A brief description of what this statute covers... (shown on the grid card)"
+              rows={2}
             />
           </div>
 
@@ -203,19 +215,19 @@ export function StatuteEditor({ initialData, onSave, onCancel, onDelete }) {
                               {subClause.subSubClauses?.map((subSubClause, sscIndex) => (
                                 <div key={subSubClause.id} className="resource-editor-field" style={{ marginBottom: 0 }}>
                                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                                    <label>Sub-Sub-Clause {getRomanNumeral(sscIndex + 1).toLowerCase()}.</label>
+                                    <label>Provision {getRomanNumeral(sscIndex + 1).toLowerCase()}.</label>
                                     <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)", opacity: 0.7 }} onClick={() => removeSubSubClause(sIndex, cIndex, scIndex, sscIndex)}>Remove</button>
                                   </div>
                                   <textarea 
                                     value={subSubClause.text} 
                                     onChange={(e) => updateSubSubClause(sIndex, cIndex, scIndex, sscIndex, e.target.value)} 
-                                    placeholder="Sub-sub-clause text..." 
+                                    placeholder="Provision text..." 
                                     required 
                                     rows={2}
                                   />
                                 </div>
                               ))}
-                              <button type="button" className="library-inline-btn" onClick={() => addSubSubClause(sIndex, cIndex, scIndex)}>+ ADD SUB-SUB-CLAUSE</button>
+                              <button type="button" className="library-inline-btn" onClick={() => addSubSubClause(sIndex, cIndex, scIndex)}>+ ADD PROVISION</button>
                             </div>
                           </div>
                         ))}

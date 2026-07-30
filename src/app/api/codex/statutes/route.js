@@ -91,7 +91,7 @@ const handler = async (req, res) => {
     }
 
     if (method === "POST") {
-      const { title, sections, is_published } = req.body;
+      const { title, summary, sections, is_published } = req.body;
       if (!title) return res.status(400).json({ ok: false, error: "Title is required" });
 
       const newStatute = await supabaseRest("codex_statutes", {
@@ -99,6 +99,7 @@ const handler = async (req, res) => {
         headers: { Prefer: "return=representation" },
         body: JSON.stringify({
           title,
+          summary: summary || "",
           sections: sections || [],
           is_published: !!is_published,
           created_by: auth.profile.robloxUsername,
@@ -114,7 +115,7 @@ const handler = async (req, res) => {
     }
 
     if (method === "PUT") {
-      const { id, title, sections, is_published } = req.body;
+      const { id, title, summary, sections, is_published } = req.body;
       if (!id) return res.status(400).json({ ok: false, error: "ID is required" });
 
       // If we are publishing, we want to know if it wasn't already published
@@ -128,6 +129,7 @@ const handler = async (req, res) => {
 
       const bodyData = {
         title,
+        summary: summary || "",
         sections: sections || [],
         updated_at: new Date().toISOString(),
         updated_by: auth.profile.robloxUsername

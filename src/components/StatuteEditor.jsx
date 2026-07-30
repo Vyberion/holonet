@@ -23,7 +23,7 @@ function getLetter(num) {
   return String.fromCharCode(96 + num); // 1 = a, 2 = b, 3 = c
 }
 
-export function StatuteEditor({ initialData, onSave, onCancel }) {
+export function StatuteEditor({ initialData, onSave, onCancel, onDelete }) {
   const [title, setTitle] = useState(initialData?.title || "");
   const [sections, setSections] = useState(initialData?.sections || []);
   const [isSaving, setIsSaving] = useState(false);
@@ -231,6 +231,9 @@ export function StatuteEditor({ initialData, onSave, onCancel }) {
 
           <div className="library-editor-buttons">
             <button type="button" className="library-inline-btn" onClick={addSection}>ADD SECTION</button>
+            {initialData?.id && onDelete && (
+              <button type="button" className="library-inline-btn danger" onClick={() => onDelete(initialData.id)}>DELETE STATUTE</button>
+            )}
           </div>
 
         </form>

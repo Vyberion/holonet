@@ -151,6 +151,25 @@ function StatutesPageContent() {
     }
   };
 
+  const unpublishStatute = async (statute) => {
+    if (!confirm(`Are you sure you want to unpublish "${statute.title}"? This will revert it to a draft state.`)) return;
+    try {
+      const res = await fetch("/api/codex/statutes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...statute, is_published: false })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        fetchStatutes();
+      } else {
+        alert("Failed to unpublish statute: " + data.error);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     if (!loading && !editingStatute && !isCreating) {
       setTimeout(() => {
@@ -213,6 +232,8 @@ function StatutesPageContent() {
             grid-template-columns: 1fr;
           }
         }
+        .contents-link { text-transform: uppercase; transition: color 0.2s ease, text-shadow 0.2s ease; }
+        .contents-link:hover { color: var(--red-bright); text-shadow: 0 0 5px var(--red-glow); }
       `}</style>
       
       {viewingStatute ? (
@@ -237,8 +258,10 @@ function StatutesPageContent() {
             <div className="codex-toolbar" style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
               {canEdit && (
                 <div style={{ display: "flex", gap: "1rem" }}>
-                  {viewingStatute.is_published === false && (
+                  {viewingStatute.is_published === false ? (
                     <button type="button" className="hub-write-btn" onClick={() => publishStatute(viewingStatute)}>PUBLISH</button>
+                  ) : (
+                    <button type="button" className="hub-write-btn" onClick={() => unpublishStatute(viewingStatute)}>UNPUBLISH</button>
                   )}
                   <button type="button" className="hub-write-btn" onClick={() => setEditingStatute(viewingStatute)}>EDIT STATUTE</button>
                 </div>
@@ -266,7 +289,7 @@ function StatutesPageContent() {
                             {clause.subClauses.map((subClause, scIndex) => (
                               <div key={subClause.id || scIndex} className="sub-clause" style={{ marginBottom: "1rem" }}>
                                 <p className="reg-text">
-                                  <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "inherit" }}>{scIndex + 1}.</span>
+                                  <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "0.85em" }}>{scIndex + 1}.</span>
                                   {subClause.text}
                                 </p>
 
@@ -275,7 +298,7 @@ function StatutesPageContent() {
                                     {subClause.subSubClauses.map((subSubClause, sscIndex) => (
                                       <div key={subSubClause.id || sscIndex} className="sub-clause" style={{ marginBottom: "0.5rem" }}>
                                         <p className="reg-text">
-                                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "inherit" }}>{getRomanNumeral(sscIndex + 1).toLowerCase()}.</span>
+                                          <span className="reg-title" style={{ textTransform: "none", display: "inline", margin: 0, marginRight: "0.5rem", fontSize: "0.85em" }}>{getRomanNumeral(sscIndex + 1).toLowerCase()}.</span>
                                           {subSubClause.text}
                                         </p>
                                       </div>

@@ -45,7 +45,7 @@ export function StatuteEditor({ initialData, onSave, onCancel, onDelete }) {
 
   const updateSection = (sIndex, text) => {
     const newSections = [...sections];
-    newSections[sIndex].text = text.toUpperCase();
+    newSections[sIndex].text = text;
     setSections(newSections);
   };
 
@@ -141,8 +141,8 @@ export function StatuteEditor({ initialData, onSave, onCancel, onDelete }) {
             <input 
               name="title" 
               value={title} 
-              onChange={(e) => setTitle(e.target.value.toUpperCase())} 
-              placeholder="e.g. THE TREASON ACT"
+              onChange={(e) => setTitle(e.target.value)} 
+              placeholder="e.g. The Treason Act"
               required 
             />
           </div>

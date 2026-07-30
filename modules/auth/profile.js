@@ -3,6 +3,7 @@ import { ROBLOX_GROUPS, SUPER_USER_IDS } from "./roblox-groups.js";
 const DIVISION_TIERS = ["none", "member", "nco", "co", "2ic", "1ic", "overseer"];
 const HIGH_RANK_TIERS = ["none", "lower", "upper", "overseer"];
 const DARK_COUNCIL_DIVISION_OVERSEERS = {
+  highRankOverseer: "highranks",
   darkHonorGuardOverseer: "dhg",
   reaverOverseer: "reavers",
   dreadMasterOverseer: "dreadmasters",

@@ -20,7 +20,8 @@ module.exports = {
         PORT: port,
         HOSTNAME: hostname,
         HOLONET_DEPLOY_BRANCH: "main"
-      }
+      },
+      env_file: ".env.local"
     }
   ]
 };

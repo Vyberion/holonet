@@ -114,6 +114,7 @@ function StatutesPageContent() {
   };
 
   const deleteStatute = async (id) => {
+    if (!confirm("Are you sure you want to delete this statute? This action cannot be undone.")) return;
     try {
       const res = await fetch(`/api/codex/statutes?id=${id}`, { method: "DELETE" });
       const data = await res.json();

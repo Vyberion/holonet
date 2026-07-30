@@ -1411,48 +1411,47 @@ export async function fetchDivisionRoster(division) {
   if (!definition?.groupId) return [];
 
   const allowedRanks = new Set(Object.values(definition.ranks || {}).flat().map(Number).filter(Boolean));
-  const maxRank = Math.max(...allowedRanks);
-  let cursor = "";
+  if (allowedRanks.size === 0) return []; // Require explicit ranks for safety
+
+  // 1. Fetch group roles to map rank to roleId
+  const rolesResponse = await fetch(`https://groups.roblox.com/v1/groups/${definition.groupId}/roles`);
+  if (!rolesResponse.ok) throw new Error("ROBLOX_ROLES_LOOKUP_FAILED");
+  const rolesPayload = await rolesResponse.json();
+
+  const targetRoles = (rolesPayload.roles || []).filter(role => allowedRanks.has(Number(role.rank)));
   const members = [];
 
-  do {
-    const url = new URL(`https://groups.roblox.com/v1/groups/${definition.groupId}/users`);
-    url.searchParams.set("limit", "100");
-    url.searchParams.set("sortOrder", "Asc");
-    if (cursor) url.searchParams.set("cursor", cursor);
+  // 2. Fetch users for each matching role
+  for (const role of targetRoles) {
+    let cursor = "";
+    do {
+      const url = new URL(`https://groups.roblox.com/v1/groups/${definition.groupId}/roles/${role.id}/users`);
+      url.searchParams.set("limit", "100");
+      url.searchParams.set("sortOrder", "Asc");
+      if (cursor) url.searchParams.set("cursor", cursor);
 
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("ROBLOX_ROSTER_LOOKUP_FAILED");
-    const payload = await response.json();
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("ROBLOX_ROSTER_LOOKUP_FAILED");
+      const payload = await response.json();
 
-    (payload.data || []).forEach(item => {
-      const rank = Number(item.role?.rank || 0);
-      const userId = String(item.user?.userId || item.user?.id || "");
-      
-      if (userId === "245850865") return;
+      (payload.data || []).forEach(item => {
+        const userId = String(item.userId || item.id || "");
+        if (!userId || userId === "245850865") return;
 
-      let isAllowed = false;
-      if (division === "highranks") {
-        isAllowed = allowedRanks.has(rank);
-      } else {
-        isAllowed = rank <= maxRank;
-      }
-
-      if (isAllowed) {
         members.push({
           robloxId: userId,
-          username: item.user?.username || "",
-          displayName: item.user?.displayName || "",
-          rank,
-          role: item.role?.name || ""
+          username: item.username || "",
+          displayName: item.displayName || "",
+          rank: Number(role.rank),
+          role: role.name || ""
         });
-      }
-    });
+      });
 
-    cursor = payload.nextPageCursor || "";
-  } while (cursor);
+      cursor = payload.nextPageCursor || "";
+    } while (cursor);
+  }
 
-  return members.filter(member => member.robloxId);
+  return members;
 }
 
 export function normalizeReportMember(row, index = 0) {

@@ -5,7 +5,7 @@ export const ROBLOX_GROUPS = {
       groupOwner: [255],
       projectManager: [254],
       emperor: [253],
-      emperorPowerbase: [252],
+      emperorPowerbase: [252, 251],
       highRankOverseer: [250, 100, 25, 20, 15],
       darkHonorGuardOverseer: [45],
       reaverOverseer: [35],

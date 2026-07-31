@@ -76,7 +76,7 @@ function StatutesPageContent({ initialSlug }) {
 
         const hasDraftViewAccess = hasAccess || 
                                    Object.values(profile?.authorityRoles || {}).some(Boolean) ||
-                                   (profile?.divisions?.dark_council && profile.divisions.dark_council !== "none");
+                                   (profile?.divisions?.darkCouncil && profile.divisions.darkCouncil !== "none");
         setCanViewDrafts(!!hasDraftViewAccess);
       }
     } catch (err) {

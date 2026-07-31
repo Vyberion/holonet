@@ -7,7 +7,24 @@ const handler = async (req, res) => {
     const { method } = req;
 
     if (method === "GET") {
-      const statutes = await supabaseRest("codex_statutes?select=*&order=created_at.asc");
+      const auth = await getAuthContext(req);
+      let canViewDrafts = false;
+      if (auth.authenticated) {
+        const profile = auth.profile;
+        canViewDrafts = Boolean(
+          profile?.isSuperUser || 
+          profile?.hasFullAccess || 
+          Object.values(profile?.authorityRoles || {}).some(Boolean) ||
+          (profile?.divisions?.dark_council && profile.divisions.dark_council !== "none")
+        );
+      }
+
+      let query = "codex_statutes?select=*&order=created_at.asc";
+      if (!canViewDrafts) {
+        query += "&is_published=eq.true";
+      }
+
+      const statutes = await supabaseRest(query);
       return res.status(200).json({ ok: true, data: statutes || [] });
     }
 

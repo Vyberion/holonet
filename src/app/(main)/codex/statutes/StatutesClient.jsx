@@ -49,6 +49,7 @@ function StatutesPageContent({ initialSlug }) {
   const [statutes, setStatutes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
+  const [canViewDrafts, setCanViewDrafts] = useState(false);
   
   const [editingStatute, setEditingStatute] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -72,6 +73,11 @@ function StatutesPageContent({ initialSlug }) {
                           profile?.authorityRoles?.groupOwner || 
                           profile?.authorityRoles?.projectManager;
         setCanEdit(!!hasAccess);
+
+        const hasDraftViewAccess = hasAccess || 
+                                   Object.values(profile?.authorityRoles || {}).some(Boolean) ||
+                                   (profile?.divisions?.dark_council && profile.divisions.dark_council !== "none");
+        setCanViewDrafts(!!hasDraftViewAccess);
       }
     } catch (err) {
       console.error(err);
@@ -239,7 +245,7 @@ function StatutesPageContent({ initialSlug }) {
       
       {viewingStatute ? (
         // READER MODE
-        <div className="codex-shell" style={{ display: "flex", gap: "2rem" }}>
+        <div className="codex-shell">
           <aside className="codex-contents">
             <div className="codex-contents-panel">
               <div className="codex-contents-header">
@@ -334,11 +340,13 @@ function StatutesPageContent({ initialSlug }) {
               </div>
             ) : (
               <div className="statutes-list-container">
-                {canEdit && (
+                {canViewDrafts && (
                   <>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: "1rem", marginBottom: "2rem" }}>
                       <h2 id="drafts" className="codex-section-title" style={{ fontFamily: "Orbitron, monospace", color: "var(--red-bright)", fontSize: "1.2rem", letterSpacing: "0.2em", margin: 0, borderBottom: "none", paddingBottom: 0 }}>DRAFTS</h2>
-                      <button type="button" className="hub-write-btn" onClick={() => setIsCreating(true)}>WRITE STATUTE</button>
+                      {canEdit && (
+                        <button type="button" className="hub-write-btn" onClick={() => setIsCreating(true)}>WRITE STATUTE</button>
+                      )}
                     </div>
                     {statutes.filter(s => !s.is_published).length > 0 ? (
                       <div className="statutes-grid-layout" style={{ marginBottom: "4rem" }}>
@@ -350,7 +358,7 @@ function StatutesPageContent({ initialSlug }) {
                   </>
                 )}
 
-                {canEdit && statutes.filter(s => s.is_published).length > 0 && (
+                {canViewDrafts && statutes.filter(s => s.is_published).length > 0 && (
                   <h2 id="published" className="codex-section-title" style={{ fontFamily: "Orbitron, monospace", color: "var(--red-bright)", fontSize: "1.2rem", letterSpacing: "0.2em", borderBottom: "1px solid var(--border)", paddingBottom: "1rem", marginBottom: "2rem", marginTop: statutes.filter(s => !s.is_published).length > 0 ? "0" : "0" }}>PUBLISHED</h2>
                 )}
 

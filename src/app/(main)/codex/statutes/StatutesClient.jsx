@@ -254,7 +254,7 @@ function StatutesPageContent({ initialSlug }) {
               <div className="codex-contents-list">
                 {viewingStatute.sections?.map((section, sIndex) => (
                   <div key={section.id || sIndex} className="contents-article">
-                    <a className="contents-link" href={`#section-${sIndex}`}>{section.text || `SECTION ${getRomanNumeral(sIndex + 1)}`}</a>
+                    <a className="contents-link" href={`#section-${sIndex}`}>{`${String(sIndex + 1).padStart(2, '0')} | ${section.text || `SECTION ${getRomanNumeral(sIndex + 1)}`}`}</a>
                   </div>
                 ))}
               </div>

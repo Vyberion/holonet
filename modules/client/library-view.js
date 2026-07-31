@@ -111,10 +111,11 @@ function renderArchiveArticle(article, canEdit, index) {
 function renderContentsItem(documentData, index, archiveMode) {
   const articleAnchor = escapeHtml(articleNumberAnchor(documentData.articleNumber, index + 1));
   const title = escapeHtml(documentData.title || (archiveMode ? `Archive ${index + 1}` : `Article ${index + 1}`));
+  const formattedIndex = String(index + 1).padStart(2, '0');
 
   return `
     <div class="contents-article">
-      <a class="contents-link" href="#${articleAnchor}">${title}</a>
+      <a class="contents-link" href="#${articleAnchor}">${formattedIndex} | ${title}</a>
     </div>
   `;
 }

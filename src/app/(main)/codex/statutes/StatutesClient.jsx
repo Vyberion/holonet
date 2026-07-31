@@ -215,7 +215,7 @@ function StatutesPageContent({ initialSlug }) {
   };
 
   return (
-    <HolonetFrame title="STATUTES" subtitle="LEGISLATIVE ARCHIVE" includeSearchOverlay>
+    <HolonetFrame title={viewingStatute ? viewingStatute.title.toUpperCase() : "STATUTES"} subtitle="LEGISLATIVE ARCHIVE" includeSearchOverlay>
       <style>{`
         .back-btn:hover { color: var(--red-bright) !important; text-shadow: 0 0 5px var(--red-glow); }
         .statutes-grid-layout {

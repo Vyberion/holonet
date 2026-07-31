@@ -320,6 +320,7 @@ async function doClockIn(interaction, options = {}) {
   await postActivityLog(interaction.client, {
     title: "Clock In",
     description: `<@${interaction.user.id}> clocked in${shift.late ? " late" : ""}.`,
+    channelKey: shift.scope === "darkCouncil" ? "highCommandLog" : "activityLog",
     fields: [
       { name: "Scope", value: scopeLabel(shift.scope), inline: true },
       shift.late ? { name: "Late", value: `${shift.late_minutes || 0} minute(s)`, inline: true } : null
@@ -334,6 +335,7 @@ async function doClockOut(interaction, options = {}) {
   await postActivityLog(interaction.client, {
     title: "Clock Out",
     description: `<@${interaction.user.id}> clocked out${shift.clockout_late ? " late" : ""}.`,
+    channelKey: shift.scope === "darkCouncil" ? "highCommandLog" : "activityLog",
     fields: [
       { name: "Scope", value: scopeLabel(shift.scope), inline: true },
       { name: "Duration", value: formatDuration(total), inline: true },
@@ -550,6 +552,7 @@ export async function handleModal(interaction) {
         await postActivityLog(interaction.client, {
           title: action === "add" ? "Time Added" : "Time Removed",
           description: `<@${interaction.user.id}> ${action === "add" ? "added time to" : "removed time from"} ${targetId === interaction.user.id ? "their own shift" : `<@${targetId}>'s shift`}.`,
+          channelKey: shift.scope === "darkCouncil" ? "highCommandLog" : "activityLog",
           fields: [
             { name: "Scope", value: scopeLabel(shift.scope), inline: true },
             { name: "Amount", value: formatDuration(minutes * 60), inline: true },

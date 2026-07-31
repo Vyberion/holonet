@@ -262,6 +262,7 @@ const HIERARCHY_GROUPS = [
     id: "dark-council",
     title: "Dark Council",
     section: "DARK COUNCIL",
+    maxPathRowCards: 3,
     items: [
       {
         slug: "hro",
@@ -269,7 +270,6 @@ const HIERARCHY_GROUPS = [
         body: "The High Rank Overseer represents the Dark Council's authority over the high ranks.",
         category: "High Rank Overseer",
         path: "High Rank Overseer",
-        pathOwnRow: true,
         active: true
       },
       {
@@ -278,7 +278,6 @@ const HIERARCHY_GROUPS = [
         body: "The Guard Overseer directs the Dark Honor Guard on behalf of the Dark Council.",
         category: "Guard Overseer",
         path: "Guard Overseer",
-        pathOwnRow: true,
         active: false
       },
       {
@@ -287,7 +286,6 @@ const HIERARCHY_GROUPS = [
         body: "The Reaver Overseer exercises supreme authority over the Reavers on behalf of the Dark Council.",
         category: "Reaver Overseer",
         path: "Reaver Overseer",
-        pathOwnRow: true,
         active: true
       },
       {
@@ -296,16 +294,14 @@ const HIERARCHY_GROUPS = [
         body: "The Inquisitor Overseer directs the Inquisitorius on behalf of the Dark Council.",
         category: "Inquisitor Overseer",
         path: "Inquisitor Overseer",
-        pathOwnRow: true,
         active: false
       },
       {
         slug: "dmo",
-        name: "Darth Nox",
-        body: "The Dread Master Overseer directs the Dread Masters on behalf of the Dark Council.",
-        category: "Dread Master Overseer",
-        path: "Dread Master Overseer",
-        pathOwnRow: true,
+        name: "Darth Xedrix",
+        body: "The Dread Overseer commands the Dread Masters on behalf of the Dark Council.",
+        category: "Dread Overseer",
+        path: "Dread Overseer",
         active: false
       },
       {
@@ -314,7 +310,6 @@ const HIERARCHY_GROUPS = [
         body: "The Warmaster commands military direction in the form of combat training, raids and receives Kaggath submissions on behalf of the Dark Council.",
         category: "Warmaster",
         path: "Warmaster",
-        pathOwnRow: true,
         active: true
       }
     ]
@@ -357,7 +352,9 @@ const HIERARCHY_GROUPS = [
         body: "",
         category: "Servant One",
         path: "The Emperor's Powerbase",
-        classified: true
+        classified: true,
+        active: false,
+        routable: false
       }
     ]
   },
@@ -371,56 +368,64 @@ const HIERARCHY_GROUPS = [
         name: "Manar",
         body: "Group Owner.",
         category: "Group Owner",
-        path: "Group Owner"
+        path: "Group Owner",
+        active: false
       },
       {
         slug: "project-manager",
         name: "Rdn",
         body: "Project Manager.",
         category: "Project Manager",
-        path: "Project Manager"
+        path: "Project Manager",
+        active: false
       },
       {
         slug: "athli0s_aktuun",
         name: "Athlios",
         body: "Sith Architect.",
         category: "Athli0s Aktuun",
-        path: "Sith Architect"
+        path: "Sith Architect",
+        active: false
       },
       {
         slug: "gawk_aktuun",
         name: "Gawk",
         body: "Sith Architect.",
         category: "Gawk Aktuun",
-        path: "Sith Architect"
+        path: "Sith Architect",
+        active: false
       },
       {
         slug: "blueakuji",
         name: "Blue",
         body: "Sith Architect.",
         category: "BlueAkuji",
-        path: "Sith Architect"
+        path: "Sith Architect",
+        active: false
       },
       {
         slug: "naktisterminus",
         name: "Naktis",
         body: "Fallen Advisor.",
         category: "Naktisterminus",
-        path: "Fallen Advisors"
+        path: "Fallen Advisors",
+        active: false
       },
       {
         slug: "terrabiome",
         name: "Terra",
         body: "Fallen Advisor.",
         category: "Terrabiome",
-        path: "Fallen Advisors"
+        path: "Fallen Advisors",
+        active: false
       },
       {
         slug: "tranom_x",
         name: "Tranom",
         body: "Fallen Advisor.",
         category: "Tranom X",
-        path: "Fallen Advisors"
+        path: "Fallen Advisors",
+        active: false
       }
     ]
   }

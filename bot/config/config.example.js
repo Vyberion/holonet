@@ -13,6 +13,7 @@ export default {
   },
   channels: {
     activityLog: "1455303713701757138",
+    highCommandLog: "1452731886148255755",
     verificationLog: "1046540786260512778",
     announcements: {
       holonet: "CHANNEL_ID",

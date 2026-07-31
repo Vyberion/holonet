@@ -390,7 +390,7 @@
   gap: 8px;
   overflow: auto;
   max-height: calc(100vh - 200px);
-  padding-inline: 8px;
+  padding-right: 8px;
 }
 
 .contents-article {
@@ -442,7 +442,7 @@
   .codex-contents-list {
     max-height: min(230px, 32vh);
     overscroll-behavior: contain;
-    padding-inline: 6px;
+    padding-right: 6px;
   }
 
   .codex-document {

@@ -83,7 +83,8 @@ function emperorPathTitle(value) {
     37: "The Thirty-Seventh",
     38: "The Thirty-Eighth",
     39: "The Thirty-Ninth",
-    40: "The Quadragennial"
+    40: "The Quadragennial",
+    41: "The Forty-First"
   }[value] || `The ${ordinal(value)}`;
 }
 
@@ -151,7 +152,7 @@ const HIERARCHY_GROUPS = [
       {
         slug: "sith-apprentice",
         name: "Sith Apprentice",
-        body: "Sith Prospects must attend and pass any event as well as pass their Apprentice trial.\n\nTo retake a failed Apprentice Trial, Prospects must attend and pass a Conscript training, or an event related to the section failed during the initial trial.",
+        body: "Sith Prospects must attend and pass any event as well as pass their Apprentice trial.\n\nTo retake a failed Apprentice Trial, Prospects must attend and pass a Conscript training.",
         category: "Mid Rank"
       },
       {
@@ -269,7 +270,7 @@ const HIERARCHY_GROUPS = [
         category: "High Rank Overseer",
         path: "High Rank Overseer",
         pathOwnRow: true,
-        active: false
+        active: true
       },
       {
         slug: "dhgo",
@@ -283,11 +284,11 @@ const HIERARCHY_GROUPS = [
       {
         slug: "rvro",
         name: "Darth Baras",
-        body: "The Reaver Overseer directs the Reavers on behalf of the Dark Council.",
+        body: "The Reaver Overseer exercises supreme authority over the Reavers on behalf of the Dark Council.",
         category: "Reaver Overseer",
         path: "Reaver Overseer",
         pathOwnRow: true,
-        active: false
+        active: true
       },
       {
         slug: "iqo",
@@ -310,11 +311,11 @@ const HIERARCHY_GROUPS = [
       {
         slug: "wm",
         name: "Warmaster",
-        body: "The Warmaster commands military direction for the Dark Council.",
+        body: "The Warmaster commands military direction in the form of combat training, raids and receives Kaggath submissions on behalf of the Dark Council.",
         category: "Warmaster",
         path: "Warmaster",
         pathOwnRow: true,
-        active: false
+        active: true
       }
     ]
   },
@@ -327,10 +328,10 @@ const HIERARCHY_GROUPS = [
         slug: CURRENT_EMPEROR_SLUG,
         href: `/emperors/${CURRENT_EMPEROR_SLUG}`,
         image: CURRENT_EMPEROR_MORPH_IMAGE,
-        name: "Torreto the Tyrant",
+        name: "Vyberon the Unrivalled",
         body: "PENDING.",
-        category: "The Quadragennial",
-        path: "The Quadragennial",
+        category: "The Forty-First",
+        path: "The Forty-First",
         pathOwnRow: true,
         routable: false
       },
@@ -339,14 +340,16 @@ const HIERARCHY_GROUPS = [
         name: "The Emperor's Voice",
         body: "The Emperor's Voice carries the will of the Emperor and speaks with the authority of the throne.",
         category: "The Emperor's Voice",
-        path: "The Emperor's Powerbase"
+        path: "The Emperor's Powerbase",
+        active: false
       },
       {
         slug: "the_wrath",
         name: "The Emperor's Wrath",
         body: "The Emperor's Wrath serves as the blade of the throne and enforces the Emperor's command.",
         category: "The Emperor's Wrath",
-        path: "The Emperor's Powerbase"
+        path: "The Emperor's Powerbase",
+        active: false
       },
       {
         slug: "servant_one",
@@ -590,8 +593,11 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Torreto the Tyrant",
-    body: "TorretoTerminus is the fortieth Emperor of TSO and the twelfth under Manar_Aktuun. He is the first to secure a second term within this era.\n\nHis ongoing reign currently maintains a stable, albeit unremarkable, status quo. However, this stable era is marred by general discontent within the Order, largely fueled by his reputation for internal disputes.",
-    current: true
+    body: "TorretoTerminus is the fortieth Emperor of TSO and the twelfth under Manar_Aktuun. He is the first to secure a second term within this era.\n\nHis ongoing reign currently maintains a stable, albeit unremarkable, status quo. However, this stable era is marred by general discontent within the Order, largely fueled by his reputation for internal disputes."
+  },
+  {
+    name: "Vyberon the Unrivalled",
+    body: "PENDING."
   }
 ];
 

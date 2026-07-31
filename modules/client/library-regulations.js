@@ -223,7 +223,7 @@ function installContentsDockStyles() {
   style.textContent = `
     .codex-contents-list {
       padding-block: 8px;
-      padding-inline: 8px;
+      padding-right: 8px;
       overflow-x: hidden;
     }
 

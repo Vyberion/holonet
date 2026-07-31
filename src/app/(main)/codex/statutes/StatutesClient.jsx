@@ -256,17 +256,7 @@ function StatutesPageContent({ initialSlug }) {
           </aside>
           
           <div className="codex-document" data-library-document="codex">
-            <a href="/codex/statutes" className="back-btn" style={{ 
-                    color: "var(--text-dim)", 
-                    textDecoration: "none", 
-                    fontSize: "0.9rem", 
-                    letterSpacing: "0.1em",
-                    display: "inline-block",
-                    marginBottom: "1rem",
-                    fontFamily: "Orbitron, sans-serif"
-                  }}>
-                    &lt; RETURN TO STATUTES
-                  </a>
+
             <div className="codex-toolbar" style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
               {canEdit && (
                 <div style={{ display: "flex", gap: "1rem" }}>

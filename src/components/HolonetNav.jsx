@@ -145,7 +145,7 @@ export function HolonetNav() {
   const activePage = currentPageKey(pathname);
   const divisionContext = currentDivisionContext(pathname, hostname);
   
-  const isStatuteReader = activePage === "codex" && pathname.includes("/statutes") && searchParams?.has("id");
+  const isStatuteReader = activePage === "codex" && pathname.startsWith("/codex/statutes/") && pathname !== "/codex/statutes";
   const showDivisionReturn = (divisionContext && !["home", "info"].includes(divisionContext.section)) || isStatuteReader;
   const returnHref = isStatuteReader ? "/codex/statutes" : (divisionContext?.base || "/");
   const centerLinks = [

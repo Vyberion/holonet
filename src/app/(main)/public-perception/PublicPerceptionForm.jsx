@@ -5,17 +5,17 @@ import { useState } from "react";
 export function PublicPerceptionForm() {
   const [formData, setFormData] = useState({
     // Section 1
-    strictness: 5,
-    progression: 5,
-    eventQuality: 5,
-    scheduling: 5,
-    transparency: 5,
-    powerbaseSystem: 5,
-    divisionalBalance: 5,
-    overallCulture: 5,
+    strictness: "",
+    progression: "",
+    eventQuality: "",
+    scheduling: "",
+    transparency: "",
+    powerbaseSystem: "",
+    divisionalBalance: "",
+    overallCulture: "",
 
     // Section 2
-    sithExperience: 5,
+    sithExperience: "",
     sithEnjoyMost: "",
     sithDislikeMost: "",
     sithView: "",
@@ -26,11 +26,11 @@ export function PublicPerceptionForm() {
     favDepartment: "",
     leastFavDepartment: "",
     attendedInspections: false,
-    divisionalInspections: 5,
-    divisionalEvents: 5,
+    divisionalInspections: "",
+    divisionalEvents: "",
     isDivisionMember: false,
-    divisionalExperience: 5,
-    internalDivisionalEvents: 5,
+    divisionalExperience: "",
+    internalDivisionalEvents: "",
     section3Notes: "",
 
     // Section 4
@@ -54,6 +54,17 @@ export function PublicPerceptionForm() {
 
   const validateForm = () => {
     // Check mandatory fields
+    if (formData.strictness === "") return "Please rate the strictness of the Order (1.1).";
+    if (formData.progression === "") return "Please rate your satisfaction with progression (1.2).";
+    if (formData.eventQuality === "") return "Please rate the quality of events (1.3).";
+    if (formData.scheduling === "") return "Please rate the scheduling of events (1.4).";
+    if (formData.transparency === "") return "Please rate the transparency of leadership (1.5).";
+    if (formData.powerbaseSystem === "") return "Please rate the effectiveness of the Powerbase system (1.6).";
+    if (formData.divisionalBalance === "") return "Please rate the balance of the divisions (1.7).";
+    if (formData.overallCulture === "") return "Please rate the overall culture of the Order (1.8).";
+
+    if (formData.sithExperience === "") return "Please rate the overall Sith experience (2.1).";
+
     if (!formData.sithEnjoyMost.trim()) return "Please specify what you enjoy most about your time as a Sith (Section 2.2).";
     if (!formData.sithDislikeMost.trim()) return "Please specify what you dislike most about your time as a Sith (Section 2.3).";
 
@@ -64,6 +75,17 @@ export function PublicPerceptionForm() {
 
     if (!formData.favDepartment.trim()) return "Please specify your favourite department and why (Section 3.1).";
     if (!formData.leastFavDepartment.trim()) return "Please specify your least favourite department and why (Section 3.2).";
+
+    if (formData.attendedInspections && formData.divisionalInspections === "") {
+      return "Please rate the divisional inspections (3.3b).";
+    }
+
+    if (formData.divisionalEvents === "") return "Please rate divisional events in general (3.4).";
+
+    if (formData.isDivisionMember) {
+      if (formData.divisionalExperience === "") return "Please rate your divisional experience (3.6).";
+      if (formData.internalDivisionalEvents === "") return "Please rate divisional events (3.7).";
+    }
 
     return null;
   };
@@ -87,8 +109,13 @@ export function PublicPerceptionForm() {
         body: JSON.stringify(formData)
       });
 
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (e) {}
+
       if (!res.ok) {
-        throw new Error("Failed to submit form. Please try again later.");
+        throw new Error(data.error || "Failed to submit form. Please try again later.");
       }
 
       setSubmitted(true);
@@ -101,7 +128,7 @@ export function PublicPerceptionForm() {
 
   if (submitted) {
     return (
-      <div className="codex-shell">
+      <div className="codex-shell" style={{ display: "block" }}>
         <div className="codex-document" style={{ width: "100%", margin: "0 auto", padding: "2rem" }}>
           <article className="codex-article">
             <div className="article-header">
@@ -123,12 +150,19 @@ export function PublicPerceptionForm() {
       <label style={{ display: "block", marginBottom: "1rem", color: "var(--text-bright)", fontWeight: "bold" }}>
         {label} <span style={{ color: "var(--danger, #ff4444)" }}>*</span>
       </label>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "1.5rem" }}>
-        <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", textAlign: "right", paddingBottom: "3px" }}>{leftLabel || "Poor"}</span>
-        <div style={{ display: "flex", justifyContent: "space-between", flex: 1, maxWidth: "700px" }}>
+      
+      <div className="slider-mobile-labels">
+        <span>{leftLabel || "Poor"}</span>
+        <span>{rightLabel || "Excellent"}</span>
+      </div>
+
+      <div className="slider-container">
+        <span className="slider-label slider-label-left">{leftLabel || "Poor"}</span>
+        
+        <div className="slider-radios">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-            <div key={num} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.6rem" }}>
-              <label style={{ fontSize: "0.9rem", color: "var(--text)", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace" }} htmlFor={`${name}-${num}`}>
+            <div key={num} className="slider-radio-group">
+              <label className="slider-num-label" htmlFor={`${name}-${num}`}>
                 {num}
               </label>
               <input
@@ -143,7 +177,8 @@ export function PublicPerceptionForm() {
             </div>
           ))}
         </div>
-        <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", textAlign: "left", paddingBottom: "3px" }}>{rightLabel || "Excellent"}</span>
+        
+        <span className="slider-label slider-label-right">{rightLabel || "Excellent"}</span>
       </div>
     </div>
   );
@@ -299,6 +334,72 @@ export function PublicPerceptionForm() {
       </div>
 
       <style>{`
+        .slider-mobile-labels {
+          display: none;
+        }
+        .slider-container {
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          gap: 1.5rem;
+        }
+        .slider-radios {
+          display: flex;
+          justify-content: space-between;
+          flex: 1;
+          max-width: 700px;
+        }
+        .slider-radio-group {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.6rem;
+        }
+        .slider-num-label {
+          font-size: 0.9rem;
+          color: var(--text);
+          cursor: pointer;
+          font-family: 'Share Tech Mono', monospace;
+        }
+        .slider-label {
+          font-size: 0.85rem;
+          color: var(--text-dim);
+          padding-bottom: 3px;
+          flex-shrink: 0;
+          max-width: 120px;
+        }
+        .slider-label-left { text-align: right; }
+        .slider-label-right { text-align: left; }
+
+        @media (max-width: 768px) {
+          .slider-container {
+            gap: 0;
+          }
+          .slider-label {
+            display: none;
+          }
+          .slider-mobile-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+          }
+          .slider-radios {
+            width: 100%;
+          }
+          .slider-radio-group {
+            gap: 0.3rem;
+          }
+          .sith-radio {
+            width: 18px !important;
+            height: 18px !important;
+          }
+          .slider-num-label {
+            font-size: 0.8rem;
+          }
+        }
+
         .sith-radio {
           -webkit-appearance: none;
           appearance: none;

@@ -4,9 +4,23 @@ import { randomUUID } from "crypto";
 export async function POST(req) {
   try {
     const session = await getSessionUser(req);
-    let userId = null;
-    if (session?.authenticated && session?.user?.roblox_id) {
-      userId = session.user.roblox_id;
+    
+    if (!session?.authenticated || !session?.user?.roblox_username) {
+      return new Response(JSON.stringify({ error: "You must be logged in to submit this form." }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    const username = session.user.roblox_username;
+    
+    // Check if this user has already submitted the form
+    const existing = await supabaseRest(`public_perception_responses?user_id=eq.${encodeURIComponent(username)}&select=id`);
+    if (existing && existing.length > 0) {
+      return new Response(JSON.stringify({ error: "You have already submitted a response. Only one submission is allowed per person." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     const payload = await req.json();
@@ -18,7 +32,8 @@ export async function POST(req) {
       });
     }
 
-    // Basic validation could be done here, but we will mostly rely on client side and let the DB take the JSONB
+    payload.robloxUsername = username;
+
     const recordId = randomUUID();
     const now = new Date().toISOString();
 
@@ -27,7 +42,7 @@ export async function POST(req) {
       method: "POST",
       body: JSON.stringify({
         id: recordId,
-        user_id: userId,
+        user_id: username, // Saving the username instead of the ID as requested
         responses: payload,
         created_at: now
       })

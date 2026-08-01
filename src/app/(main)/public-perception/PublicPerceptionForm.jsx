@@ -366,7 +366,7 @@ export function PublicPerceptionForm() {
           color: var(--text-dim);
           padding-bottom: 3px;
           flex-shrink: 0;
-          max-width: 120px;
+          width: 120px;
         }
         .slider-label-left { text-align: right; }
         .slider-label-right { text-align: left; }

@@ -7,7 +7,7 @@ const SliderField = ({ label, name, leftLabel, rightLabel, formData, setFormData
     <label style={{ display: "block", marginBottom: "1rem", color: "var(--text-bright)", fontWeight: "bold" }}>
       {label} <span style={{ color: "var(--danger, #ff4444)" }}>*</span>
     </label>
-    
+
     <div className="slider-mobile-labels">
       <span>{leftLabel || "Poor"}</span>
       <span>{rightLabel || "Excellent"}</span>
@@ -15,7 +15,7 @@ const SliderField = ({ label, name, leftLabel, rightLabel, formData, setFormData
 
     <div className="slider-container">
       <span className="slider-label slider-label-left">{leftLabel || "Poor"}</span>
-      
+
       <div className="slider-radios">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
           <div key={num} className="slider-radio-group">
@@ -34,7 +34,7 @@ const SliderField = ({ label, name, leftLabel, rightLabel, formData, setFormData
           </div>
         ))}
       </div>
-      
+
       <span className="slider-label slider-label-right">{rightLabel || "Excellent"}</span>
     </div>
   </div>
@@ -136,7 +136,7 @@ export function PublicPerceptionForm() {
   const handleChange = (e) => {
     let { name, value, type, checked } = e.target;
     if (type === "range") value = Number(value);
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value
@@ -149,7 +149,7 @@ export function PublicPerceptionForm() {
     if (formData.progression === "") return "Please rate your satisfaction with progression (1.2).";
     if (formData.eventQuality === "") return "Please rate the quality of events (1.3).";
     if (formData.scheduling === "") return "Please rate the scheduling of events (1.4).";
-    if (formData.transparency === "") return "Please rate the transparency of leadership (1.5).";
+    if (formData.transparency === "") return "Please rate the quality of leadership (1.5).";
     if (formData.powerbaseSystem === "") return "Please rate the effectiveness of the Powerbase system (1.6).";
     if (formData.divisionalBalance === "") return "Please rate the balance of the divisions (1.7).";
     if (formData.overallCulture === "") return "Please rate the overall culture of the Order (1.8).";
@@ -205,7 +205,7 @@ export function PublicPerceptionForm() {
       let data = {};
       try {
         data = await res.json();
-      } catch (e) {}
+      } catch (e) { }
 
       if (!res.ok) {
         throw new Error(data.error || "Failed to submit form. Please try again later.");
@@ -269,7 +269,7 @@ export function PublicPerceptionForm() {
                 <SliderField name="progression" label="1.2 How satisfied are you with progression?" leftLabel="Very Dissatisfied" rightLabel="Very Satisfied" formData={formData} setFormData={setFormData} />
                 <SliderField name="eventQuality" label="1.3 How would you rate the quality of events hosted?" leftLabel="Poor" rightLabel="Excellent" formData={formData} setFormData={setFormData} />
                 <SliderField name="scheduling" label="1.4 How well does the scheduling of events accommodate you?" leftLabel="Poorly" rightLabel="Excellently" formData={formData} setFormData={setFormData} />
-                <SliderField name="transparency" label="1.5 How transparent do you feel the leadership has been?" leftLabel="Not transparent" rightLabel="Highly transparent" formData={formData} setFormData={setFormData} />
+                <SliderField name="transparency" label="1.5 How would you rate the quality of leadership?" leftLabel="Poor" rightLabel="Excellent" formData={formData} setFormData={setFormData} />
                 <SliderField name="powerbaseSystem" label="1.6 How effective is the current Powerbase system?" leftLabel="Ineffective" rightLabel="Highly effective" formData={formData} setFormData={setFormData} />
                 <SliderField name="divisionalBalance" label="1.7 How balanced do you feel the divisions are?" leftLabel="Unbalanced" rightLabel="Perfectly balanced" formData={formData} setFormData={setFormData} />
                 <SliderField name="overallCulture" label="1.8 How would you rate the overall culture of the Order?" leftLabel="Poor" rightLabel="Excellent" formData={formData} setFormData={setFormData} />
@@ -277,7 +277,7 @@ export function PublicPerceptionForm() {
 
               {/* SECTION 2 */}
               <div className="regulation" style={{ marginBottom: "3rem" }}>
-                <h3 className="reg-title">Section II: The Sith Experience</h3>
+                <h3 className="reg-title">Section II: Sith (Main Group)</h3>
 
                 <SliderField name="sithExperience" label="2.1 How would you rate the overall Sith experience?" formData={formData} setFormData={setFormData} />
 
@@ -314,7 +314,7 @@ export function PublicPerceptionForm() {
 
               {/* SECTION 3 */}
               <div className="regulation" style={{ marginBottom: "3rem" }}>
-                <h3 className="reg-title">Section III: Divisions</h3>
+                <h3 className="reg-title">Section III: Departments</h3>
 
                 <TextField name="favDepartment" label="3.1 What is your favourite department and why?" required formData={formData} handleChange={handleChange} />
                 <TextField name="leastFavDepartment" label="3.2 What is your least favourite department and why?" required formData={formData} handleChange={handleChange} />

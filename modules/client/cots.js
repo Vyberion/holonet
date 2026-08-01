@@ -34,7 +34,8 @@ function normalizeState(value, fallback = {}) {
       title: text(state.champion?.title, fallbackChampion.title),
       motto: "The Future Belongs to the Bold.",
       season: text(state.champion?.season, fallbackChampion.season),
-      podiumImage: normalizeImage(state.champion?.podiumImage || fallbackChampion.podiumImage)
+      podiumImage: normalizeImage(state.champion?.podiumImage || fallbackChampion.podiumImage),
+      championImage: normalizeImage(state.champion?.championImage || fallbackChampion.championImage)
     },
     podium: Array.isArray(state.podium) && state.podium.length ? state.podium : fallback.podium || [
       { place: "I", name: "", note: "Champion" },
@@ -42,7 +43,7 @@ function normalizeState(value, fallback = {}) {
       { place: "III", name: "", note: "Podium" }
     ],
     bracketUrl: text(state.bracketUrl, fallback.bracketUrl || ""),
-    
+
     // Archiving previous bracket data to prevent data loss
     bracket: Array.isArray(state.bracket) ? state.bracket : fallback.bracket || [],
     losersBracket: Array.isArray(state.losersBracket) ? state.losersBracket : fallback.losersBracket || [],
@@ -61,11 +62,13 @@ function podiumRow(entry, index) {
 }
 
 function renderCots(root, state, canEdit, meta = {}) {
-  const image = normalizeImage(state.champion.podiumImage);
+  const podiumImage = normalizeImage(state.champion.podiumImage);
+  const championImage = normalizeImage(state.champion.championImage);
+  
   root.innerHTML = `
     <section class="cots-hero" aria-labelledby="cots-title">
       <div class="cots-hero-copy">
-        <p class="hub-kicker">Current Champion</p>
+        <p class="hub-kicker">Champion</p>
         <h2 id="cots-title" class="cots-title">${escapeHtml(state.champion.name || "Awaiting Champion")}</h2>
         <p class="cots-quote">&quot;The Future Belongs to the Bold.&quot;</p>
       </div>
@@ -73,26 +76,36 @@ function renderCots(root, state, canEdit, meta = {}) {
     </section>
 
     <section class="cots-feature-grid" aria-label="Champion imagery and podium">
-      <figure class="cots-media-card${image.url ? "" : " cots-media-card--empty"}">
+      <figure class="cots-media-card${championImage.url ? "" : " cots-media-card--empty"}">
         <div class="cots-media-frame">
-          ${image.url
-            ? `<img src="${escapeHtml(image.url)}" alt="Champion of The Sith podium">`
-            : `<div class="cots-media-placeholder"><span>Podium Image</span></div>`}
+          ${championImage.url
+      ? `<img src="${escapeHtml(championImage.url)}" alt="Champion of The Sith">`
+      : `<div class="cots-media-placeholder"><span>Champion Image</span></div>`}
         </div>
       </figure>
 
-      <div class="hub-panel cots-podium-panel">
-        <h3 class="hub-panel-title">Podium</h3>
-        <div class="cots-podium-list">
-          ${(state.podium || []).slice(0, 3).map(podiumRow).join("")}
+      <div class="cots-right-column" style="display: flex; flex-direction: column; gap: 20px;">
+        <div class="hub-panel cots-podium-panel">
+          <h3 class="hub-panel-title">Podium</h3>
+          <div class="cots-podium-list">
+            ${(state.podium || []).slice(0, 3).map(podiumRow).join("")}
+          </div>
         </div>
+        
+        <figure class="cots-media-card${podiumImage.url ? "" : " cots-media-card--empty"}" style="flex: 1;">
+          <div class="cots-media-frame" style="height: 100%;">
+            ${podiumImage.url
+        ? `<img src="${escapeHtml(podiumImage.url)}" alt="Champion of The Sith podium">`
+        : `<div class="cots-media-placeholder"><span>Podium Image</span></div>`}
+          </div>
+        </figure>
       </div>
     </section>
 
     <section class="hub-panel cots-bracket-panel" aria-label="Tournament bracket" style="padding: 0; overflow: hidden;">
-      ${state.bracketUrl 
-        ? `<iframe src="${escapeHtml(state.bracketUrl)}" width="100%" height="1600" frameborder="0" scrolling="auto" allowtransparency="true" style="border: none; width: 100%; height: 1200px; display: block; margin: 0; padding: 0; background: transparent;"></iframe>` 
-        : `<p class="hub-empty" style="margin: 20px;">No tournament bracket available.</p>`}
+      ${state.bracketUrl
+      ? `<iframe src="${escapeHtml(state.bracketUrl)}" width="100%" height="1600" frameborder="0" scrolling="auto" allowtransparency="true" style="border: none; width: 100%; height: 1200px; display: block; margin: 0; padding: 0; background: transparent;"></iframe>`
+      : `<p class="hub-empty" style="margin: 20px;">No tournament bracket available.</p>`}
     </section>
   `;
 }
@@ -139,7 +152,7 @@ function ensureEditorOverlay() {
 
 function syncStateFromForm(form, workingState) {
   const data = Object.fromEntries(new FormData(form).entries());
-  
+
   workingState.champion = {
     ...workingState.champion,
     name: text(data.championName)
@@ -164,6 +177,7 @@ function renderEditorForm(form, state) {
       <section class="library-entry-editor">
         <div class="library-entry-toolbar"><span class="library-entry-title">Champion Settings</span></div>
         <div class="resource-editor-field"><label>Champion Username</label><input name="championName" value="${escapeHtml(state.champion.name || "")}" required></div>
+        <div class="resource-editor-field"><label>Champion Image</label><input type="file" name="championImage" accept="image/*"></div>
         <div class="resource-editor-field"><label>Podium Image</label><input type="file" name="podiumImage" accept="image/*"></div>
         <div class="resource-editor-field">
           <label>BracketHQ Embed URL</label>
@@ -188,6 +202,9 @@ async function saveCotsState(state, form) {
 
   const image = form.podiumImage?.files?.[0];
   if (image) body.set("podiumImage", image);
+
+  const championImg = form.championImage?.files?.[0];
+  if (championImg) body.set("championImage", championImg);
 
   const response = await fetch("/api/cots", {
     method: "POST",

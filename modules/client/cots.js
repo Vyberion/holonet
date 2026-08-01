@@ -32,7 +32,7 @@ function normalizeState(value, fallback = {}) {
     champion: {
       name: text(state.champion?.name, fallbackChampion.name),
       title: text(state.champion?.title, fallbackChampion.title),
-      motto: "The Future Belongs to the Bold.",
+      motto: text(state.champion?.motto, fallbackChampion.motto || "The Future Belongs to the Bold."),
       season: text(state.champion?.season, fallbackChampion.season),
       podiumImage: normalizeImage(state.champion?.podiumImage || fallbackChampion.podiumImage),
       championImage: normalizeImage(state.champion?.championImage || fallbackChampion.championImage)
@@ -70,7 +70,7 @@ function renderCots(root, state, canEdit, meta = {}) {
       <div class="cots-hero-copy">
         <p class="hub-kicker">Champion</p>
         <h2 id="cots-title" class="cots-title">${escapeHtml(state.champion.name || "Awaiting Champion")}</h2>
-        <p class="cots-quote">&quot;The Future Belongs to the Bold.&quot;</p>
+        <p class="cots-quote">&quot;${escapeHtml(state.champion.motto)}&quot;</p>
       </div>
       ${canEdit ? '<button type="button" class="resource-editor-open cots-edit-button" data-cots-edit>Edit CoTS</button>' : ""}
     </section>
@@ -155,7 +155,8 @@ function syncStateFromForm(form, workingState) {
 
   workingState.champion = {
     ...workingState.champion,
-    name: text(data.championName)
+    name: text(data.championName),
+    motto: text(data.championMotto)
   };
 
   let url = text(data.bracketUrl);
@@ -177,6 +178,7 @@ function renderEditorForm(form, state) {
       <section class="library-entry-editor">
         <div class="library-entry-toolbar"><span class="library-entry-title">Champion Settings</span></div>
         <div class="resource-editor-field"><label>Champion Username</label><input name="championName" value="${escapeHtml(state.champion.name || "")}" required></div>
+        <div class="resource-editor-field"><label>Champion Quote</label><input name="championMotto" value="${escapeHtml(state.champion.motto || "")}"></div>
         <div class="resource-editor-field"><label>Champion Image</label><input type="file" name="championImage" accept="image/*"></div>
         <div class="resource-editor-field"><label>Podium Image</label><input type="file" name="podiumImage" accept="image/*"></div>
         <div class="resource-editor-field">

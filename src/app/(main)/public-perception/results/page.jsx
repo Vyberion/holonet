@@ -89,13 +89,13 @@ export default function PublicPerceptionResultsPage() {
       <div className="codex-shell" style={{ display: "block" }}>
         <article className="codex-article" style={{ minHeight: "60vh" }}>
           <div className="article-header">
-            <span className="article-number">RESTRICTED ACCESS</span>
+            <span className="article-number">PUBLIC PERCEPTION</span>
             <h2 className="article-title">Survey Results</h2>
           </div>
 
           <div className="article-content">
             {loading && <p>Loading databanks...</p>}
-            
+
             {error && (
               <div style={{ padding: "1rem", backgroundColor: "var(--danger-bg, rgba(255,0,0,0.1))", color: "var(--danger-text, #ff6b6b)", marginBottom: "2rem", border: "1px solid #ff0000" }}>
                 {error === "SESSION_REQUIRED" ? "Authentication required. Please log in." : error}
@@ -109,7 +109,7 @@ export default function PublicPerceptionResultsPage() {
             {!loading && !error && data.length > 0 && (
               <div>
                 <div className="admin-filter-row codex-toolbar" style={{ marginBottom: "2rem", paddingBottom: "1rem" }}>
-                  <select 
+                  <select
                     value={selectedFilter}
                     onChange={(e) => setSelectedFilter(e.target.value)}
                     className="codex-filter-select"
@@ -119,32 +119,32 @@ export default function PublicPerceptionResultsPage() {
                     ))}
                   </select>
                   <span className="resource-editor-status" style={{ color: "var(--text-dim)", fontFamily: "'Share Tech Mono', monospace" }}>
-                    Total Responses: {data.length}
+                    : Total Responses: {data.length}
                   </span>
                 </div>
 
                 {/* Statistics Dashboard for Scale Questions */}
                 {scaleStats && scaleStats.totalResponses > 0 && (
-                  <div className="regulation" style={{ marginBottom: "3rem", padding: "1.5rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-hot)" }}>
-                    <h3 className="reg-title" style={{ marginBottom: "1rem" }}>Aggregate Analytics: {selectedQuestionDef.label}</h3>
+                  <div className="regulation" style={{ marginBottom: "3rem", padding: "1.5rem", background: "rgba(0,0,0,0.3)" }}>
+                    <h3 className="reg-title" style={{ marginBottom: "1rem" }}>Aggregate Results: {selectedQuestionDef.label}</h3>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem", marginBottom: "1.5rem" }}>
                       <div>
-                        <span style={{ color: "var(--text-dim)", fontSize: "0.85rem", textTransform: "uppercase" }}>Average Score</span>
+                        <span style={{ color: "var(--text-dim)", fontSize: "0.85rem", textTransform: "uppercase" }}>Average</span>
                         <div style={{ fontSize: "2rem", color: "var(--red-bright)", fontWeight: "bold", fontFamily: "'Share Tech Mono', monospace" }}>{scaleStats.average}</div>
                       </div>
                       <div>
-                        <span style={{ color: "var(--text-dim)", fontSize: "0.85rem", textTransform: "uppercase" }}>Valid Responses</span>
+                        <span style={{ color: "var(--text-dim)", fontSize: "0.85rem", textTransform: "uppercase" }}>Responses</span>
                         <div style={{ fontSize: "2rem", color: "var(--text-bright)", fontWeight: "bold", fontFamily: "'Share Tech Mono', monospace" }}>{scaleStats.totalResponses}</div>
                       </div>
                     </div>
-                    
+
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(60px, 1fr))", gap: "0.5rem" }}>
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => {
                         const count = scaleStats.counts[num];
                         const pct = scaleStats.totalResponses > 0 ? ((count / scaleStats.totalResponses) * 100).toFixed(1) : 0;
                         return (
                           <div key={num} style={{ background: "rgba(192,0,26,0.05)", border: "1px solid var(--red-dim)", padding: "0.5rem", textAlign: "center" }}>
-                            <div style={{ fontSize: "0.8rem", color: "var(--text-dim)", marginBottom: "0.25rem" }}>Score {num}</div>
+                            <div style={{ fontSize: "0.8rem", color: "var(--text-dim)", marginBottom: "0.25rem" }}>{num}</div>
                             <div style={{ fontSize: "1.2rem", color: "var(--text-bright)", fontFamily: "'Share Tech Mono', monospace" }}>{count}</div>
                             <div style={{ fontSize: "0.75rem", color: "var(--red-bright)", marginTop: "0.25rem" }}>{pct}%</div>
                           </div>
@@ -225,12 +225,12 @@ export default function PublicPerceptionResultsPage() {
                       if (selectedFilter === "sithView" && val === "Other") {
                         val = `Other: ${record.responses?.sithViewOther || "N/A"}`;
                       }
-                      
+
                       const hasValue = val !== undefined && val !== null && val !== "";
                       if (!hasValue) return null; // Skip if they didn't answer this question
 
                       return (
-                        <article key={record.id || idx} className="hub-row sub-clause" style={{ padding: "1rem", marginBottom: "0.5rem" }}>
+                        <article key={record.id || idx} className="sub-clause" style={{ padding: "1rem", marginBottom: "0.5rem", backgroundColor: "rgba(0,0,0,0.4)" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
                             <strong style={{ color: "var(--red-bright)" }}>{record.responses?.robloxUsername || record.user_id || "Unknown User"}</strong>
                             <span style={{ fontSize: "0.8rem", color: "var(--text-dim)" }}>{new Date(record.created_at).toLocaleString()}</span>

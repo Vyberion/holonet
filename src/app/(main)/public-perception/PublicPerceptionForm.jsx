@@ -46,30 +46,32 @@ const YesNoField = ({ label, name, formData, setFormData, required = true }) => 
       {label} {required && <span style={{ color: "var(--danger, #ff4444)" }}>*</span>}
     </label>
 
-    <div className="slider-container" style={{ justifyContent: "flex-start", gap: "2rem", paddingLeft: "15px" }}>
-      <div className="slider-radio-group">
-        <label className="slider-num-label" htmlFor={`${name}-yes`}>Yes</label>
-        <input
-          type="radio"
-          id={`${name}-yes`}
-          name={name}
-          value="yes"
-          checked={formData[name] === true}
-          onChange={() => setFormData(prev => ({ ...prev, [name]: true }))}
-          className="sith-radio"
-        />
-      </div>
-      <div className="slider-radio-group">
-        <label className="slider-num-label" htmlFor={`${name}-no`}>No</label>
-        <input
-          type="radio"
-          id={`${name}-no`}
-          name={name}
-          value="no"
-          checked={formData[name] === false}
-          onChange={() => setFormData(prev => ({ ...prev, [name]: false }))}
-          className="sith-radio"
-        />
+    <div className="slider-container">
+      <div className="slider-radios" style={{ gap: "3rem", justifyContent: "center", width: "100%" }}>
+        <div className="slider-radio-group">
+          <label className="slider-num-label" htmlFor={`${name}-yes`}>Yes</label>
+          <input
+            type="radio"
+            id={`${name}-yes`}
+            name={name}
+            value="yes"
+            checked={formData[name] === true}
+            onChange={() => setFormData(prev => ({ ...prev, [name]: true }))}
+            className="sith-radio"
+          />
+        </div>
+        <div className="slider-radio-group">
+          <label className="slider-num-label" htmlFor={`${name}-no`}>No</label>
+          <input
+            type="radio"
+            id={`${name}-no`}
+            name={name}
+            value="no"
+            checked={formData[name] === false}
+            onChange={() => setFormData(prev => ({ ...prev, [name]: false }))}
+            className="sith-radio"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -228,7 +230,6 @@ export function PublicPerceptionForm() {
             </div>
             <div className="article-content">
               <p>Your responses have been recorded in the databanks.</p>
-              <a href="/" className="btn btn-primary" style={{ marginTop: "1rem", display: "inline-block" }}>Return to Holonet</a>
             </div>
           </article>
         </div>

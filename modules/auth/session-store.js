@@ -38,7 +38,14 @@ export function createRandomToken() {
 }
 
 function parseCookies(req) {
-  const header = req.headers.cookie || "";
+  let header = "";
+  if (req && req.headers) {
+    if (typeof req.headers.get === 'function') {
+      header = req.headers.get("cookie") || "";
+    } else {
+      header = req.headers.cookie || "";
+    }
+  }
 
   return header.split(";").reduce((cookies, part) => {
     const index = part.indexOf("=");

@@ -2,6 +2,95 @@
 
 import { useState } from "react";
 
+const SliderField = ({ label, name, leftLabel, rightLabel, formData, setFormData }) => (
+  <div className="form-group" style={{ marginBottom: "2.5rem" }}>
+    <label style={{ display: "block", marginBottom: "1rem", color: "var(--text-bright)", fontWeight: "bold" }}>
+      {label} <span style={{ color: "var(--danger, #ff4444)" }}>*</span>
+    </label>
+    
+    <div className="slider-mobile-labels">
+      <span>{leftLabel || "Poor"}</span>
+      <span>{rightLabel || "Excellent"}</span>
+    </div>
+
+    <div className="slider-container">
+      <span className="slider-label slider-label-left">{leftLabel || "Poor"}</span>
+      
+      <div className="slider-radios">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+          <div key={num} className="slider-radio-group">
+            <label className="slider-num-label" htmlFor={`${name}-${num}`}>
+              {num}
+            </label>
+            <input
+              type="radio"
+              id={`${name}-${num}`}
+              name={name}
+              value={num}
+              checked={Number(formData[name]) === num}
+              onChange={() => setFormData(prev => ({ ...prev, [name]: num }))}
+              className="sith-radio"
+            />
+          </div>
+        ))}
+      </div>
+      
+      <span className="slider-label slider-label-right">{rightLabel || "Excellent"}</span>
+    </div>
+  </div>
+);
+
+const YesNoField = ({ label, name, formData, setFormData, required = true }) => (
+  <div className="form-group" style={{ marginBottom: "2.5rem" }}>
+    <label style={{ display: "block", marginBottom: "1rem", color: "var(--text-bright)", fontWeight: "bold" }}>
+      {label} {required && <span style={{ color: "var(--danger, #ff4444)" }}>*</span>}
+    </label>
+
+    <div className="slider-container" style={{ justifyContent: "flex-start", gap: "2rem", paddingLeft: "15px" }}>
+      <div className="slider-radio-group">
+        <label className="slider-num-label" htmlFor={`${name}-yes`}>Yes</label>
+        <input
+          type="radio"
+          id={`${name}-yes`}
+          name={name}
+          value="yes"
+          checked={formData[name] === true}
+          onChange={() => setFormData(prev => ({ ...prev, [name]: true }))}
+          className="sith-radio"
+        />
+      </div>
+      <div className="slider-radio-group">
+        <label className="slider-num-label" htmlFor={`${name}-no`}>No</label>
+        <input
+          type="radio"
+          id={`${name}-no`}
+          name={name}
+          value="no"
+          checked={formData[name] === false}
+          onChange={() => setFormData(prev => ({ ...prev, [name]: false }))}
+          className="sith-radio"
+        />
+      </div>
+    </div>
+  </div>
+);
+
+const TextField = ({ label, name, required = false, rows = 3, placeholder = "", formData, handleChange }) => (
+  <div className="form-group" style={{ marginBottom: "1.5rem" }}>
+    <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--text-bright)", fontWeight: "bold" }}>
+      {label} {required && <span style={{ color: "var(--danger, #ff4444)" }}>*</span>}
+    </label>
+    <textarea
+      name={name}
+      value={formData[name]}
+      onChange={handleChange}
+      rows={rows}
+      placeholder={placeholder}
+      style={{ width: "100%", padding: "0.5rem", backgroundColor: "rgba(0,0,0,0.5)", border: "1px solid var(--border-color)", color: "var(--text-color)" }}
+    ></textarea>
+  </div>
+);
+
 export function PublicPerceptionForm() {
   const [formData, setFormData] = useState({
     // Section 1
@@ -25,10 +114,10 @@ export function PublicPerceptionForm() {
     // Section 3
     favDepartment: "",
     leastFavDepartment: "",
-    attendedInspections: false,
+    attendedInspections: "",
     divisionalInspections: "",
     divisionalEvents: "",
-    isDivisionMember: false,
+    isDivisionMember: "",
     divisionalExperience: "",
     internalDivisionalEvents: "",
     section3Notes: "",
@@ -76,12 +165,14 @@ export function PublicPerceptionForm() {
     if (!formData.favDepartment.trim()) return "Please specify your favourite department and why (Section 3.1).";
     if (!formData.leastFavDepartment.trim()) return "Please specify your least favourite department and why (Section 3.2).";
 
+    if (formData.attendedInspections === "") return "Please indicate if you have attended inspections recently (3.3a).";
     if (formData.attendedInspections && formData.divisionalInspections === "") {
       return "Please rate the divisional inspections (3.3b).";
     }
 
     if (formData.divisionalEvents === "") return "Please rate divisional events in general (3.4).";
 
+    if (formData.isDivisionMember === "") return "Please indicate if you are a division member (3.5).";
     if (formData.isDivisionMember) {
       if (formData.divisionalExperience === "") return "Please rate your divisional experience (3.6).";
       if (formData.internalDivisionalEvents === "") return "Please rate divisional events (3.7).";
@@ -145,59 +236,7 @@ export function PublicPerceptionForm() {
     );
   }
 
-  const SliderField = ({ label, name, leftLabel, rightLabel }) => (
-    <div className="form-group" style={{ marginBottom: "2.5rem" }}>
-      <label style={{ display: "block", marginBottom: "1rem", color: "var(--text-bright)", fontWeight: "bold" }}>
-        {label} <span style={{ color: "var(--danger, #ff4444)" }}>*</span>
-      </label>
-      
-      <div className="slider-mobile-labels">
-        <span>{leftLabel || "Poor"}</span>
-        <span>{rightLabel || "Excellent"}</span>
-      </div>
 
-      <div className="slider-container">
-        <span className="slider-label slider-label-left">{leftLabel || "Poor"}</span>
-        
-        <div className="slider-radios">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-            <div key={num} className="slider-radio-group">
-              <label className="slider-num-label" htmlFor={`${name}-${num}`}>
-                {num}
-              </label>
-              <input
-                type="radio"
-                id={`${name}-${num}`}
-                name={name}
-                value={num}
-                checked={Number(formData[name]) === num}
-                onChange={() => setFormData(prev => ({ ...prev, [name]: num }))}
-                className="sith-radio"
-              />
-            </div>
-          ))}
-        </div>
-        
-        <span className="slider-label slider-label-right">{rightLabel || "Excellent"}</span>
-      </div>
-    </div>
-  );
-
-  const TextField = ({ label, name, required = false, rows = 3, placeholder = "" }) => (
-    <div className="form-group" style={{ marginBottom: "1.5rem" }}>
-      <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--text-bright)", fontWeight: "bold" }}>
-        {label} {required && <span style={{ color: "var(--danger, #ff4444)" }}>*</span>}
-      </label>
-      <textarea
-        name={name}
-        value={formData[name]}
-        onChange={handleChange}
-        rows={rows}
-        placeholder={placeholder}
-        style={{ width: "100%", padding: "0.5rem", backgroundColor: "rgba(0,0,0,0.5)", border: "1px solid var(--border-color)", color: "var(--text-color)" }}
-      ></textarea>
-    </div>
-  );
 
   return (
     <div className="codex-shell" style={{ display: "block" }}>
@@ -225,24 +264,24 @@ export function PublicPerceptionForm() {
               <div className="regulation" style={{ marginBottom: "3rem" }}>
                 <h3 className="reg-title">Section I: Group-Wide Assessment</h3>
 
-                <SliderField name="strictness" label="1.1 How would you rate the current strictness of the Order?" leftLabel="Not strict enough" rightLabel="Too strict" />
-                <SliderField name="progression" label="1.2 How satisfied are you with progression?" leftLabel="Very Dissatisfied" rightLabel="Very Satisfied" />
-                <SliderField name="eventQuality" label="1.3 How would you rate the quality of events hosted?" leftLabel="Poor" rightLabel="Excellent" />
-                <SliderField name="scheduling" label="1.4 How well does the scheduling of events accommodate you?" leftLabel="Poorly" rightLabel="Excellently" />
-                <SliderField name="transparency" label="1.5 How transparent do you feel the leadership has been?" leftLabel="Not transparent" rightLabel="Highly transparent" />
-                <SliderField name="powerbaseSystem" label="1.6 How effective is the current Powerbase system?" leftLabel="Ineffective" rightLabel="Highly effective" />
-                <SliderField name="divisionalBalance" label="1.7 How balanced do you feel the divisions are?" leftLabel="Unbalanced" rightLabel="Perfectly balanced" />
-                <SliderField name="overallCulture" label="1.8 How would you rate the overall culture of the Order?" leftLabel="Poor" rightLabel="Excellent" />
+                <SliderField name="strictness" label="1.1 How would you rate the current strictness of the Order?" leftLabel="Not strict enough" rightLabel="Too strict" formData={formData} setFormData={setFormData} />
+                <SliderField name="progression" label="1.2 How satisfied are you with progression?" leftLabel="Very Dissatisfied" rightLabel="Very Satisfied" formData={formData} setFormData={setFormData} />
+                <SliderField name="eventQuality" label="1.3 How would you rate the quality of events hosted?" leftLabel="Poor" rightLabel="Excellent" formData={formData} setFormData={setFormData} />
+                <SliderField name="scheduling" label="1.4 How well does the scheduling of events accommodate you?" leftLabel="Poorly" rightLabel="Excellently" formData={formData} setFormData={setFormData} />
+                <SliderField name="transparency" label="1.5 How transparent do you feel the leadership has been?" leftLabel="Not transparent" rightLabel="Highly transparent" formData={formData} setFormData={setFormData} />
+                <SliderField name="powerbaseSystem" label="1.6 How effective is the current Powerbase system?" leftLabel="Ineffective" rightLabel="Highly effective" formData={formData} setFormData={setFormData} />
+                <SliderField name="divisionalBalance" label="1.7 How balanced do you feel the divisions are?" leftLabel="Unbalanced" rightLabel="Perfectly balanced" formData={formData} setFormData={setFormData} />
+                <SliderField name="overallCulture" label="1.8 How would you rate the overall culture of the Order?" leftLabel="Poor" rightLabel="Excellent" formData={formData} setFormData={setFormData} />
               </div>
 
               {/* SECTION 2 */}
               <div className="regulation" style={{ marginBottom: "3rem" }}>
                 <h3 className="reg-title">Section II: The Sith Experience</h3>
 
-                <SliderField name="sithExperience" label="2.1 How would you rate the overall Sith experience?" />
+                <SliderField name="sithExperience" label="2.1 How would you rate the overall Sith experience?" formData={formData} setFormData={setFormData} />
 
-                <TextField name="sithEnjoyMost" label="2.2 What do you enjoy the most about being a Sith?" required />
-                <TextField name="sithDislikeMost" label="2.3 What do you dislike the most about being a Sith?" required />
+                <TextField name="sithEnjoyMost" label="2.2 What do you enjoy the most about being a Sith?" required formData={formData} handleChange={handleChange} />
+                <TextField name="sithDislikeMost" label="2.3 What do you dislike the most about being a Sith?" required formData={formData} handleChange={handleChange} />
 
                 <div className="form-group" style={{ marginBottom: "1.5rem" }}>
                   <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--text-bright)", fontWeight: "bold" }}>
@@ -252,73 +291,64 @@ export function PublicPerceptionForm() {
                     name="sithView"
                     value={formData.sithView}
                     onChange={handleChange}
-                    style={{ width: "100%", padding: "0.5rem", backgroundColor: "rgba(0,0,0,0.5)", border: "1px solid var(--border-color)", color: "var(--text-color)" }}
+                    className="codex-filter-select"
+                    style={{ width: "100%" }}
                   >
                     <option value="">-- Select an option --</option>
-                    <option value="A retirement area / social hub">A retirement area</option>
-                    <option value="A bare bones phase you just have to pass through to rank up">A phase you have to pass through</option>
-                    <option value="A serious roleplay environment focused on lore and teachings">A serious roleplay environment</option>
-                    <option value="A place to mentor others and grow a powerbase">A place to mentor</option>
                     <option value="A competitive environment focused on combat and trials">A competitive environment</option>
+                    <option value="A place to mentor others and grow a powerbase">A place to mentor</option>
+                    <option value="A serious roleplay environment focused on lore and teachings">A serious roleplay environment</option>
+                    <option value="A bare bones phase you just have to pass through to rank up">A phase you have to pass through</option>
+                    <option value="A retirement area / social hub">A retirement area</option>
                     <option value="Other">Other (Please specify)</option>
                   </select>
                 </div>
 
                 {formData.sithView === "Other" && (
-                  <TextField name="sithViewOther" label="Please specify your view:" required />
+                  <TextField name="sithViewOther" label="Please specify your view:" required formData={formData} handleChange={handleChange} />
                 )}
 
-                <TextField name="section2Notes" label="2.5 Optional Notes" rows={2} />
+                <TextField name="section2Notes" label="2.5 Optional Notes" rows={2} formData={formData} handleChange={handleChange} />
               </div>
 
               {/* SECTION 3 */}
               <div className="regulation" style={{ marginBottom: "3rem" }}>
                 <h3 className="reg-title">Section III: Divisions</h3>
 
-                <TextField name="favDepartment" label="3.1 What is your favourite department and why?" required />
-                <TextField name="leastFavDepartment" label="3.2 What is your least favourite department and why?" required />
+                <TextField name="favDepartment" label="3.1 What is your favourite department and why?" required formData={formData} handleChange={handleChange} />
+                <TextField name="leastFavDepartment" label="3.2 What is your least favourite department and why?" required formData={formData} handleChange={handleChange} />
 
-                <div className="form-group" style={{ marginBottom: "1.5rem" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", color: "var(--text-bright)", fontWeight: "bold" }}>
-                    <input type="checkbox" name="attendedInspections" checked={formData.attendedInspections} onChange={handleChange} />
-                    3.3a Have you attended inspections recently?
-                  </label>
-                </div>
+                <YesNoField name="attendedInspections" label="3.3a Have you attended inspections recently?" formData={formData} setFormData={setFormData} />
 
                 {formData.attendedInspections && (
                   <div style={{ marginLeft: "2rem", borderLeft: "2px solid var(--brand)", paddingLeft: "1rem", marginBottom: "1.5rem" }}>
-                    <SliderField name="divisionalInspections" label="3.3b How would you rate the divisional inspections?" />
+                    <SliderField name="divisionalInspections" label="3.3b How would you rate the divisional inspections?" formData={formData} setFormData={setFormData} />
                   </div>
                 )}
 
-                <SliderField name="divisionalEvents" label="3.4 How would you rate divisional events in general?" />
+                <SliderField name="divisionalEvents" label="3.4 How would you rate divisional events in general?" formData={formData} setFormData={setFormData} />
 
-                <div className="form-group" style={{ marginBottom: "1.5rem" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", color: "var(--text-bright)", fontWeight: "bold" }}>
-                    <input type="checkbox" name="isDivisionMember" checked={formData.isDivisionMember} onChange={handleChange} />
-                    3.5 Are you currently or have you recently been a division member?
-                  </label>
-                </div>
+                <YesNoField name="isDivisionMember" label="3.5 Are you currently or have you recently been a division member?" formData={formData} setFormData={setFormData} />
 
                 {formData.isDivisionMember && (
                   <div style={{ marginLeft: "2rem", borderLeft: "2px solid var(--brand)", paddingLeft: "1rem", marginBottom: "1.5rem" }}>
-                    <SliderField name="divisionalExperience" label="3.6 How would you rate your divisional experience?" />
-                    <SliderField name="internalDivisionalEvents" label="3.7 How would you rate divisional events?" />
+                    <SliderField name="divisionalExperience" label="3.6 How would you rate your divisional experience?" formData={formData} setFormData={setFormData} />
+                    <SliderField name="internalDivisionalEvents" label="3.7 How would you rate divisional events?" formData={formData} setFormData={setFormData} />
                   </div>
                 )}
 
-                <TextField name="section3Notes" label="3.8 Optional Notes" rows={2} />
+                <TextField name="section3Notes" label="3.8 Optional Notes" rows={2} formData={formData} handleChange={handleChange} />
               </div>
 
               {/* SECTION 4 */}
               <div className="regulation" style={{ marginBottom: "3rem" }}>
                 <h3 className="reg-title">Section IV: Open Feedback</h3>
 
-                <TextField name="improveExperience" label="4.1 What is one thing the Council could do to improve your experience?" rows={4} />
-                <TextField name="otherComments" label="4.2 Any other comments?" rows={3} />
+                <TextField name="improveExperience" label="4.1 What is one thing the Council could do to improve your experience?" rows={4} formData={formData} handleChange={handleChange} />
+                <TextField name="otherComments" label="4.2 Any other comments?" rows={3} formData={formData} handleChange={handleChange} />
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ display: "flex", justifyContent: "flex-start" }}>
                 <button
                   type="submit"
                   disabled={submitting}

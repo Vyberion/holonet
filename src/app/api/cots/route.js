@@ -14,7 +14,8 @@ const DEFAULT_COTS_STATE = {
     title: "Reaver Initiate",
     motto: "The Future Belongs to the Bold.",
     season: "CoTS I",
-    podiumImage: { bucket: "", path: "", url: "" }
+    podiumImage: { bucket: "", path: "", url: "" },
+    championImage: { bucket: "", path: "", url: "" }
   },
   podium: [
     { place: "I", name: "Coldmanjar123", note: "Champion" },
@@ -100,7 +101,8 @@ function normalizeState(value = {}) {
       title: text(champion.title, fallback.champion.title),
       motto: text(champion.motto, fallback.champion.motto),
       season: text(champion.season, fallback.champion.season),
-      podiumImage: normalizeImage(champion.podiumImage || fallback.champion.podiumImage)
+      podiumImage: normalizeImage(champion.podiumImage || fallback.champion.podiumImage),
+      championImage: normalizeImage(champion.championImage || fallback.champion.championImage)
     },
     podium: Array.isArray(source.podium) && source.podium.length
       ? source.podium.slice(0, 3).map((entry, index) => ({
@@ -133,11 +135,17 @@ async function withSignedImages(state) {
     podiumImage.url = await createSignedStorageUrl(podiumImage.bucket, podiumImage.path).catch(() => "");
   }
 
+  const championImage = normalizeImage(state.champion.championImage);
+  if (championImage.bucket && championImage.path) {
+    championImage.url = await createSignedStorageUrl(championImage.bucket, championImage.path).catch(() => "");
+  }
+
   return {
     ...state,
     champion: {
       ...state.champion,
-      podiumImage
+      podiumImage,
+      championImage
     }
   };
 }
@@ -170,6 +178,23 @@ async function storePodiumImage(file, previousImage) {
   }
 
   const nextPath = `podium/podium-${Date.now()}.${imageExtension(file)}`;
+  await uploadStorageObject(COTS_BUCKET, nextPath, Buffer.from(await file.arrayBuffer()), file.type || "application/octet-stream");
+
+  const previous = normalizeImage(previousImage);
+  if (previous.bucket && previous.path && (previous.bucket !== COTS_BUCKET || previous.path !== nextPath)) {
+    await removeStorageObjects(previous.bucket, [previous.path]).catch(() => null);
+  }
+
+  return { bucket: COTS_BUCKET, path: nextPath, url: "" };
+}
+
+async function storeChampionImage(file, previousImage) {
+  if (!file || !Number(file.size)) return normalizeImage(previousImage);
+  if (!text(file.type).startsWith("image/")) {
+    throw new Error("CHAMPION_IMAGE_MUST_BE_IMAGE");
+  }
+
+  const nextPath = `champion/champion-${Date.now()}.${imageExtension(file)}`;
   await uploadStorageObject(COTS_BUCKET, nextPath, Buffer.from(await file.arrayBuffer()), file.type || "application/octet-stream");
 
   const previous = normalizeImage(previousImage);
@@ -223,11 +248,13 @@ export async function POST(request) {
     const incoming = normalizeState(JSON.parse(text(form.get("payload"), "{}")));
     const current = await loadStoredState().catch(() => ({ state: cloneDefaultState() }));
     const podiumImage = await storePodiumImage(form.get("podiumImage"), current.state.champion.podiumImage);
+    const championImage = await storeChampionImage(form.get("championImage"), current.state.champion.championImage);
     const payload = normalizeState({
       ...incoming,
       champion: {
         ...incoming.champion,
-        podiumImage
+        podiumImage,
+        championImage
       }
     });
     const now = new Date().toISOString();

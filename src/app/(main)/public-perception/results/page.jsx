@@ -174,7 +174,7 @@ export default function PublicPerceptionResultsPage() {
                               <li><strong>Progression:</strong> {record.responses?.progression}</li>
                               <li><strong>Event Quality:</strong> {record.responses?.eventQuality}</li>
                               <li><strong>Scheduling:</strong> {record.responses?.scheduling}</li>
-                              <li><strong>Transparency:</strong> {record.responses?.transparency}</li>
+                              <li><strong>Leadership:</strong> {record.responses?.transparency}</li>
                               <li><strong>Powerbase:</strong> {record.responses?.powerbaseSystem}</li>
                               <li><strong>Divisional Balance:</strong> {record.responses?.divisionalBalance}</li>
                               <li><strong>Overall Culture:</strong> {record.responses?.overallCulture}</li>

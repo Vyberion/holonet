@@ -5,7 +5,7 @@ import { HolonetFrame } from "../../../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../../../components/PageScripts.jsx";
 
 const QUESTIONS = [
-  { id: "all", label: "All Questions (Full View)", type: "all" },
+  { id: "all", label: "All Responses", type: "all" },
   { id: "strictness", label: "1.1 Strictness of the Order", type: "scale" },
   { id: "progression", label: "1.2 Satisfaction with progression", type: "scale" },
   { id: "eventQuality", label: "1.3 Quality of events", type: "scale" },

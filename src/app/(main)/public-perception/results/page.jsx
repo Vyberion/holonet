@@ -126,15 +126,10 @@ export default function PublicPerceptionResultsPage() {
                 {/* Statistics Dashboard for Scale Questions */}
                 {scaleStats && scaleStats.totalResponses > 0 && (
                   <div className="regulation" style={{ marginBottom: "3rem", padding: "1.5rem", background: "rgba(0,0,0,0.3)" }}>
-                    <h3 className="reg-title" style={{ marginBottom: "1rem" }}>Aggregate Results: {selectedQuestionDef.label}</h3>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem", marginBottom: "1.5rem" }}>
                       <div>
                         <span style={{ color: "var(--text-dim)", fontSize: "0.85rem", textTransform: "uppercase" }}>Average</span>
                         <div style={{ fontSize: "2rem", color: "var(--red-bright)", fontWeight: "bold", fontFamily: "'Share Tech Mono', monospace" }}>{scaleStats.average}</div>
-                      </div>
-                      <div>
-                        <span style={{ color: "var(--text-dim)", fontSize: "0.85rem", textTransform: "uppercase" }}>Responses</span>
-                        <div style={{ fontSize: "2rem", color: "var(--text-bright)", fontWeight: "bold", fontFamily: "'Share Tech Mono', monospace" }}>{scaleStats.totalResponses}</div>
                       </div>
                     </div>
 

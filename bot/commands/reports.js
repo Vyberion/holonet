@@ -5,7 +5,7 @@ import { postActivityLog } from "../services/activity-log.js";
 import { botErrorMessage } from "../services/bot-errors.js";
 import { embed, ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
 import { loadRobloxUser } from "../services/roblox.js";
-import { divisionTierWeight, getVerifiedProfile } from "../services/roles.js";
+import { divisionTierWeight, getVerifiedProfile, canManageBot } from "../services/roles.js";
 import { supabase } from "../services/supabase.js";
 
 const VERIFY_INSTRUCTIONS = "You are not linked yet. Go to <#1046452180074381403> and click the verify button, or use `/verify`.";
@@ -316,8 +316,6 @@ function resetShiftPayload(resetAt = new Date().toISOString()) {
 }
 
 async function resetClockShiftsForScope(scope, resetAt = new Date().toISOString()) {
-  assertReportScope(scope);
-
   const { error: deleteError } = await supabase
     .from("clock_shifts")
     .delete()
@@ -369,7 +367,6 @@ async function resetActiveForIdentities(scope, column, values = [], resetAt = ne
 }
 
 async function resetClockShiftsForUsers(scope, discordIds = [], resetAt = new Date().toISOString()) {
-  assertReportScope(scope);
   const safeDiscordIds = [...new Set(discordIds.map(String).filter(Boolean))];
   const robloxIds = await linkedRobloxIdsForDiscordIds(safeDiscordIds);
 
@@ -525,13 +522,18 @@ async function ensureReportViewAccess(interaction, scope, prefill = false) {
 }
 
 async function ensureResetAccess(interaction, scope) {
-  assertReportScope(scope);
   const actor = await getVerifiedProfile(interaction.user.id);
   if (!actor) throw new Error("DISCORD_NOT_LINKED");
-  const actorTier = divisionTierWeight(actor.profile?.divisions?.[scope] || "none");
-  const allowed = Boolean(actor.profile?.isSuperUser || actorTier >= divisionTierWeight("co"));
-  if (!allowed) throw new Error("DIVISION_CO_REQUIRED");
-  return actor;
+  
+  if (canManageBot(actor.profile, interaction.member)) return actor;
+
+  if (ROBLOX_GROUPS.DIVISIONS[scope]) {
+    const actorTier = divisionTierWeight(actor.profile?.divisions?.[scope] || "none");
+    const allowed = Boolean(actor.profile?.isSuperUser || actorTier >= divisionTierWeight("co"));
+    if (allowed) return actor;
+  }
+  
+  throw new Error("INSUFFICIENT_CLEARANCE_LEVEL");
 }
 
 function confirmButtons(confirmId, danger = false) {

@@ -546,17 +546,18 @@ export async function handleModal(interaction) {
     const minutes = Math.max(0, Number(interaction.fields.getTextInputValue("minutes")) || 0);
     try {
       const shift = await adjustShiftTime(targetId, action === "add" ? minutes : -minutes);
-      const shiftTotal = Math.max(0, Number(shift.duration_seconds || 0) + Number(shift.adjustment_seconds || 0));
-      await interaction.reply(ephemeral({ embeds: [successEmbed("Time Adjusted", `${action === "add" ? "Added" : "Removed"} ${minutes} minute(s) ${targetId === interaction.user.id ? "from your shift" : `for <@${targetId}>`}.\nShift total: ${formatDuration(shiftTotal)}.`)] }));
+      const totals = await shiftTotals(targetId);
+      
+      await interaction.reply(ephemeral({ embeds: [successEmbed("Time Adjusted", `${action === "add" ? "Added" : "Removed"} ${minutes} minute(s) ${targetId === interaction.user.id ? "from your total time" : `for <@${targetId}>`}.\nNew total time: ${formatDuration(totals.totalSeconds)}.`)] }));
       if (minutes > 0) {
         await postActivityLog(interaction.client, {
           title: action === "add" ? "Time Added" : "Time Removed",
-          description: `<@${interaction.user.id}> ${action === "add" ? "added time to" : "removed time from"} ${targetId === interaction.user.id ? "their own shift" : `<@${targetId}>'s shift`}.`,
+          description: `<@${interaction.user.id}> ${action === "add" ? "added time to" : "removed time from"} ${targetId === interaction.user.id ? "their own total time" : `<@${targetId}>'s total time`}.`,
           channelKey: shift.scope === "darkCouncil" ? "highCommandLog" : "activityLog",
           fields: [
             { name: "Scope", value: scopeLabel(shift.scope), inline: true },
             { name: "Amount", value: formatDuration(minutes * 60), inline: true },
-            { name: "Shift Total", value: formatDuration(shiftTotal), inline: true }
+            { name: "New Total Time", value: formatDuration(totals.totalSeconds), inline: true }
           ]
         });
       }

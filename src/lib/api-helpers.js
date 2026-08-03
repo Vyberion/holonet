@@ -1418,7 +1418,11 @@ export async function fetchDivisionRoster(division) {
   if (!rolesResponse.ok) throw new Error("ROBLOX_ROLES_LOOKUP_FAILED");
   const rolesPayload = await rolesResponse.json();
 
-  const targetRoles = (rolesPayload.roles || []).filter(role => allowedRanks.has(Number(role.rank)));
+  const targetRoles = (rolesPayload.roles || []).filter(role => 
+    allowedRanks.has(Number(role.rank)) && 
+    role.name !== "Member" && 
+    role.name !== "Guest"
+  );
   const members = [];
 
   // 2. Fetch users for each matching role
@@ -1722,9 +1726,9 @@ export async function writeWeeklyReport(auth, body) {
     return { ok: true, status: 200, payload: { ok: true, id } };
   }
 
-  const [created] = await supabaseRest("division_weekly_reports?select=id", {
+  const [created] = await supabaseRest("division_weekly_reports?on_conflict=division_key,week_start&select=id", {
     method: "POST",
-    headers: { Prefer: "return=representation" },
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
     body: JSON.stringify(payload)
   });
   await replaceWeeklyReportMembers(created?.id, members);

@@ -82,37 +82,28 @@ export async function latestShift(discordUserId) {
 }
 
 export async function adjustShiftTime(discordUserId, minutes) {
-  const shift = await latestShift(discordUserId);
   const verified = await getVerifiedProfile(discordUserId);
   if (!verified) throw new Error("DISCORD_NOT_LINKED");
 
-  if (!shift) {
-    if (minutes <= 0) throw new Error("NO_SHIFT_FOUND");
-
-    const scope = inferScope(verified.profile);
-    if (!scope) throw new Error("NO_CLOCK_SCOPE");
-
-    const now = new Date().toISOString();
-    return insert("clock_shifts", {
-      scope,
-      discord_user_id: discordUserId,
-      roblox_user_id: verified.link.roblox_user_id,
-      started_at: now,
-      ended_at: now,
-      duration_seconds: Math.trunc(minutes * 60),
-      adjustment_seconds: 0,
-      status: "completed"
-    });
+  let scope = inferScope(verified.profile);
+  if (!scope) {
+    const shift = await latestShift(discordUserId);
+    if (shift) scope = shift.scope;
   }
+  if (!scope) throw new Error("NO_CLOCK_SCOPE");
 
-  const adjustmentSeconds = Number(shift.adjustment_seconds || 0) + Math.trunc(minutes * 60);
-  const { data, error } = await supabase
-    .from("clock_shifts")
-    .update({ adjustment_seconds: adjustmentSeconds })
-    .eq("id", shift.id)
-    .select()
-    .single();
-  if (error) throw error;
+  const now = new Date().toISOString();
+  const data = await insert("clock_shifts", {
+    scope,
+    discord_user_id: discordUserId,
+    roblox_user_id: verified.link.roblox_user_id,
+    started_at: now,
+    ended_at: now,
+    duration_seconds: 0,
+    adjustment_seconds: Math.trunc(minutes * 60),
+    status: "completed"
+  });
+
   return data;
 }
 

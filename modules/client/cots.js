@@ -77,7 +77,7 @@ function renderCots(root, state, canEdit, meta = {}) {
 
     <section class="cots-feature-grid" aria-label="Champion imagery and podium">
       <figure class="cots-media-card${championImage.url ? "" : " cots-media-card--empty"}">
-        <div class="cots-media-frame">
+        <div class="cots-media-frame" style="height: 100%; aspect-ratio: unset;">
           ${championImage.url
       ? `<img src="${escapeHtml(championImage.url)}" alt="Champion of The Sith">`
       : `<div class="cots-media-placeholder"><span>Champion Image</span></div>`}
@@ -93,7 +93,7 @@ function renderCots(root, state, canEdit, meta = {}) {
         </div>
         
         <figure class="cots-media-card${podiumImage.url ? "" : " cots-media-card--empty"}" style="flex: 1;">
-          <div class="cots-media-frame" style="height: 100%;">
+          <div class="cots-media-frame" style="height: 100%; aspect-ratio: unset;">
             ${podiumImage.url
         ? `<img src="${escapeHtml(podiumImage.url)}" alt="Champion of The Sith podium">`
         : `<div class="cots-media-placeholder"><span>Podium Image</span></div>`}

@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 const MORPH_FALLBACK_IMAGE = "/assets/morphs/throne.png";
-const CURRENT_EMPEROR_SLUG = "40th";
+const CURRENT_EMPEROR_SLUG = "41st";
 const CURRENT_EMPEROR_MORPH_IMAGE = "/assets/morphs/current_emperor.png";
 const RANK_PROGRESSION_GROUP_IDS = ["low-ranks", "middle-ranks", "high-ranks"];
 const RANK_PROGRESSION_END = { groupId: "high-ranks", slug: "darth" };
@@ -320,6 +320,22 @@ const HIERARCHY_GROUPS = [
     section: "HIGH COMMAND",
     items: [
       {
+        slug: "the_voice",
+        name: "The Emperor's Voice",
+        body: "The Emperor's Voice carries the will of the Emperor and speaks with the authority of the throne.",
+        category: "The Emperor's Voice",
+        path: "The Emperor's Powerbase",
+        active: true
+      },
+      {
+        slug: "the_wrath",
+        name: "The Emperor's Wrath",
+        body: "The Emperor's Wrath serves as the blade of the throne and enforces the Emperor's command.",
+        category: "The Emperor's Wrath",
+        path: "The Emperor's Powerbase",
+        active: true
+      },
+      {
         slug: CURRENT_EMPEROR_SLUG,
         href: `/emperors/${CURRENT_EMPEROR_SLUG}`,
         image: CURRENT_EMPEROR_MORPH_IMAGE,
@@ -329,22 +345,6 @@ const HIERARCHY_GROUPS = [
         path: "The Forty-First",
         pathOwnRow: true,
         routable: false
-      },
-      {
-        slug: "the_voice",
-        name: "The Emperor's Voice",
-        body: "The Emperor's Voice carries the will of the Emperor and speaks with the authority of the throne.",
-        category: "The Emperor's Voice",
-        path: "The Emperor's Powerbase",
-        active: false
-      },
-      {
-        slug: "the_wrath",
-        name: "The Emperor's Wrath",
-        body: "The Emperor's Wrath serves as the blade of the throne and enforces the Emperor's command.",
-        category: "The Emperor's Wrath",
-        path: "The Emperor's Powerbase",
-        active: false
       },
       {
         slug: "servant_one",
@@ -598,7 +598,7 @@ const EMPEROR_ARCHIVE_DATA = [
   },
   {
     name: "Torreto the Tyrant",
-    body: "TorretoTerminus is the fortieth Emperor of TSO and the twelfth under Manar_Aktuun. He is the first to secure a second term within this era.\n\nHis ongoing reign currently maintains a stable, albeit unremarkable, status quo. However, this stable era is marred by general discontent within the Order, largely fueled by his reputation for internal disputes."
+    body: "TorretoTerminus is the fortieth Emperor of TSO and the twelfth under Manar_Aktuun. He is the first to secure a second term within this era.\n\nHis reign maintained a stable, albeit unremarkable, status quo. However, this stable era was marred by general discontent within the Order, largely fueled by his reputation for internal disputes. He has since retired."
   },
   {
     name: "Vyberon the Unrivalled",

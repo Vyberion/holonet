@@ -163,7 +163,7 @@ function renderWeeklyReports(entries) {
         <p>${memberCount} members / ${Number(totalTime.hours || 0)}h ${Number(totalTime.minutes || 0)}m / ${Number(totals.eventsHosted || 0)} hosted / ${Number(totals.eventsAttended || 0)} attended</p>
         <div class="hub-row-tools">
           <button type="button" class="hub-write-btn" data-weekly-report-view="${index}">VIEW REPORT</button>
-          ${activeContext?.canWrite ? `<button type="button" class="hub-row-edit" data-weekly-report-edit="${index}">EDIT</button>` : ""}
+          ${activeContext?.canWrite ? `<button type="button" class="hub-write-btn" data-weekly-report-edit="${index}">EDIT</button>` : ""}
         </div>
       </article>
     `;
@@ -423,8 +423,31 @@ async function openWeeklyReportEditor(entry = null) {
     <div class="weekly-report-grid">
       ${reportMemberRows(members)}
     </div>
+    ${entry?.id ? `
+      <div class="library-editor-buttons">
+        <button type="button" class="library-inline-btn danger" data-report-delete>DELETE REPORT</button>
+      </div>
+    ` : ""}
   `;
   status.textContent = "";
+
+  form.onclick = async event => {
+    const destroy = event.target.closest("[data-report-delete]");
+    if (!destroy || !entry?.id) return;
+    if (!window.confirm("Are you sure you want to delete this weekly report?")) return;
+
+    try {
+      status.textContent = "Deleting...";
+      const response = await fetch(`/api/weekly-reports?id=${encodeURIComponent(entry.id)}`, { method: "DELETE" });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error(payload.reason || payload.error || "DELETE_FAILED");
+      status.textContent = "Deleted";
+      await activeContext.reload();
+      setTimeout(closeEditor, 150);
+    } catch (error) {
+      status.textContent = error.message.replace(/_/g, " ");
+    }
+  };
 
   form.onsubmit = async event => {
     event.preventDefault();

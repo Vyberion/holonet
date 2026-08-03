@@ -154,7 +154,7 @@ function formatDurationLong(seconds = 0) {
 
 function shiftTotalSeconds(shift, now = Date.now()) {
   const liveSeconds = shift.status === "active" ? Math.max(0, Math.floor((now - new Date(shift.started_at).getTime()) / 1000)) : Number(shift.duration_seconds || 0);
-  return Math.max(0, liveSeconds + Number(shift.adjustment_seconds || 0));
+  return liveSeconds + Number(shift.adjustment_seconds || 0);
 }
 
 async function loadScopeLeaderboard(scope) {

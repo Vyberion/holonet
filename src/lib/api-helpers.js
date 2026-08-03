@@ -1530,7 +1530,7 @@ export function shiftTotalSeconds(row, now = Date.now()) {
     ? Math.max(0, Math.floor((now - new Date(row.started_at).getTime()) / 1000))
     : Number(row.duration_seconds || 0);
 
-  return Math.max(0, baseSeconds + Number(row.adjustment_seconds || 0));
+  return baseSeconds + Number(row.adjustment_seconds || 0);
 }
 
 export function formatMemberShift(totalSeconds) {
@@ -1736,6 +1736,19 @@ export async function writeWeeklyReport(auth, body) {
     await resetClockShiftsForReport(division, members, reportAt);
   }
   return { ok: true, status: 200, payload: { ok: true, id: created?.id } };
+}
+
+export async function deleteWeeklyReport(auth, id) {
+  const [report] = await supabaseRest(`division_weekly_reports?id=eq.${encodeURIComponent(id)}&select=division_key`, { method: "GET" });
+  if (!report || !report.division_key) return { ok: false, status: 404, payload: { ok: false, reason: "NOT_FOUND" } };
+
+  if (!canWriteDivisionWeeklyReport(auth.profile, report.division_key)) {
+    return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
+  }
+
+  await supabaseRest(`division_weekly_reports?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
+  await supabaseRest(`division_weekly_report_members?report_id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
+  return { ok: true, status: 200, payload: { ok: true } };
 }
 
 export function inspectionSectionsFor(division, sections = []) {

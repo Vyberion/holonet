@@ -1,16 +1,19 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  getQueryParam, requireString, isMissingSchemaError, canWriteDivisionWeeklyReport, getAuthContext, canViewDivisionReports, loadWeeklyReports, buildWeeklyReportRoster, writeWeeklyReport
+  getQueryParam, requireString, isMissingSchemaError, canWriteDivisionWeeklyReport, getAuthContext, canViewDivisionReports, loadWeeklyReports, buildWeeklyReportRoster, writeWeeklyReport, deleteWeeklyReport
 } from "../../../lib/api-helpers.js";
-
-
-
 
 const handler = async (req, res) => {
     try {
       const auth = await getAuthContext(req);
       if (!auth.authenticated) {
         return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
+      }
+
+      if (req.method === "DELETE") {
+        const id = requireString(getQueryParam(req, "id"));
+        const result = await deleteWeeklyReport(auth, id);
+        return res.status(result.status).json(result.payload);
       }
 
       const division = requireString(getQueryParam(req, "division")).toLowerCase();

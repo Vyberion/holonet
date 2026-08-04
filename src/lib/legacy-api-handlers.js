@@ -31,10 +31,9 @@ import {
   STATE_COOKIE,
   supabaseRest
 } from "../../modules/auth/session-store.js";
-import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
+import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { tierAtLeast } from "../../modules/auth/profile.js";
-import { ARCHIVE_SEED } from "../../modules/data/archive-seed.js";
-import { LIBRARY_SEED } from "../../modules/data/library-seed.js";
+
 import { getHandbookSlot, getHandbookSlots } from "../../modules/data/handbook-slots.js";
 import { divisionLockedHref, getDivision, listDivisions } from "../../modules/data/divisions/index.js";
 import { extractGoogleFileId, extractGoogleTabId, googleWorkspaceKindFromUrl } from "./google-drive.js";
@@ -403,7 +402,7 @@ const COUNCIL_VOTING_RANKS = [...COUNCIL_COUNTING_RANKS, COUNCIL_RANKS.projectMa
 const COUNCIL_VETO_RANKS = [COUNCIL_RANKS.emperor, COUNCIL_RANKS.projectManager, COUNCIL_RANKS.groupOwner];
 
 function councilRank(profile) {
-  return Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0);
+  return Number(profile?.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0);
 }
 
 function councilRoleForRank(rank) {
@@ -884,51 +883,12 @@ async function loadArchiveArticles() {
   return normalized.sort((a, b) => a.displayOrder - b.displayOrder || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
-async function seedArchives() {
-  const articles = ARCHIVE_SEED.articles || [];
-  for (const article of articles) {
-    await supabaseRest(
-      "archive_articles?on_conflict=slug&select=id,slug,title,body,image_bucket,image_path,image_alt,status,display_order,created_at,updated_at",
-      {
-        method: "POST",
-        headers: { Prefer: "resolution=merge-duplicates,return=representation" },
-        body: JSON.stringify({
-          slug: slugify(article.slug || article.title),
-          title: requireString(article.title),
-          body: requireString(article.body),
-          image_bucket: article.imagePath ? "archives" : null,
-          image_path: requireString(article.imagePath),
-          image_alt: requireString(article.imageAlt || article.title),
-          status: requireString(article.status, "published"),
-          display_order: Number(article.displayOrder) || 0
-        })
-      }
-    );
-  }
-
-  return loadArchiveArticles();
-}
-
-async function ensureArchivesSeeded() {
+export async function ensureArchivesSeeded() {
   try {
-    const existing = await loadArchiveArticles();
-    if (existing.length) return existing;
-    return seedArchives();
+    return await loadArchiveArticles();
   } catch (error) {
     if (isMissingSchemaError(error)) {
-      return (ARCHIVE_SEED.articles || []).map(article => ({
-        id: article.slug,
-        slug: article.slug,
-        articleNumber: article.articleNumber || "ARTICLE 1",
-        title: article.title,
-        body: article.body,
-        imageBucket: article.imagePath ? "archives" : "",
-        imagePath: article.imagePath || "",
-        imageAlt: article.imageAlt || article.title,
-        imageUrl: "",
-        status: article.status || "published",
-        displayOrder: article.displayOrder || 0
-      }));
+      return [];
     }
     throw error;
   }
@@ -1038,60 +998,12 @@ async function loadLibraryDocuments(libraryKey) {
   }).sort((a, b) => a.displayOrder - b.displayOrder || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
-async function seedLibrary(libraryKey) {
-  const seed = LIBRARY_SEED[libraryKey];
-  if (!seed?.documents?.length) return [];
-
-  for (const document of seed.documents) {
-    const [createdDocument] = await supabaseRest(
-      "library_documents?on_conflict=library_key,slug&select=id,slug,article_number,title,status,display_order,created_at,updated_at",
-      {
-        method: "POST",
-        headers: { Prefer: "resolution=merge-duplicates,return=representation" },
-        body: JSON.stringify({
-          library_key: libraryKey,
-          slug: slugify(document.slug || document.title),
-          article_number: requireString(document.articleNumber),
-          title: requireString(document.title),
-          status: requireString(document.status, "published"),
-          display_order: Number(document.displayOrder) || 0
-        })
-      }
-    );
-
-    await supabaseRest(`library_entries?document_id=eq.${encodeURIComponent(createdDocument.id)}`, {
-      method: "DELETE"
-    });
-
-    if (document.entries?.length) {
-      await supabaseRest("library_entries", {
-        method: "POST",
-        body: JSON.stringify(document.entries.map((entry, index) => ({
-          document_id: createdDocument.id,
-          anchor: requireString(entry.anchor || `${createdDocument.slug}-${index + 1}`),
-          label: requireString(entry.label || `Regulation ${index + 1}`),
-          body: requireString(entry.body),
-          sub_clauses: normalizeSubClauses(entry.subClauses),
-          display_order: Number(entry.displayOrder) || index + 1
-        })))
-      });
-    }
-  }
-
-  return loadLibraryDocuments(libraryKey);
-}
-
-async function ensureLibrarySeeded(libraryKey) {
+export async function ensureLibrarySeeded(libraryKey) {
   try {
-    const existing = await loadLibraryDocuments(libraryKey);
-    if (existing.length) return existing;
-    return seedLibrary(libraryKey);
+    return await loadLibraryDocuments(libraryKey);
   } catch (error) {
     if (isMissingSchemaError(error)) {
-      return (LIBRARY_SEED[libraryKey]?.documents || []).map(document => ({
-        ...document,
-        id: document.slug
-      }));
+      return [];
     }
     throw error;
   }
@@ -1399,7 +1311,7 @@ function canonicalDivisionId(value) {
 }
 
 function rosterDefinitionForDivision(division) {
-  if (division === "highranks") return ROBLOX_GROUPS.HIGH_RANKS;
+  if (division === "highranks") return ROBLOX_GROUPS.MAIN_GROUP;
   if (division === "darkCouncil") return ROBLOX_GROUPS.DARK_COUNCIL;
   return ROBLOX_GROUPS.DIVISIONS[division];
 }
@@ -2359,7 +2271,7 @@ async function restoreHandbookRetirement(id, auth = null) {
 }
 
 async function fetchCouncilEligibleSnapshot() {
-  const response = await fetch(`https://groups.roblox.com/v1/groups/${ROBLOX_GROUPS.HIGH_RANKS.groupId}/roles`);
+  const response = await fetch(`https://groups.roblox.com/v1/groups/${ROBLOX_GROUPS.MAIN_GROUP.groupId}/roles`);
   if (!response.ok) {
     throw new Error("COUNCIL_ROLE_SYNC_FAILED");
   }
@@ -3438,7 +3350,7 @@ export const LEGACY_API_HANDLERS = {
 
       const { user, groups, accountAgeDays, friendsCount, badgeCount } = await loadRobloxProfileSummary(resolved.id);
       const mainGroupMembership = (groups.data || []).find(
-        membership => membership?.group?.id === ROBLOX_GROUPS.HIGH_RANKS.groupId
+        membership => membership?.group?.id === ROBLOX_GROUPS.MAIN_GROUP.groupId
       );
       const divisionMemberships = Object.entries(ROBLOX_GROUPS.DIVISIONS)
         .map(([divisionKey, definition]) => {

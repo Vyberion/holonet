@@ -1,6 +1,6 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  getAuthContext, canAccessAdmin, canAccessNexus, canAccessPersonnelLookup, canAccessRegistry, checkPageAccess
+  getAuthContext, checkPageAccess
 } from "../../../lib/api-helpers.js";
 
 
@@ -46,10 +46,10 @@ export async function GET(request) {
     profile: publicProfile(auth.profile),
     pageAccess,
     permissions: {
-      canAccessAdmin: canAccessAdmin(auth.profile).authorized,
-      canAccessNexus: canAccessNexus(auth.profile).authorized,
-      canAccessRegistry: canAccessRegistry(auth.profile).authorized,
-      canAccessPersonnelLookup: canAccessPersonnelLookup(auth.profile).authorized
+      canAccessAdmin: checkPageAccess(auth.profile, "admin").authorized,
+      canAccessPersonnelLookup: true,
+      canAccessNexus: checkPageAccess(auth.profile, "nexus").authorized,
+      canAccessRegistry: checkPageAccess(auth.profile, "registry").authorized
     }
   });
 }

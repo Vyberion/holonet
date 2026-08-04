@@ -6,7 +6,7 @@ import { embed, ephemeral, errorEmbed, successEmbed } from "../services/discord-
 import { postVerificationLog } from "../services/activity-log.js";
 import { canManageBot, canUpdateMemberRoles, getVerifiedProfile, syncMemberRoles } from "../services/roles.js";
 import { loadGroupRoles, loadRobloxProfileSummary, loadRobloxUser, personnelLookupWarnings } from "../services/roblox.js";
-import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
+import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 
 const DISABLED_COMMANDS = new Set();
 const DISABLED_BUTTONS = new Set();
@@ -271,7 +271,7 @@ export async function handleCommand(interaction) {
     }
     const groupRoles = await loadGroupRoles(verified.link.roblox_user_id);
     const robloxUser = await loadRobloxUser(verified.link.roblox_user_id).catch(() => null);
-    const mainGroup = membershipFor(groupRoles, ROBLOX_GROUPS.HIGH_RANKS.groupId);
+    const mainGroup = membershipFor(groupRoles, ROBLOX_GROUPS.MAIN_GROUP.groupId);
     const divisionLines = Object.entries(ROBLOX_GROUPS.DIVISIONS)
       .map(([key, definition]) => {
         const membership = membershipFor(groupRoles, definition.groupId);

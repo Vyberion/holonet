@@ -10,12 +10,18 @@ export const metadata = holonetMetadata({
 });
 
 export default function EmperorArchivePage() {
-  const group = { ...EMPEROR_ARCHIVE_GROUP, maxPathRowCards: 3 };
+  const group = { ...EMPEROR_ARCHIVE_GROUP, maxPathRowCards: 4 };
   const items = emperorArchiveItems();
 
   return (
     <HolonetFrame title="EMPERORS" subtitle="SITH EMPEROR ARCHIVE" footerNode="ARC-02">
       <div className="hierarchy-main">
+        <style>{`
+          .hierarchy-card {
+            aspect-ratio: 1 / 1 !important;
+            height: auto !important;
+          }
+        `}</style>
         <HierarchySection group={group} items={items} />
       </div>
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} guarded />

@@ -263,7 +263,10 @@ function ensureEditorOverlay() {
       <form class="resource-editor-form" data-resource-form></form>
       <div class="resource-editor-actions">
         <span class="resource-editor-status" data-resource-status></span>
-        <button type="submit" class="resource-editor-submit" form="resource-editor-form">SAVE</button>
+        <div style="display: flex; gap: 12px;">
+          <button type="button" class="resource-editor-submit" data-report-delete style="display: none;">DELETE REPORT</button>
+          <button type="submit" class="resource-editor-submit" form="resource-editor-form">SAVE</button>
+        </div>
       </div>
       <div class="resource-editor-footer">
         <span class="resource-editor-hint"><kbd>ESC</kbd> CLOSE</span>
@@ -423,31 +426,31 @@ async function openWeeklyReportEditor(entry = null) {
     <div class="weekly-report-grid">
       ${reportMemberRows(members)}
     </div>
-    ${entry?.id ? `
-      <div class="library-editor-buttons">
-        <button type="button" class="library-inline-btn danger" data-report-delete>DELETE REPORT</button>
-      </div>
-    ` : ""}
   `;
   status.textContent = "";
 
-  form.onclick = async event => {
-    const destroy = event.target.closest("[data-report-delete]");
-    if (!destroy || !entry?.id) return;
-    if (!window.confirm("Are you sure you want to delete this weekly report?")) return;
+  const deleteBtn = overlay.querySelector("[data-report-delete]");
+  if (entry?.id) {
+    deleteBtn.style.display = "";
+    deleteBtn.onclick = async () => {
+      if (!window.confirm("Are you sure you want to delete this weekly report?")) return;
 
-    try {
-      status.textContent = "Deleting...";
-      const response = await fetch(`/api/weekly-reports?id=${encodeURIComponent(entry.id)}`, { method: "DELETE" });
-      const payload = await response.json();
-      if (!response.ok || !payload.ok) throw new Error(payload.reason || payload.error || "DELETE_FAILED");
-      status.textContent = "Deleted";
-      await activeContext.reload();
-      setTimeout(closeEditor, 150);
-    } catch (error) {
-      status.textContent = error.message.replace(/_/g, " ");
-    }
-  };
+      try {
+        status.textContent = "Deleting...";
+        const response = await fetch(`/api/weekly-reports?id=${encodeURIComponent(entry.id)}`, { method: "DELETE" });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) throw new Error(payload.reason || payload.error || "DELETE_FAILED");
+        status.textContent = "Deleted";
+        await activeContext.reload();
+        setTimeout(closeEditor, 150);
+      } catch (error) {
+        status.textContent = error.message.replace(/_/g, " ");
+      }
+    };
+  } else {
+    deleteBtn.style.display = "none";
+    deleteBtn.onclick = null;
+  }
 
   form.onsubmit = async event => {
     event.preventDefault();

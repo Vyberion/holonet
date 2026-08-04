@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from "discord.js";
 import { canViewDivisionReports, canWriteDivisionReport } from "../../modules/auth/permissions.js";
-import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
+import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { postActivityLog } from "../services/activity-log.js";
 import { botErrorMessage } from "../services/bot-errors.js";
 import { embed, ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
@@ -29,7 +29,7 @@ export const commands = [
       .setName("report")
       .setDescription("Write this scope's weekly website report and reset its clock time")
       .addStringOption(option => addReportScopeChoices(option.setName("scope").setDescription("Report scope").setRequired(true)))
-      .addStringOption(option => option.setName("date").setDescription("Week start date, YYYY-MM-DD"))),
+      .addStringOption(option => option.setName("start_date").setDescription("Week start date, YYYY-MM-DD").setRequired(true))),
   new SlashCommandBuilder()
     .setName("reset")
     .setDescription("Reset clock time for a report scope")
@@ -52,7 +52,7 @@ export const commands = [
       .setName("report")
       .setDescription("View a saved report or preview current entries")
       .addStringOption(option => addReportScopeChoices(option.setName("scope").setDescription("Report scope").setRequired(true)))
-      .addStringOption(option => option.setName("date").setDescription("Week start date, YYYY-MM-DD"))
+      .addStringOption(option => option.setName("start_date").setDescription("Week start date, YYYY-MM-DD").setRequired(true))
       .addBooleanOption(option => option.setName("prefill-entries").setDescription("Preview current roster and clock entries instead of a saved report")))
 ];
 
@@ -558,7 +558,7 @@ function targetUsersFromOptions(interaction) {
 
 async function handleWriteReportCommand(interaction) {
   const scope = interaction.options.getString("scope", true);
-  const date = (interaction.options.getString("date", false) || "").trim();
+  const date = (interaction.options.getString("start_date", true) || "").trim();
   await ensureReportWriteAccess(interaction, scope);
   await interaction.reply(ephemeral({
     embeds: [embed("Confirm Weekly Report", `Are you sure you want to write the **${scopeLabel(scope)}** weekly report${date ? ` for **${date}**` : ""}? This will save the current scope logs to the website report system and reset **${scopeLabel(scope)}** clock time.`)],
@@ -568,7 +568,7 @@ async function handleWriteReportCommand(interaction) {
 
 async function handleViewReportCommand(interaction) {
   const scope = interaction.options.getString("scope", true);
-  const date = String(interaction.options.getString("date", false) || "").trim();
+  const date = String(interaction.options.getString("start_date", true) || "").trim();
   const prefill = Boolean(interaction.options.getBoolean("prefill-entries", false));
   await ensureReportViewAccess(interaction, scope, prefill);
 

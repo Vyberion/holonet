@@ -63,8 +63,8 @@ export function managedRoleIdsFromConfig(sourceConfig, options = {}) {
   pushRankRules(ids, roles.DARK_COUNCIL?.ranks);
   pushRangeRules(ids, roles.DARK_COUNCIL?.ranges);
   pushRankRules(ids, roles.DARK_COUNCIL?.senior);
-  pushRankRules(ids, roles.HIGH_RANKS?.ranks);
-  pushRangeRules(ids, roles.HIGH_RANKS?.ranges);
+  pushRankRules(ids, roles.MAIN_GROUP?.ranks);
+  pushRangeRules(ids, roles.MAIN_GROUP?.ranges);
 
   Object.values(roles.DIVISIONS || {}).forEach(group => {
     pushRankRules(ids, group.ranks);

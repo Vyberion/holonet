@@ -1,6 +1,6 @@
 import { executeLegacyHandler } from "../../../../lib/legacy-api-adapter.js";
 import {
-  getQueryParam, getAuthContext, canAccessAdmin, canAccessNexus, canAccessPersonnelLookup, canAccessRegistry, checkPageAccess
+  getQueryParam, getAuthContext, checkPageAccess
 } from "../../../../lib/api-helpers.js";
 
 
@@ -48,10 +48,10 @@ const handler = async (req, res) => {
           ...access,
           profile,
           permissions: {
-            canAccessAdmin: canAccessAdmin(profile).authorized,
-            canAccessPersonnelLookup: canAccessPersonnelLookup(profile).authorized,
-            canAccessNexus: canAccessNexus(profile).authorized,
-            canAccessRegistry: canAccessRegistry(profile).authorized
+            canAccessAdmin: checkPageAccess(profile, "admin").authorized,
+            canAccessPersonnelLookup: true,
+            canAccessNexus: checkPageAccess(profile, "nexus").authorized,
+            canAccessRegistry: checkPageAccess(profile, "registry").authorized
           }
         });
       }
@@ -60,10 +60,10 @@ const handler = async (req, res) => {
         authorized: true,
         profile,
         permissions: {
-          canAccessAdmin: canAccessAdmin(profile).authorized,
-          canAccessPersonnelLookup: canAccessPersonnelLookup(profile).authorized,
-          canAccessNexus: canAccessNexus(profile).authorized,
-          canAccessRegistry: canAccessRegistry(profile).authorized
+          canAccessAdmin: checkPageAccess(profile, "admin").authorized,
+          canAccessPersonnelLookup: true,
+          canAccessNexus: checkPageAccess(profile, "nexus").authorized,
+          canAccessRegistry: checkPageAccess(profile, "registry").authorized
         }
       });
     } catch (err) {

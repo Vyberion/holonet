@@ -1,4 +1,4 @@
-import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
+import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { buildProfile } from "../../modules/auth/profile.js";
 
 export async function loadGroupRoles(robloxUserId) {
@@ -95,7 +95,7 @@ export function personnelLookupWarnings({ accountAgeDays, friendsCount, badgeCou
 export function rawRanksFromProfile(profile) {
   return {
     darkCouncil: Number(profile.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0),
-    highranks: Number(profile.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0),
+    highranks: Number(profile.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0),
     divisions: Object.fromEntries(
       Object.entries(ROBLOX_GROUPS.DIVISIONS).map(([key, group]) => [
         key,

@@ -1,8 +1,8 @@
 import { PermissionFlagsBits } from "discord.js";
 import { config } from "../config/index.js";
 import { missingBotPermissionsError, roleManagementBlockedError } from "./bot-errors.js";
-import { ROBLOX_GROUPS, SUPER_USER_IDS } from "../../modules/auth/roblox-groups.js";
-import { hasCoreAccess } from "../../modules/auth/permissions.js";
+import { ROBLOX_GROUPS, SUPER_USER_IDS } from "../../modules/data/roblox-config.js";
+import { hasHighCommandAccess } from "../../modules/auth/permissions.js";
 import { loadProfileForRoblox, loadRobloxUser, rawRanksFromProfile } from "./roblox.js";
 import { audit, supabase } from "./supabase.js";
 import {
@@ -18,7 +18,7 @@ const UNLINKED_ROLE_ID = config.roles?.unlinked || "1340850135680155674";
 const UNVERIFIED_REMOVED_ROLE_IDS = ["1340829015484928053"];
 
 function isMainGroupMember(profile) {
-  return Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0) > 0;
+  return Number(profile?.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0) > 0;
 }
 
 export function managedRoleIds() {
@@ -38,8 +38,8 @@ function roleIdsForProfile(profile) {
 
   ids.push(roleIdsFromRule(managed.DARK_COUNCIL?.ranks?.[String(ranks.darkCouncil)]));
   ids.push(roleIdsFromRanges(ranks.darkCouncil, managed.DARK_COUNCIL?.ranges));
-  ids.push(roleIdsFromRule(managed.HIGH_RANKS?.ranks?.[String(ranks.highranks)]));
-  ids.push(roleIdsFromRanges(ranks.highranks, managed.HIGH_RANKS?.ranges));
+  ids.push(roleIdsFromRule(managed.MAIN_GROUP?.ranks?.[String(ranks.highranks)]));
+  ids.push(roleIdsFromRanges(ranks.highranks, managed.MAIN_GROUP?.ranges));
 
   for (const [roleName, active] of Object.entries(profile.authorityRoles || {})) {
     if (active) ids.push(managed.DARK_COUNCIL?.senior?.[roleName]);
@@ -58,7 +58,7 @@ function nicknameRuleForProfile(profile) {
 
   const ranks = rawRanksFromProfile(profile);
   const managed = config.nicknames?.managed || {};
-  const priority = config.nicknames?.priority || ["DIVISIONS", "HIGH_RANKS", "DARK_COUNCIL"];
+  const priority = config.nicknames?.priority || ["DIVISIONS", "MAIN_GROUP", "DARK_COUNCIL"];
 
   for (const group of priority) {
     if (group === "DIVISIONS") {
@@ -68,8 +68,8 @@ function nicknameRuleForProfile(profile) {
       }
     }
 
-    if (group === "HIGH_RANKS") {
-      const rule = managed.HIGH_RANKS?.ranks?.[String(ranks.highranks)];
+    if (group === "MAIN_GROUP") {
+      const rule = managed.MAIN_GROUP?.ranks?.[String(ranks.highranks)];
       if (rule) return rule;
     }
 
@@ -210,15 +210,15 @@ export function canUpdateMemberRoles(actorProfile, targetProfile, actorMember = 
 
 export function canManageEmperorVote(profile, member = null) {
   const roles = profile?.authorityRoles || {};
-  return Boolean(isDiscordAdmin(member) || hasCoreAccess(profile) || roles.groupOwner || roles.projectManager);
+  return Boolean(isDiscordAdmin(member) || profile?.hasFullAccess || roles.groupOwner || roles.projectManager);
 }
 
 export function canVoteEmperor(profile) {
-  return Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0) > 0;
+  return Number(profile?.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0) > 0;
 }
 
 export function inferScope(profile) {
-  const highRankValue = Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0);
+  const highRankValue = Number(profile?.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0);
 
   const tierWeight = { none: 0, member: 1, nco: 2, co: 3, "2ic": 4, "1ic": 5, overseer: 6 };
   const divisionScope = (config.scopes.divisionOrder || [])
@@ -238,8 +238,8 @@ function addRolesForScope(scopeName, set) {
   let ranks, ranges;
   
   if (scopeName === "highranks") {
-    ranks = managed.HIGH_RANKS?.ranks;
-    ranges = managed.HIGH_RANKS?.ranges;
+    ranks = managed.MAIN_GROUP?.ranks;
+    ranges = managed.MAIN_GROUP?.ranges;
   } else if (scopeName === "darkCouncil") {
     ranks = managed.DARK_COUNCIL?.ranks;
     ranges = managed.DARK_COUNCIL?.ranges;

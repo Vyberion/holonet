@@ -31,8 +31,7 @@ const moduleLoaders = {
   "/modules/client/group-timeline.js": () => import("../../modules/client/group-timeline.js"),
   "/modules/client/site.js": async () => {
     const optionalModules = [
-      () => import("../../modules/client/intro-toggle.js"),
-      () => import("../../modules/client/mobile-icon-colour.js")
+      () => import("../../modules/client/intro-toggle.js")
     ];
 
     for (const loadOptionalModule of optionalModules) {

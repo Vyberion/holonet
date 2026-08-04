@@ -7,7 +7,7 @@ import { embed, ephemeral, errorEmbed, successEmbed, textModal } from "../servic
 import { canAdjustTime, canManageBot, getVerifiedProfile, inferScope, isMemberInScope } from "../services/roles.js";
 import { setShiftRemindersEnabled } from "../services/shift-reminders.js";
 import { supabase } from "../services/supabase.js";
-import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
+import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 
 const VERIFY_INSTRUCTIONS = "You are not linked yet. Use `/verify` or the verification panel.";
 const LEADERBOARD_PAGE_SIZE = 5;
@@ -90,7 +90,7 @@ function hasInquisitoriusOverseer(profile) {
 }
 
 function hasHighRankAccess(profile) {
-  return Number(profile?.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0) > 0;
+  return Number(profile?.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0) > 0;
 }
 
 function hasDarkCouncilAccess(profile) {
@@ -139,7 +139,7 @@ function scopeEligibilityLines() {
     `- DHG: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.dhg.ranks, ["1ic", "2ic", "co", "nco", "member"], nicknameRanks.DIVISIONS?.dhg)}`,
     `- Inquisitors: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.inquisitors.ranks, ["1ic", "co", "nco", "member"], nicknameRanks.DIVISIONS?.inquisitors)}`,
     `- Dread Masters: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.dreadmasters.ranks, ["1ic", "2ic", "member"], nicknameRanks.DIVISIONS?.dreadmasters)}`,
-    `- High Ranks: ${eligibleRanks(ROBLOX_GROUPS.HIGH_RANKS.ranks, ["upper", "lower"], nicknameRanks.HIGH_RANKS)}`,
+    `- High Ranks: ${eligibleRanks(ROBLOX_GROUPS.MAIN_GROUP.ranks, ["upper", "lower"], nicknameRanks.MAIN_GROUP)}`,
     `- Dark Council: ${eligibleRanks(ROBLOX_GROUPS.DARK_COUNCIL.ranks, Object.keys(ROBLOX_GROUPS.DARK_COUNCIL.ranks), nicknameRanks.DARK_COUNCIL)}`
   ];
 }
@@ -228,7 +228,7 @@ async function replyScopeLeaderboard(interaction, scope, page = 0, update = fals
 
         let inScope = false;
         if (scope === "darkCouncil") inScope = Number(verified.profile.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) > 0;
-        else if (scope === "highranks") inScope = Number(verified.profile.groupRanks?.[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0) > 0;
+        else if (scope === "highranks") inScope = Number(verified.profile.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0) > 0;
         else {
           // For divisions, they must have at least 'member' tier in the division
           const DIVISION_TIERS = ["none", "member", "nco", "co", "2ic", "1ic", "overseer"];

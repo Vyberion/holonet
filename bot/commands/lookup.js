@@ -4,7 +4,7 @@ import { botErrorPayload } from "../services/bot-errors.js";
 import { embed, ephemeral, errorEmbed, componentsV2Message, containerV2, sectionV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
 import { loadGroupRoles, loadRobloxUser, loadRobloxAvatarBust } from "../services/roblox.js";
 import { supabase } from "../services/supabase.js";
-import { ROBLOX_GROUPS } from "../../modules/auth/roblox-groups.js";
+import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 
 export const commands = [
   new SlashCommandBuilder()
@@ -95,7 +95,7 @@ async function replyLookup(interaction, { discordUser, link, robloxUser }) {
       const username = loadedRobloxUser.name || loadedRobloxUser.displayName || link?.roblox_user_id || loadedRobloxUser.id;
       const displayName = loadedRobloxUser.displayName || loadedRobloxUser.name || username;
 
-      const mainGroup = membershipFor(groupRoles, ROBLOX_GROUPS.HIGH_RANKS.groupId);
+      const mainGroup = membershipFor(groupRoles, ROBLOX_GROUPS.MAIN_GROUP.groupId);
       const divisionLines = Object.entries(ROBLOX_GROUPS.DIVISIONS)
         .map(([key, definition]) => {
           const membership = membershipFor(groupRoles, definition.groupId);

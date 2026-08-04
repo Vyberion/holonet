@@ -1,6 +1,7 @@
-import { ROBLOX_GROUPS, SUPER_USER_IDS } from "./roblox-groups.js";
+import { ROBLOX_GROUPS, SUPER_USER_IDS } from "../data/roblox-config.js";
+import { compileProfilePermissions } from "./role-permissions.js";
 
-const DIVISION_TIERS = ["none", "member", "nco", "co", "2ic", "1ic", "overseer"];
+const DIVISION_TIERS = ["none", "member", "nco", "hr", "2ic", "1ic", "overseer"];
 const HIGH_RANK_TIERS = ["none", "lower", "upper", "overseer"];
 const DARK_COUNCIL_DIVISION_OVERSEERS = {
   highRankOverseer: "highranks",
@@ -68,7 +69,7 @@ function isPreviewSuperuserMode() {
 export function buildProfile({ robloxId, groupRoles }) {
   const userGroups = buildGroupRankMap(groupRoles);
   const darkCouncilRank = userGroups[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0;
-  const highRank = userGroups[ROBLOX_GROUPS.HIGH_RANKS.groupId] || 0;
+  const highRank = userGroups[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0;
   const isSuperUser =
   isPreviewSuperuserMode() ||
   SUPER_USER_IDS.includes(String(robloxId));
@@ -85,7 +86,7 @@ export function buildProfile({ robloxId, groupRoles }) {
     groupRanks: userGroups,
     authorityRoles,
     hasFullAccess: isSuperUser || FULL_ACCESS_AUTHORITY_ROLES.some(role => authorityRoles[role]),
-    highRank: getTierFromRankList(highRank, ROBLOX_GROUPS.HIGH_RANKS.ranks, HIGH_RANK_TIERS),
+    highRank: getTierFromRankList(highRank, ROBLOX_GROUPS.MAIN_GROUP.ranks, HIGH_RANK_TIERS),
     divisions: {}
   };
 
@@ -99,6 +100,8 @@ export function buildProfile({ robloxId, groupRoles }) {
       profile.divisions[divisionKey] = "overseer";
     }
   }
+
+  profile.permissions = compileProfilePermissions(profile);
 
   return profile;
 }

@@ -43,7 +43,7 @@ export default {
   },
   nicknames: {
     enabled: true,
-    priority: ["DIVISIONS", "HIGH_RANKS", "DARK_COUNCIL"],
+    priority: ["DIVISIONS", "MAIN_GROUP", "DARK_COUNCIL"],
     managed: {
       DARK_COUNCIL: {
         ranks: {
@@ -60,72 +60,6 @@ export default {
           "25": { mode: "fixed", value: "Darth Aruk" },
           "20": { mode: "fixed", value: "Darth Vowrawn" },
           "15": { mode: "fixed", value: "Darth Ravage" }
-        }
-      },
-      HIGH_RANKS: {
-        ranks: {
-          "53": { mode: "prefix", value: "Darth" },
-          "50": { mode: "prefix", value: "Lord" },
-          "45": { mode: "prefix", value: "Master" },
-          "44": { mode: "prefix", value: "Overseer" },
-          "42": { mode: "prefix", value: "Shadow Guard" },
-          "35": { mode: "prefix", value: "Seer" },
-          "34": { mode: "prefix", value: "Marauder" },
-          "33": { mode: "prefix", value: "Sorcerer" },
-          "32": { mode: "prefix", value: "Warrior" },
-          "29": { mode: "prefix", value: "Adept" },
-          "27": { mode: "prefix", value: "Apprentice" },
-          "26": { mode: "prefix", value: "Prospect" },
-          "25": { mode: "prefix", value: "Acolyte" },
-          "24": { mode: "prefix", value: "Initiate" },
-          "23": { mode: "prefix", value: "Academy Student" },
-          "20": { mode: "prefix", value: "Neophyte" },
-          "15": { mode: "prefix", value: "Hopeful" },
-          "2": { mode: "prefix", value: "Tyro" },
-          "1": { mode: "prefix", value: "Grotthu" },
-        }
-      },
-      DIVISIONS: {
-        reavers: {
-          ranks: {
-            "200": { mode: "prefix", value: "Reaver Commander" },
-            "15": { mode: "prefix", value: "Reaver Lord" },
-            "10": { mode: "prefix", value: "Senior Reaver" },
-            "5": { mode: "prefix", value: "Reaver" },
-            "1": { mode: "prefix", value: "Reaver Initiate" }
-          }
-        },
-        dhg: {
-          ranks: {
-            "100": { mode: "prefix", value: "Guard Commander" },
-            "90": { mode: "prefix", value: "Guard Captain" },
-            "80": { mode: "prefix", value: "Guard Lieutenant" },
-            "60": { mode: "prefix", value: "Senior Guard" },
-            "50": { mode: "prefix", value: "Guard" },
-            "30": { mode: "prefix", value: "Guard Initiate" }
-          }
-        },
-        inquisitors: {
-          ranks: {
-            "200": { mode: "prefix", value: "Grand Inquisitor" },
-            "155": { mode: "prefix", value: "High Inquisitor" },
-            "150": { mode: "prefix", value: "Senior Inquisitor" },
-            "125": { mode: "prefix", value: "Inquisitor" },
-            "100": { mode: "prefix", value: "Inquisitor Initiate" }
-          }
-        },
-        dreadmasters: {
-          ranks: {
-            "36": { mode: "fixed", value: "Dread Master Raptus" },
-            "30": { mode: "fixed", value: "Dread Master Tyrans" },
-            "25": { mode: "fixed", value: "Dread Master Styrak" },
-            "20": { mode: "fixed", value: "Dread Master Calphayus" },
-            "15": { mode: "fixed", value: "Dread Master Brontes" },
-            "10": { mode: "fixed", value: "Dread Master Bestia" },
-            "4": { mode: "prefix", value: "Dread Captain" },
-            "3": { mode: "prefix", value: "Dread Guard" },
-            "2": { mode: "prefix", value: "Dread Host" }
-          }
         }
       }
     }
@@ -156,28 +90,7 @@ export default {
           ]
         },
       },
-      HIGH_RANKS: {
-        ranks: {
-          "53": "1172292778710028399",
-          "50": "1134210796625346560",
-          "45": "1134210771824414802",
-          "44": "1134207491719319634",
-          "42": "1046451377687244862",
-          "35": "1134204399514812649",
-          "34": "1134210593902051358",
-          "33": "1134210728027488287",
-          "32": "1134210576713777152",
-          "29": "1134206028104351844",
-          "27": "1134203963273642114",
-          "26": "1134210556467879947",
-          "25": "1134210545717874918",
-          "24": "1046451397274640485",
-          "23": "1134207247073951834",
-          "20": "1134204266580561951",
-          "15": "1134208296383946863",
-          "2": "1134210490751516733",
-          "1": "1134203793387560960",
-        },
+      MAIN_GROUP: {
         ranges: [
           { min: 50, max: 53, roles: ["1046546991360004136"] },
           { min: 44, max: 53, roles: ["1134219014634229790"] },

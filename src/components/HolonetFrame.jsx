@@ -496,6 +496,9 @@ export function HolonetFrame({
             <p className="footer-sig" style={{ color: "var(--text-dim)" }}>
               Made by Vyberon
             </p>
+            <p className="footer-sig" style={{ color: "var(--text-dim)" }}>
+              WITH HELP FROM GAWK AND THE OLD GUARD
+            </p>
             <nav className="footer-links" aria-label="Legal links">
               <a href="/the-serious-stuff/terms-of-service">Terms</a>
               <a href="/the-serious-stuff/privacy-policy">Privacy</a>

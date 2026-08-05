@@ -88,7 +88,6 @@ export default async function PowerbasesPage() {
           <p>No active Powerbases found.</p>
         </div>
       )}
-    </div>
-    </HolonetFrame >
+    </HolonetFrame>
   );
 }

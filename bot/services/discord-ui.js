@@ -22,7 +22,8 @@ export function successEmbed(title, message) {
 }
 
 export function ephemeral(payload = {}) {
-  return { ...payload, flags: MessageFlags.Ephemeral };
+  const currentFlags = typeof payload.flags === "number" ? payload.flags : 0;
+  return { ...payload, flags: currentFlags | MessageFlags.Ephemeral };
 }
 
 export function buttonRow(buttons) {

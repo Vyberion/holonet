@@ -1,6 +1,6 @@
 import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { getVerifiedProfile } from "../services/roles.js";
-import { ephemeral, errorEmbed, successEmbed, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
+import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
 import { fetchPowerbases, getPowerbase, adjustPrestige } from "../services/powerbase-api.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js"; 
 
@@ -14,12 +14,12 @@ export async function handleCommand(interaction) {
   try {
     const verified = await getVerifiedProfile(interaction.user.id);
     if (!verified) {
-      await interaction.reply(ephemeral({ embeds: [errorEmbed("You must be verified to use Kaggath commands.")] }));
+      await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You must be verified to use Kaggath commands.")])])));
       return true;
     }
 
     if (!hasAnyOverseer(verified.profile) && !hasDarkCouncilRank(verified.profile, 251)) {
-      return interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have permission to write Kaggaths.")] }));
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have permission to write Kaggaths.")])])));
     }
 
     const select = new StringSelectMenuBuilder()
@@ -40,9 +40,9 @@ export async function handleCommand(interaction) {
   } catch (err) {
     console.error(err);
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(ephemeral({ embeds: [errorEmbed(`❌ **Error:** ` + err.message)] }));
+      await interaction.followUp(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])])));
     } else {
-      await interaction.reply(ephemeral({ embeds: [errorEmbed(`❌ **Error:** ` + err.message)] }));
+      await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])])));
     }
   }
 
@@ -61,7 +61,7 @@ export async function handleSelectMenu(interaction) {
       const active = powerbases.filter(pb => pb.status === "ACTIVE");
       
       if (active.length < 2) {
-        return interaction.update(ephemeral({ embeds: [errorEmbed("Not enough active Powerbases for a Domination Kaggath.")] }));
+        return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Not enough active Powerbases for a Domination Kaggath.")])])));
       }
       
       const select = new StringSelectMenuBuilder()
@@ -73,20 +73,20 @@ export async function handleSelectMenu(interaction) {
       return interaction.update(ephemeral({ content: "Select the Challenging Powerbase:", components: [row] }));
     }
 
-    return interaction.update(ephemeral({ embeds: [successEmbed(`${type} Selected`, "Further inputs not fully implemented yet.")] }));
+    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`${type} selected. Further inputs not fully implemented yet.`)])])));
   }
   
   if (interaction.customId === "kaggath_dom_challenger") {
     const challengerId = interaction.values[0];
     const cached = globalThis.__kaggathCache?.get(interaction.user.id);
-    if (!cached) return interaction.update(ephemeral({ embeds: [errorEmbed("Session expired.")] }));
+    if (!cached) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Session expired.")])])));
     cached.challengerId = challengerId;
 
     const powerbases = await fetchPowerbases();
     const active = powerbases.filter(pb => pb.status === "ACTIVE" && pb.id !== challengerId);
     
     if (active.length === 0) {
-      return interaction.update(ephemeral({ embeds: [errorEmbed("No eligible defending Powerbases found.")] }));
+      return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("No eligible defending Powerbases found.")])])));
     }
 
     const select = new StringSelectMenuBuilder()
@@ -101,7 +101,7 @@ export async function handleSelectMenu(interaction) {
   if (interaction.customId === "kaggath_dom_defender") {
     const defenderId = interaction.values[0];
     const cached = globalThis.__kaggathCache?.get(interaction.user.id);
-    if (!cached || !cached.challengerId) return interaction.update(ephemeral({ embeds: [errorEmbed("Session expired.")] }));
+    if (!cached || !cached.challengerId) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Session expired.")])])));
     cached.defenderId = defenderId;
 
     const modal = new ModalBuilder()
@@ -136,7 +136,7 @@ export async function handleModal(interaction) {
   if (interaction.customId === "kaggath_dom_score_modal") {
     const cached = globalThis.__kaggathCache?.get(interaction.user.id);
     if (!cached || !cached.challengerId || !cached.defenderId) {
-      return interaction.reply(ephemeral({ embeds: [errorEmbed("Session expired.")] }));
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Session expired.")])])));
     }
 
     const challScoreInput = interaction.fields.getTextInputValue("challenger_score");
@@ -146,11 +146,11 @@ export async function handleModal(interaction) {
     const defScore = parseInt(defScoreInput, 10);
 
     if (isNaN(challScore) || isNaN(defScore)) {
-      return interaction.reply(ephemeral({ embeds: [errorEmbed("Scores must be valid numbers.")] }));
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Scores must be valid numbers.")])])));
     }
 
     if (challScore === defScore) {
-      return interaction.reply(ephemeral({ embeds: [errorEmbed("Ties are not allowed in Kaggaths.")] }));
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Ties are not allowed in Kaggaths.")])])));
     }
 
     globalThis.__kaggathCache.delete(interaction.user.id);
@@ -163,7 +163,7 @@ export async function handleModal(interaction) {
     ]);
 
     if (!challenger || !defender) {
-      return interaction.reply(ephemeral({ embeds: [errorEmbed("One or both Powerbases no longer exist.")] }));
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("One or both Powerbases no longer exist.")])])));
     }
 
     const challSize = (challenger.powerbase_members?.length || 0) + 1;
@@ -213,7 +213,7 @@ export async function handleModal(interaction) {
     const targetChannel = await interaction.client.channels.fetch(LOG_CHANNEL_ID).catch(() => null);
     if (targetChannel && targetChannel.isTextBased()) {
       await targetChannel.send(v2Payload);
-      await interaction.reply(ephemeral({ content: `Kaggath log successfully submitted to <#${LOG_CHANNEL_ID}>.` }));
+      await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`Kaggath log successfully submitted to <#${LOG_CHANNEL_ID}>.`)])])));
     } else {
       await interaction.reply(ephemeral(v2Payload));
     }

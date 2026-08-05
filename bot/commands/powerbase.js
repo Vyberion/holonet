@@ -1,7 +1,7 @@
 import { ActionRowBuilder, ModalBuilder, SlashCommandBuilder, StringSelectMenuBuilder, TextInputBuilder, TextInputStyle, UserSelectMenuBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js"; 
-import { ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
+import { ephemeral, errorEmbed, successEmbed, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
 import { createPowerbase, fetchPowerbases, getPowerbase, getPowerbaseForUser, isHigherRank, logPowerbaseAction, updatePowerbase } from "../services/powerbase-api.js";
 
 export const commands = [
@@ -219,7 +219,14 @@ async function handleEditMembers(interaction) {
     await updatePowerbase(pb.id, {}, finalMemberIds);
     globalThis.__pbEditMembersCache.delete(leaderId);
     
-    await interaction.update(ephemeral({ embeds: [successEmbed("Powerbase Updated", `Powerbase **${cached.name}** updated successfully!`)], components: [] }));
+    const v2Payload = componentsV2Message([
+      containerV2([
+        textDisplayV2(`### Powerbase Updated`),
+        textDisplayV2(`Powerbase **${cached.name}** updated successfully!`)
+      ])
+    ]);
+    
+    await interaction.update(ephemeral(v2Payload));
   } catch (err) {
     await interaction.update(ephemeral({ embeds: [errorEmbed(err.message)], components: [] }));
   }
@@ -260,8 +267,15 @@ async function handleCreateMembers(interaction) {
     }, selectedMembers);
     
     globalThis.__pbCreateCache.delete(leaderId);
+
+    const v2Payload = componentsV2Message([
+      containerV2([
+        textDisplayV2(`### Request Submitted`),
+        textDisplayV2(`Powerbase **${cached.name}** creation request submitted for approval by High Command!`)
+      ])
+    ]);
     
-    await interaction.update(ephemeral({ embeds: [successEmbed("Request Submitted", `Powerbase **${cached.name}** creation request submitted for approval by High Command!`)], components: [] }));
+    await interaction.update(ephemeral(v2Payload));
   } catch (err) {
     await interaction.update(ephemeral({ embeds: [errorEmbed(err.message)], components: [] }));
   }
@@ -333,7 +347,7 @@ async function handleManage(interaction, verified) {
     })));
 
   const row = new ActionRowBuilder().addComponents(select);
-  await interaction.reply(ephemeral({ content: "Select an option below:", components: [row] }));
+  await interaction.reply(ephemeral({ content: "Select a Powerbase to manage:", components: [row] }));
   return true;
 }
 
@@ -368,7 +382,7 @@ async function handleDissolve(interaction, verified) {
     })));
 
   const row = new ActionRowBuilder().addComponents(select);
-  await interaction.reply(ephemeral({ content: "Select an option below:", components: [row] }));
+  await interaction.reply(ephemeral({ content: "Select a Powerbase to dissolve:", components: [row] }));
   return true;
 }
 
@@ -393,7 +407,7 @@ async function handleInfo(interaction, verified) {
     })));
 
   const row = new ActionRowBuilder().addComponents(select);
-  await interaction.reply(ephemeral({ content: "Select an option below:", components: [row] }));
+  await interaction.reply(ephemeral({ content: "Select a Powerbase to view:", components: [row] }));
   return true;
 }
 
@@ -436,11 +450,23 @@ async function handleDissolveSelect(interaction) {
 
   if (pb.status === "PENDING_CREATE") {
     await updatePowerbase(pbId, { status: "DISSOLVED" });
-    return interaction.update(ephemeral({ embeds: [successEmbed("Cancelled", `Powerbase request for **${pb.name}** has been cancelled.`)], components: [] }));
+    const v2Payload = componentsV2Message([
+      containerV2([
+        textDisplayV2(`### Request Cancelled`),
+        textDisplayV2(`Powerbase request for **${pb.name}** has been cancelled.`)
+      ])
+    ]);
+    return interaction.update(ephemeral(v2Payload));
   }
 
   await updatePowerbase(pbId, { status: "PENDING_DISSOLVE" });
-  return interaction.update(ephemeral({ embeds: [successEmbed("Dissolution Requested", `Dissolution request for Powerbase **${pb.name}** has been submitted for approval.`)], components: [] }));
+  const v2Payload = componentsV2Message([
+    containerV2([
+      textDisplayV2(`### Dissolution Requested`),
+      textDisplayV2(`Dissolution request for Powerbase **${pb.name}** has been submitted for approval.`)
+    ])
+  ]);
+  return interaction.update(ephemeral(v2Payload));
 }
 
 async function handleInfoSelect(interaction) {
@@ -448,20 +474,21 @@ async function handleInfoSelect(interaction) {
   const pb = await getPowerbase(pbId);
   if (!pb) return interaction.reply(ephemeral({ embeds: [errorEmbed("Powerbase not found.")] }));
 
-  const memberList = (pb.powerbase_members || [])
-    .map(m => `<@${m.discord_user_id}>`)
-    .join(", ") || "None";
+  const memberList = [`<@${pb.leader_id}>`, ...(pb.powerbase_members || []).map(m => `<@${m.discord_user_id}>`)].join(", ") || "None";
 
-  const infoEmbed = successEmbed(
-    pb.name,
-    `**Description:** ${pb.description || "None"}\n` +
-    `**Leader:** <@${pb.leader_id}>\n` +
-    `**Tier:** ${pb.tier}\n` +
-    `**Prestige:** ${pb.prestige}\n` +
-    `**Status:** ${pb.status}\n\n` +
-    `**Members:** ${memberList}`
-  );
+  const v2Payload = componentsV2Message([
+    containerV2([
+      textDisplayV2(`### ${pb.name}`),
+      textDisplayV2(`**Description:** ${pb.description || "None"}\n**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}\n**Prestige:** ${pb.prestige}\n**Status:** ${pb.status}`),
+      separatorV2(),
+      textDisplayV2(`**Members:** ${memberList}`)
+    ])
+  ]);
 
-  await interaction.update(ephemeral({ embeds: [infoEmbed], components: [] }));
+  await interaction.update(ephemeral(v2Payload));
   return true;
+}
+
+function romanize(num) {
+  return ["I", "II", "III", "IV"][num - 1] || "I";
 }

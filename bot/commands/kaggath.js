@@ -1,10 +1,12 @@
 import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { getVerifiedProfile } from "../services/roles.js";
-import { ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
+import { ephemeral, errorEmbed, successEmbed, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
 import { fetchPowerbases, getPowerbase, adjustPrestige } from "../services/powerbase-api.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js"; 
 
 export const commands = [];
+
+const LOG_CHANNEL_ID = "1534165352756285450";
 
 export async function handleCommand(interaction) {
   if (interaction.commandName !== "write" || interaction.options.getSubcommand() !== "kaggath") return false;
@@ -33,7 +35,7 @@ export async function handleCommand(interaction) {
       ]);
 
     const row = new ActionRowBuilder().addComponents(select);
-    await interaction.reply(ephemeral({ content: "Step 1: Select Kaggath Type", components: [row] }));
+    await interaction.reply(ephemeral({ content: "Select Kaggath Type:", components: [row] }));
 
   } catch (err) {
     console.error(err);
@@ -68,7 +70,7 @@ export async function handleSelectMenu(interaction) {
         .addOptions(active.map(pb => ({ label: pb.name, value: pb.id })));
         
       const row = new ActionRowBuilder().addComponents(select);
-      return interaction.update(ephemeral({ content: "Step 2: Select the Challenging Powerbase.", components: [row] }));
+      return interaction.update(ephemeral({ content: "Select the Challenging Powerbase:", components: [row] }));
     }
 
     return interaction.update(ephemeral({ embeds: [successEmbed(`${type} Selected`, "Further inputs not fully implemented yet.")] }));
@@ -93,7 +95,7 @@ export async function handleSelectMenu(interaction) {
       .addOptions(active.map(pb => ({ label: pb.name, value: pb.id })));
       
     const row = new ActionRowBuilder().addComponents(select);
-    return interaction.update(ephemeral({ content: "Step 3: Select the Defending Powerbase.", components: [row] }));
+    return interaction.update(ephemeral({ content: "Select the Defending Powerbase:", components: [row] }));
   }
 
   if (interaction.customId === "kaggath_dom_defender") {
@@ -102,24 +104,58 @@ export async function handleSelectMenu(interaction) {
     if (!cached || !cached.challengerId) return interaction.update(ephemeral({ embeds: [errorEmbed("Session expired.")] }));
     cached.defenderId = defenderId;
 
-    const select = new StringSelectMenuBuilder()
-      .setCustomId("kaggath_dom_winner")
-      .setPlaceholder("Select the Victor")
-      .addOptions([
-        { label: "Challenger Won", value: "challenger" },
-        { label: "Defender Won", value: "defender" }
-      ]);
-      
-    const row = new ActionRowBuilder().addComponents(select);
-    return interaction.update(ephemeral({ content: "Step 4: Who won the Kaggath?", components: [row] }));
+    const modal = new ModalBuilder()
+      .setCustomId("kaggath_dom_score_modal")
+      .setTitle("Enter Kaggath Score");
+
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId("challenger_score")
+          .setLabel("Challenger Score")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId("defender_score")
+          .setLabel("Defender Score")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+      )
+    );
+
+    await interaction.showModal(modal);
+    return true;
   }
 
-  if (interaction.customId === "kaggath_dom_winner") {
-    const winner = interaction.values[0];
+  return false;
+}
+
+export async function handleModal(interaction) {
+  if (interaction.customId === "kaggath_dom_score_modal") {
     const cached = globalThis.__kaggathCache?.get(interaction.user.id);
-    if (!cached || !cached.challengerId || !cached.defenderId) return interaction.update(ephemeral({ embeds: [errorEmbed("Session expired.")] }));
+    if (!cached || !cached.challengerId || !cached.defenderId) {
+      return interaction.reply(ephemeral({ embeds: [errorEmbed("Session expired.")] }));
+    }
+
+    const challScoreInput = interaction.fields.getTextInputValue("challenger_score");
+    const defScoreInput = interaction.fields.getTextInputValue("defender_score");
+
+    const challScore = parseInt(challScoreInput, 10);
+    const defScore = parseInt(defScoreInput, 10);
+
+    if (isNaN(challScore) || isNaN(defScore)) {
+      return interaction.reply(ephemeral({ embeds: [errorEmbed("Scores must be valid numbers.")] }));
+    }
+
+    if (challScore === defScore) {
+      return interaction.reply(ephemeral({ embeds: [errorEmbed("Ties are not allowed in Kaggaths.")] }));
+    }
 
     globalThis.__kaggathCache.delete(interaction.user.id);
+
+    const winner = challScore > defScore ? "challenger" : "defender";
 
     const [challenger, defender] = await Promise.all([
       getPowerbase(cached.challengerId),
@@ -127,7 +163,7 @@ export async function handleSelectMenu(interaction) {
     ]);
 
     if (!challenger || !defender) {
-      return interaction.update(ephemeral({ embeds: [errorEmbed("One or both Powerbases no longer exist.")] }));
+      return interaction.reply(ephemeral({ embeds: [errorEmbed("One or both Powerbases no longer exist.")] }));
     }
 
     const challSize = (challenger.powerbase_members?.length || 0) + 1;
@@ -154,17 +190,35 @@ export async function handleSelectMenu(interaction) {
     const newChallenger = await adjustPrestige(challenger.id, challGain);
     const newDefender = await adjustPrestige(defender.id, defGain);
 
-    const resultEmbed = successEmbed(
-      "Kaggath of Domination",
-      `**Challenger:** ${challenger.name} (${romanize(challenger.tier)})\n` +
-      `**Defender:** ${defender.name} (${romanize(defender.tier)})\n\n` +
-      `**Participants**\nChallenger Size: ${challSize} | Defender Size: ${defSize}\n\n` +
-      `**Winner:** ${winner === "challenger" ? challenger.name : defender.name}\n\n` +
-      `**${challenger.name} (Now Tier ${romanize(newChallenger.tier)})**\nPrestige: ${challenger.prestige} ➔ ${newChallenger.prestige} (${challGain > 0 ? "+" : ""}${challGain})\n\n` +
-      `**${defender.name} (Now Tier ${romanize(newDefender.tier)})**\nPrestige: ${defender.prestige} ➔ ${newDefender.prestige} (${defGain > 0 ? "+" : ""}${defGain})`
-    );
+    const challParticipants = [`<@${challenger.leader_id}>`, ...(challenger.powerbase_members || []).map(m => `<@${m.discord_user_id}>`)].join(", ");
+    const defParticipants = [`<@${defender.leader_id}>`, ...(defender.powerbase_members || []).map(m => `<@${m.discord_user_id}>`)].join(", ");
 
-    return interaction.update(ephemeral({ embeds: [resultEmbed], components: [] }));
+    const winnerName = winner === "challenger" ? challenger.name : defender.name;
+
+    const v2Payload = componentsV2Message([
+      containerV2([
+        textDisplayV2(`### Kaggath of Domination`),
+        textDisplayV2(`**Challenger:** ${challenger.name} (${romanize(challenger.tier)})\n**Defender:** ${defender.name} (${romanize(defender.tier)})`),
+        separatorV2(),
+        textDisplayV2(`**Participants**\n**Challenger:** ${challParticipants}\n**Defender:** ${defParticipants}`),
+        separatorV2(),
+        textDisplayV2(`**Score:**\n${challScore} - ${defScore}\n**Winner:** ${winnerName}`),
+        separatorV2(),
+        textDisplayV2(`**${challenger.name}**\nTier: ${romanize(newChallenger.tier)}\nPrestige: ${challenger.prestige} ➔ ${newChallenger.prestige} (${challGain >= 0 ? "+" : ""}${challGain})`),
+        separatorV2(),
+        textDisplayV2(`**${defender.name}**\nTier: ${romanize(newDefender.tier)}\nPrestige: ${defender.prestige} ➔ ${newDefender.prestige} (${defGain >= 0 ? "+" : ""}${defGain})`)
+      ], 0x8a1b1b)
+    ]);
+
+    const targetChannel = await interaction.client.channels.fetch(LOG_CHANNEL_ID).catch(() => null);
+    if (targetChannel && targetChannel.isTextBased()) {
+      await targetChannel.send(v2Payload);
+      await interaction.reply(ephemeral({ content: `Kaggath log successfully submitted to <#${LOG_CHANNEL_ID}>.` }));
+    } else {
+      await interaction.reply(ephemeral(v2Payload));
+    }
+
+    return true;
   }
 
   return false;

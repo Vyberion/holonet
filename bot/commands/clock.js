@@ -216,9 +216,22 @@ async function replyScopeLeaderboard(interaction, scope, page = 0, update = fals
   if (!access.allowed) return;
 
   const rawRows = await loadScopeLeaderboard(scope);
-  const totalPages = Math.max(1, Math.ceil(rawRows.length / LEADERBOARD_PAGE_SIZE));
+
+  let validRows = rawRows;
+  if (scope !== "all" && interaction.guild) {
+    validRows = [];
+    for (const row of rawRows) {
+      const member = interaction.guild.members.cache.get(row.discordUserId) ||
+                     await interaction.guild.members.fetch(row.discordUserId).catch(() => null);
+      if (member && isMemberInScope(member, scope)) {
+        validRows.push(row);
+      }
+    }
+  }
+
+  const totalPages = Math.max(1, Math.ceil(validRows.length / LEADERBOARD_PAGE_SIZE));
   const safePage = Math.min(Math.max(0, page), totalPages - 1);
-  const pageRows = rawRows.slice(safePage * LEADERBOARD_PAGE_SIZE, (safePage + 1) * LEADERBOARD_PAGE_SIZE);
+  const pageRows = validRows.slice(safePage * LEADERBOARD_PAGE_SIZE, (safePage + 1) * LEADERBOARD_PAGE_SIZE);
 
   const payload = {
     embeds: [embed(`${scopeLabel(scope)} Leaderboard`, pageRows.length ? pageRows.map((row, index) => `**Rank:** ${safePage * LEADERBOARD_PAGE_SIZE + index + 1}\n**User:** <@${row.discordUserId}>\n**Total time:** ${formatDurationLong(row.totalSeconds)}`).join("\n\n") : "No shifts recorded.")],

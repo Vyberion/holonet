@@ -7,14 +7,10 @@ import { fetchPowerbases, getPowerbase, adjustPrestige } from "../services/power
 // Adjust as necessary for "Event Team".
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js"; 
 
-export const commands = [
-  new SlashCommandBuilder()
-    .setName("kaggath")
-    .setDescription("Write a Kaggath result")
-];
+export const commands = [];
 
 export async function handleCommand(interaction) {
-  if (interaction.commandName !== "kaggath") return false;
+  if (interaction.commandName !== "write" || interaction.options.getSubcommand() !== "kaggath") return false;
 
   try {
     const verified = await getVerifiedProfile(interaction.user.id);
@@ -34,11 +30,11 @@ export async function handleCommand(interaction) {
       .setCustomId("kaggath_type_select")
       .setPlaceholder("Select Kaggath Type")
       .addOptions([
-        { label: "Domination (Powerbase vs Powerbase)", value: "Domination" },
-        { label: "Ascension (Challenge for Rank)", value: "Ascension" },
-        { label: "Severance (Forcefully Leave)", value: "Severance" },
-        { label: "Allegiance (Join full PB / Fight Rejection)", value: "Allegiance" },
-        { label: "Usurpation (Challenge Leader)", value: "Usurpation" },
+        { label: "Domination", value: "Domination" },
+        { label: "Ascension", value: "Ascension" },
+        { label: "Severance", value: "Severance" },
+        { label: "Allegiance", value: "Allegiance" },
+        { label: "Usurpation", value: "Usurpation" },
         { label: "Humiliation", value: "Humiliation" }
       ]);
 

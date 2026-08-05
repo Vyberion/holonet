@@ -29,7 +29,10 @@ export const commands = [
       .setName("report")
       .setDescription("Write this scope's weekly website report and reset its clock time")
       .addStringOption(option => addReportScopeChoices(option.setName("scope").setDescription("Report scope").setRequired(true)))
-      .addStringOption(option => option.setName("start_date").setDescription("Week start date, YYYY-MM-DD").setRequired(true))),
+      .addStringOption(option => option.setName("start_date").setDescription("Week start date, YYYY-MM-DD").setRequired(true)))
+    .addSubcommand(subcommand => subcommand
+      .setName("kaggath")
+      .setDescription("Write a Kaggath result")),
   new SlashCommandBuilder()
     .setName("reset")
     .setDescription("Reset clock time for a report scope")

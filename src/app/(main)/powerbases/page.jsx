@@ -1,6 +1,7 @@
 import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
 import { supabaseRest } from "../../../../modules/auth/session-store.js";
 import { holonetMetadata } from "../../../lib/metadata.js";
+import { PageScripts } from "../../../components/PageScripts.jsx";
 import Link from "next/link";
 
 export const metadata = holonetMetadata({
@@ -88,6 +89,8 @@ export default async function PowerbasesPage() {
           <p>No active Powerbases found.</p>
         </div>
       )}
+
+      <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} />
     </HolonetFrame>
   );
 }

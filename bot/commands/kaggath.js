@@ -34,10 +34,12 @@ export async function handleCommand(interaction) {
         { label: "Humiliation", value: "Humiliation" }
       ]);
 
+    const row = new ActionRowBuilder().addComponents(select);
+
     await interaction.reply(ephemeral(componentsV2Message([
       containerV2([
         textDisplayV2("Select Kaggath Type:"),
-        select
+        row
       ])
     ])));
 
@@ -73,10 +75,12 @@ export async function handleSelectMenu(interaction) {
         .setPlaceholder("Select Challenging Powerbase")
         .addOptions(active.map(pb => ({ label: pb.name, value: pb.id })));
         
+      const row = new ActionRowBuilder().addComponents(select);
+
       return interaction.update(ephemeral(componentsV2Message([
         containerV2([
           textDisplayV2("Select the Challenging Powerbase:"),
-          select
+          row
         ])
       ])));
     }
@@ -102,10 +106,12 @@ export async function handleSelectMenu(interaction) {
       .setPlaceholder("Select Defending Powerbase")
       .addOptions(active.map(pb => ({ label: pb.name, value: pb.id })));
       
+    const row = new ActionRowBuilder().addComponents(select);
+
     return interaction.update(ephemeral(componentsV2Message([
       containerV2([
         textDisplayV2("Select the Defending Powerbase:"),
-        select
+        row
       ])
     ])));
   }

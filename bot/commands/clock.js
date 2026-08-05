@@ -77,7 +77,10 @@ function divisionTierAtLeast(profile, division, requiredTier) {
 
 export function hasDarkCouncilRank(profile, roleKey) {
   const rank = Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0);
-  const allowedRanks = ROBLOX_GROUPS.DARK_COUNCIL.ranks?.[roleKey] || [];
+  if (typeof roleKey === "number") {
+    return rank >= roleKey;
+  }
+  const allowedRanks = ROBLOX_GROUPS.DARK_COUNCIL.tiers?.[roleKey] || [];
   return Boolean(profile?.authorityRoles?.[roleKey] || allowedRanks.includes(rank));
 }
 

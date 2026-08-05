@@ -35,64 +35,60 @@ export default async function PowerbasesPage() {
       footerNode="POWERBASES"
       mainClassName="powerbases-main"
     >
-      <div className="codex-container" style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
-        <p className="codex-description" style={{ marginBottom: "2rem", color: "var(--theme-dim)", textAlign: "center" }}>
-          Registered factions within the Order, driven by meritocracy and bound by the Imperial Statute on Powerbase Operations.
-        </p>
 
-        {[4, 3, 2, 1].map(tier => {
-          if (tiers[tier].length === 0) return null;
-          
-          return (
-            <div key={tier} style={{ marginBottom: "3rem" }}>
-              <h2 className="codex-section-title" style={{ borderBottom: "1px solid var(--theme-dim)", paddingBottom: "0.5rem", marginBottom: "1.5rem" }}>
-                Tier {tier === 4 ? "IV" : tier === 3 ? "III" : tier === 2 ? "II" : "I"}
-              </h2>
-              
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1.5rem" }}>
-                {tiers[tier].map(pb => (
-                  <div key={pb.id} className="nav-card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: "1.25rem", color: "var(--theme-bright)" }}>{pb.name}</h3>
-                      <div style={{ fontSize: "0.875rem", color: "var(--theme-dim)", marginTop: "0.25rem" }}>
-                        Prestige: <strong style={{ color: "var(--theme-color)" }}>{pb.prestige}</strong>
-                      </div>
-                    </div>
-                    
-                    {pb.description && (
-                      <p style={{ margin: 0, fontSize: "0.95rem", lineHeight: 1.4 }}>
-                        {pb.description}
-                      </p>
-                    )}
-                    
-                    <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-                      <span style={{ fontSize: "0.85rem", color: "var(--theme-dim)" }}>
-                        {pb.powerbase_members?.length || 0} Member{(pb.powerbase_members?.length || 0) === 1 ? "" : "s"}
-                      </span>
-                      {pb.roblox_group_id && (
-                        <a 
-                          href={`https://www.roblox.com/groups/${pb.roblox_group_id}`} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          style={{ fontSize: "0.85rem", color: "var(--theme-color)", textDecoration: "none" }}
-                        >
-                          View Group &rarr;
-                        </a>
-                      )}
+      {[4, 3, 2, 1].map(tier => {
+        if (tiers[tier].length === 0) return null;
+
+        return (
+          <div key={tier} style={{ marginBottom: "3rem" }}>
+            <h2 className="codex-section-title" style={{ borderBottom: "1px solid var(--theme-dim)", paddingBottom: "0.5rem", marginBottom: "1.5rem" }}>
+              Tier {tier === 4 ? "IV" : tier === 3 ? "III" : tier === 2 ? "II" : "I"}
+            </h2>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1.5rem" }}>
+              {tiers[tier].map(pb => (
+                <div key={pb.id} className="nav-card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "1.25rem", color: "var(--theme-bright)" }}>{pb.name}</h3>
+                    <div style={{ fontSize: "0.875rem", color: "var(--theme-dim)", marginTop: "0.25rem" }}>
+                      Prestige: <strong style={{ color: "var(--theme-color)" }}>{pb.prestige}</strong>
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  {pb.description && (
+                    <p style={{ margin: 0, fontSize: "0.95rem", lineHeight: 1.4 }}>
+                      {pb.description}
+                    </p>
+                  )}
+
+                  <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                    <span style={{ fontSize: "0.85rem", color: "var(--theme-dim)" }}>
+                      {pb.powerbase_members?.length || 0} Member{(pb.powerbase_members?.length || 0) === 1 ? "" : "s"}
+                    </span>
+                    {pb.roblox_group_id && (
+                      <a
+                        href={`https://www.roblox.com/groups/${pb.roblox_group_id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ fontSize: "0.85rem", color: "var(--theme-color)", textDecoration: "none" }}
+                      >
+                        View Group &rarr;
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          );
-        })}
-        
-        {powerbases.length === 0 && (
-          <div style={{ textAlign: "center", padding: "4rem 0", color: "var(--theme-dim)" }}>
-            <p>No active Powerbases found.</p>
           </div>
-        )}
-      </div>
-    </HolonetFrame>
+        );
+      })}
+
+      {powerbases.length === 0 && (
+        <div style={{ textAlign: "center", padding: "4rem 0", color: "var(--theme-dim)" }}>
+          <p>No active Powerbases found.</p>
+        </div>
+      )}
+    </div>
+    </HolonetFrame >
   );
 }

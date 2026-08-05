@@ -15,15 +15,15 @@ export async function handleCommand(interaction) {
   try {
     const verified = await getVerifiedProfile(interaction.user.id);
     if (!verified) {
-      await interaction.reply(componentsV2Message([containerV2([textDisplayV2("You must be verified to use Kaggath commands.")])]));
+      await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You must be verified to use Kaggath commands.")])])));
       return true;
     }
 
     // Check permissions
-    if (!hasAnyOverseer(verified.profile) && !hasDarkCouncilRank(verified.profile, 252)) {
+    if (!hasAnyOverseer(verified.profile) && !hasDarkCouncilRank(verified.profile, 251)) {
       // NOTE: User wanted Event Team+. Since I don't have the Event Team check immediately, 
       // falling back to Overseer / High Command.
-      return interaction.reply(componentsV2Message([containerV2([textDisplayV2("You do not have permission to write Kaggaths.")])]));
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have permission to write Kaggaths.")])])));
     }
 
     const select = new StringSelectMenuBuilder()
@@ -44,9 +44,9 @@ export async function handleCommand(interaction) {
   } catch (err) {
     console.error(err);
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])]));
+      await interaction.followUp(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])])));
     } else {
-      await interaction.reply(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])]));
+      await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])])));
     }
   }
 

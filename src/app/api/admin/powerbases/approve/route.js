@@ -24,7 +24,7 @@ const handler = async (req, res) => {
         if (!pb) return res.status(404).json({ ok: false, reason: "POWERBASE_NOT_FOUND" });
 
         let newStatus = "ACTIVE";
-        if (pb.status === "PENDING_DISSOLVE") {
+        if (pb.status === "PENDING_DISSOLVE" || pb.status === "PENDING_DISSOLUTION") {
             newStatus = "DISSOLVED";
         }
 

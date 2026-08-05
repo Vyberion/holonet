@@ -16,12 +16,13 @@ const handler = async (req, res) => {
       }
 
       if (req.method === "GET") {
-        const approvals = await supabaseRest("powerbases?or=(status.eq.PENDING_CREATE,status.eq.PENDING_DISSOLVE)&select=*");
+        const approvals = await supabaseRest("powerbases?status=in.(PENDING_CREATE,PENDING_DISSOLVE,PENDING_APPROVAL,PENDING_DISSOLUTION)&select=*").catch(() => []);
         return res.status(200).json({ ok: true, approvals });
       }
 
       return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
     } catch (error) {
+      console.log("SupabaseRest Error:", error.message);
       return res.status(500).json({ ok: false, error: error.message });
     }
 };

@@ -60,7 +60,7 @@
         ${approvals.map(item => `
           <article class="hub-row">
             <strong>${escapeHtml(item.name)}</strong>
-            <span>${escapeHtml(item.status === "PENDING_CREATE" ? "Creation Request" : "Dissolution Request")}</span>
+            <span>${escapeHtml((item.status === "PENDING_CREATE" || item.status === "PENDING_APPROVAL") ? "Creation Request" : "Dissolution Request")}</span>
             <p>Leader: ${escapeHtml(item.leader_name || item.leader_id)}</p>
             <div class="admin-page-controls" style="margin-top: 10px;">
               <button type="button" class="library-inline-btn" data-approval-action="approve" data-powerbase-id="${escapeHtml(item.id)}">APPROVE</button>

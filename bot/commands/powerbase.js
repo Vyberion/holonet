@@ -2,7 +2,7 @@ import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSel
 import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js"; 
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
-import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseForUser, isHigherRank, logPowerbaseAction, updatePowerbase } from "../services/powerbase-api.js";
+import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseForUser, isHigherRank, logPowerbaseAction, updatePowerbase } from "../services/powerbase-api.js";
 
 export const commands = [
   new SlashCommandBuilder()
@@ -127,6 +127,11 @@ export async function handleModal(interaction) {
     const description = interaction.fields.getTextInputValue("description");
     const robloxGroupId = interaction.fields.getTextInputValue("robloxGroupId");
 
+    const existingName = await getPowerbaseByName(name);
+    if (existingName) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ A Powerbase named "${name}" already exists.`)])])));
+    }
+
     globalThis.__pbCreateCache = globalThis.__pbCreateCache || new Map();
     globalThis.__pbCreateCache.set(interaction.user.id, { name, description, robloxGroupId });
 
@@ -154,6 +159,11 @@ export async function handleModal(interaction) {
     const description = interaction.fields.getTextInputValue("description");
     const robloxGroupId = interaction.fields.getTextInputValue("robloxGroupId");
     
+    const existingName = await getPowerbaseByName(name);
+    if (existingName && existingName.id !== pbId) {
+      return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ A Powerbase named "${name}" already exists.`)])])));
+    }
+
     globalThis.__pbEditCache = globalThis.__pbEditCache || new Map();
     globalThis.__pbEditCache.set(interaction.user.id, { pbId, name, description, robloxGroupId });
     

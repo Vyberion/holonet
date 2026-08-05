@@ -5,9 +5,25 @@ import { holonetMetadata } from "../../../../lib/metadata.js";
 import { PageScripts } from "../../../../components/PageScripts.jsx";
 import Link from "next/link";
 
+function slugifyPowerbase(name) {
+  return String(name || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+async function findPowerbaseBySlugOrId(param) {
+  const target = String(param || "").trim();
+  const targetSlug = slugifyPowerbase(target);
+  
+  const powerbases = await supabaseRest("powerbases?select=*,powerbase_members(*)").catch(() => []);
+  return powerbases.find(pb => pb.id === target || slugifyPowerbase(pb.name) === targetSlug) || null;
+}
+
 export async function generateMetadata({ params }) {
-  const { id } = await params;
-  const [pb] = await supabaseRest(`powerbases?id=eq.${encodeURIComponent(id)}&select=*`).catch(() => []);
+  const { name } = await params;
+  const pb = await findPowerbaseBySlugOrId(name);
   if (!pb) return {};
 
   return holonetMetadata({
@@ -74,9 +90,9 @@ async function getNamesForDiscordIds(discordIds) {
 }
 
 export default async function PowerbaseDetailPage({ params }) {
-  const { id } = await params;
+  const { name } = await params;
   
-  const [pb] = await supabaseRest(`powerbases?id=eq.${encodeURIComponent(id)}&select=*,powerbase_members(*)`).catch(() => []);
+  const pb = await findPowerbaseBySlugOrId(name);
   if (!pb) notFound();
 
   // Fetch kaggath logs to calculate win-loss record

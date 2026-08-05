@@ -11,12 +11,21 @@ export const metadata = holonetMetadata({
 
 export const dynamic = "force-dynamic";
 
+function slugifyPowerbase(name) {
+  return String(name || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
 function PowerbaseCard({ pb }) {
   const memberCount = (pb.powerbase_members?.length || 0) + 1; // +1 for leader
+  const slug = slugifyPowerbase(pb.name) || pb.id;
 
   return (
     <Link
-      href={`/powerbases/${pb.id}`}
+      href={`/powerbases/${encodeURIComponent(slug)}`}
       className="dir-card"
       data-status="open"
       aria-label={`${pb.name} - Tier ${pb.tier}`}

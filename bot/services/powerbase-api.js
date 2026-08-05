@@ -13,6 +13,28 @@ export async function fetchPowerbases() {
   return data;
 }
 
+export function slugifyPowerbase(name) {
+  return String(name || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+/**
+ * Fetch a powerbase by name (case-insensitive / slug-matched).
+ */
+export async function getPowerbaseByName(name) {
+  const targetSlug = slugifyPowerbase(name);
+  const { data, error } = await supabase
+    .from("powerbases")
+    .select("*, powerbase_members(*)")
+    .neq("status", "DISSOLVED");
+    
+  if (error) throw error;
+  return (data || []).find(pb => slugifyPowerbase(pb.name) === targetSlug) || null;
+}
+
 /**
  * Fetch a specific powerbase by ID.
  */

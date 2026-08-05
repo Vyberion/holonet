@@ -20,7 +20,7 @@ const SCOPE_CHOICES = [
   { name: "High Ranks", value: "highranks" },
   { name: "Dark Council", value: "darkCouncil" }
 ];
-const DIVISION_TIERS = ["none", "member", "nco", "co", "2ic", "1ic", "overseer"];
+const DIVISION_TIERS = ["none", "member", "nco", "hr", "2ic", "1ic", "overseer"];
 const OVERSEER_ROLE_KEYS = [
   "highRankOverseer",
   "darkHonorGuardOverseer",
@@ -107,6 +107,7 @@ function hasHighCommandTimeAccess(profile, member = null) {
 function canViewScopeTime(profile, scope, member = null) {
   if (hasHighCommandTimeAccess(profile, member)) return true;
   if (scope === "all") return false;
+  if (member && isMemberInScope(member, scope)) return true;
   if (scope === "darkCouncil") return hasDarkCouncilAccess(profile);
   if (scope === "highranks") return Boolean(hasHighRankAccess(profile) || hasAnyOverseer(profile));
 
@@ -234,7 +235,7 @@ async function replyScopeLeaderboard(interaction, scope, page = 0, update = fals
         else if (scope === "highranks") inScope = Number(verified.profile.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0) > 0;
         else {
           // For divisions, they must have at least 'member' tier in the division
-          const DIVISION_TIERS = ["none", "member", "nco", "co", "2ic", "1ic", "overseer"];
+          const DIVISION_TIERS = ["none", "member", "nco", "hr", "2ic", "1ic", "overseer"];
           const tier = verified.profile.divisions?.[scope] || "none";
           inScope = DIVISION_TIERS.indexOf(tier) >= DIVISION_TIERS.indexOf("member");
         }

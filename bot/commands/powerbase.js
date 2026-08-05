@@ -63,9 +63,10 @@ export async function handleCommand(interaction) {
 
 export async function handleSelectMenu(interaction) {
   if (interaction.customId === "pb_create_members") return await handleCreateMembers(interaction);
+  if (interaction.customId === "pb_edit_members") return await handleEditMembers(interaction);
   if (interaction.customId === "pb_edit_select") return await handleEditSelect(interaction);
   if (interaction.customId === "pb_dissolve_select") return await handleDissolveSelect(interaction);
-  if (interaction.customId === "pb_info_select") return await handleInfoSelect(interaction);
+  if (interaction.customId === "pb_manage_select") return await handleManageSelect(interaction);
   return false;
 }
 
@@ -76,7 +77,7 @@ export async function handleSelectMenu(interaction) {
 async function handleCreate(interaction, verified) {
   // Check permission: Overseer+
   if (!hasAnyOverseer(verified.profile) && !hasDarkCouncilRank(verified.profile, 251)) {
-    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You must be a Sith Overseer or higher to create a Powerbase.")])])));
+    return interaction.reply(ephemeral({ content: "You must be a Sith Overseer or higher to create a Powerbase." }));
   }
 
   // Check if they are already in a powerbase
@@ -123,11 +124,6 @@ export async function handleModal(interaction) {
     const description = interaction.fields.getTextInputValue("description");
     const robloxGroupId = interaction.fields.getTextInputValue("robloxGroupId");
 
-    // We need to pick members. We can't do a select menu in a modal directly using Discord API.
-    // So we reply with an ephemeral message containing a UserSelectMenu.
-    
-    // Store pending data in memory or state string (we'll just use a small cache or pass it via customId if small enough, but CustomID max is 100. Best to use an external cache or simply have them type it if they fail).
-    // For simplicity, we'll store it in a global map temporarily keyed by user ID.
     globalThis.__pbCreateCache = globalThis.__pbCreateCache || new Map();
     globalThis.__pbCreateCache.set(interaction.user.id, { name, description, robloxGroupId });
 
@@ -135,7 +131,7 @@ export async function handleModal(interaction) {
       .setCustomId("pb_create_members")
       .setPlaceholder("Select Apprentices (Optional)")
       .setMinValues(0)
-      .setMaxValues(10); // Adjust based on Tier 1 limit if desired
+      .setMaxValues(10);
 
     const row = new ActionRowBuilder().addComponents(selectMenu);
     
@@ -148,13 +144,84 @@ export async function handleModal(interaction) {
   
   if (interaction.customId.startsWith("pb_edit_modal:")) {
     const pbId = interaction.customId.split(":")[1];
+    const name = interaction.fields.getTextInputValue("name");
     const description = interaction.fields.getTextInputValue("description");
-    await updatePowerbase(pbId, { description });
-    await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase description updated successfully.")])])));
+    
+    globalThis.__pbEditCache = globalThis.__pbEditCache || new Map();
+    globalThis.__pbEditCache.set(interaction.user.id, { pbId, name, description });
+    
+    await updatePowerbase(pbId, { name, description });
+
+    const pb = await getPowerbase(pbId);
+    const currentMemberIds = (pb.powerbase_members || []).map(m => String(m.discord_user_id));
+    
+    const selectMenu = new UserSelectMenuBuilder()
+      .setCustomId("pb_edit_members")
+      .setPlaceholder("Select Apprentices to include")
+      .setMinValues(0)
+      .setMaxValues(10);
+    
+    if (typeof selectMenu.setDefaultUsers === "function" && currentMemberIds.length > 0) {
+      selectMenu.setDefaultUsers(currentMemberIds);
+    }
+      
+    const row = new ActionRowBuilder().addComponents(selectMenu);
+    
+    globalThis.__pbEditMembersCache = globalThis.__pbEditMembersCache || new Map();
+    globalThis.__pbEditMembersCache.set(interaction.user.id, { pbId: pbId, name });
+
+    await interaction.update(ephemeral({
+      content: `**Powerbase: ${name}**\nPlease select the Apprentices for this Powerbase. Anyone not selected will be removed. (Max 10).`,
+      components: [row]
+    }));
     return true;
   }
   
   return false;
+}
+
+async function handleEditMembers(interaction) {
+  const selectedMembers = interaction.values;
+  const leaderId = interaction.user.id;
+  const cached = globalThis.__pbEditMembersCache?.get(leaderId);
+  
+  if (!cached) {
+    return interaction.update(ephemeral({ content: "Your edit session expired. Please try again.", components: [] }));
+  }
+
+  const pb = await getPowerbase(cached.pbId);
+  if (!pb) return interaction.update(ephemeral({ content: "Powerbase no longer exists.", components: [] }));
+
+  const actorProfile = await getVerifiedProfile(leaderId);
+  
+  const finalMemberIds = [];
+  try {
+    for (const memberId of selectedMembers) {
+      if (memberId === leaderId) continue;
+      const memberProfile = await getVerifiedProfile(memberId);
+      if (!memberProfile) throw new Error(`<@${memberId}> is not verified with Holonet.`);
+      
+      const memberPb = await getPowerbaseForUser(memberId);
+      if (memberPb && memberPb.id !== pb.id) {
+        throw new Error(`<@${memberId}> is already in a Powerbase (${memberPb.name}).`);
+      }
+      
+      if (!isHigherRank(actorProfile.profile, memberProfile.profile)) {
+        throw new Error(`<@${memberId}> is a higher rank than you.`);
+      }
+      
+      finalMemberIds.push(memberId);
+    }
+    
+    await updatePowerbase(pb.id, {}, finalMemberIds);
+    globalThis.__pbEditMembersCache.delete(leaderId);
+    
+    await interaction.update(ephemeral({ content: `Powerbase **${cached.name}** updated successfully!` }));
+  } catch (err) {
+    await interaction.update(ephemeral({ content: `❌ **Error:** ${err.message}\n\nPlease try again by re-selecting the members.` }));
+  }
+  
+  return true;
 }
 
 async function handleCreateMembers(interaction) {
@@ -257,7 +324,7 @@ async function handleManage(interaction, verified) {
     })));
 
   const row = new ActionRowBuilder().addComponents(select);
-  await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Select an option below:"), row])])));
+  await interaction.reply(ephemeral({ content: "Select an option below:", components: [row] }));
   return true;
 }
 
@@ -292,7 +359,7 @@ async function handleDissolve(interaction, verified) {
     })));
 
   const row = new ActionRowBuilder().addComponents(select);
-  await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Select an option below:"), row])])));
+  await interaction.reply(ephemeral({ content: "Select an option below:", components: [row] }));
   return true;
 }
 
@@ -317,7 +384,7 @@ async function handleInfo(interaction, verified) {
     })));
 
   const row = new ActionRowBuilder().addComponents(select);
-  await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Select an option below:"), row])])));
+  await interaction.reply(ephemeral({ content: "Select an option below:", components: [row] }));
   return true;
 }
 

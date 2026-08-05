@@ -39,7 +39,7 @@ export async function handleCommand(interaction) {
       ]);
 
     const row = new ActionRowBuilder().addComponents(select);
-    await interaction.reply(componentsV2Message([containerV2([textDisplayV2("Step 1: Select Kaggath Type"), row])]));
+    await interaction.reply(ephemeral({ content: "Step 1: Select Kaggath Type", components: [row] }));
 
   } catch (err) {
     console.error(err);
@@ -75,13 +75,35 @@ export async function handleSelectMenu(interaction) {
         .addOptions(active.map(pb => ({ label: pb.name, value: pb.id })));
         
       const row = new ActionRowBuilder().addComponents(select);
-      return interaction.update(componentsV2Message([containerV2([textDisplayV2("Step 2: Select the Challenging Powerbase."), row])]));
+      return interaction.update({ content: "Step 2: Select the Challenging Powerbase.", components: [row] });
     }
 
     // Other types can just fall back to a generic form for now
     return interaction.update(componentsV2Message([containerV2([textDisplayV2(`${type} selected. Further inputs not fully implemented yet.`)])]));
   }
   
+  if (interaction.customId === "kaggath_dom_challenger") {
+    const challengerId = interaction.values[0];
+    const cached = globalThis.__kaggathCache?.get(interaction.user.id);
+    if (!cached) return interaction.update(componentsV2Message([containerV2([textDisplayV2("Session expired.")])]));
+    cached.challengerId = challengerId;
+
+    const powerbases = await fetchPowerbases();
+    const active = powerbases.filter(pb => pb.status === "ACTIVE" && pb.id !== challengerId);
+    
+    if (active.length === 0) {
+      return interaction.update(componentsV2Message([containerV2([textDisplayV2("No eligible defending Powerbases found.")])]));
+    }
+
+    const select = new StringSelectMenuBuilder()
+      .setCustomId("kaggath_dom_defender")
+      .setPlaceholder("Select Defending Powerbase")
+      .addOptions(active.map(pb => ({ label: pb.name, value: pb.id })));
+      
+    const row = new ActionRowBuilder().addComponents(select);
+    return interaction.update({ content: "Step 3: Select the Defending Powerbase.", components: [row] });
+  }
+
   if (interaction.customId === "kaggath_dom_defender") {
     const defenderId = interaction.values[0];
     const cached = globalThis.__kaggathCache?.get(interaction.user.id);
@@ -97,7 +119,7 @@ export async function handleSelectMenu(interaction) {
       ]);
       
     const row = new ActionRowBuilder().addComponents(select);
-    return interaction.update(componentsV2Message([containerV2([textDisplayV2("Step 4: Who won the Kaggath?"), row])]));
+    return interaction.update({ content: "Step 4: Who won the Kaggath?", components: [row] });
   }
 
   if (interaction.customId === "kaggath_dom_winner") {

@@ -1,7 +1,7 @@
 import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { getVerifiedProfile } from "../services/roles.js";
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
-import { fetchPowerbases, getPowerbase, adjustPrestige } from "../services/powerbase-api.js";
+import { fetchPowerbases, getPowerbase, adjustPrestige, recordKaggathResult } from "../services/powerbase-api.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js"; 
 
 export const commands = [];
@@ -205,8 +205,14 @@ export async function handleModal(interaction) {
       else if (relativeToChallenger === "SMALLER") { defGain = +2; challGain = -2; }
     }
 
-    const newChallenger = await adjustPrestige(challenger.id, challGain);
-    const newDefender = await adjustPrestige(defender.id, defGain);
+    const winnerId = winner === "challenger" ? challenger.id : defender.id;
+    const loserId = winner === "challenger" ? defender.id : challenger.id;
+    const winnerGain = winner === "challenger" ? challGain : defGain;
+    const loserGain = winner === "challenger" ? defGain : challGain;
+
+    const res = await recordKaggathResult(winnerId, loserId, winnerGain, loserGain);
+    const newChallenger = winner === "challenger" ? res?.winner : res?.loser;
+    const newDefender = winner === "challenger" ? res?.loser : res?.winner;
 
     const challParticipants = [`<@${challenger.leader_id}>`, ...(challenger.powerbase_members || []).map(m => `<@${m.discord_user_id}>`)].join(", ");
     const defParticipants = [`<@${defender.leader_id}>`, ...(defender.powerbase_members || []).map(m => `<@${m.discord_user_id}>`)].join(", ");

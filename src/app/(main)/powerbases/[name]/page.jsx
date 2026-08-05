@@ -95,22 +95,8 @@ export default async function PowerbaseDetailPage({ params }) {
   const pb = await findPowerbaseBySlugOrId(name);
   if (!pb) notFound();
 
-  // Fetch kaggath logs to calculate win-loss record
-  const logs = await supabaseRest("powerbase_logs?action=eq.KAGGATH_DOMINATION&select=*").catch(() => []);
-
-  let wins = 0;
-  let losses = 0;
-
-  logs.forEach(log => {
-    const details = log.details || {};
-    if (log.powerbase_id === pb.id || details.challenger_id === pb.id || details.defender_id === pb.id) {
-      if (details.winner === pb.name) {
-        wins++;
-      } else if (details.winner) {
-        losses++;
-      }
-    }
-  });
+  const wins = Number(pb.kaggath_wins || 0);
+  const losses = Number(pb.kaggath_losses || 0);
 
   const apprentices = pb.powerbase_members || [];
   const memberCount = apprentices.length + 1; // Leader + apprentices

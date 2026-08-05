@@ -57,6 +57,6 @@ const handler = async (req, res) => {
     }
 };
 
-export async function POST(request) {
-    return executeLegacyHandler(request, handler);
+export function POST(request) {
+    return executeLegacyHandler(handler, request);
 }

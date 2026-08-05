@@ -160,6 +160,51 @@ export async function logPowerbaseAction(userId, action, powerbaseId = null, det
 }
 
 /**
+ * Record a Domination Kaggath result: updates prestige, tier, wins, and losses.
+ */
+export async function recordKaggathResult(winnerPbId, loserPbId, winnerPrestigeChange, loserPrestigeChange) {
+  const winnerPb = await getPowerbase(winnerPbId);
+  const loserPb = await getPowerbase(loserPbId);
+  if (!winnerPb || !loserPb) return null;
+
+  const winnerNewPrestige = Math.max(0, (winnerPb.prestige || 0) + winnerPrestigeChange);
+  let winnerNewTier = 1;
+  if (winnerNewPrestige >= 12) winnerNewTier = 4;
+  else if (winnerNewPrestige >= 8) winnerNewTier = 3;
+  else if (winnerNewPrestige >= 4) winnerNewTier = 2;
+
+  const loserNewPrestige = Math.max(0, (loserPb.prestige || 0) + loserPrestigeChange);
+  let loserNewTier = 1;
+  if (loserNewPrestige >= 12) loserNewTier = 4;
+  else if (loserNewPrestige >= 8) loserNewTier = 3;
+  else if (loserNewPrestige >= 4) loserNewTier = 2;
+
+  const { data: updatedWinner } = await supabase
+    .from("powerbases")
+    .update({
+      prestige: winnerNewPrestige,
+      tier: winnerNewTier,
+      kaggath_wins: (winnerPb.kaggath_wins || 0) + 1
+    })
+    .eq("id", winnerPbId)
+    .select()
+    .single();
+
+  const { data: updatedLoser } = await supabase
+    .from("powerbases")
+    .update({
+      prestige: loserNewPrestige,
+      tier: loserNewTier,
+      kaggath_losses: (loserPb.kaggath_losses || 0) + 1
+    })
+    .eq("id", loserPbId)
+    .select()
+    .single();
+
+  return { winner: updatedWinner, loser: updatedLoser };
+}
+
+/**
  * Adjust prestige and tier based on a Kaggath result.
  */
 export async function adjustPrestige(powerbaseId, amount) {

@@ -39,7 +39,7 @@ const handler = async (req, res) => {
           method: "POST",
           body: JSON.stringify({
             action: "admin.powerbase.reject",
-            roblox_user_id: String(auth.user.roblox_id),
+            roblox_user_id: auth.user?.roblox_id || auth.user?.robloxId ? String(auth.user?.roblox_id || auth.user?.robloxId) : null,
             metadata: { powerbaseId: id }
           })
         }).catch(() => null);

@@ -1,6 +1,8 @@
 import {
-  isMissingSchemaError, getAuthContext, canEditLibrary, createSignedStorageUrl, removeStorageObjects, supabaseRest, uploadStorageObject
+  isMissingSchemaError, createSignedStorageUrl, removeStorageObjects, supabaseRest, uploadStorageObject
 } from "../../../lib/api-helpers.js";
+import { getAuthContext } from "../../../../modules/auth/auth-context.js";
+import { canEditLibrary } from "../../../../modules/auth/permissions.js";
 
 
 const COTS_BUCKET = "cots";

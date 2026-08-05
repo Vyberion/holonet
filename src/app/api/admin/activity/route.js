@@ -1,7 +1,9 @@
 import { executeLegacyHandler } from "../../../../lib/legacy-api-adapter.js";
 import {
-  getQueryParam, requireString, isMissingSchemaError, getAuthContext, canAccessAdmin, loadRecentActivity
+  getQueryParam, requireString, isMissingSchemaError, loadRecentActivity
 } from "../../../../lib/api-helpers.js";
+import { canAccessAdmin } from "../../../../../modules/auth/permissions.js";
+import { getAuthContext } from "../../../../../modules/auth/auth-context.js";
 
 
 

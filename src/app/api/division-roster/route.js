@@ -1,7 +1,9 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  getQueryParam, canonicalDivisionId, rosterDefinitionForDivision, getAuthContext, checkPageAccess, getDivision, buildWeeklyReportRoster
+  getQueryParam, canonicalDivisionId, rosterDefinitionForDivision, getDivision, buildWeeklyReportRoster
 } from "../../../lib/api-helpers.js";
+import { checkPageAccess } from "../../../../modules/auth/permissions.js";
+import { getAuthContext } from "../../../../modules/auth/auth-context.js";
 
 
 

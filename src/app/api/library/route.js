@@ -1,10 +1,9 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  getQueryParam, requireString, isMissingSchemaError, getAuthContext, canEditLibrary, ARCHIVE_SEED, LIBRARY_SEED, ensureArchivesSeeded, ensureLibrarySeeded, writeLibraryDocument, deleteLibraryDocument
+  getQueryParam, requireString, isMissingSchemaError, ensureArchivesSeeded, ensureLibrarySeeded, writeLibraryDocument, deleteLibraryDocument
 } from "../../../lib/api-helpers.js";
-
-
-
+import { getAuthContext } from "../../../../modules/auth/auth-context.js";
+import { canEditLibrary } from "../../../../modules/auth/permissions.js";
 
 const handler = async (req, res) => {
     try {
@@ -28,27 +27,13 @@ const handler = async (req, res) => {
           });
         } catch (error) {
           if (req.method === "GET" && isMissingSchemaError(error)) {
-            const articles = (ARCHIVE_SEED.articles || []).map(article => ({
-              id: article.slug,
-              slug: article.slug,
-              articleNumber: article.articleNumber || "ARTICLE 1",
-              title: article.title,
-              body: article.body,
-              imageBucket: article.imagePath ? "archives" : "",
-              imagePath: article.imagePath || "",
-              imageAlt: article.imageAlt || article.title,
-              imageUrl: "",
-              status: article.status || "published",
-              displayOrder: article.displayOrder || 0
-            }));
-
             return res.status(200).json({
               ok: true,
               library: "archives",
               canEdit: false,
               migrationRequired: true,
-              articles,
-              documents: articles
+              articles: [],
+              documents: []
             });
           }
 
@@ -109,10 +94,7 @@ const handler = async (req, res) => {
           library: libraryKey,
           canEdit: false,
           migrationRequired: true,
-          documents: (LIBRARY_SEED[libraryKey]?.documents || []).map(document => ({
-            ...document,
-            id: document.slug
-          }))
+          documents: []
         });
       }
 

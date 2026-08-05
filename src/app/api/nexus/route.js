@@ -1,7 +1,12 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  isMissingSchemaError, requestRootOrigin, getAuthContext, hasHighCommandAccess, loadNexusOverview
+  isMissingSchemaError, requestRootOrigin, loadNexusOverview
 } from "../../../lib/api-helpers.js";
+import { getAuthContext } from "../../../../modules/auth/auth-context.js";
+import { checkPageAccess, hasHighCommandAccess } from "../../../../modules/auth/permissions.js";
+
+const handler = async (req, res) => {
+    try {
       const auth = await getAuthContext(req);
       if (!auth.authenticated) {
         return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });

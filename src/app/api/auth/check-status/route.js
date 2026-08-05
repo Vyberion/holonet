@@ -1,7 +1,7 @@
 import { executeLegacyHandler } from "../../../../lib/legacy-api-adapter.js";
 import {
   cleanupExpiredSessions, getSessionUser
-} from "../../../../lib/api-helpers.js";
+} from "../../../../modules/auth/session-store.js";
 
 
 

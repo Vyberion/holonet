@@ -1,8 +1,9 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  getQueryParam, requireString, isMissingSchemaError, canWriteDivisionWeeklyReport, getAuthContext, loadWeeklyReports, buildWeeklyReportRoster, writeWeeklyReport, deleteWeeklyReport
+  getQueryParam, requireString, isMissingSchemaError, canWriteDivisionWeeklyReport, loadWeeklyReports, buildWeeklyReportRoster, writeWeeklyReport, deleteWeeklyReport
 } from "../../../lib/api-helpers.js";
-import { checkPageAccess } from "../../../modules/auth/permissions.js";
+import { getAuthContext } from "../../../../modules/auth/auth-context.js";
+import { checkPageAccess } from "../../../../modules/auth/permissions.js";
 
 const handler = async (req, res) => {
     try {

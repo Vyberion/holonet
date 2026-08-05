@@ -1,9 +1,8 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  getAuthContext, requireString, isMissingSchemaError, councilPermissions,
-  fetchCouncilEligibleSnapshot, loadCouncilProposals, createCouncilProposal,
-  writeCouncilVote, vetoCouncilProposal, reopenCouncilProposal, amendCouncilProposal
+  requireString, isMissingSchemaError, councilPermissions, fetchCouncilEligibleSnapshot, loadCouncilProposals, createCouncilProposal, writeCouncilVote, vetoCouncilProposal, reopenCouncilProposal, amendCouncilProposal
 } from "../../../lib/api-helpers.js";
+import { getAuthContext } from "../../../../modules/auth/auth-context.js";
 
 const handler = async (req, res) => {
     try {

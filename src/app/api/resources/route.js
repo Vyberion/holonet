@@ -1,7 +1,9 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  getQueryParam, authAuthorName, detailTableFor, getAuthContext, checkPageAccess, checkResourceWriteAccess, getHandbookSlot, getHandbookSlots, cleanupRetiredHandbooks, loadPublishedResources, loadDetailRows, normalizeRows, writeResource, deleteResource
+  getQueryParam, authAuthorName, detailTableFor, getHandbookSlot, getHandbookSlots, cleanupRetiredHandbooks, loadPublishedResources, loadDetailRows, normalizeRows, writeResource, deleteResource
 } from "../../../lib/api-helpers.js";
+import { checkPageAccess, checkResourceWriteAccess } from "../../../../modules/auth/permissions.js";
+import { getAuthContext } from "../../../../modules/auth/auth-context.js";
 
 
 

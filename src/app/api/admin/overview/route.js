@@ -1,7 +1,9 @@
 import { executeLegacyHandler } from "../../../../lib/legacy-api-adapter.js";
 import {
-  isMissingSchemaError, getAuthContext, canAccessAdmin, loadCounts, loadPendingRetirements, loadRecentActivity, loadAdminHealth
+  isMissingSchemaError, loadCounts, loadPendingRetirements, loadRecentActivity, loadAdminHealth
 } from "../../../../lib/api-helpers.js";
+import { canAccessAdmin } from "../../../../../modules/auth/permissions.js";
+import { getAuthContext } from "../../../../../modules/auth/auth-context.js";
 
 
 

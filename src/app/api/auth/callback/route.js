@@ -1,7 +1,10 @@
 import { executeLegacyHandler } from "../../../../lib/legacy-api-adapter.js";
 import {
-  oauthRedirectUri, decodeOAuthStateCookie, statesMatch, clearCookie, createSessionForUser, deleteSessionToken, getCookie, serializeCookie, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, STATE_COOKIE
+  oauthRedirectUri, decodeOAuthStateCookie, statesMatch
 } from "../../../../lib/api-helpers.js";
+import {
+  clearCookie, createSessionForUser, deleteSessionToken, getCookie, serializeCookie, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, STATE_COOKIE
+} from "../../../../modules/auth/session-store.js";
 
 
 

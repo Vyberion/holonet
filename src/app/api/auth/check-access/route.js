@@ -1,7 +1,7 @@
 import { executeLegacyHandler } from "../../../../lib/legacy-api-adapter.js";
-import {
-  getQueryParam, getAuthContext, checkPageAccess
-} from "../../../../lib/api-helpers.js";
+import { getQueryParam } from "../../../../lib/api-helpers.js";
+import { getAuthContext } from "../../../../modules/auth/auth-context.js";
+import { checkPageAccess } from "../../../../modules/auth/permissions.js";
 
 
 

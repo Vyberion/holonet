@@ -1,7 +1,10 @@
 import { executeLegacyHandler } from "../../../../lib/legacy-api-adapter.js";
 import {
-  OAUTH_STATE_MAX_AGE_SECONDS, oauthRedirectUri, encodeOAuthStateCookie, createRandomToken, serializeCookie, STATE_COOKIE
+  OAUTH_STATE_MAX_AGE_SECONDS, oauthRedirectUri, encodeOAuthStateCookie
 } from "../../../../lib/api-helpers.js";
+import {
+  createRandomToken, serializeCookie, STATE_COOKIE
+} from "../../../../modules/auth/session-store.js";
 
 
 

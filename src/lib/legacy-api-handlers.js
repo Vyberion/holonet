@@ -2855,29 +2855,16 @@ export const LEGACY_API_HANDLERS = {
           });
         } catch (error) {
           if (req.method === "GET" && isMissingSchemaError(error)) {
-            const articles = (ARCHIVE_SEED.articles || []).map(article => ({
-              id: article.slug,
-              slug: article.slug,
-              articleNumber: article.articleNumber || "ARTICLE 1",
-              title: article.title,
-              body: article.body,
-              imageBucket: article.imagePath ? "archives" : "",
-              imagePath: article.imagePath || "",
-              imageAlt: article.imageAlt || article.title,
-              imageUrl: "",
-              status: article.status || "published",
-              displayOrder: article.displayOrder || 0
-            }));
-
             return res.status(200).json({
               ok: true,
               library: "archives",
               canEdit: false,
               migrationRequired: true,
-              articles,
-              documents: articles
+              articles: [],
+              documents: []
             });
           }
+
 
           return res.status(500).json({ ok: false, error: error.message });
         }
@@ -2936,10 +2923,7 @@ export const LEGACY_API_HANDLERS = {
           library: libraryKey,
           canEdit: false,
           migrationRequired: true,
-          documents: (LIBRARY_SEED[libraryKey]?.documents || []).map(document => ({
-            ...document,
-            id: document.slug
-          }))
+          documents: []
         });
       }
 
@@ -2991,29 +2975,16 @@ export const LEGACY_API_HANDLERS = {
       return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
     } catch (error) {
       if (req.method === "GET" && isMissingSchemaError(error)) {
-        const articles = (ARCHIVE_SEED.articles || []).map(article => ({
-          id: article.slug,
-          slug: article.slug,
-          articleNumber: article.articleNumber || "ARTICLE 1",
-          title: article.title,
-          body: article.body,
-          imageBucket: article.imagePath ? "archives" : "",
-          imagePath: article.imagePath || "",
-          imageAlt: article.imageAlt || article.title,
-          imageUrl: "",
-          status: article.status || "published",
-          displayOrder: article.displayOrder || 0
-        }));
-
         return res.status(200).json({
           ok: true,
           library: "archives",
           canEdit: false,
           migrationRequired: true,
-          articles,
-          documents: articles
+          articles: [],
+          documents: []
         });
       }
+
 
       return res.status(500).json({ ok: false, error: error.message });
     }

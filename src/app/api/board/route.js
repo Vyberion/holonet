@@ -1,7 +1,8 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  requireString, authAuthorName, isMissingSchemaError, canWriteBoardBroadcast, boardChannelsFor, getAuthContext, loadBoardTransmissions, writeResource
+  requireString, authAuthorName, isMissingSchemaError, canWriteBoardBroadcast, boardChannelsFor, loadBoardTransmissions, writeResource
 } from "../../../lib/api-helpers.js";
+import { getAuthContext } from "../../../../modules/auth/auth-context.js";
 
 
 

@@ -157,7 +157,14 @@ function formatDurationLong(seconds = 0) {
 }
 
 function shiftTotalSeconds(shift, now = Date.now()) {
-  const liveSeconds = shift.status === "active" ? Math.max(0, Math.floor((now - new Date(shift.started_at).getTime()) / 1000)) : Number(shift.duration_seconds || 0);
+  let liveSeconds = 0;
+  if (shift.status === "active") {
+    liveSeconds = Math.max(0, Math.floor((now - new Date(shift.started_at).getTime()) / 1000));
+  } else if (shift.duration_seconds && Number(shift.duration_seconds) > 0) {
+    liveSeconds = Number(shift.duration_seconds);
+  } else if (shift.ended_at && shift.started_at) {
+    liveSeconds = Math.max(0, Math.floor((new Date(shift.ended_at).getTime() - new Date(shift.started_at).getTime()) / 1000));
+  }
   return liveSeconds + Number(shift.adjustment_seconds || 0);
 }
 
@@ -166,7 +173,7 @@ async function loadScopeLeaderboard(scope) {
   const pageSize = 1000;
 
   for (let from = 0; ; from += pageSize) {
-    let query = supabase.from("clock_shifts").select("discord_user_id,scope,status,started_at,duration_seconds,adjustment_seconds").not("discord_user_id", "is", null).range(from, from + pageSize - 1);
+    let query = supabase.from("clock_shifts").select("discord_user_id,scope,status,started_at,ended_at,duration_seconds,adjustment_seconds").not("discord_user_id", "is", null).range(from, from + pageSize - 1);
     if (scope !== "all") query = query.eq("scope", scope);
     const { data, error } = await query;
     if (error) throw error;
@@ -209,53 +216,13 @@ async function replyScopeLeaderboard(interaction, scope, page = 0, update = fals
   if (!access.allowed) return;
 
   const rawRows = await loadScopeLeaderboard(scope);
-  const rows = [];
-  
-  if (scope === "all") {
-    rows.push(...rawRows);
-  } else {
-    // Only resolve as many users as we need for the current page to avoid rate limits
-    const targetValidCount = (page + 1) * LEADERBOARD_PAGE_SIZE;
-    
-    // We fetch in parallel batches to speed up the process
-    const batchSize = 5;
-    for (let i = 0; i < rawRows.length && rows.length < targetValidCount; i += batchSize) {
-      const batch = rawRows.slice(i, i + batchSize);
-      const profiles = await Promise.all(
-        batch.map(row => getVerifiedProfile(row.discordUserId).catch(() => null))
-      );
-      
-      for (let j = 0; j < batch.length; j++) {
-        const row = batch[j];
-        const verified = profiles[j];
-        if (!verified) continue;
-
-        let inScope = false;
-        if (scope === "darkCouncil") inScope = Number(verified.profile.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) > 0;
-        else if (scope === "highranks") inScope = Number(verified.profile.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0) > 0;
-        else {
-          // For divisions, they must have at least 'member' tier in the division
-          const DIVISION_TIERS = ["none", "member", "nco", "hr", "2ic", "1ic", "overseer"];
-          const tier = verified.profile.divisions?.[scope] || "none";
-          inScope = DIVISION_TIERS.indexOf(tier) >= DIVISION_TIERS.indexOf("member");
-        }
-
-        if (inScope) rows.push(row);
-      }
-    }
-  }
-
-  // Calculate total pages based on rawRows to ensure pagination buttons appear
-  // (Even though some rawRows might be invalid, it's a good upper bound)
-  const totalPagesUpperBound = Math.max(1, Math.ceil(rawRows.length / LEADERBOARD_PAGE_SIZE));
-  const safePage = Math.min(Math.max(0, page), totalPagesUpperBound - 1);
-  
-  // Extract just the page we want from our validated rows
-  const pageRows = rows.slice(safePage * LEADERBOARD_PAGE_SIZE, (safePage + 1) * LEADERBOARD_PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(rawRows.length / LEADERBOARD_PAGE_SIZE));
+  const safePage = Math.min(Math.max(0, page), totalPages - 1);
+  const pageRows = rawRows.slice(safePage * LEADERBOARD_PAGE_SIZE, (safePage + 1) * LEADERBOARD_PAGE_SIZE);
 
   const payload = {
-    embeds: [embed(`${scopeLabel(scope)} Leaderboard`, pageRows.length ? pageRows.map((row, index) => `**Rank:** ${safePage * LEADERBOARD_PAGE_SIZE + index + 1}\n**User:** <@${row.discordUserId}>\n**Total time:** ${formatDurationLong(row.totalSeconds)}`).join("\n\n") : "No time recorded.")],
-    components: [leaderboardRow(scope, safePage, totalPagesUpperBound)]
+    embeds: [embed(`${scopeLabel(scope)} Leaderboard`, pageRows.length ? pageRows.map((row, index) => `**Rank:** ${safePage * LEADERBOARD_PAGE_SIZE + index + 1}\n**User:** <@${row.discordUserId}>\n**Total time:** ${formatDurationLong(row.totalSeconds)}`).join("\n\n") : "No shifts recorded.")],
+    components: [leaderboardRow(scope, safePage, totalPages)]
   };
 
   if (update) await interaction.update(payload);

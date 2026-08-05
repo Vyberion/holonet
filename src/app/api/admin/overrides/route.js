@@ -5,6 +5,7 @@ import {
 import { supabaseRest } from "../../../../../modules/auth/session-store.js";
 import { canAccessAdmin } from "../../../../../modules/auth/permissions.js";
 import { getAuthContext } from "../../../../../modules/auth/auth-context.js";
+import { ROBLOX_GROUPS } from "../../../../../modules/data/roblox-config.js";
 
 
 
@@ -26,6 +27,10 @@ const handler = async (req, res) => {
       }
 
       if (req.method === "POST") {
+        const dcRank = Number(auth.profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0);
+        if (dcRank < 252) {
+          return res.status(403).json({ ok: false, reason: "EMPEROR_PLUS_REQUIRED" });
+        }
         const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
         const robloxId = requireString(body.robloxId) || await resolveRobloxId(requireString(body.username));
         const effect = requireString(body.effect).toLowerCase();
@@ -65,6 +70,10 @@ const handler = async (req, res) => {
       }
 
       if (req.method === "DELETE") {
+        const dcRank = Number(auth.profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0);
+        if (dcRank < 252) {
+          return res.status(403).json({ ok: false, reason: "EMPEROR_PLUS_REQUIRED" });
+        }
         const id = requireString(getQueryParam(req, "id"));
         if (!id) {
           return res.status(400).json({ ok: false, reason: "OVERRIDE_ID_REQUIRED" });

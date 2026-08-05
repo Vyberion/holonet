@@ -7,9 +7,8 @@ export default function AdminPage() {
       <div data-admin-root className="hub-shell">
         <div className="hub-layout admin-masonry-layout">
           <div className="admin-masonry-column">
+            <section className="hub-panel" id="admin-approvals" />
             <section className="hub-panel" id="admin-overrides" />
-            <section className="hub-panel" id="admin-counts" />
-            <section className="hub-panel" id="admin-health" />
           </div>
           <div className="admin-masonry-column">
             <section className="hub-panel" id="admin-activity" />
@@ -42,8 +41,7 @@ export default function AdminPage() {
 
         [data-admin-root] #admin-overrides,
         [data-admin-root] #admin-activity,
-        [data-admin-root] #admin-counts,
-        [data-admin-root] #admin-health {
+        [data-admin-root] #admin-approvals {
           min-width: 0;
         }
 

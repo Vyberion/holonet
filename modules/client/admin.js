@@ -50,44 +50,24 @@
     return value ? new Date(value).toLocaleString() : "Unknown";
   }
 
-  function renderCounts(counts = {}) {
-    const rows = [
-      ["Codex Articles", counts.codexArticles],
-      ["Archive Articles", counts.archiveArticles],
-      ["Published Resources", counts.publishedResources],
-      ["Active Overrides", counts.activeOverrides],
-      ["Verified Discord Links", counts.activeBotLinks],
-      ["Active Shifts", counts.activeShifts]
-    ];
-
+  function renderApprovals(approvals = []) {
     return `
       <div class="hub-panel-head">
-        <h3 class="hub-panel-title">Console Status</h3>
-        <button type="button" class="hub-row-edit" data-admin-refresh>REFRESH</button>
+        <h3 class="hub-panel-title">Pending Approvals</h3>
+        <span class="hub-value">${escapeHtml(approvals.length)} total</span>
       </div>
       <div class="hub-list">
-        ${rows.map(([label, value]) => `<article class="hub-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value ?? 0)}</span></article>`).join("")}
-      </div>
-    `;
-  }
-
-  function renderHealth(health = {}, counts = {}) {
-    const checks = health.checks || [];
-    return `
-      <div class="hub-panel-head">
-        <h3 class="hub-panel-title">Data Health</h3>
-        <span class="hub-value">${health.ok ? "Nominal" : "Attention"}</span>
-      </div>
-      <div class="hub-list">
-        ${checks.map(check => `
+        ${approvals.map(item => `
           <article class="hub-row">
-            <strong>${escapeHtml(check.key)}</strong>
-            <span>${check.ok ? "OK" : "CHECK"}</span>
-            ${check.count ? `<p>${escapeHtml(check.count)} item(s) need attention.</p>` : ""}
-            ${check.reason ? `<p>${escapeHtml(check.reason)}</p>` : ""}
+            <strong>${escapeHtml(item.name)}</strong>
+            <span>${escapeHtml(item.status === "PENDING_CREATE" ? "Creation Request" : "Dissolution Request")}</span>
+            <p>Leader: ${escapeHtml(item.leader_name || item.leader_id)}</p>
+            <div class="admin-page-controls" style="margin-top: 10px;">
+              <button type="button" class="library-inline-btn" data-approval-action="approve" data-powerbase-id="${escapeHtml(item.id)}">APPROVE</button>
+              <button type="button" class="library-inline-btn" data-approval-action="reject" data-powerbase-id="${escapeHtml(item.id)}" style="color: var(--theme-accent-dim);">REJECT</button>
+            </div>
           </article>
-        `).join("") || '<p class="hub-empty">No health checks available.</p>'}
-        <article class="hub-row"><strong>Active Clock Shifts</strong><span>${escapeHtml(counts.activeShifts || 0)}</span></article>
+        `).join("") || '<p class="hub-empty">No pending approvals.</p>'}
       </div>
     `;
   }
@@ -149,12 +129,16 @@
   function activityUserLine(item = {}) {
     const meta = item.meta || {};
     const isClock = item.source === "clock" || String(item.type || "").startsWith("clock_");
-    if (!isClock) return "";
+    const isBot = item.source === "bot";
+    if (!isClock && !isBot) return "";
 
-    const userParts = [
-      meta.robloxUserId ? `Roblox ${meta.robloxUserId}` : "",
-      meta.discordUserId ? `Discord ${meta.discordUserId}` : ""
-    ].filter(Boolean);
+    const userParts = [];
+    if (meta.robloxUsername || meta.robloxUserId) {
+      userParts.push(`Roblox ${meta.robloxUsername || meta.robloxUserId}`);
+    }
+    if (meta.discordUsername || meta.actorDiscordUsername || meta.discordUserId || meta.actorDiscordId) {
+      userParts.push(`Discord ${meta.discordUsername || meta.actorDiscordUsername || meta.discordUserId || meta.actorDiscordId}`);
+    }
 
     return `<p>User: ${escapeHtml(userParts.join(" · ") || "Unknown user")}</p>`;
   }
@@ -199,25 +183,27 @@
 
   async function initAdmin() {
     const nodes = {
-      counts: document.getElementById("admin-counts"),
-      health: document.getElementById("admin-health"),
+      approvals: document.getElementById("admin-approvals"),
       overrides: document.getElementById("admin-overrides"),
       activity: document.getElementById("admin-activity")
     };
-    if (!nodes.counts || !nodes.overrides || !nodes.activity) return;
+    if (!nodes.approvals || !nodes.overrides || !nodes.activity) return;
     document.body.classList.add("holonet-admin-mobile");
 
     let overrides = [];
+    let pendingApprovals = [];
 
     async function hydrate() {
-      const [overview, overridesPayload] = await Promise.all([
+      const [overview, overridesPayload, approvalsPayload] = await Promise.all([
         fetchJson("/api/admin/overview"),
-        fetchJson("/api/admin/overrides")
+        fetchJson("/api/admin/overrides"),
+        fetchJson("/api/admin/powerbases/approvals").catch(() => ({ approvals: [] }))
       ]);
 
       overrides = overridesPayload.overrides || [];
-      nodes.counts.innerHTML = renderCounts(overview.counts);
-      if (nodes.health) nodes.health.innerHTML = renderHealth(overview.health, overview.counts);
+      pendingApprovals = approvalsPayload.approvals || [];
+      
+      nodes.approvals.innerHTML = renderApprovals(pendingApprovals);
       nodes.activity.innerHTML = renderActivity(overview.activity);
       nodes.overrides.innerHTML = renderOverrides(overrides);
       bindControls();
@@ -231,6 +217,29 @@
 
     function bindControls() {
       document.querySelectorAll("[data-admin-refresh]").forEach(button => button.addEventListener("click", hydrate));
+      
+      document.querySelectorAll("[data-approval-action]").forEach(button => {
+        button.addEventListener("click", async event => {
+          const action = event.target.getAttribute("data-approval-action");
+          const powerbaseId = event.target.getAttribute("data-powerbase-id");
+          const originalText = event.target.textContent;
+          event.target.textContent = "...";
+          event.target.disabled = true;
+
+          try {
+            await fetchJson(`/api/admin/powerbases/${action}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: powerbaseId })
+            });
+            await hydrate();
+          } catch (error) {
+            alert(error.message);
+            event.target.textContent = originalText;
+            event.target.disabled = false;
+          }
+        });
+      });
       document.querySelector("[data-activity-refresh]")?.addEventListener("click", refreshActivity);
       document.querySelector("[data-activity-source]")?.addEventListener("change", async event => {
         state.activitySource = event.target.value || "all";

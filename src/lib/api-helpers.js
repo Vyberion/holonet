@@ -2092,8 +2092,8 @@ export async function loadRecentActivity({ page = 1, pageSize = 20, source = "al
     supabaseRest("council_proposals?select=id,proposal_type,title,status,updated_at,created_at&order=updated_at.desc&limit=40").catch(() => []),
     supabaseRest("group_timeline_entries?select=id,title,status,updated_at,created_at&order=updated_at.desc&limit=40").catch(() => []),
     loadPendingRetirements().catch(() => []),
-    supabaseRest("bot_audit_logs?select=id,action,actor_discord_id,target_discord_id,roblox_user_id,metadata,created_at&order=created_at.desc&limit=80").catch(() => []),
-    supabaseRest("clock_shifts?select=id,scope,discord_user_id,roblox_user_id,status,started_at,ended_at,created_at&order=created_at.desc&limit=80").catch(() => []),
+    supabaseRest("bot_audit_logs?select=id,action,actor_discord_id,actor_discord_username,target_discord_id,target_discord_username,roblox_user_id,roblox_username,metadata,created_at&order=created_at.desc&limit=80").catch(() => []),
+    supabaseRest("clock_shifts?select=id,scope,discord_user_id,discord_username,roblox_user_id,roblox_username,status,started_at,ended_at,created_at&order=created_at.desc&limit=80").catch(() => []),
     supabaseRest("access_overrides?select=id,roblox_id,effect,scope_type,scope_key,active,created_at,expires_at&order=created_at.desc&limit=80").catch(() => [])
   ]);
 
@@ -2175,7 +2175,7 @@ export async function loadRecentActivity({ page = 1, pageSize = 20, source = "al
       title: item.action,
       scope: item.metadata?.scope || "",
       at: item.created_at,
-      meta: { actorDiscordId: item.actor_discord_id, targetDiscordId: item.target_discord_id, robloxUserId: item.roblox_user_id }
+      meta: { actorDiscordId: item.actor_discord_id, targetDiscordId: item.target_discord_id, robloxUserId: item.roblox_user_id, actorDiscordUsername: item.actor_discord_username, targetDiscordUsername: item.target_discord_username, robloxUsername: item.roblox_username }
     })),
     ...(shifts || []).map(item => activityItem({
       id: item.id,
@@ -2184,7 +2184,7 @@ export async function loadRecentActivity({ page = 1, pageSize = 20, source = "al
       title: item.status === "active" ? "Active Shift" : "Completed Shift",
       scope: item.scope,
       at: item.ended_at || item.started_at || item.created_at,
-      meta: { discordUserId: item.discord_user_id, robloxUserId: item.roblox_user_id, status: item.status }
+      meta: { discordUserId: item.discord_user_id, robloxUserId: item.roblox_user_id, discordUsername: item.discord_username, robloxUsername: item.roblox_username, status: item.status }
     })),
     ...(overrides || []).map(item => activityItem({
       id: item.id,

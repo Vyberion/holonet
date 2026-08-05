@@ -75,13 +75,13 @@ function divisionTierAtLeast(profile, division, requiredTier) {
   return DIVISION_TIERS.indexOf(profile?.divisions?.[division] || "none") >= DIVISION_TIERS.indexOf(requiredTier);
 }
 
-function hasDarkCouncilRank(profile, roleKey) {
+export function hasDarkCouncilRank(profile, roleKey) {
   const rank = Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0);
   const allowedRanks = ROBLOX_GROUPS.DARK_COUNCIL.ranks?.[roleKey] || [];
   return Boolean(profile?.authorityRoles?.[roleKey] || allowedRanks.includes(rank));
 }
 
-function hasAnyOverseer(profile) {
+export function hasAnyOverseer(profile) {
   return OVERSEER_ROLE_KEYS.some(roleKey => hasDarkCouncilRank(profile, roleKey));
 }
 
@@ -315,7 +315,7 @@ async function requireManager(interaction) {
 }
 
 async function doClockIn(interaction, options = {}) {
-  const shift = await clockIn(interaction.user.id, options);
+  const shift = await clockIn(interaction.user, options);
   await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked In", `Scope: ${shift.scope}${shift.late ? `\nLate: ${shift.late_minutes || 0} minutes` : ""}`)] }));
   await postActivityLog(interaction.client, {
     title: "Clock In",
@@ -329,7 +329,7 @@ async function doClockIn(interaction, options = {}) {
 }
 
 async function doClockOut(interaction, options = {}) {
-  const shift = await clockOut(interaction.user.id, options);
+  const shift = await clockOut(interaction.user, options);
   const total = Math.max(0, Number(shift.duration_seconds || 0) + Number(shift.adjustment_seconds || 0));
   await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked Out", `Duration: ${formatDuration(total)}${shift.adjustment_seconds ? `\nAdjustment: ${formatDuration(Math.abs(shift.adjustment_seconds))} ${shift.adjustment_seconds > 0 ? "added" : "removed"}` : ""}${shift.clockout_late ? `\nLate clock-out: ${shift.clockout_late_minutes || 0} minutes` : ""}`)] }));
   await postActivityLog(interaction.client, {

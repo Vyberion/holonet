@@ -12,7 +12,9 @@ export async function activeShift(discordUserId) {
   return data;
 }
 
-export async function clockIn(discordUserId, options = {}) {
+export async function clockIn(discordUser, options = {}) {
+  const discordUserId = discordUser.id;
+  const discordUsername = discordUser.username;
   if (await activeShift(discordUserId)) throw new Error("ALREADY_CLOCKED_IN");
 
   const verified = await getVerifiedProfile(discordUserId);
@@ -27,18 +29,22 @@ export async function clockIn(discordUserId, options = {}) {
   const shift = await insert("clock_shifts", {
     scope,
     discord_user_id: discordUserId,
+    discord_username: discordUsername,
     roblox_user_id: verified.link.roblox_user_id,
+    roblox_username: verified.profile?.name,
     started_at: startedAt.toISOString(),
     late: isLate,
     late_minutes: isLate ? lateMinutes : null,
     status: "active"
   });
 
-  await audit("clock.in", { actorDiscordId: discordUserId, robloxUserId: verified.link.roblox_user_id, scope });
+  await audit("clock.in", { actorDiscordId: discordUserId, actorDiscordUsername: discordUsername, robloxUserId: verified.link.roblox_user_id, robloxUsername: verified.profile?.name, scope });
   return shift;
 }
 
-export async function clockOut(discordUserId, options = {}) {
+export async function clockOut(discordUser, options = {}) {
+  const discordUserId = discordUser.id;
+  const discordUsername = discordUser.username;
   const shift = await activeShift(discordUserId);
   if (!shift) throw new Error("NOT_CLOCKED_IN");
 
@@ -62,7 +68,7 @@ export async function clockOut(discordUserId, options = {}) {
     .single();
   if (error) throw error;
 
-  await audit("clock.out", { actorDiscordId: discordUserId, robloxUserId: shift.roblox_user_id, scope: shift.scope });
+  await audit("clock.out", { actorDiscordId: discordUserId, actorDiscordUsername: discordUsername, robloxUserId: shift.roblox_user_id, robloxUsername: shift.roblox_username, scope: shift.scope });
   return data;
 }
 
@@ -81,7 +87,9 @@ export async function latestShift(discordUserId) {
   return data;
 }
 
-export async function adjustShiftTime(discordUserId, minutes) {
+export async function adjustShiftTime(discordUser, minutes) {
+  const discordUserId = discordUser.id;
+  const discordUsername = discordUser.username;
   const verified = await getVerifiedProfile(discordUserId);
   if (!verified) throw new Error("DISCORD_NOT_LINKED");
 
@@ -96,7 +104,9 @@ export async function adjustShiftTime(discordUserId, minutes) {
   const data = await insert("clock_shifts", {
     scope,
     discord_user_id: discordUserId,
+    discord_username: discordUsername,
     roblox_user_id: verified.link.roblox_user_id,
+    roblox_username: verified.profile?.name,
     started_at: now,
     ended_at: now,
     duration_seconds: 0,

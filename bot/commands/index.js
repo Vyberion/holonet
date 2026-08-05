@@ -6,8 +6,10 @@ import * as clock from "./clock.js";
 
 import * as purge from "./purge.js";
 import * as userApps from "./userApps.js";
+import * as powerbase from "./powerbase.js";
+import * as kaggath from "./kaggath.js";
 
-export const modules = [lookup, getroles, verification, reports, clock, purge, userApps];
+export const modules = [lookup, getroles, verification, reports, clock, purge, userApps, powerbase, kaggath];
 
 export const commandData = (() => {
   const commandsByName = new Map();
@@ -29,9 +31,11 @@ export async function routeInteraction(interaction) {
       ? "handleButton"
       : interaction.isModalSubmit()
         ? "handleModal"
-        : interaction.isMessageContextMenuCommand() || interaction.isUserContextMenuCommand()
-          ? "handleContextMenu"
-          : "";
+        : interaction.isAnySelectMenu()
+          ? "handleSelectMenu"
+          : interaction.isMessageContextMenuCommand() || interaction.isUserContextMenuCommand()
+            ? "handleContextMenu"
+            : "";
 
   if (!method) {
     console.warn("Unhandled interaction type", {

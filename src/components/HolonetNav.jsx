@@ -152,12 +152,11 @@ export function HolonetNav() {
   const centerLinks = [
     { href: "https://www.thesithorder.org/", page: "home", prefix: "00", label: "Home" },
     {
-      href: "https://www.thesithorder.org/codex",
+      href: "https://www.thesithorder.org/statutes",
       page: "codex",
       prefix: "01",
       label: "Codex",
       dropdown: [
-        { href: "https://www.thesithorder.org/hierarchy", page: "hierarchy", label: "Hierarchy", preload: preloadHierarchyImages },
         { href: "https://www.thesithorder.org/statutes", page: "statutes", label: "Statutes" }
       ]
     },
@@ -172,10 +171,16 @@ export function HolonetNav() {
         { href: "https://www.thesithorder.org/emperors", page: "emperors", label: "Emperors" }
       ]
     },
-    { href: "https://www.thesithorder.org/powerbases", page: "powerbases", prefix: "03", label: "POWERBASES" },
-    ...(access?.permissions?.canAccessRegistry
-      ? [{ href: "https://www.thesithorder.org/registry", page: "registry", prefix: "04", label: "Registry" }]
-      : [])
+    { href: "https://www.thesithorder.org/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
+    {
+      href: "https://www.thesithorder.org/registry",
+      page: "registry",
+      prefix: "04",
+      label: "Registry",
+      dropdown: [
+        { href: "https://www.thesithorder.org/powerbases", page: "powerbases", label: "Powerbases" }
+      ]
+    }
   ];
 
   useEffect(() => {

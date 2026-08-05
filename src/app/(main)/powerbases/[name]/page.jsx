@@ -16,7 +16,7 @@ function slugifyPowerbase(name) {
 async function findPowerbaseBySlugOrId(param) {
   const target = String(param || "").trim();
   const targetSlug = slugifyPowerbase(target);
-  
+
   const powerbases = await supabaseRest("powerbases?select=*,powerbase_members(*)").catch(() => []);
   return powerbases.find(pb => pb.id === target || slugifyPowerbase(pb.name) === targetSlug) || null;
 }
@@ -40,10 +40,10 @@ async function getNamesForDiscordIds(discordIds) {
   const ids = Array.from(new Set(discordIds.filter(Boolean)));
   if (!ids.length) return {};
   const map = {};
-  
+
   // 1. Fetch verification links
   const links = await supabaseRest(`verification_links?discord_user_id=in.(${ids.map(id => encodeURIComponent(id)).join(",")})&select=discord_user_id,roblox_user_id`).catch(() => []);
-  
+
   const robloxMap = {};
   links.forEach(l => { robloxMap[l.discord_user_id] = l.roblox_user_id; });
 
@@ -67,7 +67,7 @@ async function getNamesForDiscordIds(discordIds) {
           }
         });
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // 3. Check clock_shifts for username fallback
@@ -91,7 +91,7 @@ async function getNamesForDiscordIds(discordIds) {
 
 export default async function PowerbaseDetailPage({ params }) {
   const { name } = await params;
-  
+
   const pb = await findPowerbaseBySlugOrId(name);
   if (!pb) notFound();
 
@@ -148,7 +148,7 @@ export default async function PowerbaseDetailPage({ params }) {
         {/* 1-Page Powerbase Hub Content */}
         <div className="hub-grid hub-grid--single" style={{ marginTop: "2rem" }}>
           <div className="hub-column" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            
+
             {/* Roblox Group Link */}
             {pb.roblox_group_id && (
               <section className="hub-panel">
@@ -178,7 +178,6 @@ export default async function PowerbaseDetailPage({ params }) {
               <div className="hub-list">
                 <div className="hub-row">
                   <strong>Domination Performance</strong>
-                  <span>Win / Loss Record</span>
                   <p style={{ marginTop: "0.5rem", fontSize: "1.1rem" }}>
                     <span style={{ color: "#4caf50", fontWeight: "bold" }}>{wins} Win{wins === 1 ? "" : "s"}</span>
                     {" — "}
@@ -206,7 +205,6 @@ export default async function PowerbaseDetailPage({ params }) {
                       letterSpacing: "0.05em"
                     }}
                   >
-                    POWERBASE LEADER
                   </span>
                 </div>
 
@@ -227,7 +225,6 @@ export default async function PowerbaseDetailPage({ params }) {
                           letterSpacing: "0.05em"
                         }}
                       >
-                        APPRENTICE
                       </span>
                     </div>
                   );

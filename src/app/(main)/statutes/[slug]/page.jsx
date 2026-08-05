@@ -1,6 +1,6 @@
-import { supabaseRest } from "../../../../../../modules/auth/session-store.js";
-import { processStatuteSlugs } from "../../../../../lib/slugUtils.js";
-import { holonetMetadata } from "../../../../../lib/metadata.js";
+import { supabaseRest } from "../../../../../modules/auth/session-store.js";
+import { processStatuteSlugs } from "../../../../lib/slugUtils.js";
+import { holonetMetadata } from "../../../../lib/metadata.js";
 import StatutesClient from "../StatutesClient.jsx";
 
 export async function generateMetadata({ params }) {

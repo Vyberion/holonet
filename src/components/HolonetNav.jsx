@@ -146,9 +146,9 @@ export function HolonetNav() {
   const divisionContext = currentDivisionContext(pathname, hostname);
   
   const isPowerbaseDetail = pathname.startsWith("/powerbases/") && pathname !== "/powerbases";
-  const isStatuteReader = activePage === "codex" && pathname.startsWith("/codex/statutes/") && pathname !== "/codex/statutes";
+  const isStatuteReader = pathname.startsWith("/statutes/") && pathname !== "/statutes";
   const showDivisionReturn = (divisionContext && !["home", "info"].includes(divisionContext.section)) || isStatuteReader || isPowerbaseDetail;
-  const returnHref = isPowerbaseDetail ? "/powerbases" : isStatuteReader ? "/codex/statutes" : (divisionContext?.base || "/");
+  const returnHref = isPowerbaseDetail ? "/powerbases" : isStatuteReader ? "/statutes" : (divisionContext?.base || "/");
   const centerLinks = [
     { href: "https://www.thesithorder.org/", page: "home", prefix: "00", label: "Home" },
     {
@@ -158,7 +158,7 @@ export function HolonetNav() {
       label: "Codex",
       dropdown: [
         { href: "https://www.thesithorder.org/hierarchy", page: "hierarchy", label: "Hierarchy", preload: preloadHierarchyImages },
-        { href: "https://www.thesithorder.org/codex/statutes", page: "statutes", label: "Statutes" }
+        { href: "https://www.thesithorder.org/statutes", page: "statutes", label: "Statutes" }
       ]
     },
     {

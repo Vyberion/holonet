@@ -1,5 +1,5 @@
-import { supabaseRest } from "../../../../../modules/auth/session-store.js";
-import { holonetMetadata } from "../../../../lib/metadata.js";
+import { supabaseRest } from "../../../../modules/auth/session-store.js";
+import { holonetMetadata } from "../../../lib/metadata.js";
 import StatutesClient from "./StatutesClient.jsx";
 
 export async function generateMetadata({ searchParams }) {

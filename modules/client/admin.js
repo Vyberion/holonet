@@ -39,9 +39,15 @@
 
   async function fetchJson(url, options) {
     const response = await fetch(url, options);
-    const payload = await response.json();
+    const text = await response.text();
+    let payload = {};
+    try {
+      payload = text ? JSON.parse(text) : {};
+    } catch (e) {
+      throw new Error(`Server returned unexpected format (${response.status})`);
+    }
     if (!response.ok || !payload.ok) {
-      throw new Error(payload.reason || payload.error || "REQUEST_FAILED");
+      throw new Error(payload.reason || payload.error || payload.message || `Request failed (${response.status})`);
     }
     return payload;
   }

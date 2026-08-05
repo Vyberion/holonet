@@ -9,16 +9,18 @@ export const metadata = holonetMetadata({
   description: "Directory of all official Imperial Powerbases."
 });
 
-export const revalidate = 60; // Revalidate every 60 seconds
+export const dynamic = "force-dynamic";
 
 function PowerbaseCard({ pb }) {
   const memberCount = (pb.powerbase_members?.length || 0) + 1; // +1 for leader
 
   return (
-    <div
+    <Link
+      href={`/powerbases/${pb.id}`}
       className="dir-card"
-      data-status="restricted"
+      data-status="open"
       aria-label={`${pb.name} - Tier ${pb.tier}`}
+      style={{ textDecoration: "none", color: "inherit", cursor: "pointer", display: "flex", flexDirection: "column" }}
     >
       <div className="dir-card-frame" aria-hidden="true" />
       <div className="card-vline" aria-hidden="true" />
@@ -33,14 +35,11 @@ function PowerbaseCard({ pb }) {
 
       <div className="dir-card-bottom">
         <span className="dir-card-node">{memberCount} MEMBER{memberCount === 1 ? "" : "S"}</span>
-        <Link
-          href={`/powerbases/${pb.id}`}
-          className="dir-card-enter action-btn"
-        >
+        <span className="dir-card-enter action-btn">
           VIEW POWERBASE &rarr;
-        </Link>
+        </span>
       </div>
-    </div>
+    </Link>
   );
 }
 

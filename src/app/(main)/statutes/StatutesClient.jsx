@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { HolonetFrame } from "../../../../components/HolonetFrame.jsx";
-import { PageScripts } from "../../../../components/PageScripts.jsx";
-import { StatuteEditor } from "../../../../components/StatuteEditor.jsx";
-import { processStatuteSlugs } from "../../../../lib/slugUtils.js";
+import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
+import { PageScripts } from "../../../components/PageScripts.jsx";
+import { StatuteEditor } from "../../../components/StatuteEditor.jsx";
+import { processStatuteSlugs } from "../../../lib/slugUtils.js";
 
 function getRomanNumeral(num) {
   const lookup = { M: 1000, CM: 900, D: 500, CD: 400, C: 100, XC: 90, L: 50, XL: 40, X: 10, IX: 9, V: 5, IV: 4, I: 1 };
@@ -193,7 +193,7 @@ function StatutesPageContent({ initialSlug }) {
         className="dir-card"
         data-status={status}
         aria-label={`${statute.title} - ${isDraft ? "draft" : "published"}`}
-        onClick={() => router.push(`/codex/statutes/${statute.slug}`)}
+        onClick={() => router.push(`/statutes/${statute.slug}`)}
         style={{ cursor: "pointer" }}
       >
         <div className="dir-card-frame" aria-hidden="true" />

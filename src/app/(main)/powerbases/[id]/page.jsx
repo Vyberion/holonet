@@ -199,7 +199,7 @@ export default async function PowerbaseDetailPage({ params }) {
                     style={{
                       color: "#ff1a2d",
                       borderColor: "#ff1a2d",
-                      backgroundColor: "rgba(255, 26, 45, 0.12)",
+                      background: "none",
                       fontWeight: "bold",
                       letterSpacing: "0.05em"
                     }}
@@ -215,7 +215,18 @@ export default async function PowerbaseDetailPage({ params }) {
                     <div key={m.id || idx} className="hub-row">
                       <strong>Apprentice #{idx + 1}</strong>
                       <span>{userNames[uId] || uId}</span>
-                      <span className="hub-timestamp">APPRENTICE</span>
+                      <span
+                        className="hub-timestamp"
+                        style={{
+                          color: "#ff1a2d",
+                          borderColor: "#ff1a2d",
+                          background: "none",
+                          fontWeight: "bold",
+                          letterSpacing: "0.05em"
+                        }}
+                      >
+                        APPRENTICE
+                      </span>
                     </div>
                   );
                 })}

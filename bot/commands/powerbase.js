@@ -1,33 +1,37 @@
 import { ActionRowBuilder, ModalBuilder, SlashCommandBuilder, StringSelectMenuBuilder, TextInputBuilder, TextInputStyle, UserSelectMenuBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js"; 
-import { botErrorMessage, missingBotPermissionsError, roleManagementBlockedError } from "../services/bot-errors.js";
-import { ephemeral, errorEmbed, successEmbed, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
+import { ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
 import { createPowerbase, fetchPowerbases, getPowerbase, getPowerbaseForUser, isHigherRank, logPowerbaseAction, updatePowerbase } from "../services/powerbase-api.js";
 
 export const commands = [
   new SlashCommandBuilder()
     .setName("powerbase")
-    .setDescription("Manage Powerbases")
-    .addSubcommand(subcommand => subcommand
-      .setName("create")
-      .setDescription("Create a new Powerbase")
+    .setDescription("Powerbase management tools")
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("create")
+        .setDescription("Request the creation of a new Powerbase (Overseer+)")
     )
-    .addSubcommand(subcommand => subcommand
-      .setName("edit")
-      .setDescription("Edit your Powerbase")
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("edit")
+        .setDescription("Edit your Powerbase name, description, or members")
     )
-    .addSubcommand(subcommand => subcommand
-      .setName("manage")
-      .setDescription("Manage any Powerbase")
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("manage")
+        .setDescription("Manage your Powerbase (or others if Emperor+)")
     )
-    .addSubcommand(subcommand => subcommand
-      .setName("dissolve")
-      .setDescription("Dissolve a Powerbase")
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("dissolve")
+        .setDescription("Request dissolution of a Powerbase")
     )
-    .addSubcommand(subcommand => subcommand
-      .setName("info")
-      .setDescription("View info for a specific Powerbase")
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("info")
+        .setDescription("View info for a specific Powerbase")
     )
 ];
 
@@ -39,7 +43,7 @@ export async function handleCommand(interaction) {
   try {
     const verified = await getVerifiedProfile(interaction.user.id);
     if (!verified) {
-      await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You must be verified to use Powerbase commands.")])])));
+      await interaction.reply(ephemeral({ embeds: [errorEmbed("You must be verified to use Powerbase commands.")] }));
       return true;
     }
 
@@ -52,9 +56,9 @@ export async function handleCommand(interaction) {
   } catch (err) {
     console.error(err);
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])])));
+      await interaction.followUp(ephemeral({ embeds: [errorEmbed(`❌ **Error:** ` + err.message)] }));
     } else {
-      await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])])));
+      await interaction.reply(ephemeral({ embeds: [errorEmbed(`❌ **Error:** ` + err.message)] }));
     }
   }
 
@@ -76,15 +80,13 @@ export async function handleSelectMenu(interaction) {
 // --------------------------------------------------------------------------------------
 
 async function handleCreate(interaction, verified) {
-  // Check permission: Overseer+
   if (!hasAnyOverseer(verified.profile) && !hasDarkCouncilRank(verified.profile, 251)) {
-    return interaction.reply(ephemeral({ content: "You must be a Sith Overseer or higher to create a Powerbase." }));
+    return interaction.reply(ephemeral({ embeds: [errorEmbed("You must be a Sith Overseer or higher to create a Powerbase.")] }));
   }
 
-  // Check if they are already in a powerbase
   const existing = await getPowerbaseForUser(interaction.user.id);
   if (existing) {
-    return interaction.reply(ephemeral({ content: `You are already part of a Powerbase (${existing.name}).` }));
+    return interaction.reply(ephemeral({ embeds: [errorEmbed(`You are already part of a Powerbase (${existing.name}).`)] }));
   }
 
   const modal = new ModalBuilder()
@@ -154,7 +156,7 @@ export async function handleModal(interaction) {
     await updatePowerbase(pbId, { name, description });
 
     const pb = await getPowerbase(pbId);
-    const currentMemberIds = (pb.powerbase_members || []).map(m => String(m.discord_user_id));
+    const currentMemberIds = (pb?.powerbase_members || []).map(m => String(m.discord_user_id));
     
     const selectMenu = new UserSelectMenuBuilder()
       .setCustomId("pb_edit_members")
@@ -187,11 +189,11 @@ async function handleEditMembers(interaction) {
   const cached = globalThis.__pbEditMembersCache?.get(leaderId);
   
   if (!cached) {
-    return interaction.update(ephemeral({ content: "Your edit session expired. Please try again.", components: [] }));
+    return interaction.update(ephemeral({ embeds: [errorEmbed("Your edit session expired. Please try again.")], components: [] }));
   }
 
   const pb = await getPowerbase(cached.pbId);
-  if (!pb) return interaction.update(ephemeral({ content: "Powerbase no longer exists.", components: [] }));
+  if (!pb) return interaction.update(ephemeral({ embeds: [errorEmbed("Powerbase no longer exists.")], components: [] }));
 
   const actorProfile = await getVerifiedProfile(leaderId);
   
@@ -217,21 +219,21 @@ async function handleEditMembers(interaction) {
     await updatePowerbase(pb.id, {}, finalMemberIds);
     globalThis.__pbEditMembersCache.delete(leaderId);
     
-    await interaction.update(ephemeral({ content: `Powerbase **${cached.name}** updated successfully!` }));
+    await interaction.update(ephemeral({ embeds: [successEmbed("Powerbase Updated", `Powerbase **${cached.name}** updated successfully!`)], components: [] }));
   } catch (err) {
-    await interaction.update(ephemeral({ content: `❌ **Error:** ${err.message}\n\nPlease try again by re-selecting the members.` }));
+    await interaction.update(ephemeral({ embeds: [errorEmbed(err.message)], components: [] }));
   }
   
   return true;
 }
 
 async function handleCreateMembers(interaction) {
-  const selectedMembers = interaction.values; // Array of discord IDs
+  const selectedMembers = interaction.values;
   const leaderId = interaction.user.id;
   const cached = globalThis.__pbCreateCache?.get(leaderId);
   
   if (!cached) {
-    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Your creation session expired. Please try again.")])])));
+    return interaction.reply(ephemeral({ embeds: [errorEmbed("Your creation session expired. Please try again.")] }));
   }
 
   try {
@@ -259,9 +261,9 @@ async function handleCreateMembers(interaction) {
     
     globalThis.__pbCreateCache.delete(leaderId);
     
-    await interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`Powerbase **${cached.name}** creation request submitted for approval by High Command!`)])])));
+    await interaction.update(ephemeral({ embeds: [successEmbed("Request Submitted", `Powerbase **${cached.name}** creation request submitted for approval by High Command!`)], components: [] }));
   } catch (err) {
-    await interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ${err.message}`)])])));
+    await interaction.update(ephemeral({ embeds: [errorEmbed(err.message)], components: [] }));
   }
 
   return true;
@@ -274,7 +276,7 @@ async function handleCreateMembers(interaction) {
 async function handleEdit(interaction, verified) {
   const existing = await getPowerbaseForUser(interaction.user.id);
   if (!existing || existing.leader_id !== interaction.user.id) {
-    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not lead a Powerbase.")])])));
+    return interaction.reply(ephemeral({ embeds: [errorEmbed("You do not lead a Powerbase.")] }));
   }
 
   const modal = new ModalBuilder()
@@ -282,6 +284,14 @@ async function handleEdit(interaction, verified) {
     .setTitle(`Edit ${existing.name.substring(0, 30)}`);
 
   modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("name")
+        .setLabel("Powerbase Name")
+        .setStyle(TextInputStyle.Short)
+        .setValue(existing.name)
+        .setRequired(true)
+    ),
     new ActionRowBuilder().addComponents(
       new TextInputBuilder()
         .setCustomId("description")
@@ -297,23 +307,21 @@ async function handleEdit(interaction, verified) {
 }
 
 async function handleManage(interaction, verified) {
-  // Check permission: Overseer+ for THEIR OWN, Voice/Emperor+ for ANY.
   const isEmperorPlus = hasDarkCouncilRank(verified.profile, 253);
   const isOverseer = hasAnyOverseer(verified.profile);
 
   if (!isEmperorPlus && !isOverseer) {
-    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have permission to manage Powerbases.")])])));
+    return interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have permission to manage Powerbases.")] }));
   }
 
   let powerbases = await fetchPowerbases();
   
   if (!isEmperorPlus) {
-    // Only show their own
     powerbases = powerbases.filter(pb => pb.leader_id === interaction.user.id);
   }
 
   if (powerbases.length === 0) {
-    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have any Powerbases to manage.")])])));
+    return interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have any Powerbases to manage.")] }));
   }
 
   const select = new StringSelectMenuBuilder()
@@ -338,7 +346,7 @@ async function handleDissolve(interaction, verified) {
   const isOverseer = hasAnyOverseer(verified.profile);
 
   if (!isEmperorPlus && !isOverseer) {
-    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have permission to dissolve Powerbases.")])])));
+    return interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have permission to dissolve Powerbases.")] }));
   }
 
   let powerbases = await fetchPowerbases();
@@ -348,7 +356,7 @@ async function handleDissolve(interaction, verified) {
   }
 
   if (powerbases.length === 0) {
-    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have any Powerbases to dissolve.")])])));
+    return interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have any Powerbases to dissolve.")] }));
   }
 
   const select = new StringSelectMenuBuilder()
@@ -373,7 +381,7 @@ async function handleInfo(interaction, verified) {
   powerbases = powerbases.filter(pb => pb.status === "ACTIVE");
 
   if (powerbases.length === 0) {
-    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("There are no active Powerbases.")])])));
+    return interaction.reply(ephemeral({ embeds: [errorEmbed("There are no active Powerbases.")] }));
   }
 
   const select = new StringSelectMenuBuilder()
@@ -392,15 +400,21 @@ async function handleInfo(interaction, verified) {
 async function handleEditSelect(interaction) {
   const pbId = interaction.values[0];
   const pb = await getPowerbase(pbId);
-  if (!pb) return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+  if (!pb) return interaction.reply(ephemeral({ embeds: [errorEmbed("Powerbase not found.")] }));
 
-  // Future feature: Modal to edit description or add/remove members.
-  // For now, we will just offer a way to rename it.
   const modal = new ModalBuilder()
     .setCustomId(`pb_edit_modal:${pbId}`)
     .setTitle(`Edit ${pb.name.substring(0, 30)}`);
 
   modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("name")
+        .setLabel("Powerbase Name")
+        .setStyle(TextInputStyle.Short)
+        .setValue(pb.name)
+        .setRequired(true)
+    ),
     new ActionRowBuilder().addComponents(
       new TextInputBuilder()
         .setCustomId("description")
@@ -418,30 +432,36 @@ async function handleEditSelect(interaction) {
 async function handleDissolveSelect(interaction) {
   const pbId = interaction.values[0];
   const pb = await getPowerbase(pbId);
-  if (!pb) return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+  if (!pb) return interaction.reply(ephemeral({ embeds: [errorEmbed("Powerbase not found.")] }));
 
   if (pb.status === "PENDING_CREATE") {
-    // If it's still pending, just delete it.
     await updatePowerbase(pbId, { status: "DISSOLVED" });
-    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`Powerbase request for **${pb.name}** has been cancelled.`)])])));
+    return interaction.update(ephemeral({ embeds: [successEmbed("Cancelled", `Powerbase request for **${pb.name}** has been cancelled.`)], components: [] }));
   }
 
   await updatePowerbase(pbId, { status: "PENDING_DISSOLVE" });
-  await interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`Dissolution request for Powerbase **${pb.name}** has been submitted for approval.`)])])));
-  return true;
+  return interaction.update(ephemeral({ embeds: [successEmbed("Dissolution Requested", `Dissolution request for Powerbase **${pb.name}** has been submitted for approval.`)], components: [] }));
 }
 
 async function handleInfoSelect(interaction) {
   const pbId = interaction.values[0];
   const pb = await getPowerbase(pbId);
-  if (!pb) return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+  if (!pb) return interaction.reply(ephemeral({ embeds: [errorEmbed("Powerbase not found.")] }));
 
-  await interaction.update(ephemeral(componentsV2Message([
-    containerV2([
-      textDisplayV2(`**${pb.name}**`),
-      separatorV2(),
-      textDisplayV2(`Tier: ${pb.tier}\nPrestige: ${pb.prestige}\nStatus: ${pb.status}`)
-    ])
-  ])));
+  const memberList = (pb.powerbase_members || [])
+    .map(m => `<@${m.discord_user_id}>`)
+    .join(", ") || "None";
+
+  const infoEmbed = successEmbed(
+    pb.name,
+    `**Description:** ${pb.description || "None"}\n` +
+    `**Leader:** <@${pb.leader_id}>\n` +
+    `**Tier:** ${pb.tier}\n` +
+    `**Prestige:** ${pb.prestige}\n` +
+    `**Status:** ${pb.status}\n\n` +
+    `**Members:** ${memberList}`
+  );
+
+  await interaction.update(ephemeral({ embeds: [infoEmbed], components: [] }));
   return true;
 }

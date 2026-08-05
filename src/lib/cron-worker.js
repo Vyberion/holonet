@@ -6,7 +6,7 @@ export function startInternalCron() {
 
   console.log("[Holonet] Starting internal handbook refresh cron worker...");
 
-  const refreshIntervalMs = 10 * 60 * 1000;
+  const refreshIntervalMs = 5 * 60 * 1000;
 
   async function runRefresh() {
     try {

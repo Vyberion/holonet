@@ -159,7 +159,23 @@ export async function GET(request) {
 
   try {
     const candidates = await loadPublishedGoogleHandbooks();
-    const limited = candidates.slice(0, Math.max(1, MAX_REFRESH_PER_RUN));
+    if (!candidates.length) return json({ ok: true, checked: 0, totalCandidates: 0, refreshed: 0, results: [] });
+
+    // Use an in-memory cursor to round-robin through all handbooks sequentially
+    let cursor = globalThis.__handbookCronCursor || 0;
+    if (cursor >= candidates.length) cursor = 0;
+    
+    const limit = Math.max(1, MAX_REFRESH_PER_RUN);
+    let limited = candidates.slice(cursor, cursor + limit);
+    
+    // If we hit the end, wrap around to grab the remainder from the start
+    if (limited.length < limit && candidates.length > limit) {
+      limited = limited.concat(candidates.slice(0, limit - limited.length));
+    }
+    
+    // Update cursor for next run
+    globalThis.__handbookCronCursor = (cursor + limit) % candidates.length;
+    
     const results = [];
 
     for (const candidate of limited) {

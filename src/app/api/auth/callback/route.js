@@ -4,7 +4,7 @@ import {
 } from "../../../../lib/api-helpers.js";
 import {
   clearCookie, createSessionForUser, deleteSessionToken, getCookie, serializeCookie, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, STATE_COOKIE
-} from "../../../../modules/auth/session-store.js";
+} from "../../../../../modules/auth/session-store.js";
 
 
 

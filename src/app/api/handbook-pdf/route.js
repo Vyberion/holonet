@@ -1,7 +1,8 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  path, createSignedStorageUrl, removeStorageObjects, supabaseRest, listStorageObjects, uploadStorageObject, exportGoogleDocPdf, fetchGoogleFileMetadata, extractGoogleFileId, extractGoogleTabId, googleWorkspaceKindFromUrl
+  path, exportGoogleDocPdf, fetchGoogleFileMetadata, extractGoogleFileId, extractGoogleTabId, googleWorkspaceKindFromUrl
 } from "../../../lib/api-helpers.js";
+import { createSignedStorageUrl, removeStorageObjects, supabaseRest, listStorageObjects, uploadStorageObject } from "../../../../modules/auth/session-store.js";
 import { checkPageAccess } from "../../../../modules/auth/permissions.js";
 import { getAuthContext } from "../../../../modules/auth/auth-context.js";
 

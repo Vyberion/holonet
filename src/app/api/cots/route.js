@@ -1,6 +1,7 @@
 import {
-  isMissingSchemaError, createSignedStorageUrl, removeStorageObjects, supabaseRest, uploadStorageObject
+  isMissingSchemaError
 } from "../../../lib/api-helpers.js";
+import { createSignedStorageUrl, removeStorageObjects, supabaseRest, uploadStorageObject } from "../../../../modules/auth/session-store.js";
 import { getAuthContext } from "../../../../modules/auth/auth-context.js";
 import { canEditLibrary } from "../../../../modules/auth/permissions.js";
 

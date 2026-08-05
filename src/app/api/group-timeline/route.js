@@ -1,7 +1,8 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  getQueryParam, requireString, isMissingSchemaError, supabaseRest, loadTimelineEntries, writeTimelineEntry
+  getQueryParam, requireString, isMissingSchemaError, loadTimelineEntries, writeTimelineEntry
 } from "../../../lib/api-helpers.js";
+import { supabaseRest } from "../../../../modules/auth/session-store.js";
 import { canAccessAdmin } from "../../../../modules/auth/permissions.js";
 import { getAuthContext } from "../../../../modules/auth/auth-context.js";
 

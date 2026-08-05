@@ -4,7 +4,7 @@ import {
 } from "../../../../lib/api-helpers.js";
 import {
   createRandomToken, serializeCookie, STATE_COOKIE
-} from "../../../../modules/auth/session-store.js";
+} from "../../../../../modules/auth/session-store.js";
 
 
 

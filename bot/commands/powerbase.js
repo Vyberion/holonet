@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ModalBuilder, SlashCommandBuilder, StringSelectMenuBuilder, TextInputBuilder, TextInputStyle, UserSelectMenuBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { SlashCommandBuilder, StringSelectMenuBuilder, UserSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js"; 
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
@@ -136,12 +136,13 @@ export async function handleModal(interaction) {
       .setMinValues(0)
       .setMaxValues(10);
 
-    const row = new ActionRowBuilder().addComponents(selectMenu);
-    
-    await interaction.reply(ephemeral({
-      content: `**Powerbase: ${name}**\nPlease select the Apprentices you wish to include. Note that any member you select must be equal or lower in rank to you, and must not currently be in a Powerbase.\n\n*Click outside the menu when done to submit.*`,
-      components: [row]
-    }));
+    await interaction.reply(ephemeral(componentsV2Message([
+      containerV2([
+        textDisplayV2(`### Powerbase: ${name}`),
+        textDisplayV2("Please select the Apprentices you wish to include. Note that any member you select must be equal or lower in rank to you, and must not currently be in a Powerbase.\n\n*Click outside the menu when done to submit.*"),
+        selectMenu
+      ])
+    ])));
     return true;
   }
   
@@ -167,16 +168,17 @@ export async function handleModal(interaction) {
     if (typeof selectMenu.setDefaultUsers === "function" && currentMemberIds.length > 0) {
       selectMenu.setDefaultUsers(currentMemberIds);
     }
-      
-    const row = new ActionRowBuilder().addComponents(selectMenu);
-    
+
     globalThis.__pbEditMembersCache = globalThis.__pbEditMembersCache || new Map();
     globalThis.__pbEditMembersCache.set(interaction.user.id, { pbId: pbId, name });
 
-    await interaction.update(ephemeral({
-      content: `**Powerbase: ${name}**\nPlease select the Apprentices for this Powerbase. Anyone not selected will be removed. (Max 10).`,
-      components: [row]
-    }));
+    await interaction.update(ephemeral(componentsV2Message([
+      containerV2([
+        textDisplayV2(`### Powerbase: ${name}`),
+        textDisplayV2("Please select the Apprentices for this Powerbase. Anyone not selected will be removed. (Max 10)."),
+        selectMenu
+      ])
+    ])));
     return true;
   }
   
@@ -219,14 +221,12 @@ async function handleEditMembers(interaction) {
     await updatePowerbase(pb.id, {}, finalMemberIds);
     globalThis.__pbEditMembersCache.delete(leaderId);
     
-    const v2Payload = componentsV2Message([
+    await interaction.update(ephemeral(componentsV2Message([
       containerV2([
         textDisplayV2(`### Powerbase Updated`),
         textDisplayV2(`Powerbase **${cached.name}** updated successfully!`)
       ])
-    ]);
-    
-    await interaction.update(ephemeral(v2Payload));
+    ])));
   } catch (err) {
     await interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ${err.message}`)])])));
   }
@@ -268,14 +268,12 @@ async function handleCreateMembers(interaction) {
     
     globalThis.__pbCreateCache.delete(leaderId);
 
-    const v2Payload = componentsV2Message([
+    await interaction.update(ephemeral(componentsV2Message([
       containerV2([
         textDisplayV2(`### Request Submitted`),
         textDisplayV2(`Powerbase **${cached.name}** creation request submitted for approval by High Command!`)
       ])
-    ]);
-    
-    await interaction.update(ephemeral(v2Payload));
+    ])));
   } catch (err) {
     await interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ${err.message}`)])])));
   }
@@ -346,8 +344,12 @@ async function handleManage(interaction, verified) {
       value: pb.id
     })));
 
-  const row = new ActionRowBuilder().addComponents(select);
-  await interaction.reply(ephemeral({ content: "Select a Powerbase to manage:", components: [row] }));
+  await interaction.reply(ephemeral(componentsV2Message([
+    containerV2([
+      textDisplayV2("Select a Powerbase to manage:"),
+      select
+    ])
+  ])));
   return true;
 }
 
@@ -381,8 +383,12 @@ async function handleDissolve(interaction, verified) {
       value: pb.id
     })));
 
-  const row = new ActionRowBuilder().addComponents(select);
-  await interaction.reply(ephemeral({ content: "Select a Powerbase to dissolve:", components: [row] }));
+  await interaction.reply(ephemeral(componentsV2Message([
+    containerV2([
+      textDisplayV2("Select a Powerbase to dissolve:"),
+      select
+    ])
+  ])));
   return true;
 }
 
@@ -406,8 +412,12 @@ async function handleInfo(interaction, verified) {
       value: pb.id
     })));
 
-  const row = new ActionRowBuilder().addComponents(select);
-  await interaction.reply(ephemeral({ content: "Select a Powerbase to view:", components: [row] }));
+  await interaction.reply(ephemeral(componentsV2Message([
+    containerV2([
+      textDisplayV2("Select a Powerbase to view:"),
+      select
+    ])
+  ])));
   return true;
 }
 

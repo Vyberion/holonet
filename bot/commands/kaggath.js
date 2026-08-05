@@ -34,8 +34,12 @@ export async function handleCommand(interaction) {
         { label: "Humiliation", value: "Humiliation" }
       ]);
 
-    const row = new ActionRowBuilder().addComponents(select);
-    await interaction.reply(ephemeral({ content: "Select Kaggath Type:", components: [row] }));
+    await interaction.reply(ephemeral(componentsV2Message([
+      containerV2([
+        textDisplayV2("Select Kaggath Type:"),
+        select
+      ])
+    ])));
 
   } catch (err) {
     console.error(err);
@@ -69,8 +73,12 @@ export async function handleSelectMenu(interaction) {
         .setPlaceholder("Select Challenging Powerbase")
         .addOptions(active.map(pb => ({ label: pb.name, value: pb.id })));
         
-      const row = new ActionRowBuilder().addComponents(select);
-      return interaction.update(ephemeral({ content: "Select the Challenging Powerbase:", components: [row] }));
+      return interaction.update(ephemeral(componentsV2Message([
+        containerV2([
+          textDisplayV2("Select the Challenging Powerbase:"),
+          select
+        ])
+      ])));
     }
 
     return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`${type} selected. Further inputs not fully implemented yet.`)])])));
@@ -94,8 +102,12 @@ export async function handleSelectMenu(interaction) {
       .setPlaceholder("Select Defending Powerbase")
       .addOptions(active.map(pb => ({ label: pb.name, value: pb.id })));
       
-    const row = new ActionRowBuilder().addComponents(select);
-    return interaction.update(ephemeral({ content: "Select the Defending Powerbase:", components: [row] }));
+    return interaction.update(ephemeral(componentsV2Message([
+      containerV2([
+        textDisplayV2("Select the Defending Powerbase:"),
+        select
+      ])
+    ])));
   }
 
   if (interaction.customId === "kaggath_dom_defender") {

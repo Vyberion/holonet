@@ -1,5 +1,5 @@
 import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
-import { supabaseRest } from "../../../modules/auth/session-store.js";
+import { supabaseRest } from "../../../../modules/auth/session-store.js";
 import { holonetMetadata } from "../../../lib/metadata.js";
 import Link from "next/link";
 

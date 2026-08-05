@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from "discord.js";
-import { canViewDivisionReports, canWriteDivisionReport } from "../../modules/auth/permissions.js";
+import { checkPageAccess, checkResourceWriteAccess } from "../../modules/auth/permissions.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { postActivityLog } from "../services/activity-log.js";
 import { botErrorMessage } from "../services/bot-errors.js";
@@ -437,7 +437,7 @@ async function saveWeeklyReportForScope(interaction, scope, date = "") {
   const actor = await getVerifiedProfile(interaction.user.id);
   if (!actor) throw new Error("DISCORD_NOT_LINKED");
 
-  const access = canWriteDivisionReport(actor.profile, scope);
+  const access = checkResourceWriteAccess(actor.profile, { division: scope, resourceType: "report" });
   if (!access.authorized) throw new Error(access.reason || "INSUFFICIENT_WRITE_CLEARANCE");
 
   const members = await buildWeeklyReportRoster(scope);
@@ -507,7 +507,7 @@ async function ensureReportWriteAccess(interaction, scope) {
   assertReportScope(scope);
   const actor = await getVerifiedProfile(interaction.user.id);
   if (!actor) throw new Error("DISCORD_NOT_LINKED");
-  const access = canWriteDivisionReport(actor.profile, scope);
+  const access = checkResourceWriteAccess(actor.profile, { division: scope, resourceType: "report" });
   if (!access.authorized) throw new Error(access.reason || "INSUFFICIENT_WRITE_CLEARANCE");
   return actor;
 }
@@ -516,7 +516,7 @@ async function ensureReportViewAccess(interaction, scope, prefill = false) {
   assertReportScope(scope);
   const actor = await getVerifiedProfile(interaction.user.id);
   if (!actor) throw new Error("DISCORD_NOT_LINKED");
-  const access = prefill ? canWriteDivisionReport(actor.profile, scope) : canViewDivisionReports(actor.profile, scope);
+  const access = prefill ? checkResourceWriteAccess(actor.profile, { division: scope, resourceType: "report" }) : checkPageAccess(actor.profile, scope + "_reports");
   if (!access.authorized) throw new Error(access.reason || "INSUFFICIENT_CLEARANCE_LEVEL");
   return actor;
 }

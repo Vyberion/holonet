@@ -133,7 +133,7 @@ export function canManageBot(profile, member = null) {
   const roles = profile?.authorityRoles || {};
   return Boolean(
     isDiscordAdmin(member) ||
-    hasCoreAccess(profile) ||
+    hasHighCommandAccess(profile) ||
     roles.groupOwner ||
     roles.projectManager ||
     roles.emperor ||
@@ -386,7 +386,7 @@ export function divisionTierWeight(tier) {
 export function canAdjustTime(actorProfile, targetProfile, targetScope, sameUser = false) {
   if (sameUser) return true;
   if (!actorProfile || !targetProfile) return false;
-  if (hasCoreAccess(actorProfile) || Object.values(actorProfile.authorityRoles || {}).some(Boolean)) return true;
+  if (hasHighCommandAccess(actorProfile) || Object.values(actorProfile.authorityRoles || {}).some(Boolean)) return true;
   if (["darkCouncil", "highranks"].includes(targetScope)) return false;
 
   const actorTier = divisionTierWeight(actorProfile.divisions?.[targetScope] || "none");

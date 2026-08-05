@@ -20,7 +20,7 @@ const handler = async (req, res) => {
 
       const { user, groups, accountAgeDays, friendsCount, badgeCount } = await loadRobloxProfileSummary(resolved.id);
       const mainGroupMembership = (groups.data || []).find(
-        membership => membership?.group?.id === ROBLOX_GROUPS.HIGH_RANKS.groupId
+        membership => membership?.group?.id === ROBLOX_GROUPS.MAIN_GROUP.groupId
       );
       const divisionMemberships = Object.entries(ROBLOX_GROUPS.DIVISIONS)
         .map(([divisionKey, definition]) => {

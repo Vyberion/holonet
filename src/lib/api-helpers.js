@@ -6,6 +6,7 @@ import {
   canAccessAdmin,
   hasPermission,
   checkPageAccess,
+  checkResourceWriteAccess,
   hasHighCommandAccess
 } from "../../modules/auth/permissions.js";
 import {
@@ -433,7 +434,7 @@ export function canViewInquisitorOverview(profile) {
   const roles = profile?.authorityRoles || {};
 
   return Boolean(
-    hasCoreAccess(profile) ||
+    hasHighCommandAccess(profile) ||
     tierAtLeast(profile?.divisions?.inquisitors || "none", "member") ||
     roles.groupOwner ||
     roles.projectManager ||
@@ -443,17 +444,17 @@ export function canViewInquisitorOverview(profile) {
 }
 
 export function hasDarkCouncilPlus(profile) {
-  return Boolean(hasCoreAccess(profile) || Object.values(profile?.authorityRoles || {}).some(Boolean));
+  return Boolean(hasHighCommandAccess(profile) || Object.values(profile?.authorityRoles || {}).some(Boolean));
 }
 
 export function canWriteDivisionWeeklyReport(profile, division) {
-  return canWriteDivisionReport(profile, division).authorized;
+  return checkResourceWriteAccess(profile, { division, resourceType: "report" }).authorized;
 }
 
 export function canWriteBoardBroadcast(profile) {
   const division1ic = Object.values(profile?.divisions || {}).some(tier => tierAtLeast(tier, "1ic"));
   return Boolean(
-    hasCoreAccess(profile) ||
+    hasHighCommandAccess(profile) ||
     division1ic ||
     ["upper", "overseer"].includes(profile?.highRank) ||
     hasDarkCouncilPlus(profile)
@@ -461,7 +462,7 @@ export function canWriteBoardBroadcast(profile) {
 }
 
 export function boardChannelsFor(profile) {
-  if (hasCoreAccess(profile) || ["upper", "overseer"].includes(profile?.highRank) || hasDarkCouncilPlus(profile)) {
+  if (hasHighCommandAccess(profile) || ["upper", "overseer"].includes(profile?.highRank) || hasDarkCouncilPlus(profile)) {
     return ["holonet", "reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil"];
   }
 
@@ -2743,4 +2744,4 @@ export async function writeTimelineEntry(auth, body) {
 }
 
 
-export { VERIFICATION_LOG_COLOR, VERIFICATION_WARNING_COLOR, VERIFICATION_WARNING_ROLE_IDS, DEFAULT_SITE_ORIGIN, OAUTH_STATE_MAX_AGE_SECONDS, COUNCIL_RANKS, COUNCIL_COUNTING_RANKS, COUNCIL_VOTING_RANKS, COUNCIL_VETO_RANKS, cachedDiscordToken, cachedVerificationLogChannelId, getQueryParam, requireString, authAuthorName, readTextFileIfExists, escapeRegExp, candidateRepoRoots, candidateBotFiles, readEnvValue, readEnvValueFromCandidates, discordToken, parseVerificationLogChannelId, verificationLogChannelId, warnVerificationLog, tokenFingerprint, logVerificationConfirm, postVerificationLog, postVerificationLogSafely, slugify, toRoman, fromRoman, articleOrderFrom, regulationOrderFrom, regulationAnchor, withIncrementedOrder, shiftDisplayOrders, shiftLibraryDocumentOrders, insertAtDisplayOrder, resolveEntryDisplayOrders, isMissingSchemaError, councilRank, councilRoleForRank, councilPermissions, canViewInquisitorOverview, hasDarkCouncilPlus, canWriteDivisionWeeklyReport, canWriteBoardBroadcast, boardChannelsFor, clampDurationHours, publicImageUrl, isLocalHostname, normalizeSiteUrl, headerFirstValue, requestRootOrigin, canonicalOAuthOrigin, oauthRedirectUri, normalizeOauthRedirectUri, encodeOAuthStateCookie, decodeOAuthStateCookie, statesMatch, lookupUrlForRequest, encodeInList, detailTableFor, normalizeSubClauses, readJsonBody, resolveRobloxId, confirmDiscordLink, canonicalDivisionId, rosterDefinitionForDivision, normalizeReportMember, normalizeWeeklyReport, clockScopeForDivision, shiftTotalSeconds, formatMemberShift, inFilter, reportTotals, reportMemberRows, normalizeIncomingReportMember, inspectionSectionsFor, calculateInspectionOverall, normalizeInspectionSection, normalizeInspection, inspectionSectionRows, personnelLookupWarnings, activityItem, pagedActivity, normalizeCouncilVote, voteCounts, derivedCouncilStatus, normalizeTimelineEntry, cleanupRetiredHandbooks, loadArchiveArticles, ensureArchivesSeeded, writeArchiveArticle, deleteArchiveArticle, loadLibraryDocuments, ensureLibrarySeeded, writeLibraryDocument, deleteLibraryDocument, loadPublishedResources, loadDetailRows, normalizeRows, loadBoardTransmissions, loadNexusOverview, fetchDivisionRoster, loadWeeklyReportMembers, loadWeeklyReports, loadVerificationLinksForRobloxIds, loadClockShiftTotalsForRoster, buildWeeklyReportRoster, resetClockShiftsForReport, replaceWeeklyReportMembers, writeWeeklyReport, loadInspectionSections, loadInspections, replaceInspectionSections, writeInspection, writeResource, deleteResource, resolveUserByUsername, loadRobloxProfileSummary, fetchBadgeCount, loadCounts, loadPendingRetirements, loadRecentActivity, loadAdminHealth, loadOverrides, restoreHandbookRetirement, fetchCouncilEligibleSnapshot, loadCouncilProposals, createCouncilProposal, amendCouncilProposal, writeCouncilVote, vetoCouncilProposal, reopenCouncilProposal, loadTimelineEntries, writeTimelineEntry, getAuthContext, timingSafeEqual, existsSync, readFileSync, path, canAccessAdmin, hasPermission, checkPageAccess, checkResourceWriteAccess, hasHighCommandAccess, clearCookie, cleanupExpiredSessions, createRandomToken, createSessionForUser, createSignedStorageUrl, deleteSessionToken, getCookie, getSessionUser, listStorageObjects, removeStorageObjects, serializeCookie, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, STATE_COOKIE, supabaseRest, uploadStorageObject, ROBLOX_GROUPS, tierAtLeast, getHandbookSlot, getHandbookSlots, divisionLockedHref, getDivision, listDivisions, exportGoogleDocPdf, extractGoogleFileId, extractGoogleTabId, fetchGoogleFileMetadata, googleWorkspaceKindFromUrl };
+export { getAuthContext, timingSafeEqual, existsSync, readFileSync, path, canAccessAdmin, hasPermission, checkPageAccess, checkResourceWriteAccess, hasHighCommandAccess, clearCookie, cleanupExpiredSessions, createRandomToken, createSessionForUser, createSignedStorageUrl, deleteSessionToken, getCookie, getSessionUser, listStorageObjects, removeStorageObjects, serializeCookie, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, STATE_COOKIE, supabaseRest, uploadStorageObject, ROBLOX_GROUPS, tierAtLeast, getHandbookSlot, getHandbookSlots, divisionLockedHref, getDivision, listDivisions, exportGoogleDocPdf, extractGoogleFileId, extractGoogleTabId, fetchGoogleFileMetadata, googleWorkspaceKindFromUrl };

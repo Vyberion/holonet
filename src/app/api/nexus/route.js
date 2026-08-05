@@ -1,19 +1,13 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  isMissingSchemaError, requestRootOrigin, getAuthContext, canAccessNexus, hasHighCommandAccess, loadNexusOverview
+  isMissingSchemaError, requestRootOrigin, getAuthContext, hasHighCommandAccess, loadNexusOverview
 } from "../../../lib/api-helpers.js";
-
-
-
-
-const handler = async (req, res) => {
-    try {
       const auth = await getAuthContext(req);
       if (!auth.authenticated) {
         return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
       }
 
-      const permission = canAccessNexus(auth.profile);
+      const permission = checkPageAccess(auth.profile, "nexus");
       if (!permission.authorized) {
         return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
       }

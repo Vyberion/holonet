@@ -1,7 +1,8 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  getQueryParam, requireString, isMissingSchemaError, canWriteDivisionWeeklyReport, getAuthContext, canViewDivisionReports, loadWeeklyReports, buildWeeklyReportRoster, writeWeeklyReport, deleteWeeklyReport
+  getQueryParam, requireString, isMissingSchemaError, canWriteDivisionWeeklyReport, getAuthContext, loadWeeklyReports, buildWeeklyReportRoster, writeWeeklyReport, deleteWeeklyReport
 } from "../../../lib/api-helpers.js";
+import { checkPageAccess } from "../../../modules/auth/permissions.js";
 
 const handler = async (req, res) => {
     try {
@@ -19,7 +20,7 @@ const handler = async (req, res) => {
       const division = requireString(getQueryParam(req, "division")).toLowerCase();
       if (req.method === "GET") {
         const viewAccess = division
-          ? canViewDivisionReports(auth.profile, division)
+          ? checkPageAccess(auth.profile, division + "_reports")
           : { authorized: false, reason: "UNKNOWN_DIVISION" };
         if (!viewAccess.authorized) {
           return res.status(200).json({ ok: false, authorized: false, reason: viewAccess.reason || "ACCESS_DENIED" });

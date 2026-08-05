@@ -4,15 +4,9 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
   canAccessAdmin,
-  canAccessNexus,
-  canAccessPersonnelLookup,
-  canAccessRegistry,
   canEditLibrary,
-  canViewDivisionReports,
-  canWriteDivisionReport,
   checkPageAccess,
   checkResourceWriteAccess,
-  hasCoreAccess,
   hasHighCommandAccess
 } from "../../modules/auth/permissions.js";
 import {
@@ -438,7 +432,7 @@ function canViewInquisitorOverview(profile) {
   const roles = profile?.authorityRoles || {};
 
   return Boolean(
-    hasCoreAccess(profile) ||
+    hasHighCommandAccess(profile) ||
     tierAtLeast(profile?.divisions?.inquisitors || "none", "member") ||
     roles.groupOwner ||
     roles.projectManager ||
@@ -447,26 +441,26 @@ function canViewInquisitorOverview(profile) {
   );
 }
 
-function hasDarkCouncilPlus(profile) {
-  return Boolean(hasCoreAccess(profile) || Object.values(profile?.authorityRoles || {}).some(Boolean));
+export function hasDarkCouncilPlus(profile) {
+  return Boolean(hasHighCommandAccess(profile) || Object.values(profile?.authorityRoles || {}).some(Boolean));
 }
 
-function canWriteDivisionWeeklyReport(profile, division) {
-  return canWriteDivisionReport(profile, division).authorized;
+export function canWriteDivisionWeeklyReport(profile, division) {
+  return checkResourceWriteAccess(profile, { division, resourceType: "report" }).authorized;
 }
 
 function canWriteBoardBroadcast(profile) {
   const division1ic = Object.values(profile?.divisions || {}).some(tier => tierAtLeast(tier, "1ic"));
   return Boolean(
-    hasCoreAccess(profile) ||
+    hasHighCommandAccess(profile) ||
     division1ic ||
     ["upper", "overseer"].includes(profile?.highRank) ||
     hasDarkCouncilPlus(profile)
   );
 }
 
-function boardChannelsFor(profile) {
-  if (hasCoreAccess(profile) || ["upper", "overseer"].includes(profile?.highRank) || hasDarkCouncilPlus(profile)) {
+export function boardChannelsFor(profile) {
+  if (hasHighCommandAccess(profile) || ["upper", "overseer"].includes(profile?.highRank) || hasDarkCouncilPlus(profile)) {
     return ["holonet", "reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil"];
   }
 
@@ -1738,7 +1732,7 @@ async function replaceInspectionSections(inspectionId, sections = []) {
 }
 
 async function writeInspection(auth, body) {
-  if (!hasHighCommandAccess(auth.profile)) {
+  if (!checkResourceWriteAccess(auth.profile, { division: "global", resourceType: "inspection" }).authorized) {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
   }
 
@@ -2603,7 +2597,7 @@ async function loadTimelineEntries(includeDrafts = false) {
 }
 
 async function writeTimelineEntry(auth, body) {
-  const permission = canAccessAdmin(auth.profile);
+  const permission = checkPageAccess(auth.profile, "admin");
   if (!permission.authorized) {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: permission.reason } };
   }
@@ -2817,10 +2811,10 @@ export const LEGACY_API_HANDLERS = {
           ...access,
           profile,
           permissions: {
-            canAccessAdmin: canAccessAdmin(profile).authorized,
-            canAccessPersonnelLookup: canAccessPersonnelLookup(profile).authorized,
-            canAccessNexus: canAccessNexus(profile).authorized,
-            canAccessRegistry: canAccessRegistry(profile).authorized
+            canAccessAdmin: checkPageAccess(profile, "admin").authorized,
+            canAccessPersonnelLookup: checkPageAccess(profile, "lookup").authorized,
+            canAccessNexus: checkPageAccess(profile, "nexus").authorized,
+            canAccessRegistry: checkPageAccess(profile, "registry").authorized
           }
         });
       }
@@ -2829,10 +2823,10 @@ export const LEGACY_API_HANDLERS = {
         authorized: true,
         profile,
         permissions: {
-          canAccessAdmin: canAccessAdmin(profile).authorized,
-          canAccessPersonnelLookup: canAccessPersonnelLookup(profile).authorized,
-          canAccessNexus: canAccessNexus(profile).authorized,
-          canAccessRegistry: canAccessRegistry(profile).authorized
+          canAccessAdmin: checkPageAccess(profile, "admin").authorized,
+          canAccessPersonnelLookup: checkPageAccess(profile, "lookup").authorized,
+          canAccessNexus: checkPageAccess(profile, "nexus").authorized,
+          canAccessRegistry: checkPageAccess(profile, "registry").authorized
         }
       });
     } catch (err) {
@@ -2849,7 +2843,7 @@ export const LEGACY_API_HANDLERS = {
           }
 
           const auth = await getAuthContext(req, { optional: true });
-          const canEdit = auth.authenticated ? canEditLibrary(auth.profile, "archives").authorized : false;
+          const canEdit = auth.authenticated ? checkResourceWriteAccess(auth.profile, { division: "archives", resourceType: "library_document" }).authorized : false;
           const articles = await ensureArchivesSeeded();
 
           return res.status(200).json({
@@ -2896,7 +2890,7 @@ export const LEGACY_API_HANDLERS = {
       if (req.method === "GET") {
         const auth = await getAuthContext(req, { optional: true });
         const canEdit = auth.authenticated
-          ? canEditLibrary(auth.profile, libraryKey).authorized
+          ? checkResourceWriteAccess(auth.profile, { division: libraryKey, resourceType: "library_document" }).authorized
           : false;
 
         const documents = await ensureLibrarySeeded(libraryKey);
@@ -2913,7 +2907,7 @@ export const LEGACY_API_HANDLERS = {
         return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
       }
 
-      const permission = canEditLibrary(auth.profile, libraryKey);
+      const permission = checkResourceWriteAccess(auth.profile, { division: libraryKey, resourceType: "library_document" });
       if (!permission.authorized) {
         return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
       }
@@ -2956,7 +2950,7 @@ export const LEGACY_API_HANDLERS = {
     try {
       if (req.method === "GET") {
         const auth = await getAuthContext(req, { optional: true });
-        const canEdit = auth.authenticated ? canEditLibrary(auth.profile, "archives").authorized : false;
+        const canEdit = auth.authenticated ? checkResourceWriteAccess(auth.profile, { division: "archives", resourceType: "library_document" }).authorized : false;
         const articles = await ensureArchivesSeeded();
 
         return res.status(200).json({
@@ -2973,7 +2967,7 @@ export const LEGACY_API_HANDLERS = {
         return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
       }
 
-      const permission = canEditLibrary(auth.profile, "archives");
+      const permission = checkResourceWriteAccess(auth.profile, { division: "archives", resourceType: "library_document" });
       if (!permission.authorized) {
         return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
       }
@@ -3204,7 +3198,7 @@ export const LEGACY_API_HANDLERS = {
         return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
       }
 
-      const permission = canAccessNexus(auth.profile);
+      const permission = checkPageAccess(auth.profile, "nexus");
       if (!permission.authorized) {
         return res.status(200).json({ ok: false, authorized: false, reason: permission.reason });
       }
@@ -3235,11 +3229,11 @@ export const LEGACY_API_HANDLERS = {
 
       const division = requireString(getQueryParam(req, "division")).toLowerCase();
       if (req.method === "GET") {
-        const viewAccess = division
-          ? canViewDivisionReports(auth.profile, division)
-          : { authorized: false, reason: "UNKNOWN_DIVISION" };
-        if (!viewAccess.authorized) {
-          return res.status(200).json({ ok: false, authorized: false, reason: viewAccess.reason || "ACCESS_DENIED" });
+        const readAccess = checkPageAccess(auth.profile, `${division}_reports`).authorized
+          ? true
+          : checkPageAccess(auth.profile, "reports").authorized;
+        if (!readAccess) {
+          return res.status(200).json({ ok: false, authorized: false, reason: "ACCESS_DENIED" });
         }
 
         const canWrite = division ? canWriteDivisionWeeklyReport(auth.profile, division) : false;

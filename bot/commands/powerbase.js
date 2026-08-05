@@ -2,7 +2,7 @@ import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSel
 import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js"; 
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
-import { createPowerbase, fetchPowerbases, getPowerbase, getPowerbaseForUser, isHigherRank, logPowerbaseAction, updatePowerbase } from "../services/powerbase-api.js";
+import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseForUser, isHigherRank, logPowerbaseAction, updatePowerbase } from "../services/powerbase-api.js";
 
 export const commands = [
   new SlashCommandBuilder()
@@ -488,11 +488,11 @@ async function handleDissolveSelect(interaction) {
   if (!pb) return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
 
   if (pb.status === "PENDING_CREATE") {
-    await updatePowerbase(pbId, { status: "DISSOLVED" });
+    await deletePowerbase(pbId);
     const v2Payload = componentsV2Message([
       containerV2([
         textDisplayV2(`### Request Cancelled`),
-        textDisplayV2(`Powerbase request for **${pb.name}** has been cancelled.`)
+        textDisplayV2(`Powerbase request for **${pb.name}** has been cancelled and deleted.`)
       ])
     ]);
     return interaction.update(ephemeral(v2Payload));

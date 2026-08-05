@@ -145,9 +145,10 @@ export function HolonetNav() {
   const activePage = currentPageKey(pathname);
   const divisionContext = currentDivisionContext(pathname, hostname);
   
+  const isPowerbaseDetail = pathname.startsWith("/powerbases/") && pathname !== "/powerbases";
   const isStatuteReader = activePage === "codex" && pathname.startsWith("/codex/statutes/") && pathname !== "/codex/statutes";
-  const showDivisionReturn = (divisionContext && !["home", "info"].includes(divisionContext.section)) || isStatuteReader;
-  const returnHref = isStatuteReader ? "/codex/statutes" : (divisionContext?.base || "/");
+  const showDivisionReturn = (divisionContext && !["home", "info"].includes(divisionContext.section)) || isStatuteReader || isPowerbaseDetail;
+  const returnHref = isPowerbaseDetail ? "/powerbases" : isStatuteReader ? "/codex/statutes" : (divisionContext?.base || "/");
   const centerLinks = [
     { href: "https://www.thesithorder.org/", page: "home", prefix: "00", label: "Home" },
     {

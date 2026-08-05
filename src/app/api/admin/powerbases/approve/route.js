@@ -24,14 +24,18 @@ const handler = async (req, res) => {
         if (!pb) return res.status(404).json({ ok: false, reason: "POWERBASE_NOT_FOUND" });
 
         let newStatus = "ACTIVE";
-        if (pb.status === "PENDING_DISSOLVE" || pb.status === "PENDING_DISSOLUTION") {
-            newStatus = "DISSOLVED";
-        }
 
-        await supabaseRest(`powerbases?id=eq.${encodeURIComponent(id)}`, {
-            method: "PATCH",
-            body: JSON.stringify({ status: newStatus })
-        });
+        if (pb.status === "PENDING_DISSOLVE" || pb.status === "PENDING_DISSOLUTION") {
+            // Delete members & powerbase completely from database
+            await supabaseRest(`powerbase_members?powerbase_id=eq.${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => null);
+            await supabaseRest(`powerbases?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
+            newStatus = "DELETED";
+        } else {
+            await supabaseRest(`powerbases?id=eq.${encodeURIComponent(id)}`, {
+                method: "PATCH",
+                body: JSON.stringify({ status: "ACTIVE" })
+            });
+        }
 
         // Log approval
         await supabaseRest("bot_audit_logs", {
@@ -48,8 +52,11 @@ const handler = async (req, res) => {
 
       return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
     } catch (error) {
-      return res.status(500).json({ ok: false, error: error.message });
+      console.error("Admin powerbases approve endpoint error:", error);
+      return res.status(500).json({ ok: false, reason: "INTERNAL_ERROR" });
     }
 };
 
-export function POST(request) { return executeLegacyHandler(handler, request); }
+export async function POST(request) {
+    return executeLegacyHandler(request, handler);
+}

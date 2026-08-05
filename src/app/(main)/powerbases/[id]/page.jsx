@@ -20,6 +20,59 @@ function romanize(num) {
   return ["I", "II", "III", "IV"][num - 1] || "I";
 }
 
+async function getNamesForDiscordIds(discordIds) {
+  const ids = Array.from(new Set(discordIds.filter(Boolean)));
+  if (!ids.length) return {};
+  const map = {};
+  
+  // 1. Fetch verification links
+  const links = await supabaseRest(`verification_links?discord_user_id=in.(${ids.map(id => encodeURIComponent(id)).join(",")})&select=discord_user_id,roblox_user_id`).catch(() => []);
+  
+  const robloxMap = {};
+  links.forEach(l => { robloxMap[l.discord_user_id] = l.roblox_user_id; });
+
+  // 2. Fetch Roblox profiles
+  const robloxIds = Object.values(robloxMap).filter(Boolean);
+  if (robloxIds.length > 0) {
+    try {
+      const res = await fetch("https://users.roblox.com/v1/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds: robloxIds.map(Number), excludeBannedUsers: false })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const robloxUserMap = {};
+        (data.data || []).forEach(u => { robloxUserMap[String(u.id)] = u.name || u.displayName; });
+
+        links.forEach(l => {
+          if (robloxUserMap[String(l.roblox_user_id)]) {
+            map[l.discord_user_id] = robloxUserMap[String(l.roblox_user_id)];
+          }
+        });
+      }
+    } catch (e) {}
+  }
+
+  // 3. Check clock_shifts for username fallback
+  const missingIds = ids.filter(id => !map[id]);
+  if (missingIds.length > 0) {
+    const shifts = await supabaseRest(`clock_shifts?discord_user_id=in.(${missingIds.map(id => encodeURIComponent(id)).join(",")})&select=discord_user_id,discord_username,roblox_username`).catch(() => []);
+    shifts.forEach(s => {
+      if (!map[s.discord_user_id]) {
+        map[s.discord_user_id] = s.roblox_username || s.discord_username;
+      }
+    });
+  }
+
+  // Fallback to raw ID if unlinked
+  ids.forEach(id => {
+    if (!map[id]) map[id] = id;
+  });
+
+  return map;
+}
+
 export default async function PowerbaseDetailPage({ params }) {
   const { id } = await params;
   
@@ -46,6 +99,9 @@ export default async function PowerbaseDetailPage({ params }) {
   const apprentices = pb.powerbase_members || [];
   const memberCount = apprentices.length + 1; // Leader + apprentices
 
+  const allDiscordIds = [pb.leader_id, ...apprentices.map(m => m.user_id || m.discord_user_id)].filter(Boolean);
+  const userNames = await getNamesForDiscordIds(allDiscordIds);
+
   return (
     <HolonetFrame
       title={pb.name.toUpperCase()}
@@ -56,11 +112,11 @@ export default async function PowerbaseDetailPage({ params }) {
       showStatusBar={false}
     >
       <div className="hub-shell" style={{ maxWidth: "1200px", margin: "0 auto", padding: "1.5rem" }}>
-        {/* Divisional-style Header */}
+        {/* Header */}
         <div className="hub-hero">
           <div className="hub-identity">
             <div>
-              <span className="hub-kicker">Registry Node / KOR-7</span>
+              <span className="hub-kicker">Powerbase Node / KOR-7</span>
               <h2 className="hub-title">{pb.name}</h2>
             </div>
             <div>
@@ -70,7 +126,7 @@ export default async function PowerbaseDetailPage({ params }) {
           </div>
           <p className="hub-summary">{pb.description || "No description provided."}</p>
 
-          {/* Status Grid: Members, Prestige, Tier */}
+          {/* Status Grid */}
           <div className="hub-status-grid">
             <div className="hub-status-cell">
               <span className="hub-label">Members</span>
@@ -87,11 +143,11 @@ export default async function PowerbaseDetailPage({ params }) {
           </div>
         </div>
 
-        {/* 1-Page Powerbase Hub Layout */}
+        {/* 1-Page Powerbase Hub Content */}
         <div className="hub-grid hub-grid--single" style={{ marginTop: "2rem" }}>
           <div className="hub-column" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
             
-            {/* Roblox Group Link (if available) */}
+            {/* Roblox Group Link */}
             {pb.roblox_group_id && (
               <section className="hub-panel">
                 <h3 className="hub-panel-title">Roblox Group</h3>
@@ -116,7 +172,7 @@ export default async function PowerbaseDetailPage({ params }) {
 
             {/* Domination Kaggath Record */}
             <section className="hub-panel">
-              <h3 className="hub-panel-title">Domination Kaggath Record</h3>
+              <h3 className="hub-panel-title">Record</h3>
               <div className="hub-list">
                 <div className="hub-row">
                   <strong>Domination Performance</strong>
@@ -130,23 +186,39 @@ export default async function PowerbaseDetailPage({ params }) {
               </div>
             </section>
 
-            {/* Members Section */}
+            {/* Roster Section */}
             <section className="hub-panel">
-              <h3 className="hub-panel-title">Roster Members ({memberCount})</h3>
+              <h3 className="hub-panel-title">Roster ({memberCount})</h3>
               <div className="hub-list">
+                {/* Leader */}
                 <div className="hub-row">
                   <strong>Leader</strong>
-                  <span>Discord ID: {pb.leader_id}</span>
-                  <span className="hub-timestamp">POWERBASE LEADER</span>
+                  <span>{userNames[pb.leader_id] || pb.leader_id}</span>
+                  <span
+                    className="hub-timestamp"
+                    style={{
+                      color: "#ff1a2d",
+                      borderColor: "#ff1a2d",
+                      backgroundColor: "rgba(255, 26, 45, 0.12)",
+                      fontWeight: "bold",
+                      letterSpacing: "0.05em"
+                    }}
+                  >
+                    POWERBASE LEADER
+                  </span>
                 </div>
 
-                {apprentices.map((m, idx) => (
-                  <div key={m.id || idx} className="hub-row">
-                    <strong>Apprentice #{idx + 1}</strong>
-                    <span>Discord ID: {m.user_id || m.discord_user_id}</span>
-                    <span className="hub-timestamp">APPRENTICE</span>
-                  </div>
-                ))}
+                {/* Apprentices */}
+                {apprentices.map((m, idx) => {
+                  const uId = String(m.user_id || m.discord_user_id || "");
+                  return (
+                    <div key={m.id || idx} className="hub-row">
+                      <strong>Apprentice #{idx + 1}</strong>
+                      <span>{userNames[uId] || uId}</span>
+                      <span className="hub-timestamp">APPRENTICE</span>
+                    </div>
+                  );
+                })}
               </div>
             </section>
 

@@ -62,9 +62,9 @@
             <strong>${escapeHtml(item.name)}</strong>
             <span>${escapeHtml((item.status === "PENDING_CREATE" || item.status === "PENDING_APPROVAL") ? "Creation Request" : "Dissolution Request")}</span>
             <p>Leader: ${escapeHtml(item.leader_name || item.leader_id)}</p>
-            <div class="admin-page-controls" style="margin-top: 10px;">
-              <button type="button" class="library-inline-btn" data-approval-action="approve" data-powerbase-id="${escapeHtml(item.id)}">APPROVE</button>
-              <button type="button" class="library-inline-btn" data-approval-action="reject" data-powerbase-id="${escapeHtml(item.id)}" style="color: var(--theme-accent-dim);">REJECT</button>
+            <div class="admin-page-controls" style="margin-top: 10px; display: flex; gap: 8px;">
+              <button type="button" class="resource-editor-submit" data-approval-action="approve" data-powerbase-id="${escapeHtml(item.id)}">APPROVE</button>
+              <button type="button" class="resource-editor-submit" data-approval-action="reject" data-powerbase-id="${escapeHtml(item.id)}">REJECT</button>
             </div>
           </article>
         `).join("") || '<p class="hub-empty">No pending approvals.</p>'}

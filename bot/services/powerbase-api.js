@@ -177,3 +177,14 @@ export function isHigherRank(profileA, profileB) {
   return ranksA.highranks > ranksB.highranks;
 }
 
+/**
+ * Hard delete a powerbase and its members.
+ */
+export async function deletePowerbase(id) {
+  await supabase.from("powerbase_members").delete().eq("powerbase_id", id);
+  const { error } = await supabase.from("powerbases").delete().eq("id", id);
+  if (error) throw error;
+  return true;
+}
+
+

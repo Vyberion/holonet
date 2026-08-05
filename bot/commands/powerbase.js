@@ -16,7 +16,7 @@ export const commands = [
     .addSubcommand(subcommand =>
       subcommand
         .setName("edit")
-        .setDescription("Edit your Powerbase name, description, or members")
+        .setDescription("Edit your Powerbase name, description, group ID, or members")
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -152,14 +152,17 @@ export async function handleModal(interaction) {
     const pbId = interaction.customId.split(":")[1];
     const name = interaction.fields.getTextInputValue("name");
     const description = interaction.fields.getTextInputValue("description");
+    const robloxGroupId = interaction.fields.getTextInputValue("robloxGroupId");
     
     globalThis.__pbEditCache = globalThis.__pbEditCache || new Map();
-    globalThis.__pbEditCache.set(interaction.user.id, { pbId, name, description });
+    globalThis.__pbEditCache.set(interaction.user.id, { pbId, name, description, robloxGroupId });
     
-    await updatePowerbase(pbId, { name, description });
+    await updatePowerbase(pbId, { name, description, roblox_group_id: robloxGroupId || null });
 
     const pb = await getPowerbase(pbId);
-    const currentMemberIds = (pb?.powerbase_members || []).map(m => String(m.discord_user_id));
+    const currentMemberIds = (pb?.powerbase_members || [])
+      .map(m => String(m.user_id || m.discord_user_id))
+      .filter(Boolean);
     
     const selectMenu = new UserSelectMenuBuilder()
       .setCustomId("pb_edit_members")
@@ -315,6 +318,14 @@ async function handleEdit(interaction, verified) {
         .setStyle(TextInputStyle.Paragraph)
         .setValue(existing.description || "")
         .setRequired(false)
+    ),
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("robloxGroupId")
+        .setLabel("Roblox Group ID / Link (Optional)")
+        .setStyle(TextInputStyle.Short)
+        .setValue(existing.roblox_group_id || "")
+        .setRequired(false)
     )
   );
   
@@ -456,6 +467,14 @@ async function handleEditSelect(interaction) {
         .setStyle(TextInputStyle.Paragraph)
         .setValue(pb.description || "")
         .setRequired(false)
+    ),
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("robloxGroupId")
+        .setLabel("Roblox Group ID / Link (Optional)")
+        .setStyle(TextInputStyle.Short)
+        .setValue(pb.roblox_group_id || "")
+        .setRequired(false)
     )
   );
   
@@ -494,17 +513,35 @@ async function handleInfoSelect(interaction) {
   const pb = await getPowerbase(pbId);
   if (!pb) return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
 
-  const memberList = [`<@${pb.leader_id}>`, ...(pb.powerbase_members || []).map(m => `<@${m.discord_user_id}>`)].join(", ") || "None";
+  const memberIds = (pb.powerbase_members || [])
+    .map(m => String(m.user_id || m.discord_user_id || ""))
+    .filter(Boolean);
 
-  const v2Payload = componentsV2Message([
-    containerV2([
-      textDisplayV2(`### ${pb.name}`),
-      textDisplayV2(`**Description:** ${pb.description || "None"}\n**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}\n**Prestige:** ${pb.prestige}\n**Status:** ${pb.status}`),
-      separatorV2(),
-      textDisplayV2(`**Members:** ${memberList}`)
-    ])
-  ]);
+  const leaderText = `<@${pb.leader_id}> *(Leader)*`;
+  const apprenticeText = memberIds.length > 0 
+    ? memberIds.map(id => `<@${id}> *(Apprentice)*`).join("\n") 
+    : "*No apprentices assigned*";
 
+  const components = [
+    textDisplayV2(`### ${pb.name}`),
+    separatorV2(),
+    textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}\n**Prestige:** ${pb.prestige}`)
+  ];
+
+  if (pb.description) {
+    components.push(separatorV2());
+    components.push(textDisplayV2(`**Description:**\n${pb.description}`));
+  }
+
+  if (pb.roblox_group_id) {
+    components.push(separatorV2());
+    components.push(textDisplayV2(`**Roblox Group ID:** ${pb.roblox_group_id}`));
+  }
+
+  components.push(separatorV2());
+  components.push(textDisplayV2(`**Roster (${memberIds.length + 1} Total):**\n${leaderText}\n${apprenticeText}`));
+
+  const v2Payload = componentsV2Message([containerV2(components)]);
   await interaction.update(ephemeral(v2Payload));
   return true;
 }

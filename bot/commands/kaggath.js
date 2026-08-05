@@ -19,7 +19,7 @@ export async function handleCommand(interaction) {
   try {
     const verified = await getVerifiedProfile(interaction.user.id);
     if (!verified) {
-      await interaction.reply(ephemeral({ content: "You must be verified to use Kaggath commands." }));
+      await interaction.reply(componentsV2Message([containerV2([textDisplayV2("You must be verified to use Kaggath commands.")])]));
       return true;
     }
 
@@ -27,7 +27,7 @@ export async function handleCommand(interaction) {
     if (!hasAnyOverseer(verified.profile) && !hasDarkCouncilRank(verified.profile, 252)) {
       // NOTE: User wanted Event Team+. Since I don't have the Event Team check immediately, 
       // falling back to Overseer / High Command.
-      return interaction.reply(ephemeral({ content: "You do not have permission to write Kaggaths." }));
+      return interaction.reply(componentsV2Message([containerV2([textDisplayV2("You do not have permission to write Kaggaths.")])]));
     }
 
     const select = new StringSelectMenuBuilder()
@@ -43,14 +43,14 @@ export async function handleCommand(interaction) {
       ]);
 
     const row = new ActionRowBuilder().addComponents(select);
-    await interaction.reply(ephemeral({ components: [row] }));
+    await interaction.reply(componentsV2Message([containerV2([textDisplayV2("Step 1: Select Kaggath Type"), row])]));
 
   } catch (err) {
     console.error(err);
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(ephemeral({ embeds: [errorEmbed(err.message)] }));
+      await interaction.followUp(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])]));
     } else {
-      await interaction.reply(ephemeral({ embeds: [errorEmbed(err.message)] }));
+      await interaction.reply(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])]));
     }
   }
 
@@ -70,7 +70,7 @@ export async function handleSelectMenu(interaction) {
       const active = powerbases.filter(pb => pb.status === "ACTIVE");
       
       if (active.length < 2) {
-        return interaction.update(ephemeral({ content: "Not enough active Powerbases for a Domination Kaggath.", components: [] }));
+        return interaction.update(componentsV2Message([containerV2([textDisplayV2("Not enough active Powerbases for a Domination Kaggath.")])]));
       }
       
       const select = new StringSelectMenuBuilder()
@@ -79,17 +79,17 @@ export async function handleSelectMenu(interaction) {
         .addOptions(active.map(pb => ({ label: pb.name, value: pb.id })));
         
       const row = new ActionRowBuilder().addComponents(select);
-      return interaction.update(ephemeral({ content: "Step 2: Select the Challenging Powerbase.", components: [row] }));
+      return interaction.update(componentsV2Message([containerV2([textDisplayV2("Step 2: Select the Challenging Powerbase."), row])]));
     }
 
     // Other types can just fall back to a generic form for now
-    return interaction.update(ephemeral({ content: `${type} selected. Further inputs not fully implemented yet.`, components: [] }));
+    return interaction.update(componentsV2Message([containerV2([textDisplayV2(`${type} selected. Further inputs not fully implemented yet.`)])]));
   }
   
   if (interaction.customId === "kaggath_dom_defender") {
     const defenderId = interaction.values[0];
     const cached = globalThis.__kaggathCache?.get(interaction.user.id);
-    if (!cached || !cached.challengerId) return interaction.update(ephemeral({ content: "Session expired.", components: [] }));
+    if (!cached || !cached.challengerId) return interaction.update(componentsV2Message([containerV2([textDisplayV2("Session expired.")])]));
     cached.defenderId = defenderId;
 
     const select = new StringSelectMenuBuilder()
@@ -101,13 +101,13 @@ export async function handleSelectMenu(interaction) {
       ]);
       
     const row = new ActionRowBuilder().addComponents(select);
-    return interaction.update(ephemeral({ content: "Step 4: Who won the Kaggath?", components: [row] }));
+    return interaction.update(componentsV2Message([containerV2([textDisplayV2("Step 4: Who won the Kaggath?"), row])]));
   }
 
   if (interaction.customId === "kaggath_dom_winner") {
     const winner = interaction.values[0];
     const cached = globalThis.__kaggathCache?.get(interaction.user.id);
-    if (!cached || !cached.challengerId || !cached.defenderId) return interaction.update(ephemeral({ content: "Session expired.", components: [] }));
+    if (!cached || !cached.challengerId || !cached.defenderId) return interaction.update(componentsV2Message([containerV2([textDisplayV2("Session expired.")])]));
 
     globalThis.__kaggathCache.delete(interaction.user.id);
 
@@ -117,7 +117,7 @@ export async function handleSelectMenu(interaction) {
     ]);
 
     if (!challenger || !defender) {
-      return interaction.update(ephemeral({ content: "One or both Powerbases no longer exist.", components: [] }));
+      return interaction.update(componentsV2Message([containerV2([textDisplayV2("One or both Powerbases no longer exist.")])]));
     }
 
     const challSize = (challenger.powerbase_members?.length || 0) + 1;
@@ -145,19 +145,18 @@ export async function handleSelectMenu(interaction) {
     const newChallenger = await adjustPrestige(challenger.id, challGain);
     const newDefender = await adjustPrestige(defender.id, defGain);
 
-    const embed = {
-      title: `Kaggath of Domination`,
-      description: `**Challenger:**\n${challenger.name} (${romanize(challenger.tier)})\n**Defender:**\n${defender.name} (${romanize(defender.tier)})`,
-      fields: [
-        { name: "Participants", value: `Challenger Size: ${challSize}\nDefender Size: ${defSize}` },
-        { name: "Winner", value: winner === "challenger" ? challenger.name : defender.name },
-        { name: `${challenger.name} (Now Tier ${romanize(newChallenger.tier)})`, value: `Prestige: ${challenger.prestige} -> ${newChallenger.prestige} (${challGain > 0 ? "+" : ""}${challGain})` },
-        { name: `${defender.name} (Now Tier ${romanize(newDefender.tier)})`, value: `Prestige: ${defender.prestige} -> ${newDefender.prestige} (${defGain > 0 ? "+" : ""}${defGain})` }
-      ],
-      color: 0x8a1b1b
-    };
-
-    return interaction.update({ content: "", embeds: [embed], components: [], ephemeral: false });
+    return interaction.update(componentsV2Message([
+      containerV2([
+        textDisplayV2(`**Kaggath of Domination**`),
+        separatorV2(),
+        textDisplayV2(`**Challenger:**\n${challenger.name} (${romanize(challenger.tier)})\n**Defender:**\n${defender.name} (${romanize(defender.tier)})`),
+        separatorV2(),
+        textDisplayV2(`**Participants**\nChallenger Size: ${challSize}\nDefender Size: ${defSize}`),
+        textDisplayV2(`**Winner**\n${winner === "challenger" ? challenger.name : defender.name}`),
+        textDisplayV2(`**${challenger.name} (Now Tier ${romanize(newChallenger.tier)})**\nPrestige: ${challenger.prestige} -> ${newChallenger.prestige} (${challGain > 0 ? "+" : ""}${challGain})`),
+        textDisplayV2(`**${defender.name} (Now Tier ${romanize(newDefender.tier)})**\nPrestige: ${defender.prestige} -> ${newDefender.prestige} (${defGain > 0 ? "+" : ""}${defGain})`)
+      ], 0x8a1b1b)
+    ]));
   }
 
   return false;

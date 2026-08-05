@@ -16,7 +16,7 @@ const handler = async (req, res) => {
       }
 
       if (req.method === "GET") {
-        const approvals = await supabaseRest("powerbases?status=in.(PENDING_CREATE,PENDING_DISSOLVE)&select=*").catch(() => []);
+        const approvals = await supabaseRest("powerbases?or=(status.eq.PENDING_CREATE,status.eq.PENDING_DISSOLVE)&select=*");
         return res.status(200).json({ ok: true, approvals });
       }
 

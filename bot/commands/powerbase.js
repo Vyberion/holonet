@@ -67,6 +67,7 @@ export async function handleSelectMenu(interaction) {
   if (interaction.customId === "pb_edit_select") return await handleEditSelect(interaction);
   if (interaction.customId === "pb_dissolve_select") return await handleDissolveSelect(interaction);
   if (interaction.customId === "pb_manage_select") return await handleManageSelect(interaction);
+  if (interaction.customId === "pb_info_select") return await handleInfoSelect(interaction);
   return false;
 }
 

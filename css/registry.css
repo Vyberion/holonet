@@ -207,20 +207,37 @@
   border-color: rgba(255, 68, 0, 0.3);
 }
 
-/* Locked */
-.dir-card[data-status="locked"] {
+/* Locked / Access Denied */
+.dir-card[data-status="locked"],
+.dir-card--locked {
   opacity: 0.45;
   background: var(--surface);
   border-color: var(--border-hot);
 }
 
-.dir-card[data-status="locked"] .dir-card-title {
+.dir-card[data-status="locked"] .dir-card-title,
+.dir-card--locked .dir-card-title {
   color: var(--text-faint);
+  animation: none !important;
+  text-shadow: none !important;
 }
 
-.dir-card[data-status="locked"] .dir-card-desc {
+.dir-card[data-status="locked"] .dir-card-desc,
+.dir-card--locked .dir-card-desc {
   color: var(--text-faint);
   user-select: none;
+  animation: none !important;
+}
+
+.dir-card[data-status="locked"] .card-scan,
+.dir-card[data-status="locked"]:hover .card-scan,
+.dir-card--locked .card-scan,
+.dir-card--locked:hover .card-scan,
+.dir-card[data-status="locked"] .dir-card-redact,
+.dir-card--locked .dir-card-redact {
+  display: none !important;
+  opacity: 0 !important;
+  animation: none !important;
 }
 
 .dir-card-enter {
@@ -384,7 +401,6 @@
   opacity: 1;
 }
 
-.dir-card:hover .card-scan,
 .dir-card[data-status="open"]:hover .card-scan,
 .dir-card[data-status="restricted"]:hover .card-scan {
   animation: cardScan 2s ease-in-out infinite;

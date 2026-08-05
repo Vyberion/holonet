@@ -3,6 +3,8 @@ import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js"; 
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
 import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseForUser, isHigherRank, logPowerbaseAction, updatePowerbase } from "../services/powerbase-api.js";
+import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
+import { hasPermission } from "../../modules/auth/permissions.js";
 
 export const commands = [
   new SlashCommandBuilder()
@@ -80,7 +82,7 @@ export async function handleSelectMenu(interaction) {
 // --------------------------------------------------------------------------------------
 
 async function handleCreate(interaction, verified) {
-  if (!hasAnyOverseer(verified.profile) && !hasDarkCouncilRank(verified.profile, 251)) {
+  if (!hasPermission(verified.profile, "powerbase:create")) {
     return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You must be a Sith Overseer or higher to create a Powerbase.")])])));
   }
 

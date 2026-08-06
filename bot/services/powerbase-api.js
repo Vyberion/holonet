@@ -48,8 +48,11 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
 
     const sdBadge = pb.is_sudden_death ? " ⚠️ **[SUDDEN DEATH]**" : "";
 
+    const pbSlug = slugifyPowerbase(pb.name);
+    const pbUrl = `https://www.thesithorder.org/powerbases/${pbSlug}`;
+
     const components = [
-      textDisplayV2(`### ${pb.name}`),
+      textDisplayV2(`### [${pb.name}](${pbUrl})`),
       separatorV2(),
       textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}`)
     ];
@@ -371,7 +374,7 @@ function processMatchPrestigeAndTier(pb, prestigeChange, isWinner) {
 /**
  * Record a Domination Kaggath result: updates prestige, tier, sudden death, wins, and losses.
  */
-export async function recordKaggathResult(winnerPbId, loserPbId, winnerPrestigeChange, loserPrestigeChange) {
+export async function recordKaggathResult(winnerPbId, loserPbId, winnerPrestigeChange, loserPrestigeChange, client = null) {
   const winnerPb = await getPowerbase(winnerPbId);
   const loserPb = await getPowerbase(loserPbId);
   if (!winnerPb || !loserPb) return null;
@@ -403,6 +406,11 @@ export async function recordKaggathResult(winnerPbId, loserPbId, winnerPrestigeC
     .select()
     .single();
 
+  if (client) {
+    await syncPowerbaseRosterMessage(client, winnerPbId);
+    await syncPowerbaseRosterMessage(client, loserPbId);
+  }
+
   return {
     winner: { ...updatedWinner, suddenDeathStatus: winnerRes.suddenDeathStatus },
     loser: { ...updatedLoser, suddenDeathStatus: loserRes.suddenDeathStatus }
@@ -412,7 +420,7 @@ export async function recordKaggathResult(winnerPbId, loserPbId, winnerPrestigeC
 /**
  * Adjust prestige and tier based on a manual adjustment.
  */
-export async function adjustPrestige(powerbaseId, amount) {
+export async function adjustPrestige(powerbaseId, amount, client = null) {
   const pb = await getPowerbase(powerbaseId);
   if (!pb) return null;
   
@@ -442,6 +450,9 @@ export async function adjustPrestige(powerbaseId, amount) {
     .single();
     
   if (error) throw error;
+  if (client) {
+    await syncPowerbaseRosterMessage(client, powerbaseId);
+  }
   return data;
 }
 

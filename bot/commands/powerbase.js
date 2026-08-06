@@ -655,8 +655,11 @@ async function handleInfoSelect(interaction) {
 
   const sdBadge = pb.is_sudden_death ? " ⚠️ **[SUDDEN DEATH]**" : "";
 
+  const slug = String(pb.name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const pbUrl = `https://www.thesithorder.org/powerbases/${slug}`;
+
   const components = [
-    textDisplayV2(`### ${pb.name}`),
+    textDisplayV2(`### [${pb.name}](${pbUrl})`),
     separatorV2(),
     textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}`)
   ];

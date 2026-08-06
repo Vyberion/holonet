@@ -210,7 +210,7 @@ export async function handleModal(interaction) {
     const winnerGain = winner === "challenger" ? challGain : defGain;
     const loserGain = winner === "challenger" ? defGain : challGain;
 
-    const res = await recordKaggathResult(winnerId, loserId, winnerGain, loserGain);
+    const res = await recordKaggathResult(winnerId, loserId, winnerGain, loserGain, interaction.client);
     const newChallenger = winner === "challenger" ? res?.winner : res?.loser;
     const newDefender = winner === "challenger" ? res?.loser : res?.winner;
 

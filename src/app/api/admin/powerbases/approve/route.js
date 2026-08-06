@@ -66,8 +66,11 @@ async function syncRosterViaRest(powerbaseId) {
     const romanize = (num) => ["I", "II", "III", "IV"][num - 1] || "I";
     const sdBadge = pb.is_sudden_death ? " ⚠️ **[SUDDEN DEATH]**" : "";
 
+    const slug = String(pb.name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const pbUrl = `https://www.thesithorder.org/powerbases/${slug}`;
+
     const components = [
-      { type: 10, content: `### ${pb.name}` },
+      { type: 10, content: `### [${pb.name}](${pbUrl})` },
       { type: 14, divider: true, spacing: 1 },
       { type: 10, content: `**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}` }
     ];

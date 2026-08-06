@@ -72,14 +72,20 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
 
     const v2Payload = componentsV2Message([containerV2(components, 0x8a1b1b)]);
 
-    let messageObj = null;
+    let edited = false;
     if (pb.roster_message_id) {
-      messageObj = await channel.messages.fetch(pb.roster_message_id).catch(() => null);
+      const messageObj = await channel.messages.fetch(pb.roster_message_id).catch(() => null);
+      if (messageObj) {
+        try {
+          await messageObj.edit(v2Payload);
+          edited = true;
+        } catch (editErr) {
+          console.warn(`[syncPowerbaseRosterMessage] Edit failed for message ${pb.roster_message_id}, sending new message:`, editErr?.message || editErr);
+        }
+      }
     }
 
-    if (messageObj) {
-      await messageObj.edit(v2Payload);
-    } else {
+    if (!edited) {
       const newMsg = await channel.send(v2Payload);
       await supabase
         .from("powerbases")

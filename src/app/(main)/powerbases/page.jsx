@@ -37,7 +37,9 @@ function PowerbaseCard({ pb }) {
       
       <div className="dir-card-top">
         <h2 className="dir-card-title">{pb.name}</h2>
-        <span className="dir-card-badge">PRESTIGE: {pb.prestige}</span>
+        <span className="dir-card-badge" style={pb.is_sudden_death ? { color: "var(--red-bright)", borderColor: "var(--red-bright)" } : {}}>
+          {pb.is_sudden_death ? "SUDDEN DEATH | " : ""}PRESTIGE: {pb.prestige}
+        </span>
       </div>
 
       <p className="dir-card-desc">{pb.description || "No description provided."}</p>

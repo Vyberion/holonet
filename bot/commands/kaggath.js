@@ -219,6 +219,9 @@ export async function handleModal(interaction) {
 
     const winnerName = winner === "challenger" ? challenger.name : defender.name;
 
+    const challNote = formatSuddenDeathNote(newChallenger?.suddenDeathStatus);
+    const defNote = formatSuddenDeathNote(newDefender?.suddenDeathStatus);
+
     const v2Payload = componentsV2Message([
       containerV2([
         textDisplayV2(`### Kaggath of Domination`),
@@ -228,9 +231,9 @@ export async function handleModal(interaction) {
         separatorV2(),
         textDisplayV2(`**Score:**\n${challScore} - ${defScore}\n**Winner:** ${winnerName}`),
         separatorV2(),
-        textDisplayV2(`**${challenger.name}**\nTier: ${romanize(newChallenger.tier)}\nPrestige: ${challenger.prestige} ➔ ${newChallenger.prestige} (${challGain >= 0 ? "+" : ""}${challGain})`),
+        textDisplayV2(`**${challenger.name}**\nTier: ${romanize(newChallenger.tier)}\nPrestige: ${challenger.prestige} ➔ ${newChallenger.prestige} (${challGain >= 0 ? "+" : ""}${challGain})${challNote}`),
         separatorV2(),
-        textDisplayV2(`**${defender.name}**\nTier: ${romanize(newDefender.tier)}\nPrestige: ${defender.prestige} ➔ ${newDefender.prestige} (${defGain >= 0 ? "+" : ""}${defGain})`)
+        textDisplayV2(`**${defender.name}**\nTier: ${romanize(newDefender.tier)}\nPrestige: ${defender.prestige} ➔ ${newDefender.prestige} (${defGain >= 0 ? "+" : ""}${defGain})${defNote}`)
       ], 0x8a1b1b)
     ]);
 
@@ -250,4 +253,11 @@ export async function handleModal(interaction) {
 
 function romanize(num) {
   return ["I", "II", "III", "IV"][num - 1] || "I";
+}
+
+function formatSuddenDeathNote(status) {
+  if (status === "ENTERED") return "\n⚠️ **ENTERED SUDDEN DEATH** (Next Kaggath is Grace Match)";
+  if (status === "CLEARED") return "\n✅ **SUDDEN DEATH CLEARED** (Grace Match Victory)";
+  if (status === "RELEGATED") return "\n☠️ **RELEGATED FROM SUDDEN DEATH** (Grace Match Defeat - Leader must restructure roster)";
+  return "";
 }

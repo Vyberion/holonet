@@ -23,94 +23,265 @@ function getLetter(num) {
   return String.fromCharCode(96 + num); // 1 = a, 2 = b, 3 = c
 }
 
-export function StatuteEditor({ initialData, onSave, onCancel, onDelete }) {
-  const [title, setTitle] = useState(initialData?.title || "");
-  const [summary, setSummary] = useState(initialData?.summary || "");
-  const [sections, setSections] = useState(initialData?.sections || []);
+function insertAt(arr = [], index, item) {
+  const list = [...arr];
+  if (index === undefined || index === null || index < 0 || index >= list.length) {
+    list.push(item);
+  } else {
+    list.splice(index + 1, 0, item);
+  }
+  return list;
+}
+
+/**
+ * SingleSectionEditor: Edits an independent section block (title, clauses, sub-clauses, provisions).
+ */
+export function SectionEditor({ section, sectionIndex, onSave, onCancel, onDelete }) {
+  const [text, setText] = useState(section?.text || "");
+  const [clauses, setClauses] = useState(section?.clauses || []);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === "Escape") {
-        onCancel();
-      }
+      if (e.key === "Escape") onCancel();
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onCancel]);
 
-  const addSection = () => {
-    setSections([...sections, { id: generateId(), text: "", clauses: [] }]);
+  const addClause = (afterIndex = null) => {
+    const newClause = { id: generateId(), text: "", subClauses: [] };
+    setClauses(insertAt(clauses, afterIndex, newClause));
   };
 
-  const updateSection = (sIndex, text) => {
-    const newSections = [...sections];
-    newSections[sIndex].text = text;
-    setSections(newSections);
+  const updateClause = (cIndex, value) => {
+    const updated = [...clauses];
+    updated[cIndex].text = value;
+    setClauses(updated);
   };
 
-  const removeSection = (sIndex) => {
-    if (!window.confirm("Are you sure you want to delete this section?")) return;
-    setSections(sections.filter((_, i) => i !== sIndex));
-  };
-
-  const addClause = (sIndex) => {
-    const newSections = [...sections];
-    if (!newSections[sIndex].clauses) newSections[sIndex].clauses = [];
-    newSections[sIndex].clauses.push({ id: generateId(), text: "", subClauses: [] });
-    setSections(newSections);
-  };
-
-  const updateClause = (sIndex, cIndex, text) => {
-    const newSections = [...sections];
-    newSections[sIndex].clauses[cIndex].text = text;
-    setSections(newSections);
-  };
-
-  const removeClause = (sIndex, cIndex) => {
+  const removeClause = (cIndex) => {
     if (!window.confirm("Are you sure you want to delete this clause?")) return;
-    const newSections = [...sections];
-    newSections[sIndex].clauses.splice(cIndex, 1);
-    setSections(newSections);
+    setClauses(clauses.filter((_, i) => i !== cIndex));
   };
 
-  const addSubClause = (sIndex, cIndex) => {
-    const newSections = [...sections];
-    if (!newSections[sIndex].clauses[cIndex].subClauses) newSections[sIndex].clauses[cIndex].subClauses = [];
-    newSections[sIndex].clauses[cIndex].subClauses.push({ id: generateId(), text: "", subSubClauses: [] });
-    setSections(newSections);
+  const addSubClause = (cIndex, afterIndex = null) => {
+    const updated = [...clauses];
+    if (!updated[cIndex].subClauses) updated[cIndex].subClauses = [];
+    const newSubClause = { id: generateId(), text: "", subSubClauses: [] };
+    updated[cIndex].subClauses = insertAt(updated[cIndex].subClauses, afterIndex, newSubClause);
+    setClauses(updated);
   };
 
-  const updateSubClause = (sIndex, cIndex, scIndex, text) => {
-    const newSections = [...sections];
-    newSections[sIndex].clauses[cIndex].subClauses[scIndex].text = text;
-    setSections(newSections);
+  const updateSubClause = (cIndex, scIndex, value) => {
+    const updated = [...clauses];
+    updated[cIndex].subClauses[scIndex].text = value;
+    setClauses(updated);
   };
 
-  const removeSubClause = (sIndex, cIndex, scIndex) => {
-    const newSections = [...sections];
-    newSections[sIndex].clauses[cIndex].subClauses.splice(scIndex, 1);
-    setSections(newSections);
+  const removeSubClause = (cIndex, scIndex) => {
+    const updated = [...clauses];
+    updated[cIndex].subClauses.splice(scIndex, 1);
+    setClauses(updated);
   };
 
-  const addSubSubClause = (sIndex, cIndex, scIndex) => {
-    const newSections = [...sections];
-    if (!newSections[sIndex].clauses[cIndex].subClauses[scIndex].subSubClauses) newSections[sIndex].clauses[cIndex].subClauses[scIndex].subSubClauses = [];
-    newSections[sIndex].clauses[cIndex].subClauses[scIndex].subSubClauses.push({ id: generateId(), text: "" });
-    setSections(newSections);
+  const addSubSubClause = (cIndex, scIndex, afterIndex = null) => {
+    const updated = [...clauses];
+    if (!updated[cIndex].subClauses[scIndex].subSubClauses) {
+      updated[cIndex].subClauses[scIndex].subSubClauses = [];
+    }
+    const newSubSubClause = { id: generateId(), text: "" };
+    updated[cIndex].subClauses[scIndex].subSubClauses = insertAt(
+      updated[cIndex].subClauses[scIndex].subSubClauses,
+      afterIndex,
+      newSubSubClause
+    );
+    setClauses(updated);
   };
 
-  const updateSubSubClause = (sIndex, cIndex, scIndex, sscIndex, text) => {
-    const newSections = [...sections];
-    newSections[sIndex].clauses[cIndex].subClauses[scIndex].subSubClauses[sscIndex].text = text;
-    setSections(newSections);
+  const updateSubSubClause = (cIndex, scIndex, sscIndex, value) => {
+    const updated = [...clauses];
+    updated[cIndex].subClauses[scIndex].subSubClauses[sscIndex].text = value;
+    setClauses(updated);
   };
 
-  const removeSubSubClause = (sIndex, cIndex, scIndex, sscIndex) => {
-    const newSections = [...sections];
-    newSections[sIndex].clauses[cIndex].subClauses[scIndex].subSubClauses.splice(sscIndex, 1);
-    setSections(newSections);
+  const removeSubSubClause = (cIndex, scIndex, sscIndex) => {
+    const updated = [...clauses];
+    updated[cIndex].subClauses[scIndex].subSubClauses.splice(sscIndex, 1);
+    setClauses(updated);
   };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!text.trim()) {
+      alert("Section title is required.");
+      return;
+    }
+    setIsSaving(true);
+    await onSave({
+      id: section?.id || generateId(),
+      text,
+      clauses
+    });
+    setIsSaving(false);
+  };
+
+  const isNew = sectionIndex === -1 || !section;
+  const sectionLabel = isNew ? "NEW SECTION" : `SECTION ${getRomanNumeral(sectionIndex + 1)}`;
+
+  const modalContent = (
+    <div id="library-editor-overlay" className="active" style={{ zIndex: 99999 }} onClick={(e) => e.target.id === "library-editor-overlay" && onCancel()}>
+      <div className="resource-editor-container library-editor-container" role="dialog" aria-modal="true" aria-labelledby="section-editor-title">
+        
+        <div className="resource-editor-topbar">
+          <span className="resource-editor-title" id="section-editor-title">
+            EDIT {sectionLabel}
+          </span>
+          <button type="button" className="resource-editor-close" onClick={onCancel}>CLOSE</button>
+        </div>
+
+        <form className="resource-editor-form library-editor-form" id="section-editor-form" onSubmit={handleSave}>
+          
+          <div className="resource-editor-field">
+            <label>Section Title ({sectionLabel})</label>
+            <input 
+              type="text" 
+              value={text} 
+              onChange={(e) => setText(e.target.value)} 
+              placeholder="e.g. GENERAL PROVISIONS" 
+              required 
+            />
+          </div>
+
+          <div className="library-entry-stack" style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {clauses.map((clause, cIndex) => (
+              <div key={clause.id || cIndex} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", padding: "0.75rem", border: "1px solid var(--border)", borderRadius: "4px" }}>
+                <div className="resource-editor-field" style={{ marginBottom: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
+                    <label style={{ margin: 0 }}>Clause ({getLetter(cIndex + 1)})</label>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)" }} onClick={() => addClause(cIndex)}>
+                        + Insert Clause Below
+                      </button>
+                      <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)", opacity: 0.7 }} onClick={() => removeClause(cIndex)}>
+                        Remove Clause
+                      </button>
+                    </div>
+                  </div>
+                  <textarea 
+                    value={clause.text} 
+                    onChange={(e) => updateClause(cIndex, e.target.value)} 
+                    placeholder="Clause text..." 
+                    required 
+                    rows={2}
+                  />
+                </div>
+
+                <div style={{ paddingLeft: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {clause.subClauses?.map((subClause, scIndex) => (
+                    <div key={subClause.id || scIndex} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                      <div className="resource-editor-field" style={{ marginBottom: 0 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                          <label style={{ margin: 0 }}>Sub-Clause {scIndex + 1}.</label>
+                          <div style={{ display: "flex", gap: "0.5rem" }}>
+                            <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)" }} onClick={() => addSubClause(cIndex, scIndex)}>
+                              + Insert Sub-Clause Below
+                            </button>
+                            <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)", opacity: 0.7 }} onClick={() => removeSubClause(cIndex, scIndex)}>
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                        <textarea 
+                          value={subClause.text} 
+                          onChange={(e) => updateSubClause(cIndex, scIndex, e.target.value)} 
+                          placeholder="Sub-clause text..." 
+                          required 
+                          rows={2}
+                        />
+                      </div>
+
+                      <div style={{ paddingLeft: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                        {subClause.subSubClauses?.map((subSubClause, sscIndex) => (
+                          <div key={subSubClause.id || sscIndex} className="resource-editor-field" style={{ marginBottom: 0 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                              <label style={{ margin: 0 }}>Provision {getRomanNumeral(sscIndex + 1).toLowerCase()}.</label>
+                              <div style={{ display: "flex", gap: "0.5rem" }}>
+                                <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)" }} onClick={() => addSubSubClause(cIndex, scIndex, sscIndex)}>
+                                  + Insert Below
+                                </button>
+                                <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)", opacity: 0.7 }} onClick={() => removeSubSubClause(cIndex, scIndex, sscIndex)}>
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                            <textarea 
+                              value={subSubClause.text} 
+                              onChange={(e) => updateSubSubClause(cIndex, scIndex, sscIndex, e.target.value)} 
+                              placeholder="Provision text..." 
+                              required 
+                              rows={2}
+                            />
+                          </div>
+                        ))}
+                        {(!subClause.subSubClauses || subClause.subSubClauses.length === 0) && (
+                          <button type="button" className="library-inline-btn" onClick={() => addSubSubClause(cIndex, scIndex)}>
+                            + ADD PROVISION
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {(!clause.subClauses || clause.subClauses.length === 0) && (
+                    <button type="button" className="library-inline-btn" onClick={() => addSubClause(cIndex)}>
+                      + ADD SUB-CLAUSE
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="library-editor-buttons" style={{ marginTop: "1.5rem" }}>
+            <button type="button" className="library-inline-btn" onClick={() => addClause()}>+ ADD CLAUSE TO END</button>
+            {!isNew && onDelete && (
+              <button type="button" className="library-inline-btn danger" onClick={onDelete}>DELETE SECTION</button>
+            )}
+          </div>
+
+        </form>
+
+        <div className="resource-editor-actions">
+          <span className="resource-editor-status" data-library-status>{isSaving ? "Saving..." : ""}</span>
+          <button type="submit" className="resource-editor-submit" form="section-editor-form" disabled={isSaving}>SAVE SECTION</button>
+        </div>
+
+        <div className="resource-editor-footer">
+          <span className="resource-editor-hint"><kbd>ESC</kbd> CLOSE</span>
+        </div>
+
+      </div>
+    </div>
+  );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : null;
+}
+
+/**
+ * StatuteMetaEditor: Edits the title, summary, or handles creation/deletion of a Statute.
+ */
+export function StatuteMetaEditor({ initialData, onSave, onCancel, onDelete }) {
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [summary, setSummary] = useState(initialData?.summary || "");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onCancel();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -119,22 +290,22 @@ export function StatuteEditor({ initialData, onSave, onCancel, onDelete }) {
       return;
     }
     setIsSaving(true);
-    await onSave({ title, summary, sections });
+    await onSave({ title, summary });
     setIsSaving(false);
   };
 
   const modalContent = (
     <div id="library-editor-overlay" className="active" style={{ zIndex: 99999 }} onClick={(e) => e.target.id === "library-editor-overlay" && onCancel()}>
-      <div className="resource-editor-container library-editor-container" role="dialog" aria-modal="true" aria-labelledby="library-editor-title">
+      <div className="resource-editor-container library-editor-container" role="dialog" aria-modal="true" aria-labelledby="meta-editor-title">
         
         <div className="resource-editor-topbar">
-          <span className="resource-editor-title" id="library-editor-title">
-            {initialData ? "EDIT STATUTE" : "WRITE STATUTE"}
+          <span className="resource-editor-title" id="meta-editor-title">
+            {initialData?.id ? "EDIT STATUTE DETAILS" : "WRITE STATUTE"}
           </span>
           <button type="button" className="resource-editor-close" onClick={onCancel}>CLOSE</button>
         </div>
 
-        <form className="resource-editor-form library-editor-form" id="library-editor-form" onSubmit={handleSave}>
+        <form className="resource-editor-form library-editor-form" id="meta-editor-form" onSubmit={handleSave}>
           
           <div className="resource-editor-field">
             <label>Statute Title</label>
@@ -154,105 +325,21 @@ export function StatuteEditor({ initialData, onSave, onCancel, onDelete }) {
               value={summary} 
               onChange={(e) => setSummary(e.target.value)} 
               placeholder="A brief description of what this statute covers... (shown on the grid card)"
-              rows={2}
+              rows={3}
             />
           </div>
 
-          <div className="library-entry-stack">
-            {sections.map((section, sIndex) => (
-              <section key={section.id} className="library-entry-editor">
-                <div className="library-entry-toolbar">
-                  <span className="library-entry-title">SECTION {getRomanNumeral(sIndex + 1)}</span>
-                  <button type="button" className="library-inline-btn" onClick={() => removeSection(sIndex)}>REMOVE SECTION</button>
-                </div>
-                
-                <div className="resource-editor-field">
-                  <label>Section Name</label>
-                  <input 
-                    type="text" 
-                    value={section.text} 
-                    onChange={(e) => updateSection(sIndex, e.target.value)} 
-                    placeholder="e.g. GENERAL PROVISIONS" 
-                    required 
-                  />
-                </div>
-
-                <div className="library-entry-stack" style={{ paddingLeft: "1rem", marginTop: "1rem", borderLeft: "2px solid var(--border)", display: "flex", flexDirection: "column", gap: "1rem" }}>
-                  {section.clauses?.map((clause, cIndex) => (
-                    <div key={clause.id} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                      <div className="resource-editor-field" style={{ marginBottom: 0 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                          <label>Clause ({getLetter(cIndex + 1)})</label>
-                          <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)", opacity: 0.7 }} onClick={() => removeClause(sIndex, cIndex)}>Remove</button>
-                        </div>
-                        <textarea 
-                          value={clause.text} 
-                          onChange={(e) => updateClause(sIndex, cIndex, e.target.value)} 
-                          placeholder="Clause text..." 
-                          required 
-                          rows={2}
-                        />
-                      </div>
-
-                      <div style={{ paddingLeft: "1.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                        {clause.subClauses?.map((subClause, scIndex) => (
-                          <div key={subClause.id} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                            <div className="resource-editor-field" style={{ marginBottom: 0 }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                                <label>Sub-Clause {scIndex + 1}.</label>
-                                <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)", opacity: 0.7 }} onClick={() => removeSubClause(sIndex, cIndex, scIndex)}>Remove</button>
-                              </div>
-                              <textarea 
-                                value={subClause.text} 
-                                onChange={(e) => updateSubClause(sIndex, cIndex, scIndex, e.target.value)} 
-                                placeholder="Sub-clause text..." 
-                                required 
-                                rows={2}
-                              />
-                            </div>
-
-                            <div style={{ paddingLeft: "1.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                              {subClause.subSubClauses?.map((subSubClause, sscIndex) => (
-                                <div key={subSubClause.id} className="resource-editor-field" style={{ marginBottom: 0 }}>
-                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                                    <label>Provision {getRomanNumeral(sscIndex + 1).toLowerCase()}.</label>
-                                    <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)", opacity: 0.7 }} onClick={() => removeSubSubClause(sIndex, cIndex, scIndex, sscIndex)}>Remove</button>
-                                  </div>
-                                  <textarea 
-                                    value={subSubClause.text} 
-                                    onChange={(e) => updateSubSubClause(sIndex, cIndex, scIndex, sscIndex, e.target.value)} 
-                                    placeholder="Provision text..." 
-                                    required 
-                                    rows={2}
-                                  />
-                                </div>
-                              ))}
-                              <button type="button" className="library-inline-btn" onClick={() => addSubSubClause(sIndex, cIndex, scIndex)}>+ ADD PROVISION</button>
-                            </div>
-                          </div>
-                        ))}
-                        <button type="button" className="library-inline-btn" onClick={() => addSubClause(sIndex, cIndex)}>+ ADD SUB-CLAUSE</button>
-                      </div>
-                    </div>
-                  ))}
-                  <button type="button" className="library-inline-btn" onClick={() => addClause(sIndex)}>+ ADD CLAUSE</button>
-                </div>
-              </section>
-            ))}
-          </div>
-
-          <div className="library-editor-buttons">
-            <button type="button" className="library-inline-btn" onClick={addSection}>ADD SECTION</button>
-            {initialData?.id && onDelete && (
+          {initialData?.id && onDelete && (
+            <div className="library-editor-buttons" style={{ marginTop: "1rem" }}>
               <button type="button" className="library-inline-btn danger" onClick={() => onDelete(initialData.id)}>DELETE STATUTE</button>
-            )}
-          </div>
+            </div>
+          )}
 
         </form>
 
         <div className="resource-editor-actions">
           <span className="resource-editor-status" data-library-status>{isSaving ? "Saving..." : ""}</span>
-          <button type="submit" className="resource-editor-submit" form="library-editor-form" disabled={isSaving}>SAVE</button>
+          <button type="submit" className="resource-editor-submit" form="meta-editor-form" disabled={isSaving}>SAVE STATUTE</button>
         </div>
 
         <div className="resource-editor-footer">
@@ -265,3 +352,5 @@ export function StatuteEditor({ initialData, onSave, onCancel, onDelete }) {
 
   return typeof document !== "undefined" ? createPortal(modalContent, document.body) : null;
 }
+
+export const StatuteEditor = SectionEditor;

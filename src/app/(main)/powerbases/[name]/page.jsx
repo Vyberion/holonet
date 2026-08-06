@@ -140,7 +140,9 @@ export default async function PowerbaseDetailPage({ params }) {
             </div>
             <div className="hub-status-cell">
               <span className="hub-label">Tier</span>
-              <span className="hub-value">Tier {romanize(pb.tier)}</span>
+              <span className="hub-value" style={pb.is_sudden_death ? { color: "var(--red-bright)" } : {}}>
+                Tier {romanize(pb.tier)} {pb.is_sudden_death ? "(SUDDEN DEATH)" : ""}
+              </span>
             </div>
           </div>
         </div>

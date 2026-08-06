@@ -1,6 +1,6 @@
 import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { getVerifiedProfile } from "../services/roles.js";
-import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js"; 
+import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js";
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
 import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseForUser, isHigherRank, logPowerbaseAction, updatePowerbase } from "../services/powerbase-api.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
@@ -13,7 +13,7 @@ export const commands = [
     .addSubcommand(subcommand =>
       subcommand
         .setName("create")
-        .setDescription("Request the creation of a new Powerbase (Overseer+)")
+        .setDescription("Request the creation of a new Powerbase.")
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -23,7 +23,7 @@ export const commands = [
     .addSubcommand(subcommand =>
       subcommand
         .setName("manage")
-        .setDescription("Manage your Powerbase (or others if Emperor+)")
+        .setDescription("Manage a Powerbase's name, description, group ID, or members")
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -68,7 +68,6 @@ export async function handleCommand(interaction) {
 }
 
 export async function handleSelectMenu(interaction) {
-  if (interaction.customId === "pb_create_members") return await handleCreateMembers(interaction);
   if (interaction.customId === "pb_edit_members") return await handleEditMembers(interaction);
   if (interaction.customId === "pb_edit_select") return await handleEditSelect(interaction);
   if (interaction.customId === "pb_dissolve_select") return await handleDissolveSelect(interaction);
@@ -134,33 +133,29 @@ export async function handleModal(interaction) {
       return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ A Powerbase named "${name}" already exists.`)])])));
     }
 
-    globalThis.__pbCreateCache = globalThis.__pbCreateCache || new Map();
-    globalThis.__pbCreateCache.set(interaction.user.id, { name, description, robloxGroupId });
-
-    const selectMenu = new UserSelectMenuBuilder()
-      .setCustomId("pb_create_members")
-      .setPlaceholder("Select Apprentices (Optional)")
-      .setMinValues(0)
-      .setMaxValues(10);
-
-    const row = new ActionRowBuilder().addComponents(selectMenu);
+    await createPowerbase({
+      name,
+      description,
+      robloxGroupId,
+      leaderId: interaction.user.id,
+      status: "PENDING_CREATE"
+    }, []);
 
     await interaction.reply(ephemeral(componentsV2Message([
       containerV2([
-        textDisplayV2(`### Powerbase: ${name}`),
-        textDisplayV2("Please select the Apprentices you wish to include. Note that any member you select must be equal or lower in rank to you, and must not currently be in a Powerbase.\n\n*Click outside the menu when done to submit.*"),
-        row
+        textDisplayV2(`### Request Submitted`),
+        textDisplayV2(`Powerbase **${name}** creation request submitted for approval by High Command.`)
       ])
     ])));
     return true;
   }
-  
+
   if (interaction.customId.startsWith("pb_edit_modal:")) {
     const pbId = interaction.customId.split(":")[1];
     const name = interaction.fields.getTextInputValue("name");
     const description = interaction.fields.getTextInputValue("description");
     const robloxGroupId = interaction.fields.getTextInputValue("robloxGroupId");
-    
+
     const existingName = await getPowerbaseByName(name);
     if (existingName && existingName.id !== pbId) {
       return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ A Powerbase named "${name}" already exists.`)])])));
@@ -168,20 +163,20 @@ export async function handleModal(interaction) {
 
     globalThis.__pbEditCache = globalThis.__pbEditCache || new Map();
     globalThis.__pbEditCache.set(interaction.user.id, { pbId, name, description, robloxGroupId });
-    
+
     await updatePowerbase(pbId, { name, description, roblox_group_id: robloxGroupId || null });
 
     const pb = await getPowerbase(pbId);
     const currentMemberIds = (pb?.powerbase_members || [])
       .map(m => String(m.user_id || m.discord_user_id))
       .filter(Boolean);
-    
+
     const selectMenu = new UserSelectMenuBuilder()
       .setCustomId("pb_edit_members")
       .setPlaceholder("Select Apprentices to include")
       .setMinValues(0)
       .setMaxValues(10);
-    
+
     if (typeof selectMenu.setDefaultUsers === "function" && currentMemberIds.length > 0) {
       selectMenu.setDefaultUsers(currentMemberIds);
     }
@@ -200,7 +195,7 @@ export async function handleModal(interaction) {
     ])));
     return true;
   }
-  
+
   return false;
 }
 
@@ -208,7 +203,7 @@ async function handleEditMembers(interaction) {
   const selectedMembers = interaction.values;
   const leaderId = interaction.user.id;
   const cached = globalThis.__pbEditMembersCache?.get(leaderId);
-  
+
   if (!cached) {
     return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Your edit session expired. Please try again.")])])));
   }
@@ -217,29 +212,29 @@ async function handleEditMembers(interaction) {
   if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase no longer exists.")])])));
 
   const actorProfile = await getVerifiedProfile(leaderId);
-  
+
   const finalMemberIds = [];
   try {
     for (const memberId of selectedMembers) {
       if (memberId === leaderId) continue;
       const memberProfile = await getVerifiedProfile(memberId);
       if (!memberProfile) throw new Error(`<@${memberId}> is not verified with Holonet.`);
-      
+
       const memberPb = await getPowerbaseForUser(memberId);
       if (memberPb && memberPb.id !== pb.id) {
         throw new Error(`<@${memberId}> is already in a Powerbase (${memberPb.name}).`);
       }
-      
+
       if (!isHigherRank(actorProfile.profile, memberProfile.profile)) {
         throw new Error(`<@${memberId}> is a higher rank than you.`);
       }
-      
+
       finalMemberIds.push(memberId);
     }
-    
+
     await updatePowerbase(pb.id, {}, finalMemberIds);
     globalThis.__pbEditMembersCache.delete(leaderId);
-    
+
     await interaction.update(ephemeral(componentsV2Message([
       containerV2([
         textDisplayV2(`### Powerbase Updated`),
@@ -249,7 +244,7 @@ async function handleEditMembers(interaction) {
   } catch (err) {
     await interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ${err.message}`)])])));
   }
-  
+
   return true;
 }
 
@@ -257,7 +252,7 @@ async function handleCreateMembers(interaction) {
   const selectedMembers = interaction.values;
   const leaderId = interaction.user.id;
   const cached = globalThis.__pbCreateCache?.get(leaderId);
-  
+
   if (!cached) {
     return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Your creation session expired. Please try again.")])])));
   }
@@ -265,17 +260,19 @@ async function handleCreateMembers(interaction) {
   try {
     const leaderProfile = await getVerifiedProfile(leaderId);
     if (!leaderProfile) throw new Error("Your verification profile was lost.");
-    
+
     for (const memberId of selectedMembers) {
       if (memberId === leaderId) continue;
       const memberProfile = await getVerifiedProfile(memberId);
       if (!memberProfile) throw new Error(`<@${memberId}> is not verified.`);
       if (isHigherRank(memberProfile.profile, leaderProfile.profile)) {
-         throw new Error(`Apprentice <@${memberId}> cannot be a higher rank than you.`);
+        throw new Error(`Apprentice <@${memberId}> cannot be a higher rank than you.`);
       }
       const existing = await getPowerbaseForUser(memberId);
       if (existing) throw new Error(`<@${memberId}> is already in a Powerbase (${existing.name}).`);
     }
+
+    const finalMembers = selectedMembers.filter(id => id !== leaderId);
 
     await createPowerbase({
       name: cached.name,
@@ -283,14 +280,14 @@ async function handleCreateMembers(interaction) {
       robloxGroupId: cached.robloxGroupId,
       leaderId: leaderId,
       status: "PENDING_CREATE"
-    }, selectedMembers);
-    
+    }, finalMembers);
+
     globalThis.__pbCreateCache.delete(leaderId);
 
     await interaction.update(ephemeral(componentsV2Message([
       containerV2([
         textDisplayV2(`### Request Submitted`),
-        textDisplayV2(`Powerbase **${cached.name}** creation request submitted for approval by High Command!`)
+        textDisplayV2(`Powerbase **${cached.name}** creation request submitted for approval by High Command.`)
       ])
     ])));
   } catch (err) {
@@ -340,7 +337,7 @@ async function handleEdit(interaction, verified) {
         .setRequired(false)
     )
   );
-  
+
   await interaction.showModal(modal);
   return true;
 }
@@ -354,7 +351,7 @@ async function handleManage(interaction, verified) {
   }
 
   let powerbases = await fetchPowerbases();
-  
+
   if (!isEmperorPlus) {
     powerbases = powerbases.filter(pb => pb.leader_id === interaction.user.id);
   }
@@ -395,7 +392,7 @@ async function handleDissolve(interaction, verified) {
   }
 
   let powerbases = await fetchPowerbases();
-  
+
   if (!isEmperorPlus) {
     powerbases = powerbases.filter(pb => pb.leader_id === interaction.user.id);
   }
@@ -489,7 +486,7 @@ async function handleEditSelect(interaction) {
         .setRequired(false)
     )
   );
-  
+
   await interaction.showModal(modal);
   return true;
 }
@@ -514,7 +511,7 @@ async function handleDissolveSelect(interaction) {
   const v2Payload = componentsV2Message([
     containerV2([
       textDisplayV2(`### Dissolution Requested`),
-      textDisplayV2(`Dissolution request for Powerbase **${pb.name}** has been submitted for approval.`)
+      textDisplayV2(`Dissolution request for Powerbase **${pb.name}** has been submitted for approval by High Command.`)
     ])
   ]);
   return interaction.update(ephemeral(v2Payload));
@@ -530,14 +527,16 @@ async function handleInfoSelect(interaction) {
     .filter(Boolean);
 
   const leaderText = `<@${pb.leader_id}> *(Leader)*`;
-  const apprenticeText = memberIds.length > 0 
-    ? memberIds.map(id => `<@${id}> *(Apprentice)*`).join("\n") 
+  const apprenticeText = memberIds.length > 0
+    ? memberIds.map(id => `<@${id}> *(Apprentice)*`).join("\n")
     : "*No apprentices assigned*";
+
+  const sdBadge = pb.is_sudden_death ? " ⚠️ **[SUDDEN DEATH]**" : "";
 
   const components = [
     textDisplayV2(`### ${pb.name}`),
     separatorV2(),
-    textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}\n**Prestige:** ${pb.prestige}`)
+    textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}`)
   ];
 
   if (pb.description) {

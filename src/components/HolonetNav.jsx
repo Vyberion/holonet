@@ -109,7 +109,7 @@ function NavLink({ href, page, prefix, label, account = false, children, activeP
 function PrivilegedLinks({ permissions, activePage, onClick }) {
   return (
     <>
-      <NavLink href="/lookup" page="lookup" account activePage={activePage} onClick={onClick}>
+      <NavLink href="https://www.thesithorder.org/lookup" page="lookup" account activePage={activePage} onClick={onClick}>
         <div className="account-text"><span className="nav-link-label">Lookup</span></div>
         <div className="account-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -120,7 +120,7 @@ function PrivilegedLinks({ permissions, activePage, onClick }) {
         <div className="nav-link-corners" aria-hidden="true" />
       </NavLink>
       {permissions?.canAccessAdmin ? (
-        <NavLink href="/admin" page="admin" account activePage={activePage} onClick={onClick}>
+        <NavLink href="https://www.thesithorder.org/admin" page="admin" account activePage={activePage} onClick={onClick}>
           <div className="account-text"><span className="nav-link-label">Admin</span></div>
           <div className="account-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -152,7 +152,7 @@ export function HolonetNav() {
   const centerLinks = [
     { href: "https://www.thesithorder.org/", page: "home", prefix: "00", label: "Home" },
     {
-      href: "https://www.thesithorder.org/statutes",
+      href: "https://www.thesithorder.org/codex",
       page: "codex",
       prefix: "01",
       label: "Codex",

@@ -444,6 +444,7 @@
 
     .nav-item--dropdown {
       width: 100%;
+      padding-left: 0;
     }
 
     .nav-split {

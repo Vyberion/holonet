@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../../components/PageScripts.jsx";
-import { StatuteEditor } from "../../../components/StatuteEditor.jsx";
+import { SectionEditor, StatuteMetaEditor } from "../../../components/StatuteEditor.jsx";
 import { processStatuteSlugs } from "../../../lib/slugUtils.js";
 
 function getRomanNumeral(num) {
@@ -23,24 +23,6 @@ function getLetter(num) {
   return String.fromCharCode(96 + num); // 1 = a, 2 = b, 3 = c
 }
 
-function toRoman(value) {
-  const number = Math.max(1, Math.min(3999, Number(value) || 1));
-  const numerals = [
-    [1000, "M"], [900, "CM"], [500, "D"], [400, "CD"],
-    [100, "C"], [90, "XC"], [50, "L"], [40, "XL"],
-    [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]
-  ];
-  let remaining = number;
-  let result = "";
-  numerals.forEach(([amount, glyph]) => {
-    while (remaining >= amount) {
-      result += glyph;
-      remaining -= amount;
-    }
-  });
-  return result;
-}
-
 function StatutesPageContent({ initialSlug }) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -51,7 +33,9 @@ function StatutesPageContent({ initialSlug }) {
   const [canEdit, setCanEdit] = useState(false);
   const [canViewDrafts, setCanViewDrafts] = useState(false);
   
-  const [editingStatute, setEditingStatute] = useState(null);
+  const [editingSectionIndex, setEditingSectionIndex] = useState(null); // null = off, -1 = new, >=0 = index
+  const [insertAfterSectionIndex, setInsertAfterSectionIndex] = useState(null);
+  const [editingMeta, setEditingMeta] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
   const viewingId = searchParams.get("id");
@@ -109,7 +93,9 @@ function StatutesPageContent({ initialSlug }) {
       });
       const data = await res.json();
       if (data.ok) {
-        setEditingStatute(null);
+        setEditingSectionIndex(null);
+        setInsertAfterSectionIndex(null);
+        setEditingMeta(false);
         setIsCreating(false);
         fetchStatutes();
       } else {
@@ -126,7 +112,10 @@ function StatutesPageContent({ initialSlug }) {
       const res = await fetch(`/api/codex/statutes?id=${id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.ok) {
-        setEditingStatute(null);
+        setEditingSectionIndex(null);
+        setInsertAfterSectionIndex(null);
+        setEditingMeta(false);
+        setIsCreating(false);
         if (viewingId === id) {
           router.push(pathname);
         }
@@ -177,15 +166,60 @@ function StatutesPageContent({ initialSlug }) {
     }
   };
 
+  const handleSaveSection = async (updatedSection) => {
+    if (!viewingStatute) return;
+    const currentSections = [...(viewingStatute.sections || [])];
+    if (editingSectionIndex === -1) {
+      if (insertAfterSectionIndex !== null && insertAfterSectionIndex >= 0 && insertAfterSectionIndex < currentSections.length) {
+        currentSections.splice(insertAfterSectionIndex + 1, 0, updatedSection);
+      } else {
+        currentSections.push(updatedSection);
+      }
+    } else if (editingSectionIndex >= 0) {
+      currentSections[editingSectionIndex] = updatedSection;
+    }
+    await saveStatute({
+      ...viewingStatute,
+      sections: currentSections
+    });
+    setInsertAfterSectionIndex(null);
+  };
+
+  const handleDeleteSection = async () => {
+    if (!viewingStatute || editingSectionIndex < 0) return;
+    if (!confirm("Are you sure you want to delete this section block?")) return;
+    const currentSections = viewingStatute.sections.filter((_, i) => i !== editingSectionIndex);
+    await saveStatute({
+      ...viewingStatute,
+      sections: currentSections
+    });
+    setInsertAfterSectionIndex(null);
+  };
+
+  const handleSaveMeta = async (metaData) => {
+    if (isCreating) {
+      await saveStatute({
+        ...metaData,
+        sections: [],
+        is_published: false
+      });
+    } else if (viewingStatute) {
+      await saveStatute({
+        ...viewingStatute,
+        ...metaData
+      });
+    }
+  };
+
   useEffect(() => {
-    if (!loading && !editingStatute && !isCreating) {
+    if (!loading && editingSectionIndex === null && !editingMeta && !isCreating) {
       setTimeout(() => {
         window.initHolonetSearch?.();
       }, 100);
     }
-  }, [statutes, loading, editingStatute, isCreating, viewingStatute]);
+  }, [statutes, loading, editingSectionIndex, editingMeta, isCreating, viewingStatute]);
 
-  const renderStatuteGridCard = (statute, isDraft, index) => {
+  const renderStatuteGridCard = (statute, isDraft) => {
     const status = "restricted";
     return (
       <div 
@@ -271,7 +305,8 @@ function StatutesPageContent({ initialSlug }) {
                   ) : (
                     <button type="button" className="hub-write-btn" onClick={() => unpublishStatute(viewingStatute)}>UNPUBLISH</button>
                   )}
-                  <button type="button" className="hub-write-btn" onClick={() => setEditingStatute(viewingStatute)}>EDIT STATUTE</button>
+                  <button type="button" className="hub-write-btn" onClick={() => setEditingMeta(true)}>EDIT DETAILS</button>
+                  <button type="button" className="hub-write-btn" onClick={() => { setInsertAfterSectionIndex(null); setEditingSectionIndex(-1); }}>+ ADD SECTION</button>
                 </div>
               )}
             </div>
@@ -279,9 +314,31 @@ function StatutesPageContent({ initialSlug }) {
             <div className="statute-reader" style={{ marginTop: "2rem" }}>
               {viewingStatute.sections?.map((section, sIndex) => (
                 <article key={section.id || sIndex} className="codex-article" id={`section-${sIndex}`}>
-                  <div className="article-header">
-                    <span className="article-number">SECTION {getRomanNumeral(sIndex + 1)}</span>
-                    <h2 className="article-title">{section.text}</h2>
+                  <div className="article-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                    <div>
+                      <span className="article-number">SECTION {getRomanNumeral(sIndex + 1)}</span>
+                      <h2 className="article-title">{section.text}</h2>
+                    </div>
+                    {canEdit && (
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button 
+                          type="button" 
+                          className="hub-write-btn" 
+                          onClick={() => { setInsertAfterSectionIndex(null); setEditingSectionIndex(sIndex); }}
+                          style={{ padding: "4px 12px", fontSize: "0.75rem" }}
+                        >
+                          EDIT SECTION
+                        </button>
+                        <button 
+                          type="button" 
+                          className="hub-write-btn" 
+                          onClick={() => { setInsertAfterSectionIndex(sIndex); setEditingSectionIndex(-1); }}
+                          style={{ padding: "4px 12px", fontSize: "0.75rem" }}
+                        >
+                          + INSERT SECTION BELOW
+                        </button>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="article-content">
@@ -371,12 +428,24 @@ function StatutesPageContent({ initialSlug }) {
         </div>
       )}
 
-      {(editingStatute || isCreating) && (
-        <StatuteEditor 
-          initialData={editingStatute} 
-          onSave={(data) => saveStatute({ ...editingStatute, ...data })}
-          onCancel={() => { setEditingStatute(null); setIsCreating(false); }}
-          onDelete={deleteStatute}
+      {/* SECTION BLOCK EDITOR */}
+      {editingSectionIndex !== null && (
+        <SectionEditor 
+          section={editingSectionIndex >= 0 ? viewingStatute?.sections?.[editingSectionIndex] : null} 
+          sectionIndex={editingSectionIndex >= 0 ? editingSectionIndex : (insertAfterSectionIndex !== null ? insertAfterSectionIndex + 1 : (viewingStatute?.sections?.length || 0))}
+          onSave={handleSaveSection}
+          onCancel={() => { setEditingSectionIndex(null); setInsertAfterSectionIndex(null); }}
+          onDelete={handleDeleteSection}
+        />
+      )}
+
+      {/* STATUTE META / CREATION EDITOR */}
+      {(editingMeta || isCreating) && (
+        <StatuteMetaEditor
+          initialData={isCreating ? null : viewingStatute}
+          onSave={handleSaveMeta}
+          onCancel={() => { setEditingMeta(false); setIsCreating(false); }}
+          onDelete={isCreating ? null : deleteStatute}
         />
       )}
 

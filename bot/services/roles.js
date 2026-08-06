@@ -68,8 +68,8 @@ function nicknameRuleForProfile(profile) {
       }
     }
 
-    if (group === "MAIN_GROUP") {
-      const rule = managed.MAIN_GROUP?.ranks?.[String(ranks.highranks)];
+    if (group === "MAIN_GROUP" || group === "HIGH_RANKS") {
+      const rule = managed.MAIN_GROUP?.ranks?.[String(ranks.highranks)] || managed.HIGH_RANKS?.ranks?.[String(ranks.highranks)];
       if (rule) return rule;
     }
 

@@ -15,21 +15,27 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
   if (!client || !powerbaseId) return;
   try {
     const pb = await getPowerbase(powerbaseId);
-    if (!pb) return;
+    if (!pb) {
+      console.warn(`[syncPowerbaseRosterMessage] Powerbase ${powerbaseId} not found`);
+      return;
+    }
 
-    const channel = await client.channels.fetch(ROSTER_CHANNEL_ID).catch(() => null);
-    if (!channel || !channel.isTextBased()) return;
+    const channel = await client.channels.fetch(ROSTER_CHANNEL_ID).catch((err) => {
+      console.error(`[syncPowerbaseRosterMessage] Failed to fetch channel ${ROSTER_CHANNEL_ID}:`, err?.message || err);
+      return null;
+    });
+    if (!channel || !channel.isTextBased()) {
+      console.warn(`[syncPowerbaseRosterMessage] Channel ${ROSTER_CHANNEL_ID} unavailable or not text-based`);
+      return;
+    }
 
-    if (pb.status === "DISSOLVED") {
+    if (pb.status === "DISSOLVED" || pb.status === "DELETED") {
       if (pb.roster_message_id) {
         const existingMsg = await channel.messages.fetch(pb.roster_message_id).catch(() => null);
         if (existingMsg) await existingMsg.delete().catch(() => {});
       }
       return;
     }
-
-    // Only render roster messages for ACTIVE powerbases
-    if (pb.status !== "ACTIVE") return;
 
     const memberIds = (pb.powerbase_members || [])
       .map(m => String(m.user_id || m.discord_user_id || ""))

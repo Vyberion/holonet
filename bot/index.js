@@ -79,18 +79,21 @@ client.on("interactionCreate", async interaction => {
       const originalReply = interaction.reply.bind(interaction);
       interaction.reply = async (options) => {
         if (typeof options === "string") options = { content: options };
-        return originalReply({ ...options, ephemeral: true });
+        const flags = (options?.flags || 0) | MessageFlags.Ephemeral;
+        return originalReply({ ...options, flags });
       };
 
       const originalDeferReply = interaction.deferReply.bind(interaction);
       interaction.deferReply = async (options = {}) => {
-        return originalDeferReply({ ...options, ephemeral: true });
+        const flags = (options?.flags || 0) | MessageFlags.Ephemeral;
+        return originalDeferReply({ ...options, flags });
       };
 
       const originalFollowUp = interaction.followUp.bind(interaction);
       interaction.followUp = async (options) => {
         if (typeof options === "string") options = { content: options };
-        return originalFollowUp({ ...options, ephemeral: true });
+        const flags = (options?.flags || 0) | MessageFlags.Ephemeral;
+        return originalFollowUp({ ...options, flags });
       };
     }
 

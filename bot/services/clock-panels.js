@@ -65,9 +65,19 @@ export async function syncClockPanels(client) {
 
     try {
       const channel = await client.channels.fetch(channelId);
-      if (!channel?.isTextBased?.() || !channel.messages?.fetch) throw new Error("CLOCK_PANEL_CHANNEL_UNAVAILABLE");
-      const message = await channel.messages.fetch(messageId);
-      await message.edit(clockPanelPayload(scope));
+      if (!channel?.isTextBased?.()) throw new Error("CLOCK_PANEL_CHANNEL_UNAVAILABLE");
+
+      let message = await channel.messages.fetch(messageId).catch(() => null);
+      if (!message) {
+        message = await channel.send(clockPanelPayload(scope));
+        await supabase
+          .from("clock_panels")
+          .update({ message_id: message.id, updated_at: new Date().toISOString() })
+          .eq("scope", scope)
+          .eq("channel_id", channelId);
+      } else {
+        await message.edit(clockPanelPayload(scope));
+      }
       updated += 1;
     } catch (error) {
       failed += 1;

@@ -2,15 +2,47 @@ import { executeLegacyHandler } from "../../../../../lib/legacy-api-adapter.js";
 import { supabaseRest } from "../../../../../../modules/auth/session-store.js";
 import { canAccessAdmin } from "../../../../../../modules/auth/permissions.js";
 import { getAuthContext } from "../../../../../../modules/auth/auth-context.js";
+import fs from "node:fs";
+import path from "node:path";
+
+function getDiscordBotToken() {
+  if (process.env.DISCORD_TOKEN) return process.env.DISCORD_TOKEN;
+  if (process.env.DISCORD_BOT_TOKEN) return process.env.DISCORD_BOT_TOKEN;
+
+  const candidates = [
+    path.join(process.cwd(), "bot", ".env"),
+    path.join(process.cwd(), ".env"),
+    path.join(process.cwd(), ".env.local")
+  ];
+
+  for (const file of candidates) {
+    try {
+      if (fs.existsSync(file)) {
+        const text = fs.readFileSync(file, "utf8");
+        const match = text.match(/^\s*(?:export\s+)?DISCORD_TOKEN\s*=\s*(.*)$/m);
+        if (match && match[1]) {
+          return match[1].trim().replace(/^['"]|['"]$/g, "");
+        }
+      }
+    } catch (_) {}
+  }
+  return "";
+}
 
 async function syncRosterViaRest(powerbaseId) {
   try {
-    const token = process.env.DISCORD_TOKEN;
-    if (!token) return;
+    const token = getDiscordBotToken();
+    if (!token) {
+      console.error("syncRosterViaRest: No DISCORD_TOKEN found in process env or bot/.env");
+      return;
+    }
 
     const ROSTER_CHANNEL_ID = "1046537270150299720";
     const [pb] = await supabaseRest(`powerbases?id=eq.${encodeURIComponent(powerbaseId)}&select=*,powerbase_members(*)`);
-    if (!pb) return;
+    if (!pb) {
+      console.error(`syncRosterViaRest: Powerbase ${powerbaseId} not found in DB`);
+      return;
+    }
 
     if (pb.status === "DELETED" || pb.status === "DISSOLVED") {
       if (pb.roster_message_id) {
@@ -21,8 +53,6 @@ async function syncRosterViaRest(powerbaseId) {
       }
       return;
     }
-
-    if (pb.status !== "ACTIVE") return;
 
     const memberIds = (pb.powerbase_members || [])
       .map(m => String(m.user_id || m.discord_user_id || ""))
@@ -94,6 +124,9 @@ async function syncRosterViaRest(powerbaseId) {
           body: JSON.stringify({ roster_message_id: msgData.id })
         }).catch(() => null);
       }
+    } else {
+      const errorText = await sendRes.text().catch(() => "");
+      console.error(`syncRosterViaRest: Discord API returned status ${sendRes.status}: ${errorText}`);
     }
   } catch (err) {
     console.error("Failed to sync roster via REST:", err);

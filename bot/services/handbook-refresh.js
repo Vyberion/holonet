@@ -4,14 +4,15 @@ async function runRefresh() {
   try {
     const baseUrl = (config.holonet.baseUrl || "http://localhost:3000").replace(/\/$/, "");
     const cronSecret = process.env.CRON_SECRET || "";
-    
-    console.log(`[Handbook Refresh] Triggering background refresh at ${baseUrl}/api/cron/handbook-pdf-refresh...`);
-    
+    const headers = {};
+    if (cronSecret) {
+      headers["x-cron-secret"] = cronSecret;
+      headers["Authorization"] = `Bearer ${cronSecret}`;
+    }
+
     const response = await fetch(`${baseUrl}/api/cron/handbook-pdf-refresh`, {
       method: "GET",
-      headers: {
-        ...(cronSecret ? { "x-cron-secret": cronSecret } : {})
-      }
+      headers
     });
     
     const payload = await response.json().catch(() => ({}));

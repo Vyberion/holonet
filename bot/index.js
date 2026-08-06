@@ -1,4 +1,4 @@
-import { ActivityType, Client, GatewayIntentBits, Partials } from "discord.js";
+import { ActivityType, Client, GatewayIntentBits, MessageFlags, Partials } from "discord.js";
 import { config, requireEnv } from "./config/index.js";
 import { routeInteraction } from "./commands/index.js";
 import { botErrorPayload } from "./services/bot-errors.js";

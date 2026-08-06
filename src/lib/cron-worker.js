@@ -17,12 +17,15 @@ export function startInternalCron() {
       const host = hostname === "0.0.0.0" ? "127.0.0.1" : hostname;
       const baseUrl = `http://${host}:${port}`;
       const cronSecret = process.env.CRON_SECRET || "";
+      const headers = {};
+      if (cronSecret) {
+        headers["x-cron-secret"] = cronSecret;
+        headers["Authorization"] = `Bearer ${cronSecret}`;
+      }
 
       const response = await fetch(`${baseUrl}/api/cron/handbook-pdf-refresh`, {
         method: "GET",
-        headers: {
-          ...(cronSecret ? { "x-cron-secret": cronSecret } : {})
-        }
+        headers
       });
       const data = await response.json().catch(() => ({}));
       if (response.ok) {

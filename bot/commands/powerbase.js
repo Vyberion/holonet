@@ -2,7 +2,7 @@ import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSel
 import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js";
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
-import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseForUser, isHigherRank, logPowerbaseAction, syncPowerbaseRosterMessage, updatePowerbase } from "../services/powerbase-api.js";
+import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseForUser, isHigherRank, logPowerbaseAction, slugifyPowerbase, syncPowerbaseRosterMessage, updatePowerbase } from "../services/powerbase-api.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { hasPermission } from "../../modules/auth/permissions.js";
 
@@ -185,7 +185,7 @@ export async function handleModal(interaction) {
       containerV2([
         textDisplayV2(`### Powerbase: ${name}`),
         textDisplayV2("Please select the Apprentices for this Powerbase. Anyone not selected will be removed. (Max 10)."),
-        selectMenu.toJSON()
+        new ActionRowBuilder().addComponents(selectMenu)
       ])
     ])));
     return true;
@@ -315,7 +315,7 @@ async function handleManage(interaction, verified) {
   await interaction.reply(ephemeral(componentsV2Message([
     containerV2([
       textDisplayV2("Select a Powerbase to manage:"),
-      select.toJSON()
+      new ActionRowBuilder().addComponents(select)
     ])
   ])));
   return true;
@@ -349,7 +349,7 @@ async function handleManageSelect(interaction) {
     containerV2([
       textDisplayV2(`### Manage Powerbase: ${pb.name}`),
       textDisplayV2("Select an action to perform:"),
-      select.toJSON()
+      new ActionRowBuilder().addComponents(select)
     ])
   ])));
   return true;
@@ -417,7 +417,7 @@ async function handleManageActionSelect(interaction) {
       containerV2([
         textDisplayV2(`### Powerbase: ${pb.name}`),
         textDisplayV2("Please select the Apprentices for this Powerbase. Anyone not selected will be removed. (Max 10)."),
-        selectMenu.toJSON()
+        new ActionRowBuilder().addComponents(selectMenu)
       ])
     ])));
     return true;
@@ -432,7 +432,7 @@ async function handleManageActionSelect(interaction) {
       containerV2([
         textDisplayV2(`### Manage Leadership: ${pb.name}`),
         textDisplayV2(`**Current Leader:** <@${pb.leader_id}>\n\nSelect a verified user to transfer leadership of this Powerbase:`),
-        userSelect.toJSON()
+        new ActionRowBuilder().addComponents(userSelect)
       ])
     ])));
     return true;
@@ -536,7 +536,7 @@ async function handleDissolve(interaction, verified) {
   await interaction.reply(ephemeral(componentsV2Message([
     containerV2([
       textDisplayV2("Select a Powerbase to dissolve:"),
-      select.toJSON()
+      new ActionRowBuilder().addComponents(select)
     ])
   ])));
   return true;
@@ -565,7 +565,7 @@ async function handleInfo(interaction, verified) {
   await interaction.reply(ephemeral(componentsV2Message([
     containerV2([
       textDisplayV2("Select a Powerbase to view:"),
-      select.toJSON()
+      new ActionRowBuilder().addComponents(select)
     ])
   ])));
   return true;

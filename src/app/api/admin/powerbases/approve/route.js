@@ -3,6 +3,103 @@ import { supabaseRest } from "../../../../../../modules/auth/session-store.js";
 import { canAccessAdmin } from "../../../../../../modules/auth/permissions.js";
 import { getAuthContext } from "../../../../../../modules/auth/auth-context.js";
 
+async function syncRosterViaRest(powerbaseId) {
+  try {
+    const token = process.env.DISCORD_TOKEN;
+    if (!token) return;
+
+    const ROSTER_CHANNEL_ID = "1046537270150299720";
+    const [pb] = await supabaseRest(`powerbases?id=eq.${encodeURIComponent(powerbaseId)}&select=*,powerbase_members(*)`);
+    if (!pb) return;
+
+    if (pb.status === "DELETED" || pb.status === "DISSOLVED") {
+      if (pb.roster_message_id) {
+        await fetch(`https://discord.com/api/v10/channels/${ROSTER_CHANNEL_ID}/messages/${pb.roster_message_id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bot ${token}` }
+        }).catch(() => null);
+      }
+      return;
+    }
+
+    if (pb.status !== "ACTIVE") return;
+
+    const memberIds = (pb.powerbase_members || [])
+      .map(m => String(m.user_id || m.discord_user_id || ""))
+      .filter(Boolean);
+
+    const leaderText = `<@${pb.leader_id}> *(Leader)*`;
+    const apprenticeText = memberIds.length > 0
+      ? memberIds.map(id => `<@${id}> *(Apprentice)*`).join("\n")
+      : "*No apprentices assigned*";
+
+    const romanize = (num) => ["I", "II", "III", "IV"][num - 1] || "I";
+    const sdBadge = pb.is_sudden_death ? " ⚠️ **[SUDDEN DEATH]**" : "";
+
+    const components = [
+      { type: 10, content: `### ${pb.name}` },
+      { type: 14, divider: true, spacing: 1 },
+      { type: 10, content: `**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}` }
+    ];
+
+    if (pb.description) {
+      components.push({ type: 14, divider: true, spacing: 1 });
+      components.push({ type: 10, content: `**Description:**\n${pb.description}` });
+    }
+
+    if (pb.roblox_group_id) {
+      components.push({ type: 14, divider: true, spacing: 1 });
+      components.push({ type: 10, content: `**Roblox Group ID:** ${pb.roblox_group_id}` });
+    }
+
+    components.push({ type: 14, divider: true, spacing: 1 });
+    components.push({ type: 10, content: `**Roster (${memberIds.length + 1} Total):**\n${leaderText}\n${apprenticeText}` });
+
+    const payload = {
+      flags: 32768,
+      components: [{
+        type: 17,
+        accent_color: 0x8a1b1b,
+        components
+      }],
+      allowed_mentions: { parse: [] }
+    };
+
+    if (pb.roster_message_id) {
+      const editRes = await fetch(`https://discord.com/api/v10/channels/${ROSTER_CHANNEL_ID}/messages/${pb.roster_message_id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bot ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (editRes.ok) return;
+    }
+
+    const sendRes = await fetch(`https://discord.com/api/v10/channels/${ROSTER_CHANNEL_ID}/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bot ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (sendRes.ok) {
+      const msgData = await sendRes.json();
+      if (msgData?.id) {
+        await supabaseRest(`powerbases?id=eq.${encodeURIComponent(pb.id)}`, {
+          method: "PATCH",
+          body: JSON.stringify({ roster_message_id: msgData.id })
+        }).catch(() => null);
+      }
+    }
+  } catch (err) {
+    console.error("Failed to sync roster via REST:", err);
+  }
+}
+
 const handler = async (req, res) => {
     try {
       const auth = await getAuthContext(req);
@@ -36,6 +133,9 @@ const handler = async (req, res) => {
                 body: JSON.stringify({ status: "ACTIVE" })
             });
         }
+
+        // Sync Discord Roster Message immediately
+        await syncRosterViaRest(id);
 
         // Log approval
         await supabaseRest("bot_audit_logs", {

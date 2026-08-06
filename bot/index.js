@@ -5,6 +5,7 @@ import { botErrorPayload } from "./services/bot-errors.js";
 import { ephemeral, errorEmbed } from "./services/discord-ui.js";
 import { syncClockPanels } from "./services/clock-panels.js";
 import { startShiftReminderLoop } from "./services/shift-reminders.js";
+import { syncStoredPowerbaseRosters } from "./services/powerbase-api.js";
 
 const holonetPresence = {
   status: "online",
@@ -49,6 +50,15 @@ async function syncStoredClockPanels() {
   }
 }
 
+async function syncPowerbaseRostersOnStartup() {
+  try {
+    const result = await syncStoredPowerbaseRosters(client);
+    console.log(`Powerbase roster sync checked ${result.checked} powerbase(s), synced ${result.synced}.`);
+  } catch (error) {
+    console.error("Powerbase roster sync failed", error);
+  }
+}
+
 client.once("clientReady", () => {
   console.log(`Holonet bot online as ${client.user.tag}`);
   client.user.setPresence({
@@ -56,6 +66,7 @@ client.once("clientReady", () => {
     activities: [{ name: "Sith Temple on Korriban", type: ActivityType.Playing }]
   });
   syncStoredClockPanels();
+  syncPowerbaseRostersOnStartup();
   startShiftReminderLoop(client);
 });
 

@@ -83,6 +83,25 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
 }
 
 /**
+ * Sync stored powerbase rosters for all active powerbases.
+ */
+export async function syncStoredPowerbaseRosters(client) {
+  try {
+    const powerbases = await fetchPowerbases();
+    const activePbs = (powerbases || []).filter(pb => pb.status === "ACTIVE");
+    let synced = 0;
+    for (const pb of activePbs) {
+      await syncPowerbaseRosterMessage(client, pb.id);
+      synced++;
+    }
+    return { checked: powerbases.length, synced };
+  } catch (error) {
+    console.error("Failed to sync stored powerbase rosters:", error);
+    return { checked: 0, synced: 0 };
+  }
+}
+
+/**
  * Fetch all powerbases, with their members.
  */
 export async function fetchPowerbases() {

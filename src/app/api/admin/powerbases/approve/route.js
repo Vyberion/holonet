@@ -29,7 +29,7 @@ function getDiscordBotToken() {
   return "";
 }
 
-async function syncRosterViaRest(powerbaseId) {
+async function syncRosterViaRest(powerbaseId, forceDelete = false, cachedPb = null) {
   try {
     const token = getDiscordBotToken();
     if (!token) {
@@ -38,18 +38,30 @@ async function syncRosterViaRest(powerbaseId) {
     }
 
     const ROSTER_CHANNEL_ID = "1046537270150299720";
-    const [pb] = await supabaseRest(`powerbases?id=eq.${encodeURIComponent(powerbaseId)}&select=*,powerbase_members(*)`);
+    let pb = cachedPb;
+
+    if (!pb) {
+      const [fetched] = await supabaseRest(`powerbases?id=eq.${encodeURIComponent(powerbaseId)}&select=*,powerbase_members(*)`);
+      pb = fetched;
+    }
+
     if (!pb) {
       console.error(`syncRosterViaRest: Powerbase ${powerbaseId} not found in DB`);
       return;
     }
 
-    if (pb.status === "DELETED" || pb.status === "DISSOLVED") {
+    if (forceDelete || pb.status === "DELETED" || pb.status === "DISSOLVED") {
       if (pb.roster_message_id) {
-        await fetch(`https://discord.com/api/v10/channels/${ROSTER_CHANNEL_ID}/messages/${pb.roster_message_id}`, {
+        const delRes = await fetch(`https://discord.com/api/v10/channels/${ROSTER_CHANNEL_ID}/messages/${pb.roster_message_id}`, {
           method: "DELETE",
           headers: { Authorization: `Bot ${token}` }
-        }).catch(() => null);
+        }).catch((err) => {
+          console.error("syncRosterViaRest: Error deleting message:", err);
+          return null;
+        });
+        if (delRes && delRes.ok) {
+          console.log(`syncRosterViaRest: Deleted message ${pb.roster_message_id} for powerbase ${pb.name}`);
+        }
       }
       return;
     }
@@ -159,6 +171,9 @@ const handler = async (req, res) => {
         let newStatus = "ACTIVE";
 
         if (pb.status === "PENDING_DISSOLVE" || pb.status === "PENDING_DISSOLUTION") {
+            // Delete roster message from Discord BEFORE deleting row from database
+            await syncRosterViaRest(id, true, pb);
+
             // Delete members & powerbase completely from database
             await supabaseRest(`powerbase_members?powerbase_id=eq.${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => null);
             await supabaseRest(`powerbases?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
@@ -168,10 +183,8 @@ const handler = async (req, res) => {
                 method: "PATCH",
                 body: JSON.stringify({ status: "ACTIVE" })
             });
+            await syncRosterViaRest(id, false);
         }
-
-        // Sync Discord Roster Message immediately
-        await syncRosterViaRest(id);
 
         // Log approval
         await supabaseRest("bot_audit_logs", {

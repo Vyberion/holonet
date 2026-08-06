@@ -590,9 +590,38 @@ async function initLibraryView() {
     };
   }
 
+  function scrollToHashTarget(hashTarget) {
+    const hash = hashTarget || window.location.hash;
+    if (!hash) return;
+    const targetId = hash.replace(/^#/, "");
+    if (!targetId) return;
+
+    setTimeout(() => {
+      const el = document.getElementById(targetId) || 
+                 document.querySelector(`[id="${targetId}"]`) || 
+                 document.querySelector(`[data-library-document-id="${targetId}"]`);
+      if (el) {
+        const header = document.querySelector(".nav-header, header, nav");
+        const headerHeight = header ? header.getBoundingClientRect().height : 80;
+        const top = el.getBoundingClientRect().top + window.pageYOffset - headerHeight - 25;
+        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      }
+    }, 200);
+  }
+
   render();
+  scrollToHashTarget();
 
   mount.addEventListener("click", event => {
+    const hashLink = event.target.closest("a[href*='#']");
+    if (hashLink && mount.contains(hashLink)) {
+      const href = hashLink.getAttribute("href");
+      if (href && href.includes("#")) {
+        const hash = href.slice(href.indexOf("#"));
+        scrollToHashTarget(hash);
+      }
+    }
+
     if (event.target.closest("[data-library-new]")) {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -614,7 +643,7 @@ async function initLibraryView() {
 window.initHolonetLibraryView = initLibraryView;
 
 if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initLibraryView);
-  } else {
-    initLibraryView();
-  }
+  document.addEventListener("DOMContentLoaded", initLibraryView);
+} else {
+  initLibraryView();
+}

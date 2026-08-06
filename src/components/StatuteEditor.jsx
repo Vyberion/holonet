@@ -161,10 +161,10 @@ export function SectionEditor({ section, sectionIndex, onSave, onCancel, onDelet
                     <label style={{ margin: 0 }}>Clause ({getLetter(cIndex + 1)})</label>
                     <div style={{ display: "flex", gap: "0.5rem" }}>
                       <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)" }} onClick={() => addClause(cIndex)}>
-                        + Insert Clause Below
+                        INSERT CLAUSE BELOW
                       </button>
                       <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)", opacity: 0.7 }} onClick={() => removeClause(cIndex)}>
-                        Remove Clause
+                        REMOVE CLAUSE
                       </button>
                     </div>
                   </div>
@@ -185,10 +185,10 @@ export function SectionEditor({ section, sectionIndex, onSave, onCancel, onDelet
                           <label style={{ margin: 0 }}>Sub-Clause {scIndex + 1}.</label>
                           <div style={{ display: "flex", gap: "0.5rem" }}>
                             <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)" }} onClick={() => addSubClause(cIndex, scIndex)}>
-                              + Insert Sub-Clause Below
+                              INSERT SUB-CLAUSE BELOW
                             </button>
                             <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)", opacity: 0.7 }} onClick={() => removeSubClause(cIndex, scIndex)}>
-                              Remove
+                              REMOVE
                             </button>
                           </div>
                         </div>
@@ -208,10 +208,10 @@ export function SectionEditor({ section, sectionIndex, onSave, onCancel, onDelet
                               <label style={{ margin: 0 }}>Provision {getRomanNumeral(sscIndex + 1).toLowerCase()}.</label>
                               <div style={{ display: "flex", gap: "0.5rem" }}>
                                 <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)" }} onClick={() => addSubSubClause(cIndex, scIndex, sscIndex)}>
-                                  + Insert Below
+                                  INSERT BELOW
                                 </button>
                                 <button type="button" className="library-inline-btn" style={{ color: "var(--theme-accent)", opacity: 0.7 }} onClick={() => removeSubSubClause(cIndex, scIndex, sscIndex)}>
-                                  Remove
+                                  REMOVE
                                 </button>
                               </div>
                             </div>
@@ -226,7 +226,7 @@ export function SectionEditor({ section, sectionIndex, onSave, onCancel, onDelet
                         ))}
                         {(!subClause.subSubClauses || subClause.subSubClauses.length === 0) && (
                           <button type="button" className="library-inline-btn" onClick={() => addSubSubClause(cIndex, scIndex)}>
-                            + ADD PROVISION
+                            ADD PROVISION
                           </button>
                         )}
                       </div>
@@ -234,7 +234,7 @@ export function SectionEditor({ section, sectionIndex, onSave, onCancel, onDelet
                   ))}
                   {(!clause.subClauses || clause.subClauses.length === 0) && (
                     <button type="button" className="library-inline-btn" onClick={() => addSubClause(cIndex)}>
-                      + ADD SUB-CLAUSE
+                      ADD SUB-CLAUSE
                     </button>
                   )}
                 </div>
@@ -243,7 +243,7 @@ export function SectionEditor({ section, sectionIndex, onSave, onCancel, onDelet
           </div>
 
           <div className="library-editor-buttons" style={{ marginTop: "1.5rem" }}>
-            <button type="button" className="library-inline-btn" onClick={() => addClause()}>+ ADD CLAUSE TO END</button>
+            <button type="button" className="library-inline-btn" onClick={() => addClause()}>ADD CLAUSE</button>
             {!isNew && onDelete && (
               <button type="button" className="library-inline-btn danger" onClick={onDelete}>DELETE SECTION</button>
             )}

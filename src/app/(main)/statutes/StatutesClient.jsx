@@ -83,6 +83,27 @@ function StatutesPageContent({ initialSlug }) {
     }
   };
 
+  const scrollToElementId = (targetId) => {
+    if (!targetId) return;
+    const el = document.getElementById(targetId) || document.querySelector(`[id="${targetId}"]`);
+    if (el) {
+      const header = document.querySelector(".nav-header, header, nav");
+      const headerHeight = header ? header.getBoundingClientRect().height : 80;
+      const top = el.getBoundingClientRect().top + window.pageYOffset - headerHeight - 25;
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    }
+  };
+
+  useEffect(() => {
+    if (!loading && viewingStatute) {
+      setTimeout(() => {
+        if (window.location.hash) {
+          scrollToElementId(window.location.hash.replace(/^#/, ""));
+        }
+      }, 250);
+    }
+  }, [loading, viewingStatute]);
+
   const saveStatute = async (statuteData) => {
     try {
       const isUpdate = !!statuteData.id;
@@ -273,7 +294,7 @@ function StatutesPageContent({ initialSlug }) {
             grid-template-columns: 1fr;
           }
         }
-        .contents-link { transition: color 0.2s ease, text-shadow 0.2s ease; }
+        .contents-link { transition: color 0.2s ease, text-shadow 0.2s ease; cursor: pointer; }
         .contents-link:hover { color: var(--red-bright); text-shadow: 0 0 5px var(--red-glow); }
       `}</style>
       
@@ -288,7 +309,18 @@ function StatutesPageContent({ initialSlug }) {
               <div className="codex-contents-list">
                 {viewingStatute.sections?.map((section, sIndex) => (
                   <div key={section.id || sIndex} className="contents-article">
-                    <a className="contents-link" href={`#section-${sIndex}`}>{`${String(sIndex + 1).padStart(2, '0')} | ${section.text || `SECTION ${getRomanNumeral(sIndex + 1)}`}`}</a>
+                    <a 
+                      className="contents-link" 
+                      href={`#section-${sIndex}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const targetId = `section-${sIndex}`;
+                        scrollToElementId(targetId);
+                        window.history.pushState(null, "", `#${targetId}`);
+                      }}
+                    >
+                      {`${String(sIndex + 1).padStart(2, '0')} | ${section.text || `SECTION ${getRomanNumeral(sIndex + 1)}`}`}
+                    </a>
                   </div>
                 ))}
               </div>
@@ -306,7 +338,7 @@ function StatutesPageContent({ initialSlug }) {
                     <button type="button" className="hub-write-btn" onClick={() => unpublishStatute(viewingStatute)}>UNPUBLISH</button>
                   )}
                   <button type="button" className="hub-write-btn" onClick={() => setEditingMeta(true)}>EDIT DETAILS</button>
-                  <button type="button" className="hub-write-btn" onClick={() => { setInsertAfterSectionIndex(null); setEditingSectionIndex(-1); }}>+ ADD SECTION</button>
+                  <button type="button" className="hub-write-btn" onClick={() => { setInsertAfterSectionIndex(null); setEditingSectionIndex(-1); }}>ADD SECTION</button>
                 </div>
               )}
             </div>
@@ -335,7 +367,7 @@ function StatutesPageContent({ initialSlug }) {
                           onClick={() => { setInsertAfterSectionIndex(sIndex); setEditingSectionIndex(-1); }}
                           style={{ padding: "4px 12px", fontSize: "0.75rem" }}
                         >
-                          + INSERT SECTION BELOW
+                          INSERT SECTION BELOW
                         </button>
                       </div>
                     )}

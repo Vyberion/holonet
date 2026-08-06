@@ -1,5 +1,86 @@
 import { supabase } from "./supabase.js";
 import { rawRanksFromProfile } from "./roblox.js";
+import { componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "./discord-ui.js";
+
+export const ROSTER_CHANNEL_ID = "1046537270150299720";
+
+function romanize(num) {
+  return ["I", "II", "III", "IV"][num - 1] || "I";
+}
+
+/**
+ * Sync persistent Powerbase roster message in channel 1046537270150299720.
+ */
+export async function syncPowerbaseRosterMessage(client, powerbaseId) {
+  if (!client || !powerbaseId) return;
+  try {
+    const pb = await getPowerbase(powerbaseId);
+    if (!pb) return;
+
+    const channel = await client.channels.fetch(ROSTER_CHANNEL_ID).catch(() => null);
+    if (!channel || !channel.isTextBased()) return;
+
+    if (pb.status === "DISSOLVED") {
+      if (pb.roster_message_id) {
+        const existingMsg = await channel.messages.fetch(pb.roster_message_id).catch(() => null);
+        if (existingMsg) await existingMsg.delete().catch(() => {});
+      }
+      return;
+    }
+
+    // Only render roster messages for ACTIVE powerbases
+    if (pb.status !== "ACTIVE") return;
+
+    const memberIds = (pb.powerbase_members || [])
+      .map(m => String(m.user_id || m.discord_user_id || ""))
+      .filter(Boolean);
+
+    const leaderText = `<@${pb.leader_id}> *(Leader)*`;
+    const apprenticeText = memberIds.length > 0
+      ? memberIds.map(id => `<@${id}> *(Apprentice)*`).join("\n")
+      : "*No apprentices assigned*";
+
+    const sdBadge = pb.is_sudden_death ? " ⚠️ **[SUDDEN DEATH]**" : "";
+
+    const components = [
+      textDisplayV2(`### ${pb.name}`),
+      separatorV2(),
+      textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}`)
+    ];
+
+    if (pb.description) {
+      components.push(separatorV2());
+      components.push(textDisplayV2(`**Description:**\n${pb.description}`));
+    }
+
+    if (pb.roblox_group_id) {
+      components.push(separatorV2());
+      components.push(textDisplayV2(`**Roblox Group ID:** ${pb.roblox_group_id}`));
+    }
+
+    components.push(separatorV2());
+    components.push(textDisplayV2(`**Roster (${memberIds.length + 1} Total):**\n${leaderText}\n${apprenticeText}`));
+
+    const v2Payload = componentsV2Message([containerV2(components, 0x8a1b1b)]);
+
+    let messageObj = null;
+    if (pb.roster_message_id) {
+      messageObj = await channel.messages.fetch(pb.roster_message_id).catch(() => null);
+    }
+
+    if (messageObj) {
+      await messageObj.edit(v2Payload);
+    } else {
+      const newMsg = await channel.send(v2Payload);
+      await supabase
+        .from("powerbases")
+        .update({ roster_message_id: newMsg.id })
+        .eq("id", pb.id);
+    }
+  } catch (err) {
+    console.error("Error syncing powerbase roster message:", err);
+  }
+}
 
 /**
  * Fetch all powerbases, with their members.

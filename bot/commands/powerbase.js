@@ -2,7 +2,7 @@ import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSel
 import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js";
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
-import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseForUser, isHigherRank, logPowerbaseAction, updatePowerbase } from "../services/powerbase-api.js";
+import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseForUser, isHigherRank, logPowerbaseAction, syncPowerbaseRosterMessage, updatePowerbase } from "../services/powerbase-api.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { hasPermission } from "../../modules/auth/permissions.js";
 
@@ -23,7 +23,7 @@ export const commands = [
     .addSubcommand(subcommand =>
       subcommand
         .setName("manage")
-        .setDescription("Manage a Powerbase's name, description, group ID, or members")
+        .setDescription("Manage a Powerbase's name, description, group ID, members, or leadership")
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -73,6 +73,7 @@ export async function handleSelectMenu(interaction) {
   if (interaction.customId === "pb_dissolve_select") return await handleDissolveSelect(interaction);
   if (interaction.customId === "pb_manage_select") return await handleManageSelect(interaction);
   if (interaction.customId === "pb_info_select") return await handleInfoSelect(interaction);
+  if (interaction.customId.startsWith("pb_change_leader:")) return await handleChangeLeaderSelect(interaction);
   return false;
 }
 
@@ -235,6 +236,8 @@ async function handleEditMembers(interaction) {
     await updatePowerbase(pb.id, {}, finalMemberIds);
     globalThis.__pbEditMembersCache.delete(leaderId);
 
+    await syncPowerbaseRosterMessage(interaction.client, pb.id);
+
     await interaction.update(ephemeral(componentsV2Message([
       containerV2([
         textDisplayV2(`### Powerbase Updated`),
@@ -361,7 +364,7 @@ async function handleManage(interaction, verified) {
   }
 
   const select = new StringSelectMenuBuilder()
-    .setCustomId("pb_edit_select")
+    .setCustomId(isEmperorPlus ? "pb_manage_select" : "pb_edit_select")
     .setPlaceholder("Select a Powerbase to manage")
     .addOptions(powerbases.map(pb => ({
       label: pb.name,
@@ -377,6 +380,65 @@ async function handleManage(interaction, verified) {
     ])
   ])));
   return true;
+}
+
+async function handleManageSelect(interaction) {
+  const pbId = interaction.values[0];
+  const pb = await getPowerbase(pbId);
+  if (!pb) return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+
+  const userSelect = new UserSelectMenuBuilder()
+    .setCustomId(`pb_change_leader:${pbId}`)
+    .setPlaceholder("Select a new Leader for this Powerbase");
+
+  const row = new ActionRowBuilder().addComponents(userSelect);
+
+  await interaction.reply(ephemeral(componentsV2Message([
+    containerV2([
+      textDisplayV2(`### Manage Leadership: ${pb.name}`),
+      textDisplayV2(`**Current Leader:** <@${pb.leader_id}>\n\nSelect a verified user to transfer leadership of this Powerbase:`),
+      row
+    ])
+  ])));
+  return true;
+}
+
+async function handleChangeLeaderSelect(interaction) {
+  const pbId = interaction.customId.split(":")[1];
+  const newLeaderId = interaction.values[0];
+
+  const pb = await getPowerbase(pbId);
+  if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+
+  try {
+    const verified = await getVerifiedProfile(newLeaderId);
+    if (!verified) throw new Error(`<@${newLeaderId}> is not verified with Holonet.`);
+
+    const existingPb = await getPowerbaseForUser(newLeaderId);
+    if (existingPb && existingPb.id !== pbId) {
+      throw new Error(`<@${newLeaderId}> is already in another Powerbase (${existingPb.name}).`);
+    }
+
+    const currentMemberIds = (pb.powerbase_members || [])
+      .map(m => String(m.user_id || m.discord_user_id || ""))
+      .filter(id => id && id !== newLeaderId);
+
+    await updatePowerbase(pbId, { leader_id: newLeaderId }, currentMemberIds);
+
+    await logPowerbaseAction(interaction.user.id, "LEADER_CHANGED", pbId, `Leadership transferred to <@${newLeaderId}>`);
+
+    await syncPowerbaseRosterMessage(interaction.client, pbId);
+
+    const v2Payload = componentsV2Message([
+      containerV2([
+        textDisplayV2(`### Leadership Transferred`),
+        textDisplayV2(`Leadership of Powerbase **${pb.name}** has been transferred to <@${newLeaderId}>.`)
+      ])
+    ]);
+    return interaction.update(ephemeral(v2Payload));
+  } catch (err) {
+    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ${err.message}`)])])));
+  }
 }
 
 // --------------------------------------------------------------------------------------

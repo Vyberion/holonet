@@ -151,8 +151,9 @@ export async function handleModal(interaction) {
       groupLinkValue = `[Group Link](${cleanUrl})`;
     }
 
+    /*
     await postPowerbaseLog(interaction.client, {
-      title: "⚔️ Powerbase Creation Requested",
+      title: "Powerbase Creation Requested",
       description: `A new Powerbase creation request has been submitted for approval by High Command.`,
       content: `<@&${HIGH_COMMAND_ROLE_ID}>`,
       fields: [
@@ -163,6 +164,7 @@ export async function handleModal(interaction) {
       color: 0x8a1b1b,
       allowedRoleIds: [HIGH_COMMAND_ROLE_ID]
     });
+    */
 
     await interaction.reply(ephemeral(componentsV2Message([
       containerV2([
@@ -181,7 +183,7 @@ export async function handleModal(interaction) {
 
     const existingName = await getPowerbaseByName(name);
     if (existingName && existingName.id !== pbId) {
-      return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ A Powerbase named "${name}" already exists.`)])])));
+      return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`A Powerbase named "${name}" already exists.`)])])));
     }
 
     await updatePowerbase(pbId, { name, description, roblox_group_id: robloxGroupId || null });
@@ -197,8 +199,9 @@ export async function handleModal(interaction) {
       editGroupLink = `[Group Link](${cleanUrl})`;
     }
 
+    /*
     await postPowerbaseLog(interaction.client, {
-      title: "✏️ Powerbase Details Updated",
+      title: "Powerbase Details Updated",
       description: `Powerbase details for **${pb.name}** have been updated.`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
@@ -208,6 +211,7 @@ export async function handleModal(interaction) {
       ],
       color: 0x8a1b1b
     });
+    */
     const currentMemberIds = (pb?.powerbase_members || [])
       .map(m => String(m.user_id || m.discord_user_id))
       .filter(Boolean);
@@ -265,26 +269,35 @@ async function handleEditMembers(interaction) {
       finalMemberIds.push(memberId);
     }
 
+    const oldMemberIds = (pb?.powerbase_members || [])
+      .map(m => String(m.user_id || m.discord_user_id || ""))
+      .filter(Boolean);
+
     await updatePowerbase(pb.id, {}, finalMemberIds);
     if (globalThis.__pbEditMembersCache) globalThis.__pbEditMembersCache.delete(interaction.user.id);
 
     await syncPowerbaseRosterMessage(interaction.client, pb.id);
 
-    const appText = finalMemberIds.length > 0
-      ? finalMemberIds.map(id => `<@${id}>`).join("\n")
-      : "*None*";
+    const addedIds = finalMemberIds.filter(id => !oldMemberIds.includes(id));
+    const removedIds = oldMemberIds.filter(id => !finalMemberIds.includes(id));
 
-    await postPowerbaseLog(interaction.client, {
-      title: "Powerbase Roster Updated",
-      description: `Roster for Powerbase **${pb.name}** has been updated.`,
-      fields: [
-        { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
-        { name: "Apprentices", value: appText, inline: false },
-        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true }
-      ],
-      color: 0x8a1b1b
-    });
+    if (addedIds.length > 0 || removedIds.length > 0) {
+      const addedText = addedIds.length > 0 ? addedIds.map(id => `<@${id}>`).join("\n") : "*None*";
+      const removedText = removedIds.length > 0 ? removedIds.map(id => `<@${id}>`).join("\n") : "*None*";
+
+      await postPowerbaseLog(interaction.client, {
+        title: "Powerbase Roster Updated",
+        description: `Roster for Powerbase **${pb.name}** has been updated.`,
+        fields: [
+          { name: "Powerbase Name", value: pb.name, inline: true },
+          { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+          { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+          { name: "Apprentices Added", value: addedText, inline: true },
+          { name: "Apprentices Removed", value: removedText, inline: true }
+        ],
+        color: 0x8a1b1b
+      });
+    }
 
     const v2Payload = componentsV2Message([
       containerV2([
@@ -490,6 +503,7 @@ async function handleManageActionSelect(interaction) {
       dissolveGroupLink = `[Group Link](${cleanUrl})`;
     }
 
+    /*
     await postPowerbaseLog(interaction.client, {
       title: "Powerbase Dissolution Requested",
       description: `A dissolution request for Powerbase **${pb.name}** has been submitted for approval by High Command.`,
@@ -502,6 +516,7 @@ async function handleManageActionSelect(interaction) {
       color: 0x8a1b1b,
       allowedRoleIds: [HIGH_COMMAND_ROLE_ID]
     });
+    */
 
     const v2Payload = componentsV2Message([
       containerV2([
@@ -541,6 +556,7 @@ async function handleChangeLeaderSelect(interaction) {
 
     await syncPowerbaseRosterMessage(interaction.client, pbId);
 
+    /*
     await postPowerbaseLog(interaction.client, {
       title: "Powerbase Leadership Transferred",
       description: `Leadership of Powerbase **${pb.name}** has been transferred.`,
@@ -552,6 +568,7 @@ async function handleChangeLeaderSelect(interaction) {
       ],
       color: 0x8a1b1b
     });
+    */
 
     const v2Payload = componentsV2Message([
       containerV2([
@@ -714,7 +731,7 @@ async function handleInfoSelect(interaction) {
     ? memberIds.map(id => `<@${id}>`).join("\n")
     : "*None*";
 
-  const sdBadge = pb.is_sudden_death ? " ⚠️ **[SUDDEN DEATH]**" : "";
+  const sdBadge = pb.is_sudden_death ? " **[SUDDEN DEATH]**" : "";
 
   const slug = String(pb.name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
   const pbUrl = `https://www.thesithorder.org/powerbases/${slug}`;

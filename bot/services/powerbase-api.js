@@ -45,7 +45,7 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
       ? memberIds.map(id => `<@${id}>`).join("\n")
       : "*None*";
 
-    const sdBadge = pb.is_sudden_death ? " ⚠️ **[SUDDEN DEATH]**" : "";
+    const sdBadge = pb.is_sudden_death ? " **[SUDDEN DEATH]**" : "";
 
     const pbSlug = slugifyPowerbase(pb.name);
     const pbUrl = `https://www.thesithorder.org/powerbases/${pbSlug}`;

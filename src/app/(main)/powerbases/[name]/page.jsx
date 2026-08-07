@@ -158,7 +158,6 @@ export default async function PowerbaseDetailPage({ params }) {
                 <div className="hub-list">
                   <div className="hub-row">
                     <strong>Official Roblox Group</strong>
-                    <span>Group ID: {pb.roblox_group_id}</span>
                     <div className="hub-card-actions" style={{ marginTop: "0.5rem" }}>
                       <a
                         href={`https://www.roblox.com/groups/${pb.roblox_group_id}`}
@@ -166,7 +165,7 @@ export default async function PowerbaseDetailPage({ params }) {
                         rel="noopener noreferrer"
                         className="hub-inline-link"
                       >
-                        OPEN GROUP NODE &rarr;
+                        OPEN GROUP &rarr;
                       </a>
                     </div>
                   </div>

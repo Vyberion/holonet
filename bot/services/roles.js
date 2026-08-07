@@ -53,7 +53,7 @@ function roleIdsForProfile(profile) {
   return compactRoleIds(ids);
 }
 
-function nicknameRuleForProfile(profile) {
+export function nicknameRuleForProfile(profile) {
   if (!config.nicknames?.enabled || !isMainGroupMember(profile)) return null;
 
   const ranks = rawRanksFromProfile(profile);

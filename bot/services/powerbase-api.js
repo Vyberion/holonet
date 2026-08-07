@@ -224,6 +224,7 @@ export async function createPowerbase(payload, members = []) {
       description: payload.description || null,
       roblox_group_id: payload.robloxGroupId || null,
       leader_id: payload.leaderId,
+      leader_name: payload.leaderName || null,
       status: "PENDING_APPROVAL"
     }])
     .select()

@@ -51,12 +51,6 @@ export const HOLONET_METADATA_SCHEMA = [
     name: "Holonet Operator",
     description: "Superuser status for Holonet Network",
     type: 7 // BOOLEAN_EQUAL
-  },
-  {
-    key: "main_group_rank",
-    name: "Main Group Rank",
-    description: "Main Group Rank level",
-    type: 2 // INTEGER_GREATER_THAN_OR_EQUAL
   }
 ];
 

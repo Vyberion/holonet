@@ -67,7 +67,8 @@
           <article class="hub-row">
             <strong>${escapeHtml(item.name)}</strong>
             <span>${escapeHtml((item.status === "PENDING_CREATE" || item.status === "PENDING_APPROVAL") ? "Creation Request" : "Dissolution Request")}</span>
-            <p>Leader: ${escapeHtml(item.leader_name || item.leader_id)}</p>
+            <p><strong>Leader Username:</strong> ${escapeHtml(item.leader_username || item.leader_name || item.leader_id)}</p>
+            <p><strong>Roblox Group:</strong> ${item.roblox_group_id ? `<a href="${escapeHtml(String(item.roblox_group_id).startsWith("http") ? item.roblox_group_id : `https://www.roblox.com/groups/${String(item.roblox_group_id).replace(/\D/g, "")}`)}" target="_blank" rel="noopener" style="color: var(--theme-accent-soft); text-decoration: underline;">Group Link</a>` : "None"}</p>
             <div class="admin-page-controls" style="margin-top: 10px; display: flex; gap: 8px;">
               <button type="button" class="resource-editor-submit" data-approval-action="approve" data-powerbase-id="${escapeHtml(item.id)}">APPROVE</button>
               <button type="button" class="resource-editor-submit" data-approval-action="reject" data-powerbase-id="${escapeHtml(item.id)}">REJECT</button>

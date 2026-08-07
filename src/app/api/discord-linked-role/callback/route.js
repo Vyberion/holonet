@@ -8,6 +8,7 @@ import { hasPermission } from "../../../../../modules/auth/permissions.js";
 import { supabase } from "../../../../../bot/services/supabase.js";
 import { ROBLOX_GROUPS } from "../../../../../modules/data/roblox-config.js";
 import { loadRobloxUser } from "../../../../../bot/services/roblox.js";
+import { nicknameRuleForProfile } from "../../../../../bot/services/roles.js";
 
 const handler = async (req, res) => {
   const { code, state, error } = req.query || {};
@@ -58,16 +59,24 @@ const handler = async (req, res) => {
       if (robloxUser?.name) robloxUsername = robloxUser.name;
     }
 
-    // 3. Compile permissions using existing permissions system & extract Main Group Rank
+    // 3. Compile permissions using existing permissions system
     const perms = profile ? compileProfilePermissions(profile) : [];
     const isOperator = hasPermission({ permissions: perms }, "holonet:operator");
-    const mainGroupRank = Number(profile?.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0);
 
-    // 4. Push role connection metadata to Discord API
-    const platformUsername = robloxUsername || profile?.name || discordUser.username || "Holonet User";
+    // 4. Format platform username using rank nickname config
+    const baseUsername = robloxUsername || profile?.name || discordUser.username || "Holonet User";
+    let platformUsername = baseUsername;
+
+    if (profile) {
+      const rule = nicknameRuleForProfile(profile);
+      if (rule?.value) {
+        platformUsername = rule.mode === "prefix" ? `${rule.value} ${baseUsername}` : rule.value;
+      }
+    }
+
+    // 5. Push role connection metadata to Discord API
     await pushRoleConnectionData(tokens.access_token, platformUsername, {
-      holonet_operator: isOperator ? 1 : 0,
-      main_group_rank: mainGroupRank
+      holonet_operator: isOperator ? 1 : 0
     });
 
     res.setHeader("Set-Cookie", clearCookie(STATE_COOKIE));

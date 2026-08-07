@@ -5,6 +5,7 @@ import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2
 import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseForUser, isHigherRank, logPowerbaseAction, slugifyPowerbase, syncPowerbaseRosterMessage, updatePowerbase } from "../services/powerbase-api.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { hasPermission } from "../../modules/auth/permissions.js";
+import { postActivityLog } from "../services/activity-log.js";
 
 export const commands = [
   new SlashCommandBuilder()
@@ -135,13 +136,38 @@ export async function handleModal(interaction) {
       return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ A Powerbase named "${name}" already exists.`)])])));
     }
 
+    const verified = await getVerifiedProfile(interaction.user.id).catch(() => null);
+    const leaderUsername = verified?.profile?.name || verified?.link?.roblox_username || interaction.user.username;
+
     await createPowerbase({
       name,
       description,
       robloxGroupId,
       leaderId: interaction.user.id,
+      leaderName: leaderUsername,
       status: "PENDING_CREATE"
     }, []);
+
+    let groupLinkValue = "None";
+    if (robloxGroupId) {
+      const match = String(robloxGroupId).match(/\d+/);
+      const cleanUrl = String(robloxGroupId).startsWith("http")
+        ? robloxGroupId
+        : `https://www.roblox.com/groups/${match ? match[0] : robloxGroupId}`;
+      groupLinkValue = `[Group Link](${cleanUrl})`;
+    }
+
+    await postActivityLog(interaction.client, {
+      title: "⚔️ Powerbase Creation Requested",
+      description: `A new Powerbase creation request has been submitted for approval.`,
+      fields: [
+        { name: "Powerbase Name", value: name, inline: true },
+        { name: "Leader Username", value: leaderUsername, inline: true },
+        { name: "Roblox Group", value: groupLinkValue, inline: true }
+      ],
+      channelKey: "highCommandLog",
+      color: 0xff3348
+    });
 
     await interaction.reply(ephemeral(componentsV2Message([
       containerV2([
@@ -669,7 +695,11 @@ async function handleInfoSelect(interaction) {
   }
 
   if (pb.roblox_group_id) {
-    components.push(textDisplayV2(`**Roblox Group ID:** ${pb.roblox_group_id}`));
+    const match = String(pb.roblox_group_id).match(/\d+/);
+    const cleanUrl = String(pb.roblox_group_id).startsWith("http")
+      ? pb.roblox_group_id
+      : `https://www.roblox.com/groups/${match ? match[0] : pb.roblox_group_id}`;
+    components.push(textDisplayV2(`**Roblox Group:** [Group Link](${cleanUrl})`));
     components.push(separatorV2());
   }
 

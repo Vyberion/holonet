@@ -151,7 +151,6 @@ export async function handleModal(interaction) {
       groupLinkValue = `[Group Link](${cleanUrl})`;
     }
 
-    /*
     await postPowerbaseLog(interaction.client, {
       title: "Powerbase Creation Requested",
       description: `A new Powerbase creation request has been submitted for approval by High Command.`,
@@ -164,7 +163,6 @@ export async function handleModal(interaction) {
       color: 0x8a1b1b,
       allowedRoleIds: [HIGH_COMMAND_ROLE_ID]
     });
-    */
 
     await interaction.reply(ephemeral(componentsV2Message([
       containerV2([
@@ -199,7 +197,6 @@ export async function handleModal(interaction) {
       editGroupLink = `[Group Link](${cleanUrl})`;
     }
 
-    /*
     await postPowerbaseLog(interaction.client, {
       title: "Powerbase Details Updated",
       description: `Powerbase details for **${pb.name}** have been updated.`,
@@ -211,7 +208,6 @@ export async function handleModal(interaction) {
       ],
       color: 0x8a1b1b
     });
-    */
     const currentMemberIds = (pb?.powerbase_members || [])
       .map(m => String(m.user_id || m.discord_user_id))
       .filter(Boolean);
@@ -503,7 +499,6 @@ async function handleManageActionSelect(interaction) {
       dissolveGroupLink = `[Group Link](${cleanUrl})`;
     }
 
-    /*
     await postPowerbaseLog(interaction.client, {
       title: "Powerbase Dissolution Requested",
       description: `A dissolution request for Powerbase **${pb.name}** has been submitted for approval by High Command.`,
@@ -516,7 +511,6 @@ async function handleManageActionSelect(interaction) {
       color: 0x8a1b1b,
       allowedRoleIds: [HIGH_COMMAND_ROLE_ID]
     });
-    */
 
     const v2Payload = componentsV2Message([
       containerV2([
@@ -556,7 +550,6 @@ async function handleChangeLeaderSelect(interaction) {
 
     await syncPowerbaseRosterMessage(interaction.client, pbId);
 
-    /*
     await postPowerbaseLog(interaction.client, {
       title: "Powerbase Leadership Transferred",
       description: `Leadership of Powerbase **${pb.name}** has been transferred.`,
@@ -568,7 +561,6 @@ async function handleChangeLeaderSelect(interaction) {
       ],
       color: 0x8a1b1b
     });
-    */
 
     const v2Payload = componentsV2Message([
       containerV2([

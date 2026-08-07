@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
   canAccessAdmin,
+  canWriteInspection,
   hasPermission,
   checkPageAccess,
   checkResourceWriteAccess,
@@ -1804,7 +1805,7 @@ export async function replaceInspectionSections(inspectionId, sections = []) {
 }
 
 export async function writeInspection(auth, body) {
-  if (!hasHighCommandAccess(auth.profile)) {
+  if (!canWriteInspection(auth.profile)) {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
   }
 

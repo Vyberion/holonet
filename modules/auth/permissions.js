@@ -188,6 +188,11 @@ export function hasHighCommandAccess(profile) {
   return hasPermission(profile, 'admin:access');
 }
 
+export function canWriteInspection(profile) {
+  if (!profile) return false;
+  return hasPermission(profile, 'inspections:write') || hasHighCommandAccess(profile);
+}
+
 export function canAccessAdmin(profile) {
   return hasPermission(profile, 'admin:access') 
     ? { authorized: true, reason: "PERMISSION_GRANTED" }

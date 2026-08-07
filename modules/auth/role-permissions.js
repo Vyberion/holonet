@@ -1,8 +1,8 @@
 import { ROBLOX_GROUPS } from "../data/roblox-config.js";
 
 export const PERMISSIONS = {
-  SUPER_USER: ['pages:view:all', 'codex:edit', 'archives:edit', 'admin:access', 'reports:write:all', 'powerbase:create', 'holonet:operator', 'powerbase:manage:all'],
-  HIGH_COMMAND: ['pages:view:all', 'admin:access', 'reports:write:all', 'powerbase:create'],
+  SUPER_USER: ['pages:view:all', 'codex:edit', 'archives:edit', 'admin:access', 'reports:write:all', 'powerbase:create', 'holonet:operator', 'powerbase:manage:all', 'inspections:write'],
+  HIGH_COMMAND: ['pages:view:all', 'admin:access', 'reports:write:all', 'powerbase:create', 'inspections:write'],
   DARK_COUNCIL: ['pages:view:standard', 'pages:view:divisions', 'pages:view:highranks', 'pages:view:darkcouncil', 'reports:write:all', 'powerbase:create'],
   INQUISITOR_OVERSEER: ['pages:view:standard', 'pages:view:divisions', 'pages:view:highranks', 'pages:view:darkcouncil', 'pages:view:inquisitors', 'reports:write:all', 'powerbase:create'],
   INQUISITORS: ['pages:view:standard', 'pages:view:divisions', 'pages:view:highranks', 'pages:view:inquisitors'],

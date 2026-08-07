@@ -1658,20 +1658,62 @@ export async function deleteWeeklyReport(auth, id) {
 }
 
 export function inspectionSectionsFor(division, sections = []) {
-  const fallback = {
-    dhg: ["Attendance", "Combat", "Jailing", "Guarding", "Codex", "Formations"],
-    reavers: ["Attendance", "Combat", "Assassinations", "Codex", "Formations"],
-    dreadmasters: ["Attendance", "Combat", "Lore", "Dread Lore", "Codex", "Formations"],
-    inquisitors: ["Placeholder"]
-  }[division] || ["Attendance", "Combat", "Codex", "Formations"];
+  const defaults = {
+    reavers: [
+      { name: "Activity", outOf: 100, weightedPercentage: 10 },
+      { name: "Combat", outOf: 0, weightedPercentage: 30 },
+      { name: "Assassinations", outOf: 0, weightedPercentage: 30 },
+      { name: "Codex", outOf: 0, weightedPercentage: 10 },
+      { name: "Formations", outOf: 40, weightedPercentage: 20 }
+    ],
+    dhg: [
+      { name: "Activity", outOf: 100, weightedPercentage: 10 },
+      { name: "Combat", outOf: 0, weightedPercentage: 20 },
+      { name: "Jailing", outOf: 0, weightedPercentage: 20 },
+      { name: "Guarding", outOf: 0, weightedPercentage: 20 },
+      { name: "Codex", outOf: 0, weightedPercentage: 20 },
+      { name: "Formations", outOf: 40, weightedPercentage: 10 }
+    ],
+    dreadmasters: [
+      { name: "Activity", outOf: 100, weightedPercentage: 10 },
+      { name: "Combat", outOf: 0, weightedPercentage: 10 },
+      { name: "Lore", outOf: 0, weightedPercentage: 20 },
+      { name: "Dread Lore", outOf: 0, weightedPercentage: 20 },
+      { name: "Codex", outOf: 0, weightedPercentage: 20 },
+      { name: "Formations", outOf: 40, weightedPercentage: 20 }
+    ],
+    inquisitors: [
+      { name: "Activity", outOf: 100, weightedPercentage: 10 },
+      { name: "Combat", outOf: 0, weightedPercentage: 10 },
+      { name: "Mocks", outOf: 0, weightedPercentage: 40 },
+      { name: "Codex", outOf: 0, weightedPercentage: 30 },
+      { name: "Formations", outOf: 40, weightedPercentage: 10 }
+    ]
+  }[division] || [
+    { name: "Activity", outOf: 100, weightedPercentage: 25 },
+    { name: "Combat", outOf: 0, weightedPercentage: 25 },
+    { name: "Codex", outOf: 0, weightedPercentage: 25 },
+    { name: "Formations", outOf: 40, weightedPercentage: 25 }
+  ];
 
-  const incoming = Array.isArray(sections) && sections.length ? sections : fallback.map(name => ({ name }));
-  return incoming.map(section => ({
-    name: requireString(section.name),
-    outOf: Number(section.outOf) || 0,
-    weightedPercentage: Number(section.weightedPercentage) || 0,
-    achievedScore: Number(section.achievedScore) || 0
-  })).filter(section => section.name);
+  const defaultMap = new Map(defaults.map(d => [d.name, d]));
+  const defaultAttendanceMap = new Map([
+    ["Attendance", "Activity"],
+    ["attendance", "Activity"]
+  ]);
+
+  const incoming = Array.isArray(sections) && sections.length ? sections : defaults;
+  return incoming.map(section => {
+    let name = requireString(section.name);
+    if (defaultAttendanceMap.has(name)) name = "Activity";
+    const def = defaultMap.get(name) || {};
+    return {
+      name,
+      outOf: section.outOf !== undefined && section.outOf !== "" ? (Number(section.outOf) || 0) : (def.outOf || 0),
+      weightedPercentage: def.weightedPercentage !== undefined ? def.weightedPercentage : (Number(section.weightedPercentage) || 0),
+      achievedScore: Number(section.achievedScore) || 0
+    };
+  }).filter(section => section.name);
 }
 
 export function calculateInspectionOverall(sections, bonusPercentage = 0) {

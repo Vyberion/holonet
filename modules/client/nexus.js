@@ -37,33 +37,37 @@ function divisionLabel(key) {
 
 function inspectionTemplate(division) {
   return {
-    dhg: [
-      ["Attendance", 12, 10],
-      ["Combat", 14, 10],
-      ["Jailing", 35, 20],
-      ["Guarding", 100, 20],
-      ["Codex", 35, 20],
-      ["Formations", 100, 20]
-    ],
     reavers: [
-      ["Attendance", 4, 10],
-      ["Combat", 6, 30],
-      ["Assassinations", 100, 20],
-      ["Codex", 10, 20],
-      ["Formations", 100, 20]
+      ["Activity", 100, 10],
+      ["Combat", "", 30],
+      ["Assassinations", "", 30],
+      ["Codex", "", 10],
+      ["Formations", 40, 20]
+    ],
+    dhg: [
+      ["Activity", 100, 10],
+      ["Combat", "", 20],
+      ["Jailing", "", 20],
+      ["Guarding", "", 20],
+      ["Codex", "", 20],
+      ["Formations", 40, 10]
     ],
     dreadmasters: [
-      ["Attendance", 6, 10],
-      ["Combat", 6, 10],
-      ["Lore", 15, 20],
-      ["Dread Lore", 15, 20],
-      ["Codex", 15, 20],
-      ["Formations", 100, 20]
+      ["Activity", 100, 10],
+      ["Combat", "", 10],
+      ["Lore", "", 20],
+      ["Dread Lore", "", 20],
+      ["Codex", "", 20],
+      ["Formations", 40, 20]
     ],
     inquisitors: [
-      ["Placeholder", 100, 100]
+      ["Activity", 100, 10],
+      ["Combat", "", 10],
+      ["Mocks", "", 40],
+      ["Codex", "", 30],
+      ["Formations", 40, 10]
     ]
-  }[division] || [["Attendance", 10, 25], ["Combat", 10, 25], ["Codex", 10, 25], ["Formations", 10, 25]];
+  }[division] || [["Activity", 100, 25], ["Combat", "", 25], ["Codex", "", 25], ["Formations", 40, 25]];
 }
 
 async function fetchNexus() {
@@ -148,51 +152,47 @@ function renderReportSummary(division) {
         <td>${escapeHtml(member.username || member.displayName || member.robloxId)}</td>
         <td>${escapeHtml(member.role || "")}</td>
         <td>${escapeHtml(memberTime.hours)}h ${escapeHtml(memberTime.minutes)}m</td>
-        <td>${escapeHtml(member.eventsHosted || 0)}</td>
-        <td>${escapeHtml(member.eventsAttended || 0)}</td>
+        <td>${escapeHtml(member.hostedCount || 0)}</td>
+        <td>${escapeHtml(member.attendedCount || 0)}</td>
       </tr>
     `;
   }).join("");
 
   return `
-    <article class="overview-report-card">
+    <article class="overview-report-card overview-report-card--${escapeHtml(division.id)}">
       <div class="overview-card-head">
         <div>
-          <span class="hub-kicker">${escapeHtml(division.node)} / ${escapeHtml(formatDate(report.updatedAt))}</span>
+          <span class="hub-kicker">${escapeHtml(division.node)} / ${escapeHtml(formatDate(report.weekStart))}</span>
           <strong>${escapeHtml(division.name)} Weekly Report</strong>
         </div>
-        <span class="nexus-status">${escapeHtml(division.status)}</span>
+        <span class="nexus-status">${report.status || "logged"}</span>
       </div>
       <div class="overview-total-strip">
-        <span>${escapeHtml(members.length)} members</span>
-        <span>${escapeHtml(totalTime.hours)}h ${escapeHtml(totalTime.minutes)}m</span>
-        <span>${escapeHtml(totals.eventsHosted || 0)} hosted</span>
-        <span>${escapeHtml(totals.eventsAttended || 0)} attended</span>
+        <span>Total Time ${escapeHtml(totalTime.hours)}h ${escapeHtml(totalTime.minutes)}m</span>
+        <span>Hosted ${escapeHtml(totals.hosted || 0)}</span>
+        <span>Attended ${escapeHtml(totals.attended || 0)}</span>
+        <span>Total Roster ${escapeHtml(members.length)}</span>
       </div>
-      <table class="overview-mini-table">
+      <table class="overview-mini-table" aria-label="${escapeHtml(division.name)} weekly report summary">
         <thead><tr><th>Member</th><th>Rank</th><th>Time</th><th>Hosted</th><th>Attended</th></tr></thead>
-        <tbody>${topRows || `<tr><td colspan="5">No member rows.</td></tr>`}</tbody>
+        <tbody>${topRows}</tbody>
       </table>
-      <div class="nexus-actions">
-        <a class="hub-inline-link" href="${escapeHtml(division.links.reports)}">Open Reports</a>
-        ${division.canWriteReport ? `<a class="hub-write-btn" href="${escapeHtml(division.links.reports)}">WRITE REPORT</a>` : ""}
+      <div class="hub-card-actions">
+        <a class="hub-write-btn" href="${escapeHtml(division.links.reports)}">VIEW FULL REPORT</a>
       </div>
     </article>
   `;
 }
 
-function renderInspectionTable(inspection, divisionKey) {
-  const sections = Array.isArray(inspection?.sections) && inspection.sections.length
-    ? inspection.sections
-    : inspectionTemplate(divisionKey).map(([name, outOf, weightedPercentage]) => ({
-      name,
-      outOf,
-      weightedPercentage,
-      achievedScore: 0
-    }));
+function renderInspectionTable(inspection, divisionId) {
+  if (!inspection) {
+    return `<p class="hub-empty">No inspection score logged.</p>`;
+  }
+
+  const sections = Array.isArray(inspection.sections) ? inspection.sections : [];
 
   return `
-    <table class="overview-inspection-table">
+    <table class="overview-inspection-table" aria-label="${escapeHtml(divisionId)} inspection sections">
       <thead>
         <tr>
           <th>Sections</th>
@@ -204,12 +204,13 @@ function renderInspectionTable(inspection, divisionKey) {
       </thead>
       <tbody>
         ${sections.map(section => {
+          const sectionName = section.name === "Attendance" ? "Activity" : section.name;
           const percentage = section.outOf && section.weightedPercentage
             ? ((Number(section.achievedScore || 0) / Number(section.outOf || 1)) * Number(section.weightedPercentage || 0)).toFixed(2)
             : "0.00";
           return `
             <tr>
-              <td>${escapeHtml(section.name)}</td>
+              <td>${escapeHtml(sectionName)}</td>
               <td>${escapeHtml(section.outOf || 0)}</td>
               <td>${escapeHtml(section.weightedPercentage || 0)}</td>
               <td>${escapeHtml(section.achievedScore || 0)}</td>
@@ -347,7 +348,7 @@ function openInspectionEditor(division, afterSave, entry = null) {
     name,
     outOf,
     weightedPercentage,
-    achievedScore: 0
+    achievedScore: ""
   }));
 
   title.textContent = entry?.id ? "EDIT INSPECTION" : "WRITE INSPECTION";
@@ -360,15 +361,23 @@ function openInspectionEditor(division, afterSave, entry = null) {
       <input type="date" name="heldOn" value="${escapeHtml(entry?.heldOn || new Date().toISOString().slice(0, 10))}" required>
     </div>
     <div class="inspection-editor-grid">
-      ${sections.map((section, index) => `
-        <div class="inspection-editor-row" data-inspection-section="${index}">
-          <strong>${escapeHtml(section.name)}</strong>
-          <input type="hidden" name="name-${index}" value="${escapeHtml(section.name)}">
-          <label>Out Of <input type="number" min="0" step="0.01" name="outOf-${index}" value="${escapeHtml(section.outOf ?? 0)}"></label>
-          <label>Weighted <input type="number" min="0" step="0.01" name="weightedPercentage-${index}" value="${escapeHtml(section.weightedPercentage ?? 0)}"></label>
-          <label>Achieved <input type="number" min="0" step="0.01" name="achievedScore-${index}" value="${escapeHtml(section.achievedScore ?? 0)}"></label>
-        </div>
-      `).join("")}
+      ${sections.map((section, index) => {
+        const name = section.name === "Attendance" ? "Activity" : section.name;
+        return `
+          <div class="inspection-editor-row" data-inspection-section="${index}">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+              <strong style="color:var(--gold,#d4af37); font-family:Cinzel,serif;">${escapeHtml(name)}</strong>
+              <span style="font-size:0.75rem; color:#888; background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.2); padding:0.15rem 0.4rem; border-radius:4px;">${escapeHtml(section.weightedPercentage)}% Weight</span>
+            </div>
+            <input type="hidden" name="name-${index}" value="${escapeHtml(name)}">
+            <input type="hidden" name="weightedPercentage-${index}" value="${escapeHtml(section.weightedPercentage)}">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+              <label>Achieved <input type="number" min="0" step="0.01" name="achievedScore-${index}" value="${escapeHtml(section.achievedScore ?? "")}" placeholder="0"></label>
+              <label>Out Of <input type="number" min="0" step="0.01" name="outOf-${index}" value="${escapeHtml(section.outOf ?? "")}" placeholder="Out of"></label>
+            </div>
+          </div>
+        `;
+      }).join("")}
     </div>
     <div class="resource-editor-field">
       <label>Bonus Percentage</label>

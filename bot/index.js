@@ -8,8 +8,8 @@ import { startShiftReminderLoop } from "./services/shift-reminders.js";
 import { syncStoredPowerbaseRosters } from "./services/powerbase-api.js";
 import { registerRoleConnectionMetadata } from "./services/discord-linked-roles.js";
 
-const holonetPresence = {
-  status: "online",
+``` const holonetPresence = {
+  status: "dnd",
   activities: [
     {
       name: "Custom Status",
@@ -17,7 +17,7 @@ const holonetPresence = {
       type: ActivityType.Custom
     }
   ]
-};
+};```
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages],

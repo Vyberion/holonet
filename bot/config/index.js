@@ -45,7 +45,9 @@ export const config = mergeDeep(exampleConfig, {
 });
 
 export function requireEnv(name) {
-  const value = process.env[name];
+  const value = process.env[name] ||
+    (name === "SUPABASE_URL" ? process.env.NEXT_PUBLIC_SUPABASE_URL : "") ||
+    (name === "SUPABASE_SERVICE_ROLE_KEY" ? (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) : "");
   if (!value) throw new Error(`${name} is required`);
   return value;
 }

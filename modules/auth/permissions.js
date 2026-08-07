@@ -27,9 +27,7 @@ const PAGE_ACCESS = {
   lookup: { public: true },
   personnel: { public: true },
   home: { public: true },
-  mandate: { public: true },
   agenda_handbooks: { public: true },
-  mandate_handbooks: { public: true },
   index: { public: true },
 
   registry: { require: 'registry:access' },
@@ -194,7 +192,7 @@ export function canWriteInspection(profile) {
 }
 
 export function canAccessAdmin(profile) {
-  return hasPermission(profile, 'admin:access') 
+  return hasPermission(profile, 'admin:access')
     ? { authorized: true, reason: "PERMISSION_GRANTED" }
     : { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
 }

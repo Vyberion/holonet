@@ -41,8 +41,7 @@ export const commands = [
         .setDescription("Event type")
         .setRequired(true)
         .addChoices(
-          { name: "Deployment", value: "deployment" },
-          { name: "Kaggath", value: "kaggath" }
+          { name: "Deployment", value: "deployment" }
         ))),
   new SlashCommandBuilder()
     .setName("reset")
@@ -704,50 +703,56 @@ async function confirmReset(interaction, parts) {
   }
 }
 
-export function buildDeploymentEventContainer(title = "# SSU", description = "The gates to the Temple have opened. Convene on Korriban!", rolePingsText = "") {
-  const components = [];
-
-  if (rolePingsText) {
-    components.push({
-      type: 10,
-      content: rolePingsText
-    });
-  }
-
-  components.push(
-    {
-      type: 10,
-      content: title || "# SSU"
-    },
-    {
-      type: 14,
-      divider: true,
-      spacing: 1
-    },
-    {
-      type: 10,
-      content: description || "The gates to the Temple have opened. Convene on Korriban!"
-    },
-    {
-      type: 1,
-      components: [
-        {
-          type: 2,
-          style: 5,
-          label: "Deploy",
-          emoji: null,
-          disabled: false,
-          url: "https://www.thesithorder.org/galaxy?planet=Korriban"
-        }
-      ]
-    }
-  );
+export function buildDeploymentEventContainer(title = "# SSU", description = "The gates to the Temple have opened. Convene on Korriban!") {
+  const bannerUrl = `${config.holonet.baseUrl || "https://www.thesithorder.org"}/assets/other/h.o.l.o-banner.png`;
 
   return {
     type: 17,
     accent_color: 0xff3348,
     spoiler: false,
-    components
+    components: [
+      {
+        type: 10,
+        content: title || "# SSU"
+      },
+      {
+        type: 14,
+        divider: true,
+        spacing: 1
+      },
+      {
+        type: 10,
+        content: description || "The gates to the Temple have opened. Convene on Korriban!"
+      },
+      {
+        type: 14,
+        divider: true,
+        spacing: 1
+      },
+      {
+        type: 12,
+        items: [
+          {
+            media: {
+              url: bannerUrl
+            }
+          }
+        ]
+      },
+      {
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 5,
+            label: "Deploy",
+            emoji: null,
+            disabled: false,
+            url: `${config.holonet.baseUrl || "https://www.thesithorder.org"}/galaxy?planet=Korriban`
+          }
+        ]
+      }
+    ]
   };
 }
 
@@ -931,11 +936,16 @@ export async function handleButton(interaction) {
       ? draft.selectedRoleIds.map(id => `<@&${id}>`).join(" ")
       : "";
 
-    const eventContainer = buildDeploymentEventContainer(draft.title, draft.description, rolePingContent);
+    const eventContainer = buildDeploymentEventContainer(draft.title, draft.description);
+    const messageComponents = [];
+    if (rolePingContent) {
+      messageComponents.push(textDisplayV2(rolePingContent));
+    }
+    messageComponents.push(eventContainer);
 
     await channel.send({
       flags: 32768,
-      components: [eventContainer],
+      components: messageComponents,
       allowedMentions: draft.selectedRoleIds?.length > 0
         ? { parse: [], roles: draft.selectedRoleIds }
         : { parse: [] }

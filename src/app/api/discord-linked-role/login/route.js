@@ -1,9 +1,10 @@
 import { executeLegacyHandler } from "../../../../lib/legacy-api-adapter.js";
 import { createRandomToken, serializeCookie, STATE_COOKIE } from "../../../../../modules/auth/session-store.js";
 import { OAUTH_STATE_MAX_AGE_SECONDS, encodeOAuthStateCookie } from "../../../../lib/api-helpers.js";
+import { getDiscordClientId } from "../../../../../bot/services/discord-linked-roles.js";
 
 const handler = async (req, res) => {
-  const clientId = process.env.DISCORD_CLIENT_ID;
+  const clientId = getDiscordClientId();
   if (!clientId) {
     return res.status(500).send("DISCORD_CLIENT_ID environment variable is missing.");
   }

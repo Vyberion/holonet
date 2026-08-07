@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, RoleSelectMenuBuilder, SlashCommandBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, ChannelType, ModalBuilder, RoleSelectMenuBuilder, SlashCommandBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { config } from "../config/index.js";
 import { checkPageAccess, checkResourceWriteAccess } from "../../modules/auth/permissions.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
@@ -704,65 +704,91 @@ async function confirmReset(interaction, parts) {
   }
 }
 
-export function buildDeploymentEventContainer(title = "# SSU", description = "The gates to the Temple have opened. Convene on Korriban!") {
+export function buildDeploymentEventContainer(title = "# SSU", description = "") {
   const bannerUrl = `${config.holonet.baseUrl || "https://www.thesithorder.org"}/assets/other/h.o.l.o-banner.png`;
+
+  const components = [
+    {
+      type: 10,
+      content: title || "# SSU"
+    },
+    {
+      type: 14,
+      divider: true,
+      spacing: 1
+    }
+  ];
+
+  if (description && String(description).trim()) {
+    components.push(
+      {
+        type: 10,
+        content: String(description).trim()
+      },
+      {
+        type: 14,
+        divider: true,
+        spacing: 1
+      }
+    );
+  }
+
+  components.push(
+    {
+      type: 12,
+      items: [
+        {
+          media: {
+            url: bannerUrl
+          }
+        }
+      ]
+    },
+    {
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 5,
+          label: "Deploy",
+          emoji: null,
+          disabled: false,
+          url: `${config.holonet.baseUrl || "https://www.thesithorder.org"}/galaxy?planet=Korriban`
+        }
+      ]
+    }
+  );
 
   return {
     type: 17,
     accent_color: 0xff3348,
     spoiler: false,
-    components: [
-      {
-        type: 10,
-        content: title || "# SSU"
-      },
-      {
-        type: 14,
-        divider: true,
-        spacing: 1
-      },
-      {
-        type: 10,
-        content: description || "The gates to the Temple have opened. Convene on Korriban!"
-      },
-      {
-        type: 14,
-        divider: true,
-        spacing: 1
-      },
-      {
-        type: 12,
-        items: [
-          {
-            media: {
-              url: bannerUrl
-            }
-          }
-        ]
-      },
-      {
-        type: 1,
-        components: [
-          {
-            type: 2,
-            style: 5,
-            label: "Deploy",
-            emoji: null,
-            disabled: false,
-            url: `${config.holonet.baseUrl || "https://www.thesithorder.org"}/galaxy?planet=Korriban`
-          }
-        ]
-      }
-    ]
+    components
   };
 }
 
 function renderEventWritePreview(sessionId, draft) {
   const previewContainer = buildDeploymentEventContainer(draft.title, draft.description);
 
-  const rolePingsText = draft.selectedRoleIds?.length > 0
-    ? draft.selectedRoleIds.map(id => `<@&${id}>`).join(" ")
-    : "*None*";
+  const pings = [];
+  if (draft.pingEveryone) pings.push("@everyone");
+  if (draft.selectedRoleIds?.length > 0) {
+    pings.push(...draft.selectedRoleIds.map(id => `<@&${id}>`));
+  }
+  const rolePingsText = pings.length > 0 ? pings.join(" ") : "*None*";
+
+  const targetChannelId = draft.targetChannelId || "1046469967744356474";
+
+  const channelSelect = new ChannelSelectMenuBuilder()
+    .setCustomId(`we_channel:${sessionId}`)
+    .setPlaceholder("Select Target Channel")
+    .setChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+    .setMinValues(1)
+    .setMaxValues(1);
+
+  if (targetChannelId && typeof channelSelect.setDefaultChannels === "function") {
+    channelSelect.setDefaultChannels([targetChannelId]);
+  }
 
   const roleSelect = new RoleSelectMenuBuilder()
     .setCustomId(`we_roles:${sessionId}`)
@@ -773,6 +799,11 @@ function renderEventWritePreview(sessionId, draft) {
   if (draft.selectedRoleIds?.length > 0 && typeof roleSelect.setDefaultRoles === "function") {
     roleSelect.setDefaultRoles(draft.selectedRoleIds);
   }
+
+  const everyoneBtn = new ButtonBuilder()
+    .setCustomId(`we_everyone:${sessionId}`)
+    .setLabel(draft.pingEveryone ? "Ping @everyone: ON" : "Ping @everyone: OFF")
+    .setStyle(draft.pingEveryone ? ButtonStyle.Primary : ButtonStyle.Secondary);
 
   const editBtn = new ButtonBuilder()
     .setCustomId(`we_edit:${sessionId}`)
@@ -790,9 +821,10 @@ function renderEventWritePreview(sessionId, draft) {
     .setStyle(ButtonStyle.Danger);
 
   const controlsContainer = containerV2([
-    textDisplayV2(`### Deployment Event Setup\n**Target Channel:** <#1046469967744356474>\n**Role Pings:** ${rolePingsText}`),
+    textDisplayV2(`### Deployment Event Setup\n**Target Channel:** <#${targetChannelId}>\n**Pings:** ${rolePingsText}`),
+    new ActionRowBuilder().addComponents(channelSelect),
     new ActionRowBuilder().addComponents(roleSelect),
-    new ActionRowBuilder().addComponents(editBtn, postBtn, cancelBtn)
+    new ActionRowBuilder().addComponents(everyoneBtn, editBtn, postBtn, cancelBtn)
   ]);
 
   return ephemeral(componentsV2Message([previewContainer, controlsContainer]));
@@ -809,8 +841,10 @@ async function handleWriteEventDeployment(interaction) {
     userId: interaction.user.id,
     eventType: "deployment",
     title: "# SSU",
-    description: "The gates to the Temple have opened. Convene on Korriban!",
-    selectedRoleIds: []
+    description: "",
+    selectedRoleIds: [],
+    pingEveryone: false,
+    targetChannelId: "1046469967744356474"
   };
 
   globalThis.__eventWriteCache = globalThis.__eventWriteCache || new Map();
@@ -874,6 +908,20 @@ export async function handleButton(interaction) {
     return true;
   }
 
+  if (interaction.customId.startsWith("we_everyone:")) {
+    const sessionId = interaction.customId.split(":")[1];
+    const draft = globalThis.__eventWriteCache?.get(sessionId);
+    if (!draft) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Event setup session expired. Please run `/write event deployment` again.")])])));
+    }
+    if (interaction.user.id !== draft.userId) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Only the user who started this setup can toggle pings.")])])));
+    }
+
+    draft.pingEveryone = !draft.pingEveryone;
+    return interaction.update(renderEventWritePreview(sessionId, draft));
+  }
+
   if (interaction.customId.startsWith("we_edit:")) {
     const sessionId = interaction.customId.split(":")[1];
     const draft = globalThis.__eventWriteCache?.get(sessionId);
@@ -900,10 +948,10 @@ export async function handleButton(interaction) {
       new ActionRowBuilder().addComponents(
         new TextInputBuilder()
           .setCustomId("we_desc")
-          .setLabel("Description (Markdown)")
+          .setLabel("Description (Optional, Markdown)")
           .setStyle(TextInputStyle.Paragraph)
-          .setValue(draft.description || "The gates to the Temple have opened. Convene on Korriban!")
-          .setRequired(true)
+          .setValue(draft.description || "")
+          .setRequired(false)
       )
     );
 
@@ -927,15 +975,18 @@ export async function handleButton(interaction) {
       return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Only the user who started this setup can post it.")])])));
     }
 
-    const channelId = "1046469967744356474";
+    const channelId = draft.targetChannelId || "1046469967744356474";
     const channel = await interaction.client.channels.fetch(channelId).catch(() => null);
     if (!channel?.isTextBased?.() || typeof channel.send !== "function") {
       return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ Could not access target channel <#${channelId}>.`)])])));
     }
 
-    const rolePingContent = draft.selectedRoleIds?.length > 0
-      ? draft.selectedRoleIds.map(id => `<@&${id}>`).join(" ")
-      : "";
+    const pings = [];
+    if (draft.pingEveryone) pings.push("@everyone");
+    if (draft.selectedRoleIds?.length > 0) {
+      pings.push(...draft.selectedRoleIds.map(id => `<@&${id}>`));
+    }
+    const rolePingContent = pings.join(" ");
 
     const eventContainer = buildDeploymentEventContainer(draft.title, draft.description);
     const messageComponents = [];
@@ -944,12 +995,16 @@ export async function handleButton(interaction) {
     }
     messageComponents.push(eventContainer);
 
+    const allowedParse = [];
+    if (draft.pingEveryone) allowedParse.push("everyone");
+
     await channel.send({
       flags: 32768,
       components: messageComponents,
-      allowedMentions: draft.selectedRoleIds?.length > 0
-        ? { parse: [], roles: draft.selectedRoleIds }
-        : { parse: [] }
+      allowedMentions: {
+        parse: allowedParse,
+        roles: draft.selectedRoleIds || []
+      }
     });
 
     await postActivityLog(interaction.client, {
@@ -958,7 +1013,7 @@ export async function handleButton(interaction) {
       fields: [
         { name: "Title", value: draft.title, inline: true },
         { name: "Channel", value: `<#${channelId}>`, inline: true },
-        { name: "Role Pings", value: rolePingContent || "None", inline: false }
+        { name: "Pings", value: rolePingContent || "None", inline: false }
       ]
     });
 
@@ -970,6 +1025,20 @@ export async function handleButton(interaction) {
 }
 
 export async function handleSelectMenu(interaction) {
+  if (interaction.customId.startsWith("we_channel:")) {
+    const sessionId = interaction.customId.split(":")[1];
+    const draft = globalThis.__eventWriteCache?.get(sessionId);
+    if (!draft) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Event setup session expired. Please run `/write event deployment` again.")])])));
+    }
+    if (interaction.user.id !== draft.userId) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Only the user who started this setup can select target channel.")])])));
+    }
+
+    draft.targetChannelId = interaction.values?.[0] || "1046469967744356474";
+    return interaction.update(renderEventWritePreview(sessionId, draft));
+  }
+
   if (interaction.customId.startsWith("we_roles:")) {
     const sessionId = interaction.customId.split(":")[1];
     const draft = globalThis.__eventWriteCache?.get(sessionId);
@@ -999,7 +1068,7 @@ export async function handleModal(interaction) {
     }
 
     draft.title = interaction.fields.getTextInputValue("we_title");
-    draft.description = interaction.fields.getTextInputValue("we_desc");
+    draft.description = interaction.fields.getTextInputValue("we_desc") || "";
 
     return interaction.update(renderEventWritePreview(sessionId, draft));
   }

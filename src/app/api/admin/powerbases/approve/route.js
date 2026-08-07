@@ -71,12 +71,18 @@ async function syncRosterViaRest(powerbaseId, forceDelete = false, cachedPb = nu
     }
 
     if (pb.roblox_group_id) {
+      const match = String(pb.roblox_group_id).match(/\d+/);
+      const cleanUrl = String(pb.roblox_group_id).startsWith("http")
+        ? pb.roblox_group_id
+        : `https://www.roblox.com/groups/${match ? match[0] : pb.roblox_group_id}`;
       components.push({ type: 14, divider: true, spacing: 1 });
-      components.push({ type: 10, content: `**Roblox Group ID:** ${pb.roblox_group_id}` });
+      components.push({ type: 10, content: `**Roblox Group:** [Group Link](${cleanUrl})` });
     }
 
+    const appText = memberIds.length > 0 ? memberIds.map(id => `<@${id}>`).join("\n") : "*None*";
+
     components.push({ type: 14, divider: true, spacing: 1 });
-    components.push({ type: 10, content: `**Roster (${memberIds.length + 1} Total):**\n${leaderText}\n${apprenticeText}` });
+    components.push({ type: 10, content: `**Roster (${memberIds.length + 1} Total)**\n**Leader:**\n<@${pb.leader_id}>\n**Apprentices:**\n${appText}` });
 
     const payload = {
       flags: 32768,

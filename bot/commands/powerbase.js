@@ -5,7 +5,7 @@ import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2
 import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseForUser, isHigherRank, logPowerbaseAction, slugifyPowerbase, syncPowerbaseRosterMessage, updatePowerbase } from "../services/powerbase-api.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { hasPermission } from "../../modules/auth/permissions.js";
-import { postActivityLog } from "../services/activity-log.js";
+import { postActivityLog, postPowerbaseLog, HIGH_COMMAND_ROLE_ID } from "../services/activity-log.js";
 
 export const commands = [
   new SlashCommandBuilder()
@@ -151,16 +151,17 @@ export async function handleModal(interaction) {
       groupLinkValue = `[Group Link](${cleanUrl})`;
     }
 
-    await postActivityLog(interaction.client, {
+    await postPowerbaseLog(interaction.client, {
       title: "⚔️ Powerbase Creation Requested",
-      description: `A new Powerbase creation request has been submitted for approval.`,
+      description: `A new Powerbase creation request has been submitted for approval by High Command.`,
+      content: `<@&${HIGH_COMMAND_ROLE_ID}>`,
       fields: [
         { name: "Powerbase Name", value: name, inline: true },
-        { name: "Leader Username", value: leaderUsername, inline: true },
+        { name: "Leader", value: `${leaderUsername} (<@${interaction.user.id}>)`, inline: true },
         { name: "Roblox Group", value: groupLinkValue, inline: true }
       ],
-      channelKey: "highCommandLog",
-      color: 0xff3348
+      color: 0x8a1b1b,
+      allowedRoleIds: [HIGH_COMMAND_ROLE_ID]
     });
 
     await interaction.reply(ephemeral(componentsV2Message([
@@ -187,6 +188,26 @@ export async function handleModal(interaction) {
     await syncPowerbaseRosterMessage(interaction.client, pbId);
 
     const pb = await getPowerbase(pbId);
+    let editGroupLink = "None";
+    if (pb.roblox_group_id) {
+      const match = String(pb.roblox_group_id).match(/\d+/);
+      const cleanUrl = String(pb.roblox_group_id).startsWith("http")
+        ? pb.roblox_group_id
+        : `https://www.roblox.com/groups/${match ? match[0] : pb.roblox_group_id}`;
+      editGroupLink = `[Group Link](${cleanUrl})`;
+    }
+
+    await postPowerbaseLog(interaction.client, {
+      title: "✏️ Powerbase Details Updated",
+      description: `Powerbase details for **${pb.name}** have been updated.`,
+      fields: [
+        { name: "Powerbase Name", value: pb.name, inline: true },
+        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+        { name: "Roblox Group", value: editGroupLink, inline: true },
+        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true }
+      ],
+      color: 0x8a1b1b
+    });
     const currentMemberIds = (pb?.powerbase_members || [])
       .map(m => String(m.user_id || m.discord_user_id))
       .filter(Boolean);
@@ -248,6 +269,22 @@ async function handleEditMembers(interaction) {
     if (globalThis.__pbEditMembersCache) globalThis.__pbEditMembersCache.delete(interaction.user.id);
 
     await syncPowerbaseRosterMessage(interaction.client, pb.id);
+
+    const appText = finalMemberIds.length > 0
+      ? finalMemberIds.map(id => `<@${id}>`).join("\n")
+      : "*None*";
+
+    await postPowerbaseLog(interaction.client, {
+      title: "Powerbase Roster Updated",
+      description: `Roster for Powerbase **${pb.name}** has been updated.`,
+      fields: [
+        { name: "Powerbase Name", value: pb.name, inline: true },
+        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+        { name: "Apprentices", value: appText, inline: false },
+        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true }
+      ],
+      color: 0x8a1b1b
+    });
 
     const v2Payload = componentsV2Message([
       containerV2([
@@ -443,6 +480,29 @@ async function handleManageActionSelect(interaction) {
 
     await updatePowerbase(pbId, { status: "PENDING_DISSOLVE" });
     await syncPowerbaseRosterMessage(interaction.client, pbId);
+
+    let dissolveGroupLink = "None";
+    if (pb.roblox_group_id) {
+      const match = String(pb.roblox_group_id).match(/\d+/);
+      const cleanUrl = String(pb.roblox_group_id).startsWith("http")
+        ? pb.roblox_group_id
+        : `https://www.roblox.com/groups/${match ? match[0] : pb.roblox_group_id}`;
+      dissolveGroupLink = `[Group Link](${cleanUrl})`;
+    }
+
+    await postPowerbaseLog(interaction.client, {
+      title: "Powerbase Dissolution Requested",
+      description: `A dissolution request for Powerbase **${pb.name}** has been submitted for approval by High Command.`,
+      content: `<@&${HIGH_COMMAND_ROLE_ID}>`,
+      fields: [
+        { name: "Powerbase Name", value: pb.name, inline: true },
+        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+        { name: "Roblox Group", value: dissolveGroupLink, inline: true }
+      ],
+      color: 0x8a1b1b,
+      allowedRoleIds: [HIGH_COMMAND_ROLE_ID]
+    });
+
     const v2Payload = componentsV2Message([
       containerV2([
         textDisplayV2(`### Dissolution Requested`),
@@ -480,6 +540,18 @@ async function handleChangeLeaderSelect(interaction) {
     await logPowerbaseAction(interaction.user.id, "LEADER_CHANGED", pbId, `Leadership transferred to <@${newLeaderId}>`);
 
     await syncPowerbaseRosterMessage(interaction.client, pbId);
+
+    await postPowerbaseLog(interaction.client, {
+      title: "Powerbase Leadership Transferred",
+      description: `Leadership of Powerbase **${pb.name}** has been transferred.`,
+      fields: [
+        { name: "Powerbase Name", value: pb.name, inline: true },
+        { name: "Old Leader", value: `<@${pb.leader_id}>`, inline: true },
+        { name: "New Leader", value: `<@${newLeaderId}>`, inline: true },
+        { name: "Transferred By", value: `<@${interaction.user.id}>`, inline: true }
+      ],
+      color: 0x8a1b1b
+    });
 
     const v2Payload = componentsV2Message([
       containerV2([
@@ -667,7 +739,7 @@ async function handleInfoSelect(interaction) {
     components.push(separatorV2());
   }
 
-  components.push(textDisplayV2(`**Roster (${memberIds.length + 1} Total)**\n**Leader:** <@${pb.leader_id}>\n**Apprentices:**\n${apprenticeText}`));
+  components.push(textDisplayV2(`**Roster (${memberIds.length + 1} Total)**\n**Leader:**\n<@${pb.leader_id}>\n**Apprentices:**\n${apprenticeText}`));
 
   const v2Payload = componentsV2Message([containerV2(components, 0x8a1b1b)]);
   await interaction.update(ephemeral(v2Payload));

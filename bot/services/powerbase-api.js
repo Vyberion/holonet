@@ -50,6 +50,15 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
     const pbSlug = slugifyPowerbase(pb.name);
     const pbUrl = `https://www.thesithorder.org/powerbases/${pbSlug}`;
 
+    let groupLinkText = "";
+    if (pb.roblox_group_id) {
+      const match = String(pb.roblox_group_id).match(/\d+/);
+      const cleanUrl = String(pb.roblox_group_id).startsWith("http")
+        ? pb.roblox_group_id
+        : `https://www.roblox.com/groups/${match ? match[0] : pb.roblox_group_id}`;
+      groupLinkText = `**Roblox Group:** [Group Link](${cleanUrl})`;
+    }
+
     const components = [
       textDisplayV2(`### [${pb.name}](${pbUrl})`),
       textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}`),
@@ -61,12 +70,12 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
       components.push(separatorV2());
     }
 
-    if (pb.roblox_group_id) {
-      components.push(textDisplayV2(`**Roblox Group ID:** ${pb.roblox_group_id}`));
+    if (groupLinkText) {
+      components.push(textDisplayV2(groupLinkText));
       components.push(separatorV2());
     }
 
-    components.push(textDisplayV2(`**Roster (${memberIds.length + 1} Total)**\n**Leader:** <@${pb.leader_id}>\n**Apprentices:**\n${apprenticeText}`));
+    components.push(textDisplayV2(`**Roster (${memberIds.length + 1} Total)**\n**Leader:**\n<@${pb.leader_id}>\n**Apprentices:**\n${apprenticeText}`));
 
     const v2Payload = componentsV2Message([containerV2(components, 0x8a1b1b)]);
 

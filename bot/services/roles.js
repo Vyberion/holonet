@@ -273,8 +273,7 @@ export async function getVerifiedProfile(discordUserId) {
   const { data: rows, error } = await supabase
     .from("verification_links")
     .select("*")
-    .eq("discord_user_id", String(discordUserId))
-    .order("id", { ascending: false });
+    .eq("discord_user_id", String(discordUserId));
 
   if (error) throw error;
   const data = rows && rows.length > 0 ? rows[0] : null;

@@ -1,3 +1,5 @@
+import { config } from "../config/index.js";
+
 const DISCORD_API_URL = "https://discord.com/api/v10";
 
 export const HOLONET_METADATA_SCHEMA = [
@@ -16,8 +18,8 @@ export const HOLONET_METADATA_SCHEMA = [
 ];
 
 export async function registerRoleConnectionMetadata() {
-  const clientId = process.env.DISCORD_CLIENT_ID;
-  const botToken = process.env.DISCORD_TOKEN;
+  const clientId = process.env.DISCORD_CLIENT_ID || config.discord?.clientId;
+  const botToken = process.env.DISCORD_TOKEN || config.discord?.token;
 
   if (!clientId || !botToken) {
     throw new Error("DISCORD_CLIENT_ID and DISCORD_TOKEN environment variables are required.");
@@ -42,11 +44,11 @@ export async function registerRoleConnectionMetadata() {
 }
 
 export async function getDiscordOAuthTokens(code, redirectUri) {
-  const clientId = process.env.DISCORD_CLIENT_ID;
-  const clientSecret = process.env.DISCORD_CLIENT_SECRET;
+  const clientId = process.env.DISCORD_CLIENT_ID || config.discord?.clientId;
+  const clientSecret = process.env.DISCORD_CLIENT_SECRET || config.discord?.clientSecret || process.env.DISCORD_TOKEN || config.discord?.token;
 
   if (!clientId || !clientSecret) {
-    throw new Error("DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET are required for OAuth2 token exchange.");
+    throw new Error("DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET (or DISCORD_TOKEN) are required for OAuth2 token exchange.");
   }
 
   const params = new URLSearchParams({
@@ -85,7 +87,7 @@ export async function getDiscordUser(accessToken) {
 }
 
 export async function pushRoleConnectionData(accessToken, platformUsername, metadata) {
-  const clientId = process.env.DISCORD_CLIENT_ID;
+  const clientId = process.env.DISCORD_CLIENT_ID || config.discord?.clientId;
   if (!clientId) throw new Error("DISCORD_CLIENT_ID is missing.");
 
   const url = `${DISCORD_API_URL}/users/@me/applications/${clientId}/role-connection`;

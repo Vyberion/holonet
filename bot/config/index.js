@@ -34,7 +34,8 @@ export const config = mergeDeep(exampleConfig, {
   ...localConfig,
   discord: {
     ...localConfig.discord,
-    clientId: process.env.DISCORD_CLIENT_ID,
+    clientId: process.env.DISCORD_CLIENT_ID || localConfig.discord?.clientId || exampleConfig.discord?.clientId,
+    clientSecret: process.env.DISCORD_CLIENT_SECRET || localConfig.discord?.clientSecret,
     guildId: process.env.DISCORD_GUILD_ID || localConfig.discord?.guildId || exampleConfig.discord.guildId
   },
   holonet: {

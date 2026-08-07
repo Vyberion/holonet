@@ -18,13 +18,8 @@ export const commands = [
     )
     .addSubcommand(subcommand =>
       subcommand
-        .setName("edit")
-        .setDescription("Edit your Powerbase name, description, group ID, or members")
-    )
-    .addSubcommand(subcommand =>
-      subcommand
         .setName("manage")
-        .setDescription("Manage a Powerbase's name, description, group ID, members, or leadership")
+        .setDescription("Manage Powerbase name, description, group ID, members, or leadership")
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -51,7 +46,6 @@ export async function handleCommand(interaction) {
     }
 
     if (subcommand === "create") return await handleCreate(interaction, verified);
-    if (subcommand === "edit") return await handleEdit(interaction, verified);
     if (subcommand === "manage") return await handleManage(interaction, verified);
     if (subcommand === "dissolve") return await handleDissolve(interaction, verified);
     if (subcommand === "info") return await handleInfo(interaction, verified);
@@ -271,80 +265,73 @@ async function handleEditMembers(interaction) {
 // EDIT FLOW
 // --------------------------------------------------------------------------------------
 
-async function handleEdit(interaction, verified) {
-  const existing = await getPowerbaseForUser(interaction.user.id);
-  if (!existing || existing.leader_id !== interaction.user.id) {
-    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not lead a Powerbase.")])])));
+async function showManageOptions(interaction, pb, canManageAll) {
+  const options = [
+    { label: "Edit Details (Name / Description / Group ID)", value: "edit" },
+    { label: "Manage Roster (Add / Remove Apprentices)", value: "members" }
+  ];
+
+  if (canManageAll) {
+    options.push({ label: "Transfer Leadership", value: "leader" });
   }
 
-  const modal = new ModalBuilder()
-    .setCustomId(`pb_edit_modal:${existing.id}`)
-    .setTitle(`Edit ${existing.name.substring(0, 30)}`);
+  options.push({ label: "Dissolve Powerbase", value: "dissolve" });
 
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(
-      new TextInputBuilder()
-        .setCustomId("name")
-        .setLabel("Powerbase Name")
-        .setStyle(TextInputStyle.Short)
-        .setValue(existing.name)
-        .setRequired(true)
-    ),
-    new ActionRowBuilder().addComponents(
-      new TextInputBuilder()
-        .setCustomId("description")
-        .setLabel("Description")
-        .setStyle(TextInputStyle.Paragraph)
-        .setValue(existing.description || "")
-        .setRequired(false)
-    ),
-    new ActionRowBuilder().addComponents(
-      new TextInputBuilder()
-        .setCustomId("robloxGroupId")
-        .setLabel("Roblox Group ID / Link (Optional)")
-        .setStyle(TextInputStyle.Short)
-        .setValue(existing.roblox_group_id || "")
-        .setRequired(false)
-    )
-  );
+  const select = new StringSelectMenuBuilder()
+    .setCustomId(`pb_manage_action:${pb.id}`)
+    .setPlaceholder(`Manage ${pb.name.substring(0, 30)}...`)
+    .addOptions(options);
 
-  await interaction.showModal(modal);
-  return true;
+  const payload = componentsV2Message([
+    containerV2([
+      textDisplayV2(`### Manage Powerbase: ${pb.name}`),
+      textDisplayV2("Select an action to perform:"),
+      new ActionRowBuilder().addComponents(select)
+    ])
+  ]);
+
+  if (interaction.replied || interaction.deferred) {
+    return interaction.followUp(ephemeral(payload));
+  } else if (interaction.isStringSelectMenu()) {
+    return interaction.update(ephemeral(payload));
+  } else {
+    return interaction.reply(ephemeral(payload));
+  }
 }
 
 async function handleManage(interaction, verified) {
-  const isEmperorPlus = hasDarkCouncilRank(verified.profile, 253);
-  const isOverseer = hasAnyOverseer(verified.profile);
+  const canManageAll = hasPermission(verified.profile, "powerbase:manage:all");
 
-  if (!isEmperorPlus && !isOverseer) {
-    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have permission to manage Powerbases.")])])));
+  if (canManageAll) {
+    const powerbases = await fetchPowerbases();
+    const activePbs = powerbases.filter(pb => pb.status !== "DISSOLVED" && pb.status !== "DELETED");
+    if (activePbs.length === 0) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("There are no active Powerbases to manage.")])])));
+    }
+
+    const select = new StringSelectMenuBuilder()
+      .setCustomId("pb_manage_select")
+      .setPlaceholder("Select a Powerbase to manage")
+      .addOptions(activePbs.map(pb => ({
+        label: pb.name,
+        value: pb.id
+      })));
+
+    return interaction.reply(ephemeral(componentsV2Message([
+      containerV2([
+        textDisplayV2("Select a Powerbase to manage:"),
+        new ActionRowBuilder().addComponents(select)
+      ])
+    ])));
   }
 
-  let powerbases = await fetchPowerbases();
-
-  if (!isEmperorPlus) {
-    powerbases = powerbases.filter(pb => pb.leader_id === interaction.user.id);
+  // Regular leader: default to own Powerbase
+  const pb = await getPowerbaseForUser(interaction.user.id);
+  if (!pb || pb.leader_id !== interaction.user.id) {
+    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not lead a Powerbase.")])])));
   }
 
-  if (powerbases.length === 0) {
-    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have any Powerbases to manage.")])])));
-  }
-
-  const select = new StringSelectMenuBuilder()
-    .setCustomId("pb_manage_select")
-    .setPlaceholder("Select a Powerbase to manage")
-    .addOptions(powerbases.map(pb => ({
-      label: pb.name,
-      value: pb.id
-    })));
-
-  await interaction.reply(ephemeral(componentsV2Message([
-    containerV2([
-      textDisplayV2("Select a Powerbase to manage:"),
-      new ActionRowBuilder().addComponents(select)
-    ])
-  ])));
-  return true;
+  return showManageOptions(interaction, pb, false);
 }
 
 async function handleManageSelect(interaction) {
@@ -353,32 +340,9 @@ async function handleManageSelect(interaction) {
   if (!pb) return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
 
   const verified = await getVerifiedProfile(interaction.user.id);
-  const isEmperorPlus = hasDarkCouncilRank(verified.profile, 253);
+  const canManageAll = hasPermission(verified.profile, "powerbase:manage:all");
 
-  const options = [
-    { label: "Edit Details (Name / Description / Group ID)", value: "edit" },
-    { label: "Manage Roster (Add / Remove Apprentices)", value: "members" }
-  ];
-
-  if (isEmperorPlus) {
-    options.push({ label: "Transfer Leadership", value: "leader" });
-  }
-
-  options.push({ label: "Dissolve Powerbase", value: "dissolve" });
-
-  const select = new StringSelectMenuBuilder()
-    .setCustomId(`pb_manage_action:${pbId}`)
-    .setPlaceholder(`Manage ${pb.name.substring(0, 30)}...`)
-    .addOptions(options);
-
-  await interaction.update(ephemeral(componentsV2Message([
-    containerV2([
-      textDisplayV2(`### Manage Powerbase: ${pb.name}`),
-      textDisplayV2("Select an action to perform:"),
-      new ActionRowBuilder().addComponents(select)
-    ])
-  ])));
-  return true;
+  return showManageOptions(interaction, pb, canManageAll);
 }
 
 async function handleManageActionSelect(interaction) {

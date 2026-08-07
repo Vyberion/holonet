@@ -1,48 +1,15 @@
-import fs from "node:fs";
-import path from "node:path";
-
 const DISCORD_API_URL = "https://discord.com/api/v10";
 
-function getEnvValue(keys) {
-  for (const key of keys) {
-    if (process.env[key]) return process.env[key];
-  }
-
-  const candidates = [
-    path.join(process.cwd(), "bot", ".env"),
-    path.join(process.cwd(), ".env"),
-    path.join(process.cwd(), ".env.local"),
-    path.join(process.cwd(), ".env.oci")
-  ];
-
-  for (const file of candidates) {
-    try {
-      if (fs.existsSync(file)) {
-        const text = fs.readFileSync(file, "utf8");
-        for (const key of keys) {
-          const regex = new RegExp(`^\\s*(?:export\\s+)?${key}\\s*=\\s*(.*)$`, "m");
-          const match = text.match(regex);
-          if (match && match[1]) {
-            const val = match[1].trim().replace(/^['"]|['"]$/g, "");
-            if (val) return val;
-          }
-        }
-      }
-    } catch (_) {}
-  }
-  return "";
-}
-
 export function getDiscordClientId() {
-  return getEnvValue(["DISCORD_CLIENT_ID"]);
+  return process.env.DISCORD_CLIENT_ID || process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID || "";
 }
 
 export function getDiscordClientSecret() {
-  return getEnvValue(["DISCORD_CLIENT_SECRET"]);
+  return process.env.DISCORD_CLIENT_SECRET || "";
 }
 
 export function getDiscordBotToken() {
-  return getEnvValue(["DISCORD_TOKEN"]);
+  return process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN || "";
 }
 
 export const HOLONET_METADATA_SCHEMA = [

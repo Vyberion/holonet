@@ -1,7 +1,7 @@
 import { ROBLOX_GROUPS } from "../data/roblox-config.js";
 
 export const PERMISSIONS = {
-  SUPER_USER: ['pages:view:all', 'codex:edit', 'archives:edit', 'admin:access', 'reports:write:all', 'powerbase:create', 'holonet:operator'],
+  SUPER_USER: ['pages:view:all', 'codex:edit', 'archives:edit', 'admin:access', 'reports:write:all', 'powerbase:create', 'holonet:operator', 'powerbase:manage:all'],
   HIGH_COMMAND: ['pages:view:all', 'admin:access', 'reports:write:all', 'powerbase:create'],
   DARK_COUNCIL: ['pages:view:standard', 'pages:view:divisions', 'pages:view:highranks', 'pages:view:darkcouncil', 'reports:write:all', 'powerbase:create'],
   INQUISITOR_OVERSEER: ['pages:view:standard', 'pages:view:divisions', 'pages:view:highranks', 'pages:view:darkcouncil', 'pages:view:inquisitors', 'reports:write:all', 'powerbase:create'],
@@ -71,4 +71,38 @@ export function compileProfilePermissions(profile) {
   }
 
   return Array.from(perms);
+}
+
+export function nicknameRuleForProfile(profile) {
+  if (!profile) return null;
+  const ranks = profile.groupRanks || {};
+
+  // 1. Divisions (Reavers, DHG, Inquisitors, Dread Masters)
+  const divisionOrder = ["reavers", "dhg", "inquisitors", "dreadmasters"];
+  for (const divKey of divisionOrder) {
+    const divConfig = ROBLOX_GROUPS.DIVISIONS?.[divKey];
+    if (divConfig?.groupId && divConfig?.ranks) {
+      const rankVal = String(ranks[divConfig.groupId] || 0);
+      const rule = divConfig.ranks[rankVal];
+      if (rule) return rule;
+    }
+  }
+
+  // 2. Main Group / High Ranks
+  const mainGroupId = ROBLOX_GROUPS.MAIN_GROUP?.groupId;
+  if (mainGroupId && ROBLOX_GROUPS.MAIN_GROUP?.ranks) {
+    const mainRank = String(ranks[mainGroupId] || 0);
+    const rule = ROBLOX_GROUPS.MAIN_GROUP.ranks[mainRank];
+    if (rule) return rule;
+  }
+
+  // 3. Dark Council
+  const dcGroupId = ROBLOX_GROUPS.DARK_COUNCIL?.groupId;
+  if (dcGroupId && ROBLOX_GROUPS.DARK_COUNCIL?.ranks) {
+    const dcRank = String(ranks[dcGroupId] || 0);
+    const rule = ROBLOX_GROUPS.DARK_COUNCIL.ranks[dcRank];
+    if (rule) return rule;
+  }
+
+  return null;
 }

@@ -53,34 +53,8 @@ function roleIdsForProfile(profile) {
   return compactRoleIds(ids);
 }
 
-export function nicknameRuleForProfile(profile) {
-  if (!config.nicknames?.enabled || !isMainGroupMember(profile)) return null;
-
-  const ranks = rawRanksFromProfile(profile);
-  const managed = config.nicknames?.managed || {};
-  const priority = config.nicknames?.priority || ["DIVISIONS", "MAIN_GROUP", "DARK_COUNCIL"];
-
-  for (const group of priority) {
-    if (group === "DIVISIONS") {
-      for (const division of config.scopes?.divisionOrder || []) {
-        const rule = managed.DIVISIONS?.[division]?.ranks?.[String(ranks.divisions?.[division] || 0)];
-        if (rule) return rule;
-      }
-    }
-
-    if (group === "MAIN_GROUP" || group === "HIGH_RANKS") {
-      const rule = managed.MAIN_GROUP?.ranks?.[String(ranks.highranks)] || managed.HIGH_RANKS?.ranks?.[String(ranks.highranks)];
-      if (rule) return rule;
-    }
-
-    if (group === "DARK_COUNCIL") {
-      const rule = managed.DARK_COUNCIL?.ranks?.[String(ranks.darkCouncil)];
-      if (rule) return rule;
-    }
-  }
-
-  return null;
-}
+import { nicknameRuleForProfile } from "../../modules/auth/role-permissions.js";
+export { nicknameRuleForProfile };
 
 function cleanNickname(value) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, 32);

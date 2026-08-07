@@ -2,31 +2,9 @@ import { executeLegacyHandler } from "../../../../../lib/legacy-api-adapter.js";
 import { supabaseRest } from "../../../../../../modules/auth/session-store.js";
 import { canAccessAdmin } from "../../../../../../modules/auth/permissions.js";
 import { getAuthContext } from "../../../../../../modules/auth/auth-context.js";
-import fs from "node:fs";
-import path from "node:path";
 
 function getDiscordBotToken() {
-  if (process.env.DISCORD_TOKEN) return process.env.DISCORD_TOKEN;
-  if (process.env.DISCORD_BOT_TOKEN) return process.env.DISCORD_BOT_TOKEN;
-
-  const candidates = [
-    path.join(process.cwd(), "bot", ".env"),
-    path.join(process.cwd(), ".env"),
-    path.join(process.cwd(), ".env.local")
-  ];
-
-  for (const file of candidates) {
-    try {
-      if (fs.existsSync(file)) {
-        const text = fs.readFileSync(file, "utf8");
-        const match = text.match(/^\s*(?:export\s+)?DISCORD_TOKEN\s*=\s*(.*)$/m);
-        if (match && match[1]) {
-          return match[1].trim().replace(/^['"]|['"]$/g, "");
-        }
-      }
-    } catch (_) {}
-  }
-  return "";
+  return process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN || "";
 }
 
 async function syncRosterViaRest(powerbaseId, forceDelete = false, cachedPb = null) {

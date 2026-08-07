@@ -3,12 +3,7 @@ import { decodeOAuthStateCookie, statesMatch } from "../../../../lib/api-helpers
 import { clearCookie, getCookie, STATE_COOKIE } from "../../../../../modules/auth/session-store.js";
 import { getDiscordOAuthTokens, getDiscordUser, pushRoleConnectionData } from "../../../../../bot/services/discord-linked-roles.js";
 import { getAuthContext } from "../../../../../modules/auth/auth-context.js";
-import { compileProfilePermissions } from "../../../../../modules/auth/role-permissions.js";
-import { hasPermission } from "../../../../../modules/auth/permissions.js";
-import { supabase } from "../../../../../bot/services/supabase.js";
-import { ROBLOX_GROUPS } from "../../../../../modules/data/roblox-config.js";
-import { loadRobloxUser } from "../../../../../bot/services/roblox.js";
-import { nicknameRuleForProfile } from "../../../../../bot/services/roles.js";
+import { compileProfilePermissions, nicknameRuleForProfile } from "../../../../../modules/auth/role-permissions.js";
 
 const handler = async (req, res) => {
   const { code, state, error } = req.query || {};

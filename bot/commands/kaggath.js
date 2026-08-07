@@ -9,7 +9,11 @@ export const commands = [];
 const LOG_CHANNEL_ID = "1534165352756285450";
 
 export async function handleCommand(interaction) {
-  if (interaction.commandName !== "write" || interaction.options.getSubcommand() !== "kaggath") return false;
+  if (interaction.commandName !== "write") return false;
+  const subcommand = interaction.options?.getSubcommand(false) || "";
+  const eventType = interaction.options?.getString("event") || "";
+
+  if (subcommand !== "kaggath" && !(subcommand === "event" && eventType === "kaggath")) return false;
 
   try {
     const verified = await getVerifiedProfile(interaction.user.id);

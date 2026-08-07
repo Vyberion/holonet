@@ -31,6 +31,9 @@ export const commands = [
       .addStringOption(option => addReportScopeChoices(option.setName("scope").setDescription("Report scope").setRequired(true)))
       .addStringOption(option => option.setName("start_date").setDescription("Week start date, YYYY-MM-DD").setRequired(true)))
     .addSubcommand(subcommand => subcommand
+      .setName("kaggath")
+      .setDescription("Write a Kaggath result"))
+    .addSubcommand(subcommand => subcommand
       .setName("event")
       .setDescription("Write an event notification")
       .addStringOption(option => option
@@ -38,7 +41,8 @@ export const commands = [
         .setDescription("Event type")
         .setRequired(true)
         .addChoices(
-          { name: "Deployment", value: "deployment" }
+          { name: "Deployment", value: "deployment" },
+          { name: "Kaggath", value: "kaggath" }
         ))),
   new SlashCommandBuilder()
     .setName("reset")

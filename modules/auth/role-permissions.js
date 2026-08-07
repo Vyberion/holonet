@@ -12,14 +12,17 @@ export const PERMISSIONS = {
 // Generates division specific permissions
 export function getDivisionPermissions(division, tier) {
   const perms = [];
+  if (!tier || tier === 'none') return perms;
+
+  // All division members get view access to their division's registry and pages
+  perms.push(`pages:view:${division}`);
+
   if (tier === 'hr' || tier === '1ic' || tier === '2ic' || tier === 'co') {
-    perms.push(`pages:view:${division}`, `reports:write:${division}`);
-  } else if (tier === 'nco') {
-    perms.push(`pages:view:${division}`);
+    perms.push(`reports:write:${division}`);
   }
 
   // Inquisitors have special viewing rights
-  if (division === 'inquisitors' && tier !== 'none') {
+  if (division === 'inquisitors') {
     PERMISSIONS.INQUISITORS.forEach(p => perms.push(p));
   }
 

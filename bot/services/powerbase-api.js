@@ -155,14 +155,10 @@ export async function getPowerbase(id) {
   const { data, error } = await supabase
     .from("powerbases")
     .select("*, powerbase_members(*)")
-    .eq("id", id)
-    .single();
+    .eq("id", id);
     
-  if (error) {
-    if (error.code === 'PGRST116') return null; // Not found
-    throw error;
-  }
-  return data;
+  if (error) throw error;
+  return (data && data.length > 0) ? data[0] : null;
 }
 
 /**
@@ -217,7 +213,7 @@ export async function createPowerbase(payload, members = []) {
     }
   }
 
-  const { data, error } = await supabase
+  const { data: rows, error } = await supabase
     .from("powerbases")
     .insert([{
       name: payload.name,
@@ -227,10 +223,10 @@ export async function createPowerbase(payload, members = []) {
       leader_name: payload.leaderName || null,
       status: "PENDING_APPROVAL"
     }])
-    .select()
-    .single();
+    .select();
     
   if (error) throw error;
+  const data = rows && rows.length > 0 ? rows[0] : null;
   const powerbaseId = data.id;
 
   const validMembers = members.filter(id => id !== payload.leaderId);
@@ -249,14 +245,14 @@ export async function createPowerbase(payload, members = []) {
  * Updates a powerbase and its members.
  */
 export async function updatePowerbase(id, payload, newMembers = null) {
-  const { data, error } = await supabase
+  const { data: rows, error } = await supabase
     .from("powerbases")
     .update(payload)
     .eq("id", id)
-    .select()
-    .single();
+    .select();
     
   if (error) throw error;
+  const data = rows && rows.length > 0 ? rows[0] : null;
 
   if (newMembers !== null) {
     const validMembers = newMembers.filter(memberId => memberId !== data.leader_id);

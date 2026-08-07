@@ -270,12 +270,14 @@ export function isMemberInScope(member, scope) {
 }
 
 export async function getVerifiedProfile(discordUserId) {
-  const { data, error } = await supabase
+  const { data: rows, error } = await supabase
     .from("verification_links")
     .select("*")
-    .eq("discord_user_id", discordUserId)
-    .maybeSingle();
+    .eq("discord_user_id", String(discordUserId))
+    .order("id", { ascending: false });
+
   if (error) throw error;
+  const data = rows && rows.length > 0 ? rows[0] : null;
   if (!data?.roblox_user_id) return null;
 
   const profile = await loadProfileForRoblox(data.roblox_user_id);

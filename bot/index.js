@@ -12,7 +12,7 @@ const holonetPresence = {
   activities: [
     {
       name: "Custom Status",
-      state: "HOLONET OPERATIONS & LOGISTICS OVERSEER",
+      state: "well",
       type: ActivityType.Custom
     }
   ]

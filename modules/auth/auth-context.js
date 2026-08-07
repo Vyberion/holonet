@@ -98,7 +98,7 @@ async function fetchGroupRoles(robloxId) {
   return payload.data || [];
 }
 
-async function loadGroupRoles(robloxId) {
+export async function loadGroupRoles(robloxId) {
   const cacheKey = String(robloxId || "");
   const cached = groupRoleCache.get(cacheKey);
 

@@ -2,7 +2,7 @@ import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSel
 import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js";
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
-import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseForUser, isHigherRank, logPowerbaseAction, slugifyPowerbase, syncPowerbaseRosterMessage, updatePowerbase } from "../services/powerbase-api.js";
+import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseCapacity, getPowerbaseForUser, isHigherRank, logPowerbaseAction, slugifyPowerbase, syncPowerbaseRosterMessage, updatePowerbase } from "../services/powerbase-api.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { hasPermission } from "../../modules/auth/permissions.js";
 import { postActivityLog, postPowerbaseLog, HIGH_COMMAND_ROLE_ID } from "../services/activity-log.js";
@@ -730,7 +730,7 @@ async function handleInfoSelect(interaction) {
 
   const components = [
     textDisplayV2(`### [${pb.name}](${pbUrl})`),
-    textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}`),
+    textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Capacity:** ${memberIds.length + 1} / ${getPowerbaseCapacity(pb.tier)}\n**Prestige:** ${pb.prestige}`),
     separatorV2()
   ];
 

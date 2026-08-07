@@ -59,6 +59,9 @@ export function compileProfilePermissions(profile) {
 
   if (profile?.highRank && profile?.highRank !== 'none') {
     perms.add('pages:view:highranks');
+    if (profile.highRank === 'upper' || profile.highRank === 'overseer') {
+      PERMISSIONS.HIGH_COMMAND.forEach(p => perms.add(p));
+    }
   }
 
   // Sith Overseer+ (Main Group Rank >= 44) gets powerbase:create permission
@@ -80,7 +83,23 @@ export function nicknameRuleForProfile(profile) {
   if (!profile) return null;
   const ranks = profile.groupRanks || {};
 
-  // 1. Divisions (Reavers, DHG, Inquisitors, Dread Masters)
+  // 1. Dark Council (Highest Priority)
+  const dcGroupId = ROBLOX_GROUPS.DARK_COUNCIL?.groupId;
+  if (dcGroupId && ROBLOX_GROUPS.DARK_COUNCIL?.ranks) {
+    const dcRank = String(ranks[dcGroupId] || 0);
+    const rule = ROBLOX_GROUPS.DARK_COUNCIL.ranks[dcRank];
+    if (rule) return rule;
+  }
+
+  // 2. Main Group / High Ranks (Overseer, Master, Lord, Darth)
+  const mainGroupId = ROBLOX_GROUPS.MAIN_GROUP?.groupId;
+  if (mainGroupId && ROBLOX_GROUPS.MAIN_GROUP?.ranks) {
+    const mainRank = String(ranks[mainGroupId] || 0);
+    const rule = ROBLOX_GROUPS.MAIN_GROUP.ranks[mainRank];
+    if (rule) return rule;
+  }
+
+  // 3. Divisions (Reavers, DHG, Inquisitors, Dread Masters)
   const divisionOrder = ["reavers", "dhg", "inquisitors", "dreadmasters"];
   for (const divKey of divisionOrder) {
     const divConfig = ROBLOX_GROUPS.DIVISIONS?.[divKey];
@@ -89,22 +108,6 @@ export function nicknameRuleForProfile(profile) {
       const rule = divConfig.ranks[rankVal];
       if (rule) return rule;
     }
-  }
-
-  // 2. Main Group / High Ranks
-  const mainGroupId = ROBLOX_GROUPS.MAIN_GROUP?.groupId;
-  if (mainGroupId && ROBLOX_GROUPS.MAIN_GROUP?.ranks) {
-    const mainRank = String(ranks[mainGroupId] || 0);
-    const rule = ROBLOX_GROUPS.MAIN_GROUP.ranks[mainRank];
-    if (rule) return rule;
-  }
-
-  // 3. Dark Council
-  const dcGroupId = ROBLOX_GROUPS.DARK_COUNCIL?.groupId;
-  if (dcGroupId && ROBLOX_GROUPS.DARK_COUNCIL?.ranks) {
-    const dcRank = String(ranks[dcGroupId] || 0);
-    const rule = ROBLOX_GROUPS.DARK_COUNCIL.ranks[dcRank];
-    if (rule) return rule;
   }
 
   return null;

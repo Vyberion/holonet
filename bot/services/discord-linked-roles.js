@@ -18,8 +18,43 @@ export const HOLONET_METADATA_SCHEMA = [
     name: "Holonet Operator",
     description: "Superuser status for Holonet Network",
     type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "rank_overseer",
+    name: "Overseer",
+    description: "Sith Overseer Rank",
+    type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "rank_master",
+    name: "Sith Master",
+    description: "Sith Master Rank",
+    type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "rank_lord",
+    name: "Sith Lord",
+    description: "Sith Lord Rank",
+    type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "rank_darth",
+    name: "Darth",
+    description: "Darth Rank",
+    type: 7 // BOOLEAN_EQUAL
   }
 ];
+
+export function getRankMetadataForProfile(rule) {
+  const val = rule?.value || "";
+
+  return {
+    rank_overseer: val === "Overseer" ? 1 : 0,
+    rank_master: val === "Master" ? 1 : 0,
+    rank_lord: (val === "Lord" || val === "Lord Emperor" || val === "Lord Voice" || val === "Lord Wrath") ? 1 : 0,
+    rank_darth: val.startsWith("Darth") ? 1 : 0
+  };
+}
 
 export async function registerRoleConnectionMetadata() {
   const clientId = getDiscordClientId();
@@ -97,7 +132,7 @@ export async function pushRoleConnectionData(accessToken, platformUsername, meta
   const url = `${DISCORD_API_URL}/users/@me/applications/${clientId}/role-connection`;
 
   const body = {
-    platform_name: "H.O.L.O",
+    platform_name: "The Holonet",
     platform_username: platformUsername || "Holonet User",
     metadata: metadata
   };

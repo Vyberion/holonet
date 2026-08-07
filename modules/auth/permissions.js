@@ -37,6 +37,7 @@ const PAGE_ACCESS = {
   admin: { require: 'admin:access' },
   wrath: { require: 'admin:access' }, // Kept for superusers essentially
 
+  reavers: { require: 'pages:view:reavers' },
   reavers_home: { require: 'pages:view:reavers' },
   reavers_info: { public: true },
   reavers_handbooks: { require: 'pages:view:reavers' },
@@ -45,6 +46,7 @@ const PAGE_ACCESS = {
   reavers_activity: { require: 'pages:view:reavers' },
   reavers_trackers: { require: 'pages:view:reavers' },
 
+  dhg: { require: 'pages:view:dhg' },
   dhg_home: { require: 'pages:view:dhg' },
   dhg_info: { public: true },
   dhg_handbooks: { require: 'pages:view:dhg' },
@@ -53,6 +55,7 @@ const PAGE_ACCESS = {
   dhg_activity: { require: 'pages:view:dhg' },
   dhg_trackers: { require: 'pages:view:dhg' },
 
+  dark_honor_guards: { require: 'pages:view:dhg' },
   dark_honor_guards_home: { require: 'pages:view:dhg' },
   dark_honor_guards_info: { public: true },
   dark_honor_guards_handbooks: { require: 'pages:view:dhg' },
@@ -61,6 +64,7 @@ const PAGE_ACCESS = {
   dark_honor_guards_activity: { require: 'pages:view:dhg' },
   dark_honor_guards_trackers: { require: 'pages:view:dhg' },
 
+  inquisitors: { require: 'pages:view:inquisitors' },
   inquisitors_home: { require: 'pages:view:inquisitors' },
   inquisitors_info: { public: true },
   inquisitors_handbooks: { require: 'pages:view:inquisitors' },
@@ -69,6 +73,7 @@ const PAGE_ACCESS = {
   inquisitors_activity: { require: 'pages:view:inquisitors' },
   inquisitors_trackers: { require: 'pages:view:inquisitors' },
 
+  dreadmasters: { require: 'pages:view:dreadmasters' },
   dreadmasters_home: { require: 'pages:view:dreadmasters' },
   dreadmasters_info: { public: true },
   dreadmasters_handbooks: { require: 'pages:view:dreadmasters' },
@@ -77,6 +82,7 @@ const PAGE_ACCESS = {
   dreadmasters_activity: { require: 'pages:view:dreadmasters' },
   dreadmasters_trackers: { require: 'pages:view:dreadmasters' },
 
+  dread_masters: { require: 'pages:view:dreadmasters' },
   dread_masters_home: { require: 'pages:view:dreadmasters' },
   dread_masters_info: { public: true },
   dread_masters_handbooks: { require: 'pages:view:dreadmasters' },
@@ -85,12 +91,14 @@ const PAGE_ACCESS = {
   dread_masters_activity: { require: 'pages:view:dreadmasters' },
   dread_masters_trackers: { require: 'pages:view:dreadmasters' },
 
+  highranks: { require: 'pages:view:highranks' },
   highranks_home: { require: 'pages:view:highranks' },
   highranks_handbooks: { require: 'pages:view:highranks' },
   highranks_transmissions: { require: 'pages:view:highranks' },
   highranks_reports: { require: 'pages:view:highranks' },
   highranks_activity: { require: 'pages:view:highranks' },
   highranks_trackers: { require: 'pages:view:highranks' },
+  high_ranks: { require: 'pages:view:highranks' },
   high_ranks_home: { require: 'pages:view:highranks' },
   high_ranks_handbooks: { require: 'pages:view:highranks' },
   high_ranks_transmissions: { require: 'pages:view:highranks' },
@@ -98,6 +106,7 @@ const PAGE_ACCESS = {
   high_ranks_activity: { require: 'pages:view:highranks' },
   high_ranks_trackers: { require: 'pages:view:highranks' },
 
+  dark_council: { require: 'pages:view:darkcouncil' },
   dark_council_home: { require: 'pages:view:darkcouncil' },
   dark_council_council_floor: { require: 'pages:view:darkcouncil' },
   dark_council_handbooks: { require: 'pages:view:darkcouncil' },
@@ -105,6 +114,7 @@ const PAGE_ACCESS = {
   dark_council_reports: { require: 'pages:view:darkcouncil' },
   dark_council_activity: { require: 'pages:view:darkcouncil' },
   dark_council_trackers: { require: 'pages:view:darkcouncil' },
+  darkcouncil: { require: 'pages:view:darkcouncil' },
   darkcouncil_home: { require: 'pages:view:darkcouncil' },
   darkcouncil_council_floor: { require: 'pages:view:darkcouncil' },
   darkcouncil_handbooks: { require: 'pages:view:darkcouncil' },

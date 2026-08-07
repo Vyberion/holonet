@@ -1,9 +1,12 @@
 import { executeLegacyHandler } from "../../../../lib/legacy-api-adapter.js";
 import { decodeOAuthStateCookie, statesMatch } from "../../../../lib/api-helpers.js";
-import { clearCookie, getCookie, STATE_COOKIE } from "../../../../../modules/auth/session-store.js";
-import { getDiscordOAuthTokens, getDiscordUser, pushRoleConnectionData } from "../../../../../bot/services/discord-linked-roles.js";
-import { getAuthContext } from "../../../../../modules/auth/auth-context.js";
+import { clearCookie, getCookie, STATE_COOKIE, supabaseRest } from "../../../../../modules/auth/session-store.js";
+import { getDiscordOAuthTokens, getDiscordUser, getRankMetadataForProfile, pushRoleConnectionData } from "../../../../../bot/services/discord-linked-roles.js";
+import { getAuthContext, loadGroupRoles } from "../../../../../modules/auth/auth-context.js";
+import { buildProfile } from "../../../../../modules/auth/profile.js";
 import { compileProfilePermissions, nicknameRuleForProfile } from "../../../../../modules/auth/role-permissions.js";
+import { hasPermission } from "../../../../../modules/auth/permissions.js";
+import { loadRobloxUser } from "../../../../../bot/services/roblox.js";
 
 const handler = async (req, res) => {
   const { code, state, error } = req.query || {};
@@ -32,24 +35,26 @@ const handler = async (req, res) => {
     const discordUser = await getDiscordUser(tokens.access_token);
 
     // 2. Fetch logged in Holonet user auth context or look up verified link by discordUserId
-    let auth = await getAuthContext(req);
-    let profile = auth?.profile;
-    let robloxUsername = "";
+    const auth = await getAuthContext(req, { optional: true });
+    let profile = (auth?.authenticated && auth?.profile?.robloxId && auth?.profile?.robloxId !== "0") ? auth.profile : null;
+    let robloxUsername = auth?.user?.roblox_username || "";
 
     if (!profile && discordUser.id) {
-      const { data: link } = await supabase
-        .from("verification_links")
-        .select("roblox_user_id, roblox_username")
-        .eq("discord_user_id", discordUser.id)
-        .maybeSingle();
+      const rows = await supabaseRest(
+        `verification_links?discord_user_id=eq.${encodeURIComponent(discordUser.id)}&select=roblox_user_id,roblox_username`
+      ).catch(() => []);
+      
+      const link = Array.isArray(rows) ? rows[0] : null;
 
       if (link?.roblox_user_id) {
-        profile = await loadFullProfile(link.roblox_user_id);
+        const robloxId = String(link.roblox_user_id);
         robloxUsername = link.roblox_username || "";
+        const groupRoles = await loadGroupRoles(robloxId).catch(() => []);
+        profile = buildProfile({ robloxId, groupRoles });
       }
     }
 
-    if (profile?.robloxId && !robloxUsername) {
+    if (profile?.robloxId && profile.robloxId !== "0" && !robloxUsername) {
       const robloxUser = await loadRobloxUser(profile.robloxId).catch(() => null);
       if (robloxUser?.name) robloxUsername = robloxUser.name;
     }
@@ -58,20 +63,15 @@ const handler = async (req, res) => {
     const perms = profile ? compileProfilePermissions(profile) : [];
     const isOperator = hasPermission({ permissions: perms }, "holonet:operator");
 
-    // 4. Format platform username using rank nickname config
-    const baseUsername = robloxUsername || profile?.name || discordUser.username || "Holonet User";
-    let platformUsername = baseUsername;
-
-    if (profile) {
-      const rule = nicknameRuleForProfile(profile);
-      if (rule?.value) {
-        platformUsername = rule.mode === "prefix" ? `${rule.value} ${baseUsername}` : rule.value;
-      }
-    }
+    // 4. Platform username is the user's Roblox username (separate from rank metadata tags)
+    const platformUsername = robloxUsername || profile?.name || discordUser.username || "Holonet User";
+    const rule = profile ? nicknameRuleForProfile(profile) : null;
+    const rankMetadata = getRankMetadataForProfile(rule);
 
     // 5. Push role connection metadata to Discord API
     await pushRoleConnectionData(tokens.access_token, platformUsername, {
-      holonet_operator: isOperator ? 1 : 0
+      holonet_operator: isOperator ? 1 : 0,
+      ...rankMetadata
     });
 
     res.setHeader("Set-Cookie", clearCookie(STATE_COOKIE));

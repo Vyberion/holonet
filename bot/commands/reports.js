@@ -1,9 +1,9 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, RoleSelectMenuBuilder, SlashCommandBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { checkPageAccess, checkResourceWriteAccess } from "../../modules/auth/permissions.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { postActivityLog } from "../services/activity-log.js";
 import { botErrorMessage } from "../services/bot-errors.js";
-import { embed, ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
+import { componentsV2Message, containerV2, embed, ephemeral, errorEmbed, successEmbed, textDisplayV2 } from "../services/discord-ui.js";
 import { loadRobloxUser } from "../services/roblox.js";
 import { divisionTierWeight, getVerifiedProfile, canManageBot } from "../services/roles.js";
 import { supabase } from "../services/supabase.js";
@@ -24,7 +24,7 @@ const REPORT_SCOPE_CHOICES = [
 export const commands = [
   new SlashCommandBuilder()
     .setName("write")
-    .setDescription("Write Holonet records")
+    .setDescription("Write Holonet records and events")
     .addSubcommand(subcommand => subcommand
       .setName("report")
       .setDescription("Write this scope's weekly website report and reset its clock time")
@@ -32,7 +32,13 @@ export const commands = [
       .addStringOption(option => option.setName("start_date").setDescription("Week start date, YYYY-MM-DD").setRequired(true)))
     .addSubcommand(subcommand => subcommand
       .setName("kaggath")
-      .setDescription("Write a Kaggath result")),
+      .setDescription("Write a Kaggath result"))
+    .addSubcommandGroup(group => group
+      .setName("event")
+      .setDescription("Write event notifications")
+      .addSubcommand(subcommand => subcommand
+        .setName("deployment")
+        .setDescription("Create a deployment event notification"))),
   new SlashCommandBuilder()
     .setName("reset")
     .setDescription("Reset clock time for a report scope")
@@ -693,14 +699,121 @@ async function confirmReset(interaction, parts) {
   }
 }
 
+export function buildDeploymentEventContainer(title = "# Raise Activity", description = "Convene on Korriban!") {
+  return {
+    type: 17,
+    accent_color: 10813440,
+    spoiler: false,
+    components: [
+      {
+        type: 10,
+        content: title || "# Raise Activity"
+      },
+      {
+        type: 14,
+        divider: true,
+        spacing: 1
+      },
+      {
+        type: 10,
+        content: description || "Convene on Korriban!"
+      },
+      {
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 5,
+            label: "Deploy",
+            emoji: null,
+            disabled: false,
+            url: "https://www.thesithorder.org/galaxy?planet=Korriban"
+          }
+        ]
+      }
+    ]
+  };
+}
+
+function renderEventWritePreview(sessionId, draft) {
+  const previewContainer = buildDeploymentEventContainer(draft.title, draft.description);
+
+  const rolePingsText = draft.selectedRoleIds?.length > 0
+    ? draft.selectedRoleIds.map(id => `<@&${id}>`).join(" ")
+    : "*None*";
+
+  const roleSelect = new RoleSelectMenuBuilder()
+    .setCustomId(`we_roles:${sessionId}`)
+    .setPlaceholder("Select roles to ping (Optional)")
+    .setMinValues(0)
+    .setMaxValues(10);
+
+  if (draft.selectedRoleIds?.length > 0 && typeof roleSelect.setDefaultRoles === "function") {
+    roleSelect.setDefaultRoles(draft.selectedRoleIds);
+  }
+
+  const editBtn = new ButtonBuilder()
+    .setCustomId(`we_edit:${sessionId}`)
+    .setLabel("Edit Title & Description")
+    .setStyle(ButtonStyle.Secondary);
+
+  const postBtn = new ButtonBuilder()
+    .setCustomId(`we_post:${sessionId}`)
+    .setLabel("Post Event")
+    .setStyle(ButtonStyle.Success);
+
+  const cancelBtn = new ButtonBuilder()
+    .setCustomId(`we_cancel:${sessionId}`)
+    .setLabel("Cancel")
+    .setStyle(ButtonStyle.Danger);
+
+  const controlsContainer = containerV2([
+    textDisplayV2(`### Deployment Event Setup\n**Target Channel:** <#1046469967744356474>\n**Role Pings:** ${rolePingsText}`),
+    new ActionRowBuilder().addComponents(roleSelect),
+    new ActionRowBuilder().addComponents(editBtn, postBtn, cancelBtn)
+  ]);
+
+  return ephemeral(componentsV2Message([previewContainer, controlsContainer]));
+}
+
+async function handleWriteEventDeployment(interaction) {
+  const verified = await getVerifiedProfile(interaction.user.id).catch(() => null);
+  if (!verified) {
+    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(VERIFY_INSTRUCTIONS)])])));
+  }
+
+  const sessionId = `${interaction.user.id}_${Date.now()}`;
+  const draft = {
+    userId: interaction.user.id,
+    eventType: "deployment",
+    title: "# Raise Activity",
+    description: "Convene on Korriban!",
+    selectedRoleIds: []
+  };
+
+  globalThis.__eventWriteCache = globalThis.__eventWriteCache || new Map();
+  globalThis.__eventWriteCache.set(sessionId, draft);
+
+  const payload = renderEventWritePreview(sessionId, draft);
+  await interaction.reply(payload);
+}
+
 export async function handleCommand(interaction) {
   const commandName = interaction.commandName;
+  const subcommandGroup = interaction.options?.getSubcommandGroup(false) || "";
   const subcommand = interaction.options?.getSubcommand(false) || "";
 
   try {
-    if (commandName === "write" && subcommand === "report") {
-      await handleWriteReportCommand(interaction);
-      return true;
+    if (commandName === "write") {
+      if (subcommandGroup === "event" && subcommand === "deployment") {
+        await handleWriteEventDeployment(interaction);
+        return true;
+      }
+
+      if (subcommand === "report") {
+        await handleWriteReportCommand(interaction);
+        return true;
+      }
     }
 
     if (commandName === "view" && subcommand === "report") {
@@ -735,6 +848,132 @@ export async function handleButton(interaction) {
   if (interaction.customId.startsWith("rptreset:")) {
     await confirmReset(interaction, interaction.customId.split(":"));
     return true;
+  }
+
+  if (interaction.customId.startsWith("we_edit:")) {
+    const sessionId = interaction.customId.split(":")[1];
+    const draft = globalThis.__eventWriteCache?.get(sessionId);
+    if (!draft) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Event setup session expired. Please run `/write event deployment` again.")])])));
+    }
+    if (interaction.user.id !== draft.userId) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Only the user who started this setup can edit it.")])])));
+    }
+
+    const modal = new ModalBuilder()
+      .setCustomId(`we_modal:${sessionId}`)
+      .setTitle("Edit Deployment Event");
+
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId("we_title")
+          .setLabel("Title (Markdown)")
+          .setStyle(TextInputStyle.Short)
+          .setValue(draft.title || "# Raise Activity")
+          .setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId("we_desc")
+          .setLabel("Description (Markdown)")
+          .setStyle(TextInputStyle.Paragraph)
+          .setValue(draft.description || "Convene on Korriban!")
+          .setRequired(true)
+      )
+    );
+
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  if (interaction.customId.startsWith("we_cancel:")) {
+    const sessionId = interaction.customId.split(":")[1];
+    if (globalThis.__eventWriteCache) globalThis.__eventWriteCache.delete(sessionId);
+    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Deployment event setup cancelled.")])])));
+  }
+
+  if (interaction.customId.startsWith("we_post:")) {
+    const sessionId = interaction.customId.split(":")[1];
+    const draft = globalThis.__eventWriteCache?.get(sessionId);
+    if (!draft) {
+      return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Event setup session expired. Please run `/write event deployment` again.")])])));
+    }
+    if (interaction.user.id !== draft.userId) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Only the user who started this setup can post it.")])])));
+    }
+
+    const channelId = "1046469967744356474";
+    const channel = await interaction.client.channels.fetch(channelId).catch(() => null);
+    if (!channel?.isTextBased?.() || typeof channel.send !== "function") {
+      return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ Could not access target channel <#${channelId}>.`)])])));
+    }
+
+    const rolePingContent = draft.selectedRoleIds?.length > 0
+      ? draft.selectedRoleIds.map(id => `<@&${id}>`).join(" ")
+      : "";
+
+    const eventContainer = buildDeploymentEventContainer(draft.title, draft.description);
+
+    await channel.send({
+      content: rolePingContent,
+      flags: 32768,
+      components: [eventContainer],
+      allowedMentions: draft.selectedRoleIds?.length > 0
+        ? { parse: [], roles: draft.selectedRoleIds }
+        : { parse: [] }
+    });
+
+    await postActivityLog(interaction.client, {
+      title: "Event Posted",
+      description: `<@${interaction.user.id}> posted a **Deployment Event** to <#${channelId}>.`,
+      fields: [
+        { name: "Title", value: draft.title, inline: true },
+        { name: "Channel", value: `<#${channelId}>`, inline: true },
+        { name: "Role Pings", value: rolePingContent || "None", inline: false }
+      ]
+    });
+
+    if (globalThis.__eventWriteCache) globalThis.__eventWriteCache.delete(sessionId);
+    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`Deployment event successfully posted to <#${channelId}>!`)])])));
+  }
+
+  return false;
+}
+
+export async function handleSelectMenu(interaction) {
+  if (interaction.customId.startsWith("we_roles:")) {
+    const sessionId = interaction.customId.split(":")[1];
+    const draft = globalThis.__eventWriteCache?.get(sessionId);
+    if (!draft) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Event setup session expired. Please run `/write event deployment` again.")])])));
+    }
+    if (interaction.user.id !== draft.userId) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Only the user who started this setup can select roles.")])])));
+    }
+
+    draft.selectedRoleIds = interaction.values || [];
+    return interaction.update(renderEventWritePreview(sessionId, draft));
+  }
+
+  return false;
+}
+
+export async function handleModal(interaction) {
+  if (interaction.customId.startsWith("we_modal:")) {
+    const sessionId = interaction.customId.split(":")[1];
+    const draft = globalThis.__eventWriteCache?.get(sessionId);
+    if (!draft) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Event setup session expired. Please run `/write event deployment` again.")])])));
+    }
+    if (interaction.user.id !== draft.userId) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Only the user who started this setup can submit edits.")])])));
+    }
+
+    draft.title = interaction.fields.getTextInputValue("we_title");
+    draft.description = interaction.fields.getTextInputValue("we_desc");
+
+    return interaction.update(renderEventWritePreview(sessionId, draft));
   }
 
   return false;

@@ -8,6 +8,11 @@ function romanize(num) {
   return ["I", "II", "III", "IV"][num - 1] || "I";
 }
 
+export function getPowerbaseCapacity(tier) {
+  const cap = { 1: 4, 2: 6, 3: 8, 4: 10 };
+  return cap[Number(tier)] || 4;
+}
+
 /**
  * Sync persistent Powerbase roster message in channel 1046537270150299720.
  */
@@ -61,7 +66,7 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
 
     const components = [
       textDisplayV2(`### [${pb.name}](${pbUrl})`),
-      textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}`),
+      textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Capacity:** ${memberIds.length + 1} / ${getPowerbaseCapacity(pb.tier)}\n**Prestige:** ${pb.prestige}`),
       separatorV2()
     ];
 

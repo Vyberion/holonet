@@ -279,7 +279,12 @@ export async function getVerifiedProfile(discordUserId) {
   const data = rows && rows.length > 0 ? rows[0] : null;
   if (!data?.roblox_user_id) return null;
 
-  const profile = await loadProfileForRoblox(data.roblox_user_id);
+  const [profile, robloxUser] = await Promise.all([
+    loadProfileForRoblox(data.roblox_user_id),
+    loadRobloxUser(data.roblox_user_id).catch(() => null)
+  ]);
+
+  profile.name = robloxUser?.name || robloxUser?.displayName || data.roblox_username || String(data.roblox_user_id);
   profile.isSuperUser = SUPER_USER_IDS.includes(String(data.roblox_user_id));
   profile.hasFullAccess = profile.hasFullAccess || profile.isSuperUser;
   return { link: data, profile };

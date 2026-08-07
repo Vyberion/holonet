@@ -32,6 +32,11 @@ export async function generateMetadata({ params }) {
   });
 }
 
+function getPowerbaseCapacity(tier) {
+  const cap = { 1: 4, 2: 6, 3: 8, 4: 10 };
+  return cap[Number(tier)] || 4;
+}
+
 function romanize(num) {
   return ["I", "II", "III", "IV"][num - 1] || "I";
 }
@@ -132,7 +137,11 @@ export default async function PowerbaseDetailPage({ params }) {
           <div className="hub-status-grid">
             <div className="hub-status-cell">
               <span className="hub-label">Members</span>
-              <span className="hub-value">{memberCount}</span>
+              <span className="hub-value">{memberCount} / {getPowerbaseCapacity(pb.tier)}</span>
+            </div>
+            <div className="hub-status-cell">
+              <span className="hub-label">Capacity</span>
+              <span className="hub-value">{getPowerbaseCapacity(pb.tier)}</span>
             </div>
             <div className="hub-status-cell">
               <span className="hub-label">Prestige</span>

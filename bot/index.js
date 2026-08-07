@@ -63,7 +63,7 @@ client.once("clientReady", () => {
   console.log(`Holonet bot online as ${client.user.tag}`);
   client.user.setPresence({
     status: "online",
-    activities: [{ name: "Sith Temple on Korriban", type: ActivityType.Playing }]
+    activities: [{ name: "HOLONET OPERATIONS & LOGISTICS OVERSEER" }]
   });
   syncStoredClockPanels();
   syncPowerbaseRostersOnStartup();
@@ -109,8 +109,8 @@ client.on("interactionCreate", async interaction => {
     console.error(error);
     if (interaction.isRepliable()) {
       const payload = botErrorPayload(error, { interaction, fallback: "Unexpected bot error." });
-      if (interaction.deferred || interaction.replied) await interaction.followUp(payload).catch(() => {});
-      else await interaction.reply(payload).catch(() => {});
+      if (interaction.deferred || interaction.replied) await interaction.followUp(payload).catch(() => { });
+      else await interaction.reply(payload).catch(() => { });
     }
   }
 });

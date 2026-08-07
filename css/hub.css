@@ -1782,19 +1782,26 @@
   margin-top: 3px;
 }
 
-.inspection-editor-row,
-.weekly-report-member {
+.inspection-editor-row {
   align-items: center;
-  background: rgba(0, 0, 0, 0.32);
-  border: 1px solid var(--theme-accent-dim, var(--border-hot));
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--theme-accent-dim, var(--border-hot)) 30%, transparent);
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(150px, 1fr) repeat(3, minmax(94px, 0.35fr));
-  padding: 10px;
+  gap: 16px;
+  grid-template-columns: minmax(180px, 1fr) repeat(2, minmax(120px, 0.4fr));
+  padding: 14px 0;
+}
+
+.inspection-editor-row:last-child {
+  border-bottom: none;
 }
 
 .weekly-report-member {
+  background: transparent;
+  border: none;
   grid-template-columns: minmax(180px, 1fr) repeat(4, minmax(76px, 0.25fr));
+  padding: 10px 0;
 }
 
 .inspection-editor-row strong,
@@ -1935,12 +1942,12 @@
 
 .inspection-editor-row {
   align-items: start;
-  background: rgba(0, 0, 0, 0.32);
-  border: 1px solid var(--theme-accent-dim, var(--border-hot));
+  background: transparent;
+  border: none;
   display: grid;
   gap: 6px 10px;
   grid-template-columns: 1fr repeat(3, minmax(0, 1fr));
-  padding: 10px;
+  padding: 10px 0;
 }
 
 .inspection-editor-row strong {
@@ -1954,12 +1961,12 @@
 
 .weekly-report-member {
   align-items: start;
-  background: rgba(0, 0, 0, 0.32);
-  border: 1px solid var(--theme-accent-dim, var(--border-hot));
+  background: transparent;
+  border: none;
   display: grid;
   gap: 6px 8px;
   grid-template-columns: minmax(0, 1.5fr) repeat(4, minmax(0, 1fr));
-  padding: 10px;
+  padding: 10px 0;
 }
 
 .weekly-report-member > div {

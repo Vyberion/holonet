@@ -41,10 +41,9 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
       .map(m => String(m.user_id || m.discord_user_id || ""))
       .filter(Boolean);
 
-    const leaderText = `<@${pb.leader_id}> *(Leader)*`;
     const apprenticeText = memberIds.length > 0
-      ? memberIds.map(id => `<@${id}> *(Apprentice)*`).join("\n")
-      : "*No apprentices assigned*";
+      ? memberIds.map(id => `<@${id}>`).join("\n")
+      : "*None*";
 
     const sdBadge = pb.is_sudden_death ? " ⚠️ **[SUDDEN DEATH]**" : "";
 
@@ -53,22 +52,21 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
 
     const components = [
       textDisplayV2(`### [${pb.name}](${pbUrl})`),
-      separatorV2(),
-      textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}`)
+      textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}`),
+      separatorV2()
     ];
 
     if (pb.description) {
-      components.push(separatorV2());
       components.push(textDisplayV2(`**Description:**\n${pb.description}`));
+      components.push(separatorV2());
     }
 
     if (pb.roblox_group_id) {
-      components.push(separatorV2());
       components.push(textDisplayV2(`**Roblox Group ID:** ${pb.roblox_group_id}`));
+      components.push(separatorV2());
     }
 
-    components.push(separatorV2());
-    components.push(textDisplayV2(`**Roster (${memberIds.length + 1} Total):**\n${leaderText}\n${apprenticeText}`));
+    components.push(textDisplayV2(`**Roster (${memberIds.length + 1} Total)**\n**Leader:** <@${pb.leader_id}>\n**Apprentices:**\n${apprenticeText}`));
 
     const v2Payload = componentsV2Message([containerV2(components, 0x8a1b1b)]);
 

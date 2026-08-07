@@ -365,16 +365,11 @@ function openInspectionEditor(division, afterSave, entry = null) {
         const name = section.name === "Attendance" ? "Activity" : section.name;
         return `
           <div class="inspection-editor-row" data-inspection-section="${index}">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-              <strong style="color:var(--gold,#d4af37); font-family:Cinzel,serif;">${escapeHtml(name)}</strong>
-              <span style="font-size:0.75rem; color:#888; background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.2); padding:0.15rem 0.4rem; border-radius:4px;">${escapeHtml(section.weightedPercentage)}% Weight</span>
-            </div>
+            <strong>${escapeHtml(name)} <span style="color:var(--text-faint); font-weight:normal; font-size:0.8em; margin-left:0.3rem;">(${escapeHtml(section.weightedPercentage)}%)</span></strong>
             <input type="hidden" name="name-${index}" value="${escapeHtml(name)}">
             <input type="hidden" name="weightedPercentage-${index}" value="${escapeHtml(section.weightedPercentage)}">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-              <label>Achieved <input type="number" min="0" step="0.01" name="achievedScore-${index}" value="${escapeHtml(section.achievedScore ?? "")}" placeholder="0"></label>
-              <label>Out Of <input type="number" min="0" step="0.01" name="outOf-${index}" value="${escapeHtml(section.outOf ?? "")}" placeholder="Out of"></label>
-            </div>
+            <label>Achieved <input type="number" min="0" step="0.01" name="achievedScore-${index}" value="${escapeHtml(section.achievedScore ?? "")}" placeholder="0"></label>
+            <label>Out Of <input type="number" min="0" step="0.01" name="outOf-${index}" value="${escapeHtml(section.outOf ?? "")}" placeholder="Out of"></label>
           </div>
         `;
       }).join("")}

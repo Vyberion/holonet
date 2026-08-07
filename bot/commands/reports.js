@@ -31,14 +31,15 @@ export const commands = [
       .addStringOption(option => addReportScopeChoices(option.setName("scope").setDescription("Report scope").setRequired(true)))
       .addStringOption(option => option.setName("start_date").setDescription("Week start date, YYYY-MM-DD").setRequired(true)))
     .addSubcommand(subcommand => subcommand
-      .setName("kaggath")
-      .setDescription("Write a Kaggath result"))
-    .addSubcommandGroup(group => group
       .setName("event")
-      .setDescription("Write event notifications")
-      .addSubcommand(subcommand => subcommand
-        .setName("deployment")
-        .setDescription("Create a deployment event notification"))),
+      .setDescription("Write an event notification")
+      .addStringOption(option => option
+        .setName("event")
+        .setDescription("Event type")
+        .setRequired(true)
+        .addChoices(
+          { name: "Deployment", value: "deployment" }
+        ))),
   new SlashCommandBuilder()
     .setName("reset")
     .setDescription("Reset clock time for a report scope")
@@ -800,14 +801,16 @@ async function handleWriteEventDeployment(interaction) {
 
 export async function handleCommand(interaction) {
   const commandName = interaction.commandName;
-  const subcommandGroup = interaction.options?.getSubcommandGroup(false) || "";
   const subcommand = interaction.options?.getSubcommand(false) || "";
 
   try {
     if (commandName === "write") {
-      if (subcommandGroup === "event" && subcommand === "deployment") {
-        await handleWriteEventDeployment(interaction);
-        return true;
+      if (subcommand === "event") {
+        const eventType = interaction.options?.getString("event") || "deployment";
+        if (eventType === "deployment") {
+          await handleWriteEventDeployment(interaction);
+          return true;
+        }
       }
 
       if (subcommand === "report") {

@@ -20,39 +20,19 @@ export const HOLONET_METADATA_SCHEMA = [
     type: 7 // BOOLEAN_EQUAL
   },
   {
-    key: "rank_overseer",
-    name: "Overseer",
-    description: "Sith Overseer Rank",
-    type: 7 // BOOLEAN_EQUAL
-  },
-  {
-    key: "rank_master",
-    name: "Sith Master",
-    description: "Sith Master Rank",
-    type: 7 // BOOLEAN_EQUAL
-  },
-  {
-    key: "rank_lord",
-    name: "Sith Lord",
-    description: "Sith Lord Rank",
-    type: 7 // BOOLEAN_EQUAL
-  },
-  {
-    key: "rank_darth",
-    name: "Darth",
-    description: "Darth Rank",
-    type: 7 // BOOLEAN_EQUAL
+    key: "rank",
+    name: "Rank",
+    description: "Sith Order Group Rank",
+    type: 2 // INTEGER_GREATER_THAN_OR_EQUAL
   }
 ];
 
-export function getRankMetadataForProfile(rule) {
-  const val = rule?.value || "";
+export function getRankMetadataForProfile(profile) {
+  const mainGroupRole = (profile?.groupRoles || []).find(r => r.groupId === 3197893 || r.isMainGroup);
+  const rank = Number(mainGroupRole?.rank || profile?.mainGroupRank || profile?.rank || 0);
 
   return {
-    rank_overseer: val === "Overseer" ? 1 : 0,
-    rank_master: val === "Master" ? 1 : 0,
-    rank_lord: (val === "Lord" || val === "Lord Emperor" || val === "Lord Voice" || val === "Lord Wrath") ? 1 : 0,
-    rank_darth: val.startsWith("Darth") ? 1 : 0
+    rank
   };
 }
 
@@ -132,8 +112,8 @@ export async function pushRoleConnectionData(accessToken, platformUsername, meta
   const url = `${DISCORD_API_URL}/users/@me/applications/${clientId}/role-connection`;
 
   const body = {
-    platform_name: "The Holonet",
-    platform_username: platformUsername || "Holonet User",
+    platform_name: "The Sith Order",
+    platform_username: platformUsername || "Sith Order Member",
     metadata: metadata
   };
 

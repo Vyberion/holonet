@@ -63,10 +63,9 @@ const handler = async (req, res) => {
     const perms = profile ? compileProfilePermissions(profile) : [];
     const isOperator = hasPermission({ permissions: perms }, "holonet:operator");
 
-    // 4. Platform username is the user's Roblox username (separate from rank metadata tags)
-    const platformUsername = robloxUsername || profile?.name || discordUser.username || "Holonet User";
-    const rule = profile ? nicknameRuleForProfile(profile) : null;
-    const rankMetadata = getRankMetadataForProfile(rule);
+    // 4. Platform username is the user's Roblox username
+    const platformUsername = robloxUsername || profile?.name || discordUser.username || "Sith Order Member";
+    const rankMetadata = getRankMetadataForProfile(profile);
 
     // 5. Push role connection metadata to Discord API
     await pushRoleConnectionData(tokens.access_token, platformUsername, {

@@ -1,5 +1,3 @@
-import { config } from "../config/index.js";
-
 const DISCORD_API_URL = "https://discord.com/api/v10";
 
 export const HOLONET_METADATA_SCHEMA = [
@@ -18,7 +16,7 @@ export const HOLONET_METADATA_SCHEMA = [
 ];
 
 export async function registerRoleConnectionMetadata() {
-  const clientId = process.env.DISCORD_CLIENT_ID || config.discord?.clientId;
+  const clientId = process.env.DISCORD_CLIENT_ID;
   const botToken = process.env.DISCORD_TOKEN;
 
   if (!clientId || !botToken) {
@@ -44,7 +42,7 @@ export async function registerRoleConnectionMetadata() {
 }
 
 export async function getDiscordOAuthTokens(code, redirectUri) {
-  const clientId = process.env.DISCORD_CLIENT_ID || config.discord?.clientId;
+  const clientId = process.env.DISCORD_CLIENT_ID;
   const clientSecret = process.env.DISCORD_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
@@ -87,7 +85,7 @@ export async function getDiscordUser(accessToken) {
 }
 
 export async function pushRoleConnectionData(accessToken, platformUsername, metadata) {
-  const clientId = process.env.DISCORD_CLIENT_ID || config.discord?.clientId;
+  const clientId = process.env.DISCORD_CLIENT_ID;
   if (!clientId) throw new Error("DISCORD_CLIENT_ID is missing.");
 
   const url = `${DISCORD_API_URL}/users/@me/applications/${clientId}/role-connection`;

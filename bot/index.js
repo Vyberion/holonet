@@ -6,6 +6,7 @@ import { ephemeral, errorEmbed } from "./services/discord-ui.js";
 import { syncClockPanels } from "./services/clock-panels.js";
 import { startShiftReminderLoop } from "./services/shift-reminders.js";
 import { syncStoredPowerbaseRosters } from "./services/powerbase-api.js";
+import { registerRoleConnectionMetadata } from "./services/discord-linked-roles.js";
 
 const holonetPresence = {
   status: "online",
@@ -71,6 +72,9 @@ client.once("clientReady", () => {
   syncStoredClockPanels();
   syncPowerbaseRostersOnStartup();
   startShiftReminderLoop(client);
+  registerRoleConnectionMetadata().catch(err => {
+    console.warn("Linked role metadata registration on startup warning:", err?.message || err);
+  });
 });
 
 client.on("interactionCreate", async interaction => {

@@ -2,6 +2,7 @@ import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v10";
 import { commandData } from "./commands/index.js";
 import { config, requireEnv } from "./config/index.js";
+import { HOLONET_METADATA_SCHEMA } from "./services/discord-linked-roles.js";
 
 const rest = new REST({ version: "10" }).setToken(requireEnv("DISCORD_TOKEN"));
 
@@ -9,6 +10,16 @@ const deployed = await rest.put(
   Routes.applicationGuildCommands(config.discord.clientId, config.discord.guildId),
   { body: commandData }
 );
+
+try {
+  await rest.put(
+    Routes.applicationRoleConnectionMetadata(config.discord.clientId),
+    { body: HOLONET_METADATA_SCHEMA }
+  );
+  console.log("Registered Linked Role connection metadata schema.");
+} catch (error) {
+  console.warn("Failed to register Linked Role metadata:", error?.message || error);
+}
 
 async function deleteCommandByName(route, deleteRoute, name) {
   const commands = await rest.get(route);

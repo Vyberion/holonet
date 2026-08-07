@@ -14,7 +14,7 @@ import exampleConfig from "./config.example.js";
 let localConfig = {};
 
 try {
-  localConfig = (await import("./config.local.js")).default || {};
+  localConfig = (await import(/* webpackIgnore: true */ "./config.local.js")).default || {};
 } catch {
   localConfig = {};
 }
@@ -34,7 +34,7 @@ export const config = mergeDeep(exampleConfig, {
   ...localConfig,
   discord: {
     ...localConfig.discord,
-    clientId: process.env.DISCORD_CLIENT_ID || localConfig.discord?.clientId || exampleConfig.discord.clientId,
+    clientId: process.env.DISCORD_CLIENT_ID,
     guildId: process.env.DISCORD_GUILD_ID || localConfig.discord?.guildId || exampleConfig.discord.guildId
   },
   holonet: {

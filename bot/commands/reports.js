@@ -704,39 +704,50 @@ async function confirmReset(interaction, parts) {
   }
 }
 
-export function buildDeploymentEventContainer(title = "# Raise Activity", description = "Convene on Korriban!") {
+export function buildDeploymentEventContainer(title = "# SSU", description = "The gates to the Temple have opened. Convene on Korriban!", rolePingsText = "") {
+  const components = [];
+
+  if (rolePingsText) {
+    components.push({
+      type: 10,
+      content: rolePingsText
+    });
+  }
+
+  components.push(
+    {
+      type: 10,
+      content: title || "# SSU"
+    },
+    {
+      type: 14,
+      divider: true,
+      spacing: 1
+    },
+    {
+      type: 10,
+      content: description || "The gates to the Temple have opened. Convene on Korriban!"
+    },
+    {
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 5,
+          label: "Deploy",
+          emoji: null,
+          disabled: false,
+          url: "https://www.thesithorder.org/galaxy?planet=Korriban"
+        }
+      ]
+    }
+  );
+
   return {
     type: 17,
-    accent_color: 10813440,
+    accent_color: 0xff3348,
     spoiler: false,
-    components: [
-      {
-        type: 10,
-        content: title || "# Raise Activity"
-      },
-      {
-        type: 14,
-        divider: true,
-        spacing: 1
-      },
-      {
-        type: 10,
-        content: description || "Convene on Korriban!"
-      },
-      {
-        type: 1,
-        components: [
-          {
-            type: 2,
-            style: 5,
-            label: "Deploy",
-            emoji: null,
-            disabled: false,
-            url: "https://www.thesithorder.org/galaxy?planet=Korriban"
-          }
-        ]
-      }
-    ]
+    components
   };
 }
 
@@ -791,8 +802,8 @@ async function handleWriteEventDeployment(interaction) {
   const draft = {
     userId: interaction.user.id,
     eventType: "deployment",
-    title: "# Raise Activity",
-    description: "Convene on Korriban!",
+    title: "# SSU",
+    description: "The gates to the Temple have opened. Convene on Korriban!",
     selectedRoleIds: []
   };
 
@@ -877,7 +888,7 @@ export async function handleButton(interaction) {
           .setCustomId("we_title")
           .setLabel("Title (Markdown)")
           .setStyle(TextInputStyle.Short)
-          .setValue(draft.title || "# Raise Activity")
+          .setValue(draft.title || "# SSU")
           .setRequired(true)
       ),
       new ActionRowBuilder().addComponents(
@@ -885,7 +896,7 @@ export async function handleButton(interaction) {
           .setCustomId("we_desc")
           .setLabel("Description (Markdown)")
           .setStyle(TextInputStyle.Paragraph)
-          .setValue(draft.description || "Convene on Korriban!")
+          .setValue(draft.description || "The gates to the Temple have opened. Convene on Korriban!")
           .setRequired(true)
       )
     );
@@ -920,10 +931,9 @@ export async function handleButton(interaction) {
       ? draft.selectedRoleIds.map(id => `<@&${id}>`).join(" ")
       : "";
 
-    const eventContainer = buildDeploymentEventContainer(draft.title, draft.description);
+    const eventContainer = buildDeploymentEventContainer(draft.title, draft.description, rolePingContent);
 
     await channel.send({
-      content: rolePingContent,
       flags: 32768,
       components: [eventContainer],
       allowedMentions: draft.selectedRoleIds?.length > 0

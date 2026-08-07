@@ -1,6 +1,49 @@
-import { config } from "../config/index.js";
+import fs from "node:fs";
+import path from "node:path";
 
 const DISCORD_API_URL = "https://discord.com/api/v10";
+
+function getEnvValue(keys) {
+  for (const key of keys) {
+    if (process.env[key]) return process.env[key];
+  }
+
+  const candidates = [
+    path.join(process.cwd(), "bot", ".env"),
+    path.join(process.cwd(), ".env"),
+    path.join(process.cwd(), ".env.local"),
+    path.join(process.cwd(), ".env.oci")
+  ];
+
+  for (const file of candidates) {
+    try {
+      if (fs.existsSync(file)) {
+        const text = fs.readFileSync(file, "utf8");
+        for (const key of keys) {
+          const regex = new RegExp(`^\\s*(?:export\\s+)?${key}\\s*=\\s*(.*)$`, "m");
+          const match = text.match(regex);
+          if (match && match[1]) {
+            const val = match[1].trim().replace(/^['"]|['"]$/g, "");
+            if (val) return val;
+          }
+        }
+      }
+    } catch (_) {}
+  }
+  return "";
+}
+
+export function getDiscordClientId() {
+  return getEnvValue(["DISCORD_CLIENT_ID"]);
+}
+
+export function getDiscordClientSecret() {
+  return getEnvValue(["DISCORD_CLIENT_SECRET"]);
+}
+
+export function getDiscordBotToken() {
+  return getEnvValue(["DISCORD_TOKEN"]);
+}
 
 export const HOLONET_METADATA_SCHEMA = [
   {
@@ -18,8 +61,8 @@ export const HOLONET_METADATA_SCHEMA = [
 ];
 
 export async function registerRoleConnectionMetadata() {
-  const clientId = process.env.DISCORD_CLIENT_ID || config.discord?.clientId;
-  const botToken = process.env.DISCORD_TOKEN || config.discord?.token;
+  const clientId = getDiscordClientId();
+  const botToken = getDiscordBotToken();
 
   if (!clientId || !botToken) {
     throw new Error("DISCORD_CLIENT_ID and DISCORD_TOKEN environment variables are required.");
@@ -44,11 +87,11 @@ export async function registerRoleConnectionMetadata() {
 }
 
 export async function getDiscordOAuthTokens(code, redirectUri) {
-  const clientId = process.env.DISCORD_CLIENT_ID || config.discord?.clientId;
-  const clientSecret = process.env.DISCORD_CLIENT_SECRET || config.discord?.clientSecret || process.env.DISCORD_TOKEN || config.discord?.token;
+  const clientId = getDiscordClientId();
+  const clientSecret = getDiscordClientSecret();
 
   if (!clientId || !clientSecret) {
-    throw new Error("DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET (or DISCORD_TOKEN) are required for OAuth2 token exchange.");
+    throw new Error("DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET environment variables are required.");
   }
 
   const params = new URLSearchParams({
@@ -87,7 +130,7 @@ export async function getDiscordUser(accessToken) {
 }
 
 export async function pushRoleConnectionData(accessToken, platformUsername, metadata) {
-  const clientId = process.env.DISCORD_CLIENT_ID || config.discord?.clientId;
+  const clientId = getDiscordClientId();
   if (!clientId) throw new Error("DISCORD_CLIENT_ID is missing.");
 
   const url = `${DISCORD_API_URL}/users/@me/applications/${clientId}/role-connection`;

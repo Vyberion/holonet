@@ -1,4 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, RoleSelectMenuBuilder, SlashCommandBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
+import { config } from "../config/index.js";
 import { checkPageAccess, checkResourceWriteAccess } from "../../modules/auth/permissions.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { postActivityLog } from "../services/activity-log.js";

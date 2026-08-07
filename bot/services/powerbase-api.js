@@ -245,14 +245,26 @@ export async function createPowerbase(payload, members = []) {
  * Updates a powerbase and its members.
  */
 export async function updatePowerbase(id, payload, newMembers = null) {
-  const { data: rows, error } = await supabase
-    .from("powerbases")
-    .update(payload)
-    .eq("id", id)
-    .select();
-    
-  if (error) throw error;
-  const data = rows && rows.length > 0 ? rows[0] : null;
+  let data = null;
+
+  if (payload && Object.keys(payload).length > 0) {
+    const { data: rows, error } = await supabase
+      .from("powerbases")
+      .update(payload)
+      .eq("id", id)
+      .select();
+
+    if (error) throw error;
+    data = rows && rows.length > 0 ? rows[0] : null;
+  }
+
+  if (!data) {
+    data = await getPowerbase(id);
+  }
+
+  if (!data) {
+    throw new Error("Powerbase not found.");
+  }
 
   if (newMembers !== null) {
     const validMembers = newMembers.filter(memberId => memberId !== data.leader_id);

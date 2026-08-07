@@ -9,7 +9,13 @@ import { syncStoredPowerbaseRosters } from "./services/powerbase-api.js";
 
 const holonetPresence = {
   status: "online",
-  activities: [{ name: "Torreto do his Hell Jacks", type: ActivityType.Watching }]
+  activities: [
+    {
+      name: "Custom Status",
+      state: "HOLONET OPERATIONS & LOGISTICS OVERSEER",
+      type: ActivityType.Custom
+    }
+  ]
 };
 
 const client = new Client({
@@ -61,10 +67,7 @@ async function syncPowerbaseRostersOnStartup() {
 
 client.once("clientReady", () => {
   console.log(`Holonet bot online as ${client.user.tag}`);
-  client.user.setPresence({
-    status: "online",
-    activities: [{ name: "HOLONET OPERATIONS & LOGISTICS OVERSEER" }]
-  });
+  client.user.setPresence(holonetPresence);
   syncStoredClockPanels();
   syncPowerbaseRostersOnStartup();
   startShiftReminderLoop(client);

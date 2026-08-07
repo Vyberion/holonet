@@ -8,21 +8,9 @@ import { startShiftReminderLoop } from "./services/shift-reminders.js";
 import { syncStoredPowerbaseRosters } from "./services/powerbase-api.js";
 import { registerRoleConnectionMetadata } from "./services/discord-linked-roles.js";
 
-``` const holonetPresence = {
-  status: "dnd",
-  activities: [
-    {
-      name: "Custom Status",
-      state: "well",
-      type: ActivityType.Custom
-    }
-  ]
-};```
-
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages],
-  partials: [Partials.GuildMember],
-  presence: holonetPresence
+  partials: [Partials.GuildMember]
 });
 
 let lastCheekyResponseAt = 0;
@@ -68,7 +56,6 @@ async function syncPowerbaseRostersOnStartup() {
 
 client.once("clientReady", () => {
   console.log(`Holonet bot online as ${client.user.tag}`);
-  client.user.setPresence(holonetPresence);
   syncStoredClockPanels();
   syncPowerbaseRostersOnStartup();
   startShiftReminderLoop(client);

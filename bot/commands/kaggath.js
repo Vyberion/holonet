@@ -46,9 +46,9 @@ export async function handleCommand(interaction) {
   } catch (err) {
     console.error(err);
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])])));
+      await interaction.followUp(ephemeral(componentsV2Message([containerV2([textDisplayV2(`**Error:** ` + err.message)])])));
     } else {
-      await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])])));
+      await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`**Error:** ` + err.message)])])));
     }
   }
 

@@ -15,7 +15,7 @@ export const commands = [
       subcommand
         .setName("banner")
         .setDescription("Upload a banner image attachment for a Powerbase")
-        .addAttachmentOption(option => 
+        .addAttachmentOption(option =>
           option.setName("image").setDescription("The image to upload").setRequired(true)
         )
     )
@@ -62,9 +62,9 @@ export async function handleCommand(interaction) {
   } catch (err) {
     console.error(err);
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])])));
+      await interaction.followUp(ephemeral(componentsV2Message([containerV2([textDisplayV2(`**Error:** ` + err.message)])])));
     } else {
-      await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ` + err.message)])])));
+      await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`**Error:** ` + err.message)])])));
     }
   }
 
@@ -211,7 +211,7 @@ export async function handleModal(interaction) {
 
     const existingName = await getPowerbaseByName(name);
     if (existingName) {
-      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ A Powerbase named "${name}" already exists.`)])])));
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`A Powerbase named "${name}" already exists.`)])])));
     }
 
     const verified = await getVerifiedProfile(interaction.user.id).catch(() => null);
@@ -344,8 +344,8 @@ export async function handleModal(interaction) {
 
 async function handleEditMembers(interaction) {
   const selectedMembers = interaction.values;
-  const pbId = interaction.customId.includes(":") 
-    ? interaction.customId.split(":")[1] 
+  const pbId = interaction.customId.includes(":")
+    ? interaction.customId.split(":")[1]
     : globalThis.__pbEditMembersCache?.get(interaction.user.id)?.pbId;
 
   if (!pbId) {
@@ -392,7 +392,6 @@ async function handleEditMembers(interaction) {
         title: "Powerbase Roster Updated",
         description: `Roster for Powerbase **${pb.name}** has been updated.`,
         fields: [
-          { name: "Powerbase Name", value: pb.name, inline: true },
           { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
           { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
           { name: "Apprentices Added", value: addedText, inline: true },
@@ -410,7 +409,7 @@ async function handleEditMembers(interaction) {
     ]);
     return interaction.update(ephemeral(v2Payload));
   } catch (err) {
-    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ${err.message}`)])])));
+    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`**Error:** ${err.message}`)])])));
   }
 }
 
@@ -923,7 +922,7 @@ async function handleBanner(interaction, verified) {
 async function handleBannerSelect(interaction) {
   const pbId = interaction.values[0];
   const imageUrl = globalThis.__pbBannerCache?.get(interaction.user.id);
-  
+
   if (!imageUrl) {
     return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Upload session expired. Please run `/powerbase banner` again.")])])));
   }

@@ -33,42 +33,33 @@ const OVERSEER_VISIBLE_SCOPES = ["reavers", "dhg", "dreadmasters", "highranks"];
 export const commands = [
   new SlashCommandBuilder().setName("clockin").setDescription("Start a shift").addBooleanOption(option => option.setName("late").setDescription("Clock in late")),
   new SlashCommandBuilder().setName("clockout").setDescription("End your active shift").addBooleanOption(option => option.setName("late").setDescription("Clock out late")),
-  new SlashCommandBuilder().setName("shift").setDescription("Shift tools")
+  new SlashCommandBuilder()
+    .setName("shift")
+    .setDescription("Shift management tools")
     .addSubcommand(subcommand => subcommand.setName("status").setDescription("Show your active shift"))
-    .addSubcommand(subcommand => subcommand.setName("reminders").setDescription("Enable or disable hourly shift reminders").addBooleanOption(option => option.setName("enable").setDescription("Whether hourly shift reminders are enabled").setRequired(true))),
-  new SlashCommandBuilder().setName("clockpanel").setDescription("Clock panel tools").addSubcommand(subcommand => subcommand.setName("create").setDescription("Create a clock panel").addStringOption(option => addScopeChoices(option.setName("scope").setDescription("Clock scope").setRequired(true)))),
-  new SlashCommandBuilder().setName("shifts").setDescription("Shift reports")
+    .addSubcommand(subcommand => subcommand.setName("reminders").setDescription("Enable or disable hourly shift reminders").addBooleanOption(option => option.setName("enable").setDescription("Whether hourly shift reminders are enabled").setRequired(true)))
     .addSubcommand(subcommand => subcommand.setName("active").setDescription("Show active shifts"))
-    .addSubcommand(subcommand => subcommand.setName("weekly").setDescription("Show this week's shifts").addStringOption(option => addScopeChoices(option.setName("scope").setDescription("Clock scope").setRequired(true))))
-    .addSubcommand(subcommand => subcommand.setName("user").setDescription("Show a user's shifts").addUserOption(option => option.setName("user").setDescription("User").setRequired(true))),
-  new SlashCommandBuilder().setName("add").setDescription("Add time").addSubcommand(subcommand => subcommand.setName("time").setDescription("Add minutes to a shift").addUserOption(option => option.setName("user").setDescription("User to adjust"))),
-  new SlashCommandBuilder().setName("remove").setDescription("Remove time").addSubcommand(subcommand => subcommand.setName("time").setDescription("Remove minutes from a shift").addUserOption(option => option.setName("user").setDescription("User to adjust"))),
-  new SlashCommandBuilder().setName("view").setDescription("View Holonet records")
-    .addSubcommand(subcommand => subcommand.setName("scopes").setDescription("List all clock scopes and who is eligible for each one"))
-    .addSubcommand(subcommand => subcommand.setName("time").setDescription("View user time or a scope leaderboard").addUserOption(option => option.setName("user").setDescription("Discord user")).addStringOption(option => addScopeChoices(option.addChoices({ name: "All", value: "all" }).setName("scope").setDescription("Leaderboard scope"))))
+    .addSubcommand(subcommand => subcommand.setName("reset")
+      .setDescription("Reset clock time for a report scope or user(s)")
+      .addStringOption(option => addScopeChoices(option.setName("scope").setDescription("Scope to reset").setRequired(true)))
+      .addUserOption(option => option.setName("user").setDescription("Optional user to wipe instead of the whole scope"))
+      .addUserOption(option => option.setName("user2").setDescription("Optional second user to wipe"))
+      .addUserOption(option => option.setName("user3").setDescription("Optional third user to wipe")))
+    .addSubcommand(subcommand => subcommand.setName("time")
+      .setDescription("Add or remove shift time for a user")
+      .addStringOption(option => option.setName("type").setDescription("Add or remove time").setRequired(true).addChoices({ name: "Add", value: "add" }, { name: "Remove", value: "remove" }))
+      .addUserOption(option => option.setName("user").setDescription("User to adjust").setRequired(true))
+      .addIntegerOption(option => option.setName("minutes").setDescription("Number of minutes (leave empty for popup modal)").setRequired(false)))
+    .addSubcommand(subcommand => subcommand.setName("view")
+      .setDescription("View shift time for a scope leaderboard or specific user")
+      .addStringOption(option => addScopeChoices(option.setName("scope").setDescription("Leaderboard scope")))
+      .addUserOption(option => option.setName("user").setDescription("Discord user")))
 ];
 
 function addScopeChoices(option) { return option.addChoices(...SCOPE_CHOICES); }
 
-function panelRows(scope) {
-  return [
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`clock:in:${scope}:0`).setLabel("Clock In").setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId(`clock:in:${scope}:1`).setLabel("Clock In Late").setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`clock:out:${scope}:0`).setLabel("Clock Out").setStyle(ButtonStyle.Danger),
-      new ButtonBuilder().setCustomId(`clock:out:${scope}:1`).setLabel("Clock Out Late").setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`clock:shift:${scope}:0`).setLabel("My Shift").setStyle(ButtonStyle.Primary)
-    ),
-    new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`clock:leaderboard:${scope}:0`).setLabel("Leaderboard").setStyle(ButtonStyle.Primary))
-  ];
-}
-
 function scopeLabel(scope) {
   return { reavers: "Reavers", dhg: "DHG", inquisitors: "Inquisitors", dreadmasters: "Dread Masters", highranks: "High Ranks", darkCouncil: "Dark Council", all: "All" }[scope] || scope;
-}
-
-function clockPanelPayload(scope) {
-  return { embeds: [embed(`${scopeLabel(scope)} Clock Panel`, PANEL_DESCRIPTION)], components: panelRows(scope) };
 }
 
 function divisionTierAtLeast(profile, division, requiredTier) {
@@ -130,24 +121,6 @@ async function requireScopeTimeAccess(interaction, scope) {
   return { allowed: false, profile: verified?.profile || null };
 }
 
-function rankName(section, rank) { return section?.ranks?.[String(rank)]?.value || `Rank ${rank}`; }
-
-function eligibleRanks(ranks, keys, section) {
-  return keys.flatMap(key => (ranks?.[key] || []).map(rank => `${rankName(section, rank)} [${rank}]`)).join(", ");
-}
-
-function scopeEligibilityLines() {
-  const nicknameRanks = config.nicknames?.managed || {};
-  return [
-    `- Reavers: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.reavers.ranks, ["1ic", "co", "nco", "member"], nicknameRanks.DIVISIONS?.reavers)}`,
-    `- DHG: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.dhg.ranks, ["1ic", "2ic", "co", "nco", "member"], nicknameRanks.DIVISIONS?.dhg)}`,
-    `- Inquisitors: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.inquisitors.ranks, ["1ic", "co", "nco", "member"], nicknameRanks.DIVISIONS?.inquisitors)}`,
-    `- Dread Masters: ${eligibleRanks(ROBLOX_GROUPS.DIVISIONS.dreadmasters.ranks, ["1ic", "2ic", "member"], nicknameRanks.DIVISIONS?.dreadmasters)}`,
-    `- High Ranks: ${eligibleRanks(ROBLOX_GROUPS.MAIN_GROUP.ranks, ["upper", "lower"], nicknameRanks.MAIN_GROUP)}`,
-    `- Dark Council: ${eligibleRanks(ROBLOX_GROUPS.DARK_COUNCIL.ranks, Object.keys(ROBLOX_GROUPS.DARK_COUNCIL.ranks), nicknameRanks.DARK_COUNCIL)}`
-  ];
-}
-
 function formatDurationLong(seconds = 0) {
   const total = Math.max(0, Math.trunc(Number(seconds) || 0));
   const hours = Math.floor(total / 3600);
@@ -201,16 +174,6 @@ function leaderboardRow(scope, page, totalPages) {
   );
 }
 
-function leaderboardEmbed(scope, rows, page) {
-  const totalPages = Math.max(1, Math.ceil(rows.length / LEADERBOARD_PAGE_SIZE));
-  const safePage = Math.min(Math.max(0, page), totalPages - 1);
-  const pageRows = rows.slice(safePage * LEADERBOARD_PAGE_SIZE, (safePage + 1) * LEADERBOARD_PAGE_SIZE);
-  return {
-    embeds: [embed(`${scopeLabel(scope)} Leaderboard`, pageRows.length ? pageRows.map((row, index) => `**Rank:** ${safePage * LEADERBOARD_PAGE_SIZE + index + 1}\n**User:** <@${row.discordUserId}>\n**Total time:** ${formatDurationLong(row.totalSeconds)}`).join("\n\n") : "No time recorded.")],
-    components: [leaderboardRow(scope, safePage, totalPages)]
-  };
-}
-
 async function replyScopeLeaderboard(interaction, scope, page = 0, update = false) {
   const access = await requireScopeTimeAccess(interaction, scope);
   if (!access.allowed) return;
@@ -242,31 +205,19 @@ async function replyScopeLeaderboard(interaction, scope, page = 0, update = fals
   else await interaction.reply(ephemeral(payload));
 }
 
-async function loadClockScopesForUser(discordUserId) {
-  const { data, error } = await supabase
-    .from("clock_shifts")
-    .select("scope")
-    .eq("discord_user_id", discordUserId);
-  if (error) throw error;
-  return [...new Set((data || []).map(row => row.scope).filter(Boolean))];
-}
+async function allowedClockScopesForTarget(interaction, targetUser, verified = null) {
+  const actor = await getVerifiedProfile(interaction.user.id).catch(() => null);
+  if (canManageBot(actor?.profile, interaction.member)) return Object.keys(ROBLOX_GROUPS.DIVISIONS).concat(["highranks", "darkCouncil"]);
 
-async function loadClockScopesForTarget(targetUser, verified = undefined) {
-  const [storedScopes, target] = await Promise.all([
-    loadClockScopesForUser(targetUser.id),
-    verified === undefined ? getVerifiedProfile(targetUser.id).catch(() => null) : Promise.resolve(verified)
-  ]);
-  const scopes = new Set(storedScopes);
-  const profileScope = target?.profile ? inferScope(target.profile) : "";
-  if (profileScope) scopes.add(profileScope);
-  return [...scopes];
-}
-
-async function allowedClockScopesForTarget(interaction, targetUser, targetVerified = undefined) {
-  if (targetUser.id === interaction.user.id) return null;
-  const [actor, targetScopes] = await Promise.all([
-    getVerifiedProfile(interaction.user.id).catch(() => null),
-    loadClockScopesForTarget(targetUser, targetVerified)
+  const targetVerified = verified || await getVerifiedProfile(targetUser.id).catch(() => null);
+  const targetScope = targetVerified?.profile ? inferScope(targetVerified.profile) : "";
+  const targetScopes = unique([
+    targetScope,
+    ...(targetVerified?.profile?.authorityRoles?.highRankOverseer ? ["highranks"] : []),
+    ...(targetVerified?.profile?.authorityRoles?.darkHonorGuardOverseer ? ["dhg"] : []),
+    ...(targetVerified?.profile?.authorityRoles?.reaverOverseer ? ["reavers"] : []),
+    ...(targetVerified?.profile?.authorityRoles?.dreadMasterOverseer ? ["dreadmasters"] : []),
+    ...(targetVerified?.profile?.authorityRoles?.inquisitoriusOverseer ? ["inquisitors"] : [])
   ]);
   return targetScopes.filter(scope => canViewScopeTime(actor?.profile, scope, interaction.member));
 }
@@ -380,108 +331,118 @@ async function handleShiftReminderButton(interaction) {
   return true;
 }
 
-async function canViewTargetUserTime(interaction, targetUser) {
-  if (targetUser.id === interaction.user.id) return true;
-  const allowedScopes = await allowedClockScopesForTarget(interaction, targetUser);
-  if (allowedScopes.length) return true;
-  await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to view that user's time.")] }));
-  return false;
-}
-
 export async function handleCommand(interaction) {
   const commandName = interaction.commandName;
   const subcommand = interaction.options?.getSubcommand(false) || "";
 
-  if (interaction.commandName === "clockin") {
+  if (commandName === "clockin") {
     if (interaction.options.getBoolean("late")) await interaction.showModal(textModal("clockmodal:in:auto", "Late Clock-In", [{ id: "minutes", label: "How late are you? (minutes)", placeholder: "10" }]));
     else try { await doClockIn(interaction); } catch (error) { await replyClockError(interaction, error); }
     return true;
   }
 
-  if (interaction.commandName === "clockout") {
+  if (commandName === "clockout") {
     if (interaction.options.getBoolean("late")) await interaction.showModal(textModal("clockmodal:out:auto", "Late Clock-Out", [{ id: "minutes", label: "How late is this clock-out?", placeholder: "10" }]));
     else try { await doClockOut(interaction); } catch (error) { await replyClockError(interaction, error); }
     return true;
   }
 
-  if (interaction.commandName === "shift") {
+  if (commandName === "shift") {
+    if (subcommand === "status") {
+      await replyShiftSummary(interaction);
+      return true;
+    }
+
     if (subcommand === "reminders") {
       const enabled = interaction.options.getBoolean("enable", true);
       await setShiftRemindersEnabled(interaction.user.id, enabled);
       await interaction.reply(ephemeral({ embeds: [successEmbed("Shift Reminders", `Hourly shift reminders are now ${enabled ? "enabled" : "disabled"}.`)] }));
-    } else {
-      await replyShiftSummary(interaction);
+      return true;
     }
-    return true;
-  }
 
-  if (interaction.commandName === "view") {
-    const sub = interaction.options.getSubcommand();
-    if (sub === "scopes") await interaction.reply(ephemeral({ embeds: [embed("Clock Scopes", scopeEligibilityLines().join("\n"))] }));
-    if (sub === "time") {
+    if (subcommand === "active") {
+      if (!(await requireManager(interaction))) {
+        await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to view active shifts.")] }));
+        return true;
+      }
+      const { data, error } = await supabase.from("clock_shifts").select("*").eq("status", "active").order("started_at", { ascending: false }).limit(20);
+      if (error) throw error;
+      const lines = (data || []).map(row => `<@${row.discord_user_id}> ${row.scope} active duration: ${formatDuration(shiftTotalSeconds(row))}`);
+      await interaction.reply(ephemeral({ embeds: [embed("Active Shifts", lines.join("\n") || "No active shifts.")] }));
+      return true;
+    }
+
+    if (subcommand === "reset") {
+      const verified = await getVerifiedProfile(interaction.user.id);
+      if (!canManageBot(verified?.profile, interaction.member)) {
+        await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to reset clock times.")] }));
+        return true;
+      }
+      const scope = interaction.options.getString("scope", true);
+      const user = interaction.options.getUser("user");
+      const user2 = interaction.options.getUser("user2");
+      const user3 = interaction.options.getUser("user3");
+      const usersToWipe = [user, user2, user3].filter(Boolean);
+
+      let query = supabase.from("clock_shifts").delete();
+      if (usersToWipe.length > 0) {
+        query = query.in("discord_user_id", usersToWipe.map(u => u.id));
+      } else {
+        query = query.eq("scope", scope);
+      }
+
+      const { error } = await query;
+      if (error) throw error;
+
+      await interaction.reply(ephemeral({
+        embeds: [successEmbed("Clock Time Reset", usersToWipe.length > 0 ? `Reset clock time for ${usersToWipe.map(u => `<@${u.id}>`).join(", ")}.` : `Reset all clock time for scope ${scopeLabel(scope)}.`)]
+      }));
+      return true;
+    }
+
+    if (subcommand === "time") {
+      const type = interaction.options.getString("type", true);
+      const target = interaction.options.getUser("user", true);
+      const explicitMinutes = interaction.options.getInteger("minutes");
+
+      const decision = await canAdjustTarget(interaction, target);
+      if (!decision.allowed) {
+        await interaction.reply(ephemeral({ embeds: [errorEmbed(decision.reason)] }));
+        return true;
+      }
+
+      if (explicitMinutes !== null && explicitMinutes !== undefined) {
+        const minutes = Math.max(0, explicitMinutes);
+        const shift = await adjustShiftTime(target.id, type === "add" ? minutes : -minutes);
+        const totals = await shiftTotals(target.id);
+
+        await interaction.reply(ephemeral({ embeds: [successEmbed("Time Adjusted", `${type === "add" ? "Added" : "Removed"} ${minutes} minute(s) ${target.id === interaction.user.id ? "from your total time" : `for <@${target.id}>`}.\nNew total time: ${formatDuration(totals.totalSeconds)}.`)] }));
+        if (minutes > 0) {
+          await postActivityLog(interaction.client, {
+            title: type === "add" ? "Time Added" : "Time Removed",
+            description: `<@${interaction.user.id}> ${type === "add" ? "added time to" : "removed time from"} ${target.id === interaction.user.id ? "their own total time" : `<@${target.id}>'s total time`}.`,
+            channelKey: shift.scope === "darkCouncil" ? "highCommandLog" : "activityLog",
+            fields: [
+              { name: "Scope", value: scopeLabel(shift.scope), inline: true },
+              { name: "Amount", value: formatDuration(minutes * 60), inline: true },
+              { name: "New Total Time", value: formatDuration(totals.totalSeconds), inline: true }
+            ]
+          });
+        }
+      } else {
+        await interaction.showModal(textModal(`timeadjust:${type}:${target.id}`, `${type === "add" ? "Add" : "Remove"} Time`, [{ id: "minutes", label: "How many minutes?", placeholder: "10" }]));
+      }
+      return true;
+    }
+
+    if (subcommand === "view") {
       const user = interaction.options.getUser("user", false);
       const scope = interaction.options.getString("scope", false);
       if (user && scope) await interaction.reply(ephemeral({ embeds: [errorEmbed("Choose either a user or a scope, not both.")] }));
       else if (scope) await replyScopeLeaderboard(interaction, scope);
       else await replyUserTime(interaction, user || interaction.user);
-    }
-    return true;
-  }
-
-  if (interaction.commandName === "clockpanel") {
-    if (!(await requireManager(interaction))) {
-      await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to create clock panels.")] }));
       return true;
     }
-    const scope = interaction.options.getString("scope", true);
-    const message = await interaction.channel.send(clockPanelPayload(scope));
-    await saveClockPanel({ scope, channelId: message.channelId, messageId: message.id, createdBy: interaction.user.id });
-    await interaction.reply(ephemeral({ embeds: [successEmbed("Clock Panel Created", `Scope: ${scope}`)] }));
-    return true;
-  }
-
-  if (((commandName === "add" || commandName === "remove") && (!subcommand || subcommand === "time")) || commandName === "addtime" || commandName === "removetime") {
-    const action = commandName === "remove" || commandName === "removetime" ? "remove" : "add";
-    const target = interaction.options.getUser("user") || interaction.user;
-    const decision = await canAdjustTarget(interaction, target);
-    if (!decision.allowed) {
-      await interaction.reply(ephemeral({ embeds: [errorEmbed(decision.reason)] }));
-      return true;
-    }
-    await interaction.showModal(textModal(`timeadjust:${action}:${target.id}`, `${action === "add" ? "Add" : "Remove"} Time`, [{ id: "minutes", label: "How many minutes?", placeholder: "10" }]));
-    return true;
-  }
-
-  if (interaction.commandName === "shifts") {
-    const sub = interaction.options.getSubcommand();
-    let query = supabase.from("clock_shifts").select("*").order("started_at", { ascending: false }).limit(10);
-
-    if (sub === "weekly") {
-      const scope = interaction.options.getString("scope", true);
-      const access = await requireScopeTimeAccess(interaction, scope);
-      if (!access.allowed) return true;
-      query = query.gte("started_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).eq("scope", scope);
-    } else if (sub === "user") {
-      const targetUser = interaction.options.getUser("user", true);
-      if (!(await canViewTargetUserTime(interaction, targetUser))) return true;
-      query = query.eq("discord_user_id", targetUser.id);
-      if (targetUser.id !== interaction.user.id) {
-        const allowedScopes = await allowedClockScopesForTarget(interaction, targetUser);
-        query = query.in("scope", allowedScopes);
-      }
-    } else {
-      if (!(await requireManager(interaction))) {
-        await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to view shift reports.")] }));
-        return true;
-      }
-      if (sub === "active") query = query.eq("status", "active");
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    const lines = (data || []).map(row => `<@${row.discord_user_id}> ${row.scope} ${row.status} ${row.duration_seconds ? formatDuration(row.duration_seconds) : ""}`);
-    await interaction.reply(ephemeral({ embeds: [embed("Shift Report", lines.join("\n") || "No shifts found.")] }));
-    return true;
   }
 
   return false;
@@ -498,7 +459,6 @@ export async function handleButton(interaction) {
 
   if (!interaction.customId.startsWith("clock:")) return false;
   const [, action, scope, late] = interaction.customId.split(":");
-  await interaction.message?.edit(clockPanelPayload(scope)).catch(() => {});
 
   if (action === "shift") {
     await replyShiftSummary(interaction);

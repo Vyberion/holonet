@@ -21,21 +21,9 @@ const VERIFICATION_WARNING_ROLE_IDS = [
 const pendingPostLinkRoleSyncs = new Map();
 
 const allCommands = [
-  new SlashCommandBuilder()
-    .setName("verification")
-    .setDescription("Verification tools")
-    .addSubcommand(subcommand => subcommand.setName("panel").setDescription("Post the verification panel")),
   new SlashCommandBuilder().setName("verify").setDescription("Link your Discord account to your Holonet Roblox account"),
   new SlashCommandBuilder()
-    .setName("update-roles")
-    .setDescription("Re-check Roblox ranks and update Discord roles")
-    .addUserOption(option => option.setName("user").setDescription("Discord user").setRequired(false)),
-  new SlashCommandBuilder()
-    .setName("lookup")
-    .setDescription("Look up a linked Discord user")
-    .addUserOption(option => option.setName("user").setDescription("Discord user").setRequired(true)),
-  new SlashCommandBuilder()
-    .setName("unlink")
+    .setName("unverify")
     .setDescription("Remove a Discord user's Holonet verification link")
     .addUserOption(option => option.setName("user").setDescription("Discord user").setRequired(false))
 ];
@@ -291,7 +279,7 @@ export async function handleCommand(interaction) {
     return true;
   }
 
-  if (interaction.commandName === "unlink") {
+  if (interaction.commandName === "unverify") {
     const user = interaction.options.getUser("user", false) || interaction.user;
     const selfUnlink = user.id === interaction.user.id;
     if (!selfUnlink) {

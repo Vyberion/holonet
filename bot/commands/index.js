@@ -1,15 +1,16 @@
 import * as lookup from "./lookup.js";
-import * as getroles from "./getroles.js";
+import * as roles from "./role.js";
 import * as verification from "./verification.js";
-import * as reports from "./reports.js";
-import * as clock from "./clock.js";
+import * as panel from "./panel.js";
+import * as shift from "./shift.js";
+import * as report from "./report.js";
+import * as event from "./event.js";
 
 import * as purge from "./purge.js";
 import * as userApps from "./userApps.js";
 import * as powerbase from "./powerbase.js";
-import * as kaggath from "./kaggath.js";
 
-export const modules = [lookup, getroles, verification, reports, clock, purge, userApps, powerbase, kaggath];
+export const modules = [lookup, roles, verification, panel, shift, report, event, purge, userApps, powerbase];
 
 export const commandData = (() => {
   const commandsByName = new Map();

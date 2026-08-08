@@ -61,14 +61,14 @@ async function syncRosterViaRest(powerbaseId, forceDelete = false, cachedPb = nu
 
     const capacity = ({ 1: 4, 2: 6, 3: 8, 4: 10 })[Number(pb.tier)] || 4;
     const components = [
-      { type: 10, content: `### [${pb.name}](${pbUrl})` },
-      { type: 14, divider: true, spacing: 1 },
-      { type: 10, content: `**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Capacity:** ${memberIds.length + 1} / ${capacity}\n**Prestige:** ${pb.prestige}` }
+      { type: 10, content: `# [${pb.name}](${pbUrl})` },
+      { type: 10, content: `**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}\n**Members:** ${memberIds.length + 1} / ${capacity}` },
+      { type: 14, divider: true, spacing: 1 }
     ];
 
     if (pb.description) {
+      components.push({ type: 10, content: `### Description\n${pb.description}` });
       components.push({ type: 14, divider: true, spacing: 1 });
-      components.push({ type: 10, content: `**Description:**\n${pb.description}` });
     }
 
     if (pb.roblox_group_id) {
@@ -76,14 +76,18 @@ async function syncRosterViaRest(powerbaseId, forceDelete = false, cachedPb = nu
       const cleanUrl = String(pb.roblox_group_id).startsWith("http")
         ? pb.roblox_group_id
         : `https://www.roblox.com/groups/${match ? match[0] : pb.roblox_group_id}`;
-      components.push({ type: 14, divider: true, spacing: 1 });
       components.push({ type: 10, content: `**Roblox Group:** [Group Link](${cleanUrl})` });
+      components.push({ type: 14, divider: true, spacing: 1 });
     }
 
     const appText = memberIds.length > 0 ? memberIds.map(id => `<@${id}>`).join("\n") : "*None*";
 
-    components.push({ type: 14, divider: true, spacing: 1 });
-    components.push({ type: 10, content: `**Roster (${memberIds.length + 1} Total)**\n**Leader:**\n<@${pb.leader_id}>\n**Apprentices:**\n${appText}` });
+    components.push({ type: 10, content: `### Roster\n**Leader:**\n<@${pb.leader_id}>\n\n**Apprentices:**\n${appText}` });
+
+    if (pb.image_url) {
+      components.push({ type: 14, divider: true, spacing: 1 });
+      components.push({ type: 12, items: [{ media: { url: pb.image_url } }] });
+    }
 
     const payload = {
       flags: 32768,

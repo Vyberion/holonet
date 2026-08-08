@@ -1,7 +1,7 @@
-import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
+import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ButtonBuilder, ButtonStyle } from "discord.js";
 import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./clock.js";
-import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
+import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2, buttonRow, button, mediaGalleryV2 } from "../services/discord-ui.js";
 import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseCapacity, getPowerbaseForUser, isHigherRank, logPowerbaseAction, slugifyPowerbase, syncPowerbaseRosterMessage, updatePowerbase } from "../services/powerbase-api.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { hasPermission } from "../../modules/auth/permissions.js";
@@ -73,6 +73,120 @@ export async function handleSelectMenu(interaction) {
   return false;
 }
 
+export async function handleButton(interaction) {
+  if (interaction.customId.startsWith("pb_img_manage:")) {
+    const pbId = interaction.customId.split(":")[1];
+    return await showImageOptions(interaction, pbId);
+  }
+
+  if (interaction.customId.startsWith("pb_img_url_modal_trigger:")) {
+    const pbId = interaction.customId.split(":")[1];
+    const pb = await getPowerbase(pbId);
+    const modal = new ModalBuilder()
+      .setCustomId(`pb_img_url_modal:${pbId}`)
+      .setTitle("Banner Image URL");
+
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId("imageUrl")
+          .setLabel("Image Direct Link (URL)")
+          .setStyle(TextInputStyle.Short)
+          .setValue(pb?.image_url || "")
+          .setPlaceholder("https://cdn.discordapp.com/attachments/... or direct image link")
+          .setRequired(false)
+      )
+    );
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  if (interaction.customId.startsWith("pb_img_upload_trigger:")) {
+    const pbId = interaction.customId.split(":")[1];
+    const pb = await getPowerbase(pbId);
+    if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+
+    await interaction.update(ephemeral(componentsV2Message([
+      containerV2([
+        textDisplayV2("### Upload Banner Image"),
+        textDisplayV2("Please reply in this channel with an image file attachment within 60 seconds.")
+      ])
+    ])));
+
+    const filter = m => m.author.id === interaction.user.id && m.attachments.size > 0;
+    try {
+      const collected = await interaction.channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
+      const message = collected.first();
+      const attachment = message.attachments.first();
+      const imageUrl = attachment?.url;
+
+      if (!imageUrl) throw new Error("No image attachment found in message.");
+
+      await updatePowerbase(pbId, { image_url: imageUrl });
+      await syncPowerbaseRosterMessage(interaction.client, pbId);
+
+      await message.delete().catch(() => {});
+
+      await interaction.followUp(ephemeral(componentsV2Message([
+        containerV2([
+          textDisplayV2("### Image Uploaded"),
+          textDisplayV2(`Banner image uploaded and set for **${pb.name}** successfully!`)
+        ])
+      ])));
+    } catch (err) {
+      await interaction.followUp(ephemeral(componentsV2Message([
+        containerV2([
+          textDisplayV2("Image upload timed out or failed. Please try again.")
+        ])
+      ])));
+    }
+    return true;
+  }
+
+  if (interaction.customId.startsWith("pb_img_remove:")) {
+    const pbId = interaction.customId.split(":")[1];
+    const pb = await getPowerbase(pbId);
+    if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+
+    await updatePowerbase(pbId, { image_url: null });
+    await syncPowerbaseRosterMessage(interaction.client, pbId);
+
+    return interaction.update(ephemeral(componentsV2Message([
+      containerV2([
+        textDisplayV2("### Image Removed"),
+        textDisplayV2(`Banner image for **${pb.name}** has been removed.`)
+      ])
+    ])));
+  }
+
+  return false;
+}
+
+async function showImageOptions(interaction, pbId) {
+  const pb = await getPowerbase(pbId);
+  if (!pb) return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+
+  const payload = componentsV2Message([
+    containerV2([
+      textDisplayV2(`### Banner Image Management: ${pb.name}`),
+      textDisplayV2("Choose how you would like to set or update the banner image for this Powerbase:"),
+      buttonRow([
+        button(`pb_img_url_modal_trigger:${pbId}`, "Enter Image URL", ButtonStyle.Secondary),
+        button(`pb_img_upload_trigger:${pbId}`, "Upload Image Attachment", ButtonStyle.Primary),
+        button(`pb_img_remove:${pbId}`, "Remove Image", ButtonStyle.Danger)
+      ])
+    ])
+  ]);
+
+  if (interaction.replied || interaction.deferred) {
+    return interaction.followUp(ephemeral(payload));
+  } else if (interaction.isButton() || interaction.isStringSelectMenu()) {
+    return interaction.update(ephemeral(payload));
+  } else {
+    return interaction.reply(ephemeral(payload));
+  }
+}
+
 // --------------------------------------------------------------------------------------
 // CREATION FLOW
 // --------------------------------------------------------------------------------------
@@ -133,7 +247,7 @@ export async function handleModal(interaction) {
     const verified = await getVerifiedProfile(interaction.user.id).catch(() => null);
     const leaderUsername = verified?.profile?.name || verified?.link?.roblox_username || interaction.user.username;
 
-    await createPowerbase({
+    const createdPb = await createPowerbase({
       name,
       description,
       robloxGroupId,
@@ -167,10 +281,34 @@ export async function handleModal(interaction) {
     await interaction.reply(ephemeral(componentsV2Message([
       containerV2([
         textDisplayV2(`### Request Submitted`),
-        textDisplayV2(`Powerbase **${name}** creation request submitted for approval by High Command.`)
+        textDisplayV2(`Powerbase **${name}** creation request submitted for approval by High Command. You can set a banner image now or later via manage.`),
+        buttonRow([
+          button(`pb_img_manage:${createdPb.id}`, "Upload / Set Banner Image", ButtonStyle.Primary)
+        ])
       ])
     ])));
     return true;
+  }
+
+  if (interaction.customId.startsWith("pb_img_url_modal:")) {
+    const pbId = interaction.customId.split(":")[1];
+    const imageUrl = interaction.fields.getTextInputValue("imageUrl");
+
+    const pb = await getPowerbase(pbId);
+    if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+
+    await updatePowerbase(pbId, { image_url: imageUrl || null });
+    await syncPowerbaseRosterMessage(interaction.client, pbId);
+
+    const msg = imageUrl ? `Banner image for **${pb.name}** updated successfully!` : `Banner image for **${pb.name}** removed.`;
+    await interaction.reply(ephemeral(componentsV2Message([
+      containerV2([
+        textDisplayV2("### Image Details Updated"),
+        textDisplayV2(msg)
+      ])
+    ])));
+    return true;
+  }
   }
 
   if (interaction.customId.startsWith("pb_edit_modal:")) {
@@ -314,6 +452,7 @@ async function handleEditMembers(interaction) {
 async function showManageOptions(interaction, pb, canManageAll) {
   const options = [
     { label: "Edit Details (Name / Description / Group ID)", value: "edit" },
+    { label: "Set / Change Banner Image", value: "image" },
     { label: "Manage Roster (Add / Remove Apprentices)", value: "members" }
   ];
 
@@ -397,6 +536,10 @@ async function handleManageActionSelect(interaction) {
 
   const pb = await getPowerbase(pbId);
   if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+
+  if (action === "image") {
+    return await showImageOptions(interaction, pbId);
+  }
 
   if (action === "edit") {
     const modal = new ModalBuilder()
@@ -729,13 +872,13 @@ async function handleInfoSelect(interaction) {
   const pbUrl = `https://www.thesithorder.org/powerbases/${slug}`;
 
   const components = [
-    textDisplayV2(`### [${pb.name}](${pbUrl})`),
-    textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Capacity:** ${memberIds.length + 1} / ${getPowerbaseCapacity(pb.tier)}\n**Prestige:** ${pb.prestige}`),
+    textDisplayV2(`# [${pb.name}](${pbUrl})`),
+    textDisplayV2(`**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}\n**Members:** ${memberIds.length + 1} / ${getPowerbaseCapacity(pb.tier)}`),
     separatorV2()
   ];
 
   if (pb.description) {
-    components.push(textDisplayV2(`**Description:**\n${pb.description}`));
+    components.push(textDisplayV2(`### Description\n${pb.description}`));
     components.push(separatorV2());
   }
 
@@ -748,7 +891,12 @@ async function handleInfoSelect(interaction) {
     components.push(separatorV2());
   }
 
-  components.push(textDisplayV2(`**Roster (${memberIds.length + 1} Total)**\n**Leader:**\n<@${pb.leader_id}>\n**Apprentices:**\n${apprenticeText}`));
+  components.push(textDisplayV2(`### Roster\n**Leader:**\n<@${pb.leader_id}>\n\n**Apprentices:**\n${apprenticeText}`));
+
+  if (pb.image_url) {
+    components.push(separatorV2());
+    components.push(mediaGalleryV2(pb.image_url));
+  }
 
   const v2Payload = componentsV2Message([containerV2(components, 0x8a1b1b)]);
   await interaction.update(ephemeral(v2Payload));

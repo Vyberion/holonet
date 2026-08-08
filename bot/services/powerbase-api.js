@@ -1,6 +1,6 @@
 import { supabase } from "./supabase.js";
 import { rawRanksFromProfile } from "./roblox.js";
-import { componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "./discord-ui.js";
+import { componentsV2Message, containerV2, textDisplayV2, separatorV2, mediaGalleryV2 } from "./discord-ui.js";
 
 export const ROSTER_CHANNEL_ID = "1046537270150299720";
 
@@ -65,13 +65,13 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
     }
 
     const components = [
-      textDisplayV2(`### [${pb.name}](${pbUrl})`),
-      textDisplayV2(`**Leader:** <@${pb.leader_id}>\n**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Capacity:** ${memberIds.length + 1} / ${getPowerbaseCapacity(pb.tier)}\n**Prestige:** ${pb.prestige}`),
+      textDisplayV2(`# [${pb.name}](${pbUrl})`),
+      textDisplayV2(`**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}\n**Members:** ${memberIds.length + 1} / ${getPowerbaseCapacity(pb.tier)}`),
       separatorV2()
     ];
 
     if (pb.description) {
-      components.push(textDisplayV2(`**Description:**\n${pb.description}`));
+      components.push(textDisplayV2(`### Description\n${pb.description}`));
       components.push(separatorV2());
     }
 
@@ -80,7 +80,12 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
       components.push(separatorV2());
     }
 
-    components.push(textDisplayV2(`**Roster (${memberIds.length + 1} Total)**\n**Leader:**\n<@${pb.leader_id}>\n**Apprentices:**\n${apprenticeText}`));
+    components.push(textDisplayV2(`### Roster\n**Leader:**\n<@${pb.leader_id}>\n\n**Apprentices:**\n${apprenticeText}`));
+
+    if (pb.image_url) {
+      components.push(separatorV2());
+      components.push(mediaGalleryV2(pb.image_url));
+    }
 
     const v2Payload = componentsV2Message([containerV2(components, 0x8a1b1b)]);
 
@@ -233,6 +238,7 @@ export async function createPowerbase(payload, members = []) {
       name: payload.name,
       description: payload.description || null,
       roblox_group_id: payload.robloxGroupId || null,
+      image_url: payload.imageUrl || payload.image_url || null,
       leader_id: payload.leaderId,
       leader_name: payload.leaderName || null,
       status: "PENDING_APPROVAL"

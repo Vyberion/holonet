@@ -92,3 +92,14 @@ export function separatorV2() {
     spacing: 1
   };
 }
+
+export function mediaGalleryV2(urls) {
+  const list = Array.isArray(urls) ? urls : [urls];
+  const items = list.filter(Boolean).map(url => ({
+    media: { url }
+  }));
+  return {
+    type: 12,
+    items
+  };
+}

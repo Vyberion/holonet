@@ -1,3 +1,5 @@
+import { nicknameRuleForProfile } from "../../modules/auth/role-permissions.js";
+
 const DISCORD_API_URL = "https://discord.com/api/v10";
 
 export function getDiscordClientId() {
@@ -16,24 +18,126 @@ export const HOLONET_METADATA_SCHEMA = [
   {
     key: "holonet_operator",
     name: "Holonet Operator",
-    description: "Superuser status for Holonet Network",
+    description: "Superuser status for the Holonet",
     type: 7 // BOOLEAN_EQUAL
   },
   {
-    key: "rank",
-    name: "Rank",
-    description: "Sith Order Group Rank",
-    type: 2 // INTEGER_GREATER_THAN_OR_EQUAL
+    key: "rank_low",
+    name: "Low Rank",
+    description: "Low Rank",
+    type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "rank_mid",
+    name: "Mid Rank",
+    description: "Mid Rank",
+    type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "rank_high",
+    name: "High Rank",
+    description: "High Rank",
+    type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "dc_council",
+    name: "Dark Council",
+    description: "Dark Council",
+    type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "dc_command",
+    name: "High Command",
+    description: "High Command",
+    type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "dc_emperor",
+    name: "Sith Emperor",
+    description: "Sith Emperor",
+    type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "dc_admin",
+    name: "Group Administration",
+    description: "Group Administration",
+    type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "div_reavers",
+    name: "Reaver",
+    description: "Reaver Division",
+    type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "div_dhg",
+    name: "Dark Honor Guard",
+    description: "Dark Honor Guard Division",
+    type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "div_inq",
+    name: "Inquisitor",
+    description: "Inquisitorius Division",
+    type: 7 // BOOLEAN_EQUAL
+  },
+  {
+    key: "div_dread",
+    name: "Dread Master",
+    description: "Dread Master Division",
+    type: 7 // BOOLEAN_EQUAL
   }
 ];
 
 export function getRankMetadataForProfile(profile) {
-  const mainGroupRole = (profile?.groupRoles || []).find(r => r.groupId === 3197893 || r.isMainGroup);
-  const rank = Number(mainGroupRole?.rank || profile?.mainGroupRank || profile?.rank || 0);
+  if (!profile) return {};
 
-  return {
-    rank
+  const metadata = {
+    rank_low: 0,
+    rank_mid: 0,
+    rank_high: 0,
+    dc_council: 0,
+    dc_command: 0,
+    dc_emperor: 0,
+    dc_admin: 0,
+    div_reavers: 0,
+    div_dhg: 0,
+    div_inq: 0,
+    div_dread: 0
   };
+
+  const groupRoles = profile.groupRoles || [];
+
+  let coreRankAssigned = false;
+
+  // Evaluate Dark Council Group (3199126) first (highest priority)
+  const dcRole = groupRoles.find(r => r.groupId === 3199126);
+  if (dcRole) {
+    const r = Number(dcRole.rank);
+    if (r >= 254) { metadata.dc_admin = 1; coreRankAssigned = true; }
+    else if (r === 253) { metadata.dc_emperor = 1; coreRankAssigned = true; }
+    else if (r === 251 || r === 252) { metadata.dc_command = 1; coreRankAssigned = true; }
+    else if (r >= 15) { metadata.dc_council = 1; coreRankAssigned = true; }
+  }
+
+  // Evaluate Main Group (3197893) only if no Dark Council rank was assigned
+  if (!coreRankAssigned) {
+    const mainRole = groupRoles.find(r => r.groupId === 3197893 || r.isMainGroup);
+    if (mainRole) {
+      const r = Number(mainRole.rank);
+      if (r >= 44) metadata.rank_high = 1;
+      else if (r >= 27) metadata.rank_mid = 1;
+      else if (r >= 1) metadata.rank_low = 1;
+    }
+  }
+
+  // Evaluate Divisions (Can be held simultaneously with a core rank)
+  if (groupRoles.some(r => r.groupId === 3219802)) metadata.div_reavers = 1;
+  if (groupRoles.some(r => r.groupId === 4364250)) metadata.div_dhg = 1;
+  if (groupRoles.some(r => r.groupId === 3356831)) metadata.div_inq = 1;
+  if (groupRoles.some(r => r.groupId === 3215895)) metadata.div_dread = 1;
+
+  return metadata;
 }
 
 export async function registerRoleConnectionMetadata() {

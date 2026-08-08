@@ -160,6 +160,17 @@ export default async function PowerbaseDetailPage({ params }) {
         <div className="hub-grid hub-grid--single" style={{ marginTop: "2rem" }}>
           <div className="hub-column" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
+            {/* Banner Image */}
+            {pb.image_url && (
+              <section className="hub-panel" style={{ padding: "1rem" }}>
+                <img
+                  src={pb.image_url}
+                  alt={`${pb.name} Banner`}
+                  style={{ width: "100%", maxHeight: "400px", objectFit: "cover", borderRadius: "4px", border: "1px solid var(--theme-border, rgba(138,27,27,0.3))" }}
+                />
+              </section>
+            )}
+
             {/* Roblox Group Link */}
             {pb.roblox_group_id && (
               <section className="hub-panel">

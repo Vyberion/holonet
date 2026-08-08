@@ -93,7 +93,7 @@ async function syncRosterViaRest(powerbaseId, forceDelete = false, cachedPb = nu
       flags: 32768,
       components: [{
         type: 17,
-        accent_color: 0x8a1b1b,
+        accent_color: 0xc90705,
         components
       }],
       allowed_mentions: { parse: [] }

@@ -67,7 +67,7 @@ function buildDeploymentEventContainer(title, description) {
     ]
   });
 
-  return containerV2(components, 0x8a1b1b);
+  return containerV2(components, 0xc90705);
 }
 
 function renderEventWritePreview(sessionId, draft) {
@@ -531,7 +531,7 @@ export async function handleModal(interaction) {
         textDisplayV2(`**${challenger.name}**\nTier: ${romanize(newChallenger.tier)}\nPrestige: ${challenger.prestige} ➔ ${newChallenger.prestige} (${challGain >= 0 ? "+" : ""}${challGain})${challNote}`),
         separatorV2(),
         textDisplayV2(`**${defender.name}**\nTier: ${romanize(newDefender.tier)}\nPrestige: ${defender.prestige} ➔ ${newDefender.prestige} (${defGain >= 0 ? "+" : ""}${defGain})${defNote}`)
-      ], 0x8a1b1b)
+      ], 0xc90705)
     ]);
 
     const targetChannel = await interaction.client.channels.fetch(LOG_CHANNEL_ID).catch(() => null);

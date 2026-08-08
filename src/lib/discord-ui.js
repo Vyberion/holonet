@@ -8,7 +8,7 @@ export function componentsV2Message(containers) {
   };
 }
 
-export function containerV2(components, color = 16711680) { // Default red (0xFF0000)
+export function containerV2(components, color = 0xc90705) {
   return {
     type: 17,
     accent_color: color,

@@ -244,7 +244,7 @@ export async function handleModal(interaction) {
         { name: "Leader", value: `${leaderUsername} (<@${interaction.user.id}>)`, inline: true },
         { name: "Roblox Group", value: groupLinkValue, inline: true }
       ],
-      color: 0x8a1b1b,
+      color: 0xc90705,
       allowedRoleIds: [HIGH_COMMAND_ROLE_ID]
     });
 
@@ -313,7 +313,7 @@ export async function handleModal(interaction) {
         { name: "Roblox Group", value: editGroupLink, inline: true },
         { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true }
       ],
-      color: 0x8a1b1b
+      color: 0xc90705
     });
     const currentMemberIds = (pb?.powerbase_members || [])
       .map(m => String(m.user_id || m.discord_user_id))
@@ -397,7 +397,7 @@ async function handleEditMembers(interaction) {
           { name: "Apprentices Added", value: addedText, inline: true },
           { name: "Apprentices Removed", value: removedText, inline: true }
         ],
-        color: 0x8a1b1b
+        color: 0xc90705
       });
     }
 
@@ -619,7 +619,7 @@ async function handleManageActionSelect(interaction) {
         { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
         { name: "Roblox Group", value: dissolveGroupLink, inline: true }
       ],
-      color: 0x8a1b1b,
+      color: 0xc90705,
       allowedRoleIds: [HIGH_COMMAND_ROLE_ID]
     });
 
@@ -670,7 +670,7 @@ async function handleChangeLeaderSelect(interaction) {
         { name: "New Leader", value: `<@${newLeaderId}>`, inline: true },
         { name: "Transferred By", value: `<@${interaction.user.id}>`, inline: true }
       ],
-      color: 0x8a1b1b
+      color: 0xc90705
     });
 
     const v2Payload = componentsV2Message([
@@ -866,7 +866,7 @@ async function handleInfoSelect(interaction) {
     components.push(mediaGalleryV2(pb.image_url));
   }
 
-  const v2Payload = componentsV2Message([containerV2(components, 0x8a1b1b)]);
+  const v2Payload = componentsV2Message([containerV2(components, 0xc90705)]);
   await interaction.update(ephemeral(v2Payload));
   return true;
 }

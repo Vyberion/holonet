@@ -32,8 +32,8 @@ import { getHandbookSlot, getHandbookSlots } from "../../modules/data/handbook-s
 import { divisionLockedHref, getDivision, listDivisions } from "../../modules/data/divisions/index.js";
 import { extractGoogleFileId, extractGoogleTabId, googleWorkspaceKindFromUrl } from "./google-drive.js";
 
-const VERIFICATION_LOG_COLOR = 0xff3348;
-const VERIFICATION_WARNING_COLOR = 0x8f1d2c;
+const VERIFICATION_LOG_COLOR = 0xc90705;
+const VERIFICATION_WARNING_COLOR = 0xc90705;
 const VERIFICATION_WARNING_ROLE_IDS = [
   "1046451376236003359",
   "1046451364965920848",

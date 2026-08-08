@@ -7,8 +7,8 @@ export default {
     baseUrl: "https://www.thesithorder.org"
   },
   theme: {
-    color: 0xff3348,
-    errorColor: 0x8f1d2c,
+    color: 0xc90705,
+    errorColor: 0xc90705,
     successColor: 0x35c46f
   },
   channels: {

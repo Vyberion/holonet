@@ -87,7 +87,7 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
       components.push(mediaGalleryV2(pb.image_url));
     }
 
-    const v2Payload = componentsV2Message([containerV2(components, 0x8a1b1b)]);
+    const v2Payload = componentsV2Message([containerV2(components, 0xc90705)]);
 
     let edited = false;
     if (pb.roster_message_id) {

@@ -106,10 +106,23 @@ function NavLink({ href, page, prefix, label, account = false, children, activeP
   );
 }
 
-function PrivilegedLinks({ permissions, activePage, onClick }) {
+function formatNavHref(path, hostname = "") {
+  if (!hostname || hostname.includes("discordsays.com") || hostname.includes("localhost")) {
+    return path;
+  }
+  const isSubdomain = hostname.endsWith("thesithorder.org") && !hostname.startsWith("www.");
+  if (isSubdomain) {
+    return `https://www.thesithorder.org${path}`;
+  }
+  return path;
+}
+
+function PrivilegedLinks({ permissions, activePage, onClick, hostname }) {
+  const getHref = path => formatNavHref(path, hostname);
+
   return (
     <>
-      <NavLink href="https://www.thesithorder.org/lookup" page="lookup" account activePage={activePage} onClick={onClick}>
+      <NavLink href={getHref("/lookup")} page="lookup" account activePage={activePage} onClick={onClick}>
         <div className="account-text"><span className="nav-link-label">Lookup</span></div>
         <div className="account-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -120,7 +133,7 @@ function PrivilegedLinks({ permissions, activePage, onClick }) {
         <div className="nav-link-corners" aria-hidden="true" />
       </NavLink>
       {permissions?.canAccessAdmin ? (
-        <NavLink href="https://www.thesithorder.org/admin" page="admin" account activePage={activePage} onClick={onClick}>
+        <NavLink href={getHref("/admin")} page="admin" account activePage={activePage} onClick={onClick}>
           <div className="account-text"><span className="nav-link-label">Admin</span></div>
           <div className="account-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -149,36 +162,39 @@ export function HolonetNav() {
   const isStatuteReader = pathname.startsWith("/statutes/") && pathname !== "/statutes";
   const showDivisionReturn = (divisionContext && !["home", "info"].includes(divisionContext.section)) || isStatuteReader || isPowerbaseDetail;
   const returnHref = isPowerbaseDetail ? "/powerbases" : isStatuteReader ? "/statutes" : (divisionContext?.base || "/");
+  
+  const getHref = path => formatNavHref(path, hostname);
+
   const centerLinks = [
-    { href: "https://www.thesithorder.org/", page: "home", prefix: "00", label: "Home" },
+    { href: getHref("/"), page: "home", prefix: "00", label: "Home" },
     {
-      href: "https://www.thesithorder.org/codex",
+      href: getHref("/codex"),
       page: "codex",
       prefix: "01",
       label: "Codex",
       dropdown: [
-        { href: "https://www.thesithorder.org/statutes", page: "statutes", label: "Statutes" }
+        { href: getHref("/statutes"), page: "statutes", label: "Statutes" }
       ]
     },
     {
-      href: "https://www.thesithorder.org/archives",
+      href: getHref("/archives"),
       page: "archives",
       prefix: "02",
       label: "Archives",
       dropdown: [
-        { href: "https://www.thesithorder.org/cots", page: "cots", label: "CoTS" },
-        { href: "https://www.thesithorder.org/galaxy", page: "galaxy", label: "Galaxy" },
-        { href: "https://www.thesithorder.org/emperors", page: "emperors", label: "Emperors" }
+        { href: getHref("/cots"), page: "cots", label: "CoTS" },
+        { href: getHref("/galaxy"), page: "galaxy", label: "Galaxy" },
+        { href: getHref("/emperors"), page: "emperors", label: "Emperors" }
       ]
     },
-    { href: "https://www.thesithorder.org/hierarchy", page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
+    { href: getHref("/hierarchy"), page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
     {
-      href: "https://www.thesithorder.org/registry",
+      href: getHref("/registry"),
       page: "registry",
       prefix: "04",
       label: "Registry",
       dropdown: [
-        { href: "https://www.thesithorder.org/powerbases", page: "powerbases", label: "Powerbases" }
+        { href: getHref("/powerbases"), page: "powerbases", label: "Powerbases" }
       ]
     }
   ];
@@ -337,9 +353,9 @@ export function HolonetNav() {
 
           <div className="nav-right">
             <div className="nav-privileged" data-nav-privileged>
-              <PrivilegedLinks permissions={access?.permissions} activePage={activePage} onClick={closeNav} />
+              <PrivilegedLinks permissions={access?.permissions} activePage={activePage} onClick={closeNav} hostname={hostname} />
             </div>
-            <NavLink href="https://www.thesithorder.org/account" page="account" account activePage={activePage} onClick={closeNav}>
+            <NavLink href={getHref("/account")} page="account" account activePage={activePage} onClick={closeNav}>
               <div className="account-text">
                 <span className="nav-link-label">Account</span>
               </div>

@@ -1,6 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, ChannelType, ModalBuilder, RoleSelectMenuBuilder, SlashCommandBuilder, StringSelectMenuBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { getVerifiedProfile } from "../services/roles.js";
-import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2 } from "../services/discord-ui.js";
+import { config } from "../config/index.js";
+import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2, mediaGalleryV2 } from "../services/discord-ui.js";
 import { fetchPowerbases, getPowerbase, recordKaggathResult } from "../services/powerbase-api.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./shift.js";
 import { postActivityLog } from "../services/activity-log.js";
@@ -44,9 +45,28 @@ function buildDeploymentEventContainer(title, description) {
   const safeDesc = (description || "").trim();
 
   components.push(textDisplayV2(safeTitle || "# SSU"));
+  components.push(separatorV2());
+  
   if (safeDesc) {
     components.push(textDisplayV2(safeDesc));
+    components.push(separatorV2());
   }
+
+  const bannerUrl = `${config.holonet.baseUrl || "https://www.thesithorder.org"}/assets/other/h.o.l.o-banner.png`;
+  components.push(mediaGalleryV2(bannerUrl));
+
+  components.push({
+    type: 1,
+    components: [
+      {
+        type: 2,
+        style: 5,
+        label: "Deploy",
+        url: `${config.holonet.baseUrl || "https://www.thesithorder.org"}/galaxy?planet=Korriban`
+      }
+    ]
+  });
+
   return containerV2(components, 0x8a1b1b);
 }
 

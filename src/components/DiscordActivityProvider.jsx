@@ -27,15 +27,45 @@ export function DiscordActivityProvider({ clientId }) {
 
   async function setupDiscordSdk() {
     await discordSdkInstance.ready();
-    await discordSdkInstance.commands.authorize({
-      client_id: clientId,
-      response_type: "code",
-      state: "",
-      prompt: "none",
-      scope: ["identify", "rpc.activities.write"]
-    });
-    discordSdkAuthorized = true;
-    updateRichPresence(pathname);
+
+    let authResult;
+    try {
+      authResult = await discordSdkInstance.commands.authorize({
+        client_id: clientId,
+        response_type: "code",
+        state: "",
+        prompt: "none",
+        scope: ["identify", "rpc.activities.write"]
+      });
+    } catch {
+      authResult = await discordSdkInstance.commands.authorize({
+        client_id: clientId,
+        response_type: "code",
+        state: "",
+        scope: ["identify", "rpc.activities.write"]
+      });
+    }
+
+    const { code } = authResult;
+
+    try {
+      const response = await fetch("/api/discord/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code })
+      });
+      const data = await response.json();
+
+      if (data.access_token) {
+        await discordSdkInstance.commands.authenticate({ access_token: data.access_token });
+        discordSdkAuthorized = true;
+        updateRichPresence(pathname);
+      } else {
+        console.error("Discord token exchange failed:", data);
+      }
+    } catch (err) {
+      console.error("Failed to authenticate Discord SDK:", err);
+    }
   }
 
   useEffect(() => {

@@ -54,7 +54,7 @@ export default function RootLayout({ children }) {
         ))}
       </head>
       <body>
-        <DiscordActivityProvider clientId={process.env.DISCORD_CLIENT_ID} />
+        <DiscordActivityProvider clientId={process.env.DISCORD_CLIENT_ID || process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID} />
         <HolonetAudioController />
         <GlobalPolish />
         {children}

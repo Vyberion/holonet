@@ -116,8 +116,7 @@ export default function RegistryPage() {
           </div>
         </section>
       </div>
-
-      <PageScripts guarded scripts={["/js/main.js", "/modules/client/site.js"]} moduleScripts={["/modules/client/registry-directory.js"]} />
+      <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} moduleScripts={["/modules/client/registry-directory.js"]} />
     </HolonetFrame>
   );
 }

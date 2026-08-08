@@ -31,6 +31,8 @@ export const metadata = {
   ...defaultMetadata
 };
 
+import { DiscordActivityProvider } from "../components/DiscordActivityProvider.jsx";
+
 export default function RootLayout({ children }) {
   const embedImage = embedImageUrl();
 
@@ -52,6 +54,7 @@ export default function RootLayout({ children }) {
         ))}
       </head>
       <body>
+        <DiscordActivityProvider clientId={process.env.DISCORD_CLIENT_ID} />
         <HolonetAudioController />
         <GlobalPolish />
         {children}

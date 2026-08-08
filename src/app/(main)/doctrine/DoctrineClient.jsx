@@ -1,0 +1,688 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
+
+const SECTIONS = [
+  "SECTION I: IDENTITY & AUTHENTICATION",
+  "SECTION II: ASCENSION & TRIAL PROTOCOLS",
+  "SECTION III: DOMINION & COMBAT DECREES",
+  "SECTION IV: HOLONET INFRASTRUCTURE"
+];
+
+const TAGS = [
+  "AUTHENTICATION",
+  "ACADEMY",
+  "COMMAND",
+  "DEPLOYMENTS",
+  "POWERBASE",
+  "DUTY",
+  "PROCEDURE"
+];
+
+export default function DoctrineClient() {
+  const router = useRouter();
+  const [directives, setDirectives] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [canEdit, setCanEdit] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTag, setSelectedTag] = useState("ALL");
+  const [activeModal, setActiveModal] = useState(null); // 'view' | 'edit' | null
+  const [currentDirective, setCurrentDirective] = useState(null);
+
+  const [formData, setFormData] = useState({
+    id: "",
+    title: "",
+    section: SECTIONS[0],
+    tag: TAGS[0],
+    summary: "",
+    content: "",
+    is_published: true
+  });
+
+  useEffect(() => {
+    fetchDirectives();
+    checkPermissions();
+  }, []);
+
+  const checkPermissions = async () => {
+    try {
+      const res = await fetch("/api/auth/check-access");
+      const data = await res.json();
+      if (data?.authorized) {
+        const profile = data.profile;
+        const hasAdmin = profile?.isSuperUser || profile?.hasFullAccess ||
+                         profile?.authorityRoles?.emperor ||
+                         profile?.authorityRoles?.groupOwner ||
+                         profile?.authorityRoles?.projectManager ||
+                         (profile?.divisions?.darkCouncil && profile.divisions.darkCouncil !== "none");
+        setCanEdit(!!hasAdmin);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchDirectives = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/doctrine");
+      const data = await res.json();
+      if (data.ok) {
+        setDirectives(data.data || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenNew = () => {
+    setFormData({
+      id: "",
+      title: "",
+      section: SECTIONS[0],
+      tag: TAGS[0],
+      summary: "",
+      content: "",
+      is_published: true
+    });
+    setActiveModal("edit");
+  };
+
+  const handleOpenEdit = (directive, e) => {
+    if (e) e.stopPropagation();
+    setFormData({
+      id: directive.id,
+      title: directive.title,
+      section: directive.section,
+      tag: directive.tag,
+      summary: directive.summary || "",
+      content: directive.content || "",
+      is_published: directive.is_published !== false
+    });
+    setActiveModal("edit");
+  };
+
+  const handleOpenView = (directive) => {
+    setCurrentDirective(directive);
+    setActiveModal("view");
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!formData.title.trim() || !formData.content.trim()) {
+      alert("Title and Directive Content are required.");
+      return;
+    }
+
+    const isUpdate = !!formData.id;
+    try {
+      const res = await fetch("/api/doctrine", {
+        method: isUpdate ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setActiveModal(null);
+        fetchDirectives();
+      } else {
+        alert("Failed to save directive: " + data.error);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm("Are you sure you want to purge this Imperial directive?")) return;
+    try {
+      const res = await fetch(`/api/doctrine?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.ok) {
+        setActiveModal(null);
+        fetchDirectives();
+      } else {
+        alert("Failed to delete directive: " + data.error);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const filteredDirectives = directives.filter(d => {
+    const matchesTag = selectedTag === "ALL" || d.tag === selectedTag;
+    const matchesSearch = !searchQuery.trim() ||
+      d.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.content?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesTag && matchesSearch;
+  });
+
+  return (
+    <HolonetFrame activePage="doctrine" title="IMPERIAL DOCTRINE DIRECTIVES">
+      <div className="doctrine-container" style={{ width: "100%", maxWidth: "1600px", margin: "0 auto", padding: "0 1rem 3rem" }}>
+        
+        {/* Top Control Header */}
+        <header className="doctrine-header" style={{ borderBottom: "1px solid var(--border)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "1rem", marginBottom: "1.5rem" }}>
+            <div>
+              <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)", letterSpacing: "0.2em", textTransform: "uppercase" }}>[IMPERIAL GUIDANCE SYSTEM]</span>
+              <h1 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.8rem", color: "var(--red-bright)", letterSpacing: "0.12em", margin: "0.2rem 0 0" }}>DOCTRINE DIRECTIVES</h1>
+            </div>
+
+            {canEdit && (
+              <button 
+                type="button" 
+                className="hub-write-btn" 
+                onClick={handleOpenNew}
+                style={{ fontFamily: "Orbitron, monospace", letterSpacing: "0.15em", padding: "0.6rem 1.4rem" }}
+              >
+                + NEW DIRECTIVE
+              </button>
+            )}
+          </div>
+
+          {/* Search & Tag Filter Row */}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "1rem", justifyContent: "space-between" }}>
+            <div style={{ position: "relative", minWidth: "260px", flex: "1" }}>
+              <input
+                type="text"
+                placeholder="SEARCH DIRECTIVES..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: "100%",
+                  background: "rgba(0,0,0,0.4)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-bright)",
+                  padding: "0.6rem 1rem",
+                  fontFamily: "Share Tech Mono, monospace",
+                  fontSize: "0.85rem",
+                  letterSpacing: "0.1em"
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center" }}>
+              <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.7rem", color: "var(--text-dim)", marginRight: "0.5rem" }}>TAG:</span>
+              <button
+                type="button"
+                className={`tag-chip ${selectedTag === "ALL" ? "active" : ""}`}
+                onClick={() => setSelectedTag("ALL")}
+              >
+                ALL
+              </button>
+              {TAGS.map(tag => (
+                <button
+                  key={tag}
+                  type="button"
+                  className={`tag-chip ${selectedTag === tag ? "active" : ""}`}
+                  onClick={() => setSelectedTag(tag)}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+        </header>
+
+        {/* Trello-Style Kanban Board Layout (Responsive Multi-Column Grid, Zero Horizontal Scroll) */}
+        {loading ? (
+          <p style={{ fontFamily: "Share Tech Mono, monospace", color: "var(--text-dim)", textTransform: "uppercase" }}>Loading Imperial directives...</p>
+        ) : (
+          <div className="trello-board-grid">
+            {SECTIONS.map((sectionTitle, sIndex) => {
+              const sectionItems = filteredDirectives.filter(d => (d.section || SECTIONS[0]) === sectionTitle);
+
+              return (
+                <div key={sectionTitle} className="trello-column">
+                  <div className="trello-column-header">
+                    <span className="trello-column-num">0{sIndex + 1}</span>
+                    <h2 className="trello-column-title">{sectionTitle}</h2>
+                    <span className="trello-column-count">[{sectionItems.length}]</span>
+                  </div>
+
+                  <div className="trello-column-cards">
+                    {sectionItems.length === 0 ? (
+                      <div className="trello-empty-card">
+                        <span>NO DIRECTIVES RECORDED IN THIS SECTION</span>
+                      </div>
+                    ) : (
+                      sectionItems.map((directive) => (
+                        <div
+                          key={directive.id}
+                          className="trello-card"
+                          onClick={() => handleOpenView(directive)}
+                        >
+                          <div className="trello-card-top">
+                            <span className="trello-card-tag">{directive.tag || "GENERAL"}</span>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                className="trello-card-edit-btn"
+                                onClick={(e) => handleOpenEdit(directive, e)}
+                                title="Edit Directive"
+                              >
+                                EDIT
+                              </button>
+                            )}
+                          </div>
+                          <h3 className="trello-card-title">{directive.title}</h3>
+                          {directive.summary && (
+                            <p className="trello-card-summary">{directive.summary}</p>
+                          )}
+                          <div className="trello-card-footer">
+                            <span>VIEW DIRECTIVE &rarr;</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Modal View Detail Overlay */}
+        {activeModal === "view" && currentDirective && (
+          <div className="codex-modal-backdrop" onClick={() => setActiveModal(null)}>
+            <div className="codex-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "800px" }}>
+              <div className="codex-modal-header">
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                  <span className="trello-card-tag">{currentDirective.tag || "GENERAL"}</span>
+                  <h2 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.4rem", color: "var(--red-bright)", margin: 0 }}>{currentDirective.title}</h2>
+                  <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)" }}>{currentDirective.section}</span>
+                </div>
+                <button type="button" className="codex-modal-close" onClick={() => setActiveModal(null)}>&times;</button>
+              </div>
+
+              <div className="codex-modal-body" style={{ padding: "1.5rem", color: "var(--text-bright)", lineHeight: "1.7" }}>
+                {currentDirective.summary && (
+                  <div style={{ background: "rgba(201, 7, 5, 0.08)", borderLeft: "3px solid var(--red-bright)", padding: "1rem", marginBottom: "1.5rem", fontStyle: "italic" }}>
+                    {currentDirective.summary}
+                  </div>
+                )}
+                <div style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
+                  {currentDirective.content}
+                </div>
+              </div>
+
+              <div className="codex-modal-footer">
+                {canEdit && (
+                  <button type="button" className="hub-write-btn" onClick={() => handleOpenEdit(currentDirective)}>
+                    EDIT DIRECTIVE
+                  </button>
+                )}
+                <button type="button" className="hub-cancel-btn" onClick={() => setActiveModal(null)}>
+                  CLOSE
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tailored Codex-Style Edit/Create Modal Overlay */}
+        {activeModal === "edit" && (
+          <div className="codex-modal-backdrop" onClick={() => setActiveModal(null)}>
+            <div className="codex-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "750px" }}>
+              <form onSubmit={handleSave}>
+                <div className="codex-modal-header">
+                  <h2 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.2rem", color: "var(--red-bright)", margin: 0, letterSpacing: "0.15em" }}>
+                    {formData.id ? "EDIT IMPERIAL DIRECTIVE" : "CREATE IMPERIAL DIRECTIVE"}
+                  </h2>
+                  <button type="button" className="codex-modal-close" onClick={() => setActiveModal(null)}>&times;</button>
+                </div>
+
+                <div className="codex-modal-body" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+                  <div>
+                    <label className="codex-label">DIRECTIVE TITLE</label>
+                    <input
+                      type="text"
+                      className="codex-input"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="E.G. COMMUNICATIONS SERVER BINDING PROTOCOL"
+                      required
+                    />
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                    <div>
+                      <label className="codex-label">SECTION ASSIGNMENT</label>
+                      <select
+                        className="codex-select"
+                        value={formData.section}
+                        onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                      >
+                        {SECTIONS.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="codex-label">TAG CLASSIFICATION</label>
+                      <select
+                        className="codex-select"
+                        value={formData.tag}
+                        onChange={(e) => setFormData({ ...formData, tag: e.target.value })}
+                      >
+                        {TAGS.map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="codex-label">BRIEFING SUMMARY (CARD PREVIEW)</label>
+                    <input
+                      type="text"
+                      className="codex-input"
+                      value={formData.summary}
+                      onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                      placeholder="Short 1-2 sentence high-level summary..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="codex-label">FULL DIRECTIVE CONTENT (IN-UNIVERSE TEXT)</label>
+                    <textarea
+                      className="codex-textarea"
+                      rows={10}
+                      value={formData.content}
+                      onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                      placeholder="Write full in-universe directive using official Imperial terminology..."
+                      required
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <input
+                      type="checkbox"
+                      id="is_published"
+                      checked={formData.is_published}
+                      onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })}
+                    />
+                    <label htmlFor="is_published" className="codex-label" style={{ margin: 0, cursor: "pointer" }}>
+                      PUBLISH DIRECTIVE TO HOLONET DOCTRINE BOARD
+                    </label>
+                  </div>
+                </div>
+
+                <div className="codex-modal-footer">
+                  {formData.id && (
+                    <button
+                      type="button"
+                      className="hub-cancel-btn"
+                      style={{ color: "var(--red-bright)", borderColor: "var(--red-bright)", marginRight: "auto" }}
+                      onClick={() => handleDelete(formData.id)}
+                    >
+                      PURGE DIRECTIVE
+                    </button>
+                  )}
+                  <button type="button" className="hub-cancel-btn" onClick={() => setActiveModal(null)}>
+                    CANCEL
+                  </button>
+                  <button type="submit" className="hub-write-btn">
+                    SAVE DIRECTIVE
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      <style jsx>{`
+        .tag-chip {
+          background: rgba(0, 0, 0, 0.4);
+          border: 1px solid var(--border);
+          color: var(--text-dim);
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.72rem;
+          padding: 0.3rem 0.7rem;
+          cursor: pointer;
+          letter-spacing: 0.1em;
+          transition: all 0.2s ease;
+          clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+        }
+        .tag-chip:hover, .tag-chip.active {
+          border-color: var(--red-bright);
+          color: var(--red-bright);
+          background: rgba(201, 7, 5, 0.12);
+        }
+
+        .trello-board-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+          gap: 1.5rem;
+          width: 100%;
+          align-items: start;
+        }
+
+        .trello-column {
+          background: rgba(10, 10, 15, 0.7);
+          border: 1px solid var(--border);
+          padding: 1.2rem;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+          clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+        }
+
+        .trello-column-header {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+          border-bottom: 1px solid var(--border);
+          padding-bottom: 0.8rem;
+          margin-bottom: 1rem;
+        }
+        .trello-column-num {
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.8rem;
+          color: var(--red-bright);
+        }
+        .trello-column-title {
+          font-family: 'Orbitron', monospace;
+          font-size: 0.85rem;
+          color: var(--text-bright);
+          letter-spacing: 0.1em;
+          margin: 0;
+          flex: 1;
+        }
+        .trello-column-count {
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.75rem;
+          color: var(--text-dim);
+        }
+
+        .trello-column-cards {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .trello-empty-card {
+          padding: 2rem 1rem;
+          text-align: center;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.72rem;
+          color: var(--text-dim);
+          border: 1px dashed var(--border);
+        }
+
+        .trello-card {
+          background: linear-gradient(145deg, rgba(20, 20, 28, 0.8), rgba(12, 12, 18, 0.9));
+          border: 1px solid var(--border);
+          padding: 1.1rem;
+          cursor: pointer;
+          transition: all 0.25s ease;
+          position: relative;
+          clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+        }
+        .trello-card:hover {
+          border-color: var(--red-bright);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(201, 7, 5, 0.18);
+        }
+
+        .trello-card-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.6rem;
+        }
+        .trello-card-tag {
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.65rem;
+          color: var(--red-bright);
+          background: rgba(201, 7, 5, 0.15);
+          padding: 0.2rem 0.5rem;
+          letter-spacing: 0.1em;
+          border-left: 2px solid var(--red-bright);
+        }
+        .trello-card-edit-btn {
+          background: none;
+          border: none;
+          color: var(--text-dim);
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.65rem;
+          cursor: pointer;
+        }
+        .trello-card-edit-btn:hover {
+          color: var(--red-bright);
+        }
+
+        .trello-card-title {
+          font-family: 'Orbitron', monospace;
+          font-size: 0.92rem;
+          color: var(--text-bright);
+          margin: 0 0 0.5rem;
+          letter-spacing: 0.08em;
+          line-height: 1.3;
+        }
+
+        .trello-card-summary {
+          font-size: 0.8rem;
+          color: var(--text-dim);
+          line-height: 1.5;
+          margin: 0 0 0.8rem;
+        }
+
+        .trello-card-footer {
+          display: flex;
+          justify-content: flex-end;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.7rem;
+          color: var(--red-bright);
+          letter-spacing: 0.1em;
+        }
+
+        /* Codex-style Modal Styling */
+        .codex-modal-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.85);
+          backdrop-filter: blur(6px);
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1.5rem;
+        }
+
+        .codex-modal-dialog {
+          background: rgba(12, 12, 18, 0.96);
+          border: 1px solid var(--red-bright);
+          box-shadow: 0 0 40px rgba(201, 7, 5, 0.3);
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+        }
+
+        .codex-modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          padding: 1.2rem 1.5rem;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .codex-modal-close {
+          background: none;
+          border: none;
+          color: var(--text-dim);
+          font-size: 1.6rem;
+          cursor: pointer;
+          line-height: 1;
+        }
+        .codex-modal-close:hover {
+          color: var(--red-bright);
+        }
+
+        .codex-modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 1rem;
+          padding: 1.2rem 1.5rem;
+          border-top: 1px solid var(--border);
+        }
+
+        .codex-label {
+          display: block;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.72rem;
+          color: var(--text-dim);
+          letter-spacing: 0.15em;
+          margin-bottom: 0.4rem;
+        }
+
+        .codex-input, .codex-select, .codex-textarea {
+          width: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          border: 1px solid var(--border);
+          color: var(--text-bright);
+          padding: 0.6rem 0.8rem;
+          font-family: inherit;
+          font-size: 0.9rem;
+        }
+        .codex-input:focus, .codex-select:focus, .codex-textarea:focus {
+          border-color: var(--red-bright);
+          outline: none;
+        }
+
+        .hub-cancel-btn {
+          background: transparent;
+          border: 1px solid var(--border);
+          color: var(--text-dim);
+          font-family: 'Orbitron', monospace;
+          font-size: 0.8rem;
+          padding: 0.5rem 1.2rem;
+          cursor: pointer;
+        }
+
+        .hub-write-btn {
+          background: rgba(201, 7, 5, 0.2);
+          border: 1px solid var(--red-bright);
+          color: var(--red-bright);
+          font-family: 'Orbitron', monospace;
+          font-size: 0.8rem;
+          padding: 0.5rem 1.2rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .hub-write-btn:hover {
+          background: var(--red-bright);
+          color: #fff;
+        }
+      `}</style>
+    </HolonetFrame>
+  );
+}

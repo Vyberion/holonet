@@ -181,6 +181,17 @@ export function canEditStatutes(profile) {
   return { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
 }
 
+export function canViewStatuteDrafts(profile) {
+  if (!profile) return false;
+  return Boolean(
+    profile.isSuperUser ||
+    profile.hasFullAccess ||
+    Object.values(profile.authorityRoles || {}).some(Boolean) ||
+    (profile.divisions?.darkCouncil && profile.divisions.darkCouncil !== "none") ||
+    hasPermission(profile, 'codex:edit')
+  );
+}
+
 export function hasHighCommandAccess(profile) {
   // Provided for backwards compatibility with any UI elements still using it
   return hasPermission(profile, 'admin:access');

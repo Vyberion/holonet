@@ -420,6 +420,12 @@ function StatutesPageContent({ initialSlug }) {
           <div className="codex-document" data-library-document="codex">
             {loading ? (
               <p>Loading archives...</p>
+            ) : !canViewDrafts ? (
+              <div style={{ textAlign: "center", padding: "4rem 1rem" }}>
+                <h2 style={{ fontFamily: "Orbitron, monospace", color: "var(--red-bright)", letterSpacing: "0.15em", marginBottom: "1rem" }}>CLEARANCE REQUIRED</h2>
+                <p style={{ color: "var(--text-dim)", maxWidth: "520px", margin: "0 auto 2rem" }}>Access to the main legislative statutes index is restricted to authorized Dark Council and High Command personnel.</p>
+                <button type="button" className="hub-write-btn" onClick={() => router.push("/codex")}>RETURN TO CODEX</button>
+              </div>
             ) : statutes.length === 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                 <p>No statutes found.</p>

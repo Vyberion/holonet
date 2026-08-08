@@ -165,6 +165,22 @@ export function HolonetNav() {
   
   const getHref = path => formatNavHref(path, hostname);
 
+  const canViewDrafts = Boolean(access?.permissions?.canViewStatuteDrafts);
+  
+  const registrySubItems = [];
+  if (access?.permissions?.canAccessAdmin || access?.profile?.authorityRoles?.highCommand || access?.profile?.authorityRoles?.darkCouncil) {
+    registrySubItems.push({ href: getHref("/high-ranks"), page: "high-ranks", label: "High Ranks" });
+    registrySubItems.push({ href: getHref("/reports"), page: "reports", label: "Reports" });
+  }
+  if (access?.profile?.divisions?.darkCouncil || access?.permissions?.canAccessAdmin) {
+    registrySubItems.push({ href: getHref("/dark-council"), page: "dark-council", label: "Dark Council" });
+  }
+  if (access?.profile?.divisions && Object.values(access.profile.divisions).some(v => v && v !== "none")) {
+    registrySubItems.push({ href: getHref("/registry#divisions"), page: "registry-divisions", label: "Divisions" });
+  }
+
+  const codexDropdown = canViewDrafts ? [{ href: getHref("/statutes"), page: "statutes", label: "Statutes" }] : null;
+
   const centerLinks = [
     { href: getHref("/"), page: "home", prefix: "00", label: "Home" },
     {
@@ -172,9 +188,7 @@ export function HolonetNav() {
       page: "codex",
       prefix: "01",
       label: "Codex",
-      dropdown: [
-        { href: getHref("/statutes"), page: "statutes", label: "Statutes" }
-      ]
+      dropdown: codexDropdown?.length ? codexDropdown : null
     },
     {
       href: getHref("/archives"),
@@ -182,9 +196,8 @@ export function HolonetNav() {
       prefix: "02",
       label: "Archives",
       dropdown: [
-        { href: getHref("/cots"), page: "cots", label: "CoTS" },
-        { href: getHref("/galaxy"), page: "galaxy", label: "Galaxy" },
-        { href: getHref("/emperors"), page: "emperors", label: "Emperors" }
+        { href: getHref("/emperors"), page: "emperors", label: "Emperors" },
+        { href: getHref("/cots"), page: "cots", label: "Champion" }
       ]
     },
     { href: getHref("/hierarchy"), page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
@@ -193,10 +206,9 @@ export function HolonetNav() {
       page: "registry",
       prefix: "04",
       label: "Registry",
-      dropdown: [
-        { href: getHref("/powerbases"), page: "powerbases", label: "Powerbases" }
-      ]
-    }
+      dropdown: registrySubItems.length ? registrySubItems : null
+    },
+    { href: getHref("/powerbases"), page: "powerbases", prefix: "05", label: "Powerbases" }
   ];
 
   useEffect(() => {

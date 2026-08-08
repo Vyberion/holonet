@@ -1,7 +1,7 @@
 import { executeLegacyHandler } from "../../../../lib/legacy-api-adapter.js";
 import { getQueryParam } from "../../../../lib/api-helpers.js";
 import { getAuthContext } from "../../../../../modules/auth/auth-context.js";
-import { checkPageAccess } from "../../../../../modules/auth/permissions.js";
+import { checkPageAccess, canViewStatuteDrafts } from "../../../../../modules/auth/permissions.js";
 
 
 
@@ -51,7 +51,8 @@ const handler = async (req, res) => {
             canAccessAdmin: checkPageAccess(profile, "admin").authorized,
             canAccessPersonnelLookup: true,
             canAccessNexus: checkPageAccess(profile, "nexus").authorized,
-            canAccessRegistry: checkPageAccess(profile, "registry").authorized
+            canAccessRegistry: checkPageAccess(profile, "registry").authorized,
+            canViewStatuteDrafts: canViewStatuteDrafts(profile)
           }
         });
       }
@@ -63,7 +64,8 @@ const handler = async (req, res) => {
           canAccessAdmin: checkPageAccess(profile, "admin").authorized,
           canAccessPersonnelLookup: true,
           canAccessNexus: checkPageAccess(profile, "nexus").authorized,
-          canAccessRegistry: checkPageAccess(profile, "registry").authorized
+          canAccessRegistry: checkPageAccess(profile, "registry").authorized,
+          canViewStatuteDrafts: canViewStatuteDrafts(profile)
         }
       });
     } catch (err) {

@@ -14,7 +14,7 @@ export function DiscordActivityProvider({ clientId }) {
   useEffect(() => {
     if (!clientId) return;
     const hostname = window.location.hostname;
-    
+
     if (hostname.includes("discordsays.com")) {
       setIsActivity(true);
 
@@ -78,7 +78,7 @@ export function DiscordActivityProvider({ clientId }) {
     if (!discordSdkInstance || !discordSdkAuthorized) return;
 
     let pageName = "Holonet Terminal";
-    
+
     if (path === "/") pageName = "Home";
     else if (path.startsWith("/codex")) pageName = "The Codex";
     else if (path.startsWith("/statutes")) pageName = "Statutes";
@@ -91,9 +91,9 @@ export function DiscordActivityProvider({ clientId }) {
     try {
       await discordSdkInstance.commands.setActivity({
         activity: {
-          type: 0, 
+          type: 0,
           details: "Viewing the Holonet",
-          state: `Reading the ${pageName}`,
+          state: `Reading ${pageName}`,
           assets: {
             large_image: "holo_pfp",
             large_text: "H.O.L.O"

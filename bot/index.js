@@ -10,7 +10,10 @@ import { registerRoleConnectionMetadata } from "./services/discord-linked-roles.
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages],
-  partials: [Partials.GuildMember]
+  partials: [Partials.GuildMember],
+  presence: {
+    status: "dnd"
+  }
 });
 
 let lastCheekyResponseAt = 0;
@@ -56,6 +59,7 @@ async function syncPowerbaseRostersOnStartup() {
 
 client.once("clientReady", () => {
   console.log(`Holonet bot online as ${client.user.tag}`);
+  client.user.setPresence({ status: "dnd" });
   syncStoredClockPanels();
   syncPowerbaseRostersOnStartup();
   startShiftReminderLoop(client);

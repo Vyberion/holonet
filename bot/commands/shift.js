@@ -31,8 +31,23 @@ const OVERSEER_ROLE_KEYS = [
 const OVERSEER_VISIBLE_SCOPES = ["reavers", "dhg", "dreadmasters", "highranks"];
 
 export const commands = [
-  new SlashCommandBuilder().setName("clockin").setDescription("Start a shift").addBooleanOption(option => option.setName("late").setDescription("Clock in late")),
-  new SlashCommandBuilder().setName("clockout").setDescription("End your active shift").addBooleanOption(option => option.setName("late").setDescription("Clock out late")),
+  new SlashCommandBuilder()
+    .setName("clock")
+    .setDescription("Clock in and clock out tools")
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("in")
+        .setDescription("Start a shift")
+        .addBooleanOption(option => option.setName("late").setDescription("Clock in late"))
+        .addUserOption(option => option.setName("user").setDescription("Optional target user to clock in (Requires permission)"))
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("out")
+        .setDescription("End an active shift")
+        .addBooleanOption(option => option.setName("late").setDescription("Clock out late"))
+        .addUserOption(option => option.setName("user").setDescription("Optional target user to clock out (Requires permission)"))
+    ),
   new SlashCommandBuilder()
     .setName("shift")
     .setDescription("Shift management tools")
@@ -249,29 +264,37 @@ async function requireManager(interaction) {
   return canManageBot(verified?.profile, interaction.member);
 }
 
-async function doClockIn(interaction, options = {}) {
-  const shift = await clockIn(interaction.user, options);
-  await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked In", `Scope: ${shift.scope}${shift.late ? `\nLate: ${shift.late_minutes || 0} minutes` : ""}`)] }));
+async function doClockIn(interaction, options = {}, targetUser = null) {
+  const user = targetUser || interaction.user;
+  const shift = await clockIn(user, options);
+  const isForced = user.id !== interaction.user.id;
+
+  await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked In", `${isForced ? `Clocked in <@${user.id}>\n` : ""}Scope: ${shift.scope}${shift.late ? `\nLate: ${shift.late_minutes || 0} minutes` : ""}`)] }));
   await postActivityLog(interaction.client, {
     title: "Clock In",
-    description: `<@${interaction.user.id}> clocked in${shift.late ? " late" : ""}.`,
+    description: isForced ? `<@${interaction.user.id}> clocked in <@${user.id}>${shift.late ? " late" : ""}.` : `<@${user.id}> clocked in${shift.late ? " late" : ""}.`,
     channelKey: shift.scope === "darkCouncil" ? "highCommandLog" : "activityLog",
     fields: [
+      { name: "User", value: `<@${user.id}>`, inline: true },
       { name: "Scope", value: scopeLabel(shift.scope), inline: true },
       shift.late ? { name: "Late", value: `${shift.late_minutes || 0} minute(s)`, inline: true } : null
     ].filter(Boolean)
   });
 }
 
-async function doClockOut(interaction, options = {}) {
-  const shift = await clockOut(interaction.user, options);
+async function doClockOut(interaction, options = {}, targetUser = null) {
+  const user = targetUser || interaction.user;
+  const shift = await clockOut(user, options);
+  const isForced = user.id !== interaction.user.id;
   const total = Math.max(0, Number(shift.duration_seconds || 0) + Number(shift.adjustment_seconds || 0));
-  await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked Out", `Duration: ${formatDuration(total)}${shift.adjustment_seconds ? `\nAdjustment: ${formatDuration(Math.abs(shift.adjustment_seconds))} ${shift.adjustment_seconds > 0 ? "added" : "removed"}` : ""}${shift.clockout_late ? `\nLate clock-out: ${shift.clockout_late_minutes || 0} minutes` : ""}`)] }));
+
+  await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked Out", `${isForced ? `Clocked out <@${user.id}>\n` : ""}Duration: ${formatDuration(total)}${shift.adjustment_seconds ? `\nAdjustment: ${formatDuration(Math.abs(shift.adjustment_seconds))} ${shift.adjustment_seconds > 0 ? "added" : "removed"}` : ""}${shift.clockout_late ? `\nLate clock-out: ${shift.clockout_late_minutes || 0} minutes` : ""}`)] }));
   await postActivityLog(interaction.client, {
     title: "Clock Out",
-    description: `<@${interaction.user.id}> clocked out${shift.clockout_late ? " late" : ""}.`,
+    description: isForced ? `<@${interaction.user.id}> clocked out <@${user.id}>${shift.clockout_late ? " late" : ""}.` : `<@${user.id}> clocked out${shift.clockout_late ? " late" : ""}.`,
     channelKey: shift.scope === "darkCouncil" ? "highCommandLog" : "activityLog",
     fields: [
+      { name: "User", value: `<@${user.id}>`, inline: true },
       { name: "Scope", value: scopeLabel(shift.scope), inline: true },
       { name: "Duration", value: formatDuration(total), inline: true },
       shift.clockout_late ? { name: "Late Clock-Out", value: `${shift.clockout_late_minutes || 0} minute(s)`, inline: true } : null
@@ -335,16 +358,33 @@ export async function handleCommand(interaction) {
   const commandName = interaction.commandName;
   const subcommand = interaction.options?.getSubcommand(false) || "";
 
-  if (commandName === "clockin") {
-    if (interaction.options.getBoolean("late")) await interaction.showModal(textModal("clockmodal:in:auto", "Late Clock-In", [{ id: "minutes", label: "How late are you? (minutes)", placeholder: "10" }]));
-    else try { await doClockIn(interaction); } catch (error) { await replyClockError(interaction, error); }
-    return true;
-  }
+  if (commandName === "clock") {
+    const targetUser = interaction.options.getUser("user", false);
+    if (targetUser && targetUser.id !== interaction.user.id) {
+      const decision = await canAdjustTarget(interaction, targetUser);
+      if (!decision.allowed) {
+        await interaction.reply(ephemeral({ embeds: [errorEmbed(decision.reason)] }));
+        return true;
+      }
+    }
 
-  if (commandName === "clockout") {
-    if (interaction.options.getBoolean("late")) await interaction.showModal(textModal("clockmodal:out:auto", "Late Clock-Out", [{ id: "minutes", label: "How late is this clock-out?", placeholder: "10" }]));
-    else try { await doClockOut(interaction); } catch (error) { await replyClockError(interaction, error); }
-    return true;
+    if (subcommand === "in") {
+      if (interaction.options.getBoolean("late")) {
+        await interaction.showModal(textModal(`clockmodal:in:auto:${targetUser?.id || ""}`, "Late Clock-In", [{ id: "minutes", label: "How late? (minutes)", placeholder: "10" }]));
+      } else {
+        try { await doClockIn(interaction, {}, targetUser); } catch (error) { await replyClockError(interaction, error); }
+      }
+      return true;
+    }
+
+    if (subcommand === "out") {
+      if (interaction.options.getBoolean("late")) {
+        await interaction.showModal(textModal(`clockmodal:out:auto:${targetUser?.id || ""}`, "Late Clock-Out", [{ id: "minutes", label: "How late? (minutes)", placeholder: "10" }]));
+      } else {
+        try { await doClockOut(interaction, {}, targetUser); } catch (error) { await replyClockError(interaction, error); }
+      }
+      return true;
+    }
   }
 
   if (commandName === "shift") {
@@ -512,11 +552,12 @@ export async function handleModal(interaction) {
   }
 
   if (!interaction.customId.startsWith("clockmodal:")) return false;
-  const [, action, scope] = interaction.customId.split(":");
+  const [, action, scope, targetId] = interaction.customId.split(":");
   const minutes = Math.max(0, Number(interaction.fields.getTextInputValue("minutes")) || 0);
+  const targetUser = targetId ? await interaction.client.users.fetch(targetId).catch(() => null) : null;
   try {
-    if (action === "in") await doClockIn(interaction, { scope: scope === "auto" ? "" : scope, late: true, lateMinutes: minutes });
-    if (action === "out") await doClockOut(interaction, { late: true, lateMinutes: minutes });
+    if (action === "in") await doClockIn(interaction, { scope: scope === "auto" ? "" : scope, late: true, lateMinutes: minutes }, targetUser);
+    if (action === "out") await doClockOut(interaction, { late: true, lateMinutes: minutes }, targetUser);
   } catch (error) {
     await replyClockError(interaction, error);
   }

@@ -23,7 +23,7 @@ const pendingPostLinkRoleSyncs = new Map();
 const allCommands = [
   new SlashCommandBuilder().setName("verify").setDescription("Link your Discord account to your Holonet Roblox account"),
   new SlashCommandBuilder()
-    .setName("unverify")
+    .setName("unlink")
     .setDescription("Remove a Discord user's Holonet verification link")
     .addUserOption(option => option.setName("user").setDescription("Discord user").setRequired(false))
 ];
@@ -279,7 +279,7 @@ export async function handleCommand(interaction) {
     return true;
   }
 
-  if (interaction.commandName === "unverify") {
+  if (interaction.commandName === "unlink") {
     const user = interaction.options.getUser("user", false) || interaction.user;
     const selfUnlink = user.id === interaction.user.id;
     if (!selfUnlink) {
@@ -292,7 +292,7 @@ export async function handleCommand(interaction) {
 
     await unlinkDiscordUser(user.id, interaction.user.id);
     await interaction.reply({ embeds: [successEmbed("Unlinked", selfUnlink ? "Your Discord account has been unlinked." : `<@${user.id}> has been unlinked.`)] });
-    
+
     try {
       const memberToSync = await interaction.guild.members.fetch(user.id);
       if (memberToSync) await syncMemberRoles(memberToSync, interaction.user.id);

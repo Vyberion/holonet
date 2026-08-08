@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from "discord.js";
 import { botErrorPayload } from "../services/bot-errors.js";
 import { ephemeral, successEmbed } from "../services/discord-ui.js";
 import { postVerificationLog } from "../services/activity-log.js";
-import { canUpdateMemberRoles, getVerifiedProfile, syncMemberRoles } from "../services/role.js";
+import { canUpdateMemberRoles, getVerifiedProfile, syncMemberRoles } from "../services/roles.js";
 
 export const commands = [
   new SlashCommandBuilder()

@@ -309,7 +309,6 @@ export async function handleModal(interaction) {
     ])));
     return true;
   }
-  }
 
   if (interaction.customId.startsWith("pb_edit_modal:")) {
     const pbId = interaction.customId.split(":")[1];

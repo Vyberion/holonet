@@ -13,6 +13,14 @@ export const commands = [
     .setDescription("Powerbase management tools")
     .addSubcommand(subcommand =>
       subcommand
+        .setName("banner")
+        .setDescription("Upload a banner image attachment for a Powerbase")
+        .addAttachmentOption(option => 
+          option.setName("image").setDescription("The image to upload").setRequired(true)
+        )
+    )
+    .addSubcommand(subcommand =>
+      subcommand
         .setName("create")
         .setDescription("Request the creation of a new Powerbase.")
     )
@@ -49,6 +57,7 @@ export async function handleCommand(interaction) {
     if (subcommand === "manage") return await handleManage(interaction, verified);
     if (subcommand === "dissolve") return await handleDissolve(interaction, verified);
     if (subcommand === "info") return await handleInfo(interaction, verified);
+    if (subcommand === "banner") return await handleBanner(interaction, verified);
 
   } catch (err) {
     console.error(err);
@@ -69,6 +78,7 @@ export async function handleSelectMenu(interaction) {
   if (interaction.customId === "pb_manage_select") return await handleManageSelect(interaction);
   if (interaction.customId.startsWith("pb_manage_action:")) return await handleManageActionSelect(interaction);
   if (interaction.customId === "pb_info_select") return await handleInfoSelect(interaction);
+  if (interaction.customId === "pb_banner_select") return await handleBannerSelect(interaction);
   if (interaction.customId.startsWith("pb_change_leader:")) return await handleChangeLeaderSelect(interaction);
   return false;
 }
@@ -101,47 +111,7 @@ export async function handleButton(interaction) {
     return true;
   }
 
-  if (interaction.customId.startsWith("pb_img_upload_trigger:")) {
-    const pbId = interaction.customId.split(":")[1];
-    const pb = await getPowerbase(pbId);
-    if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
 
-    await interaction.update(ephemeral(componentsV2Message([
-      containerV2([
-        textDisplayV2("### Upload Banner Image"),
-        textDisplayV2("Please reply in this channel with an image file attachment within 60 seconds.")
-      ])
-    ])));
-
-    const filter = m => m.author.id === interaction.user.id && m.attachments.size > 0;
-    try {
-      const collected = await interaction.channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-      const message = collected.first();
-      const attachment = message.attachments.first();
-      const imageUrl = attachment?.url;
-
-      if (!imageUrl) throw new Error("No image attachment found in message.");
-
-      await updatePowerbase(pbId, { image_url: imageUrl });
-      await syncPowerbaseRosterMessage(interaction.client, pbId);
-
-      await message.delete().catch(() => {});
-
-      await interaction.followUp(ephemeral(componentsV2Message([
-        containerV2([
-          textDisplayV2("### Image Uploaded"),
-          textDisplayV2(`Banner image uploaded and set for **${pb.name}** successfully!`)
-        ])
-      ])));
-    } catch (err) {
-      await interaction.followUp(ephemeral(componentsV2Message([
-        containerV2([
-          textDisplayV2("Image upload timed out or failed. Please try again.")
-        ])
-      ])));
-    }
-    return true;
-  }
 
   if (interaction.customId.startsWith("pb_img_remove:")) {
     const pbId = interaction.customId.split(":")[1];
@@ -169,10 +139,10 @@ async function showImageOptions(interaction, pbId) {
   const payload = componentsV2Message([
     containerV2([
       textDisplayV2(`### Banner Image Management: ${pb.name}`),
-      textDisplayV2("Choose how you would like to set or update the banner image for this Powerbase:"),
+      textDisplayV2("To upload an image file from your device, please use the `/powerbase banner` command anywhere in chat!"),
+      textDisplayV2("Or, if you already have a direct link (URL) to an image, you can enter it below."),
       buttonRow([
         button(`pb_img_url_modal_trigger:${pbId}`, "Enter Image URL", ButtonStyle.Secondary),
-        button(`pb_img_upload_trigger:${pbId}`, "Upload Image Attachment", ButtonStyle.Primary),
         button(`pb_img_remove:${pbId}`, "Remove Image", ButtonStyle.Danger)
       ])
     ])
@@ -904,4 +874,71 @@ async function handleInfoSelect(interaction) {
 
 function romanize(num) {
   return ["I", "II", "III", "IV"][num - 1] || "I";
+}
+
+async function handleBanner(interaction, verified) {
+  const attachment = interaction.options.getAttachment("image");
+  if (!attachment || !attachment.contentType?.startsWith("image/")) {
+    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Please upload a valid image file.")])])));
+  }
+
+  const isHighCommand = hasPermission(verified.profile, "powerbase:manage_all");
+  const pbs = await fetchPowerbases();
+  const manageablePbs = pbs.filter(pb => isHighCommand || pb.leader_id === interaction.user.id);
+
+  if (manageablePbs.length === 0) {
+    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not lead or have permission to manage any Powerbases.")])])));
+  }
+
+  if (manageablePbs.length === 1) {
+    const pb = manageablePbs[0];
+    await updatePowerbase(pb.id, { image_url: attachment.url });
+    await syncPowerbaseRosterMessage(interaction.client, pb.id);
+    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`Banner image uploaded and set for **${pb.name}**!`)])])));
+  }
+
+  const options = manageablePbs.slice(0, 25).map(pb => ({
+    label: pb.name,
+    description: `Set banner for ${pb.name}`,
+    value: pb.id
+  }));
+
+  const selectMenu = new StringSelectMenuBuilder()
+    .setCustomId("pb_banner_select")
+    .setPlaceholder("Select a Powerbase to set this banner for...")
+    .addOptions(options);
+
+  globalThis.__pbBannerCache = globalThis.__pbBannerCache || new Map();
+  globalThis.__pbBannerCache.set(interaction.user.id, attachment.url);
+
+  return interaction.reply(ephemeral(componentsV2Message([
+    containerV2([
+      textDisplayV2("### Select Powerbase"),
+      textDisplayV2("Please select which Powerbase you want to apply the uploaded banner image to:"),
+      new ActionRowBuilder().addComponents(selectMenu)
+    ])
+  ])));
+}
+
+async function handleBannerSelect(interaction) {
+  const pbId = interaction.values[0];
+  const imageUrl = globalThis.__pbBannerCache?.get(interaction.user.id);
+  
+  if (!imageUrl) {
+    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Upload session expired. Please run `/powerbase banner` again.")])])));
+  }
+
+  const pb = await getPowerbase(pbId);
+  if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+
+  await updatePowerbase(pbId, { image_url: imageUrl });
+  await syncPowerbaseRosterMessage(interaction.client, pbId);
+  globalThis.__pbBannerCache.delete(interaction.user.id);
+
+  return interaction.update(ephemeral(componentsV2Message([
+    containerV2([
+      textDisplayV2("### Image Uploaded"),
+      textDisplayV2(`Banner image uploaded and set for **${pb.name}** successfully!`)
+    ])
+  ])));
 }

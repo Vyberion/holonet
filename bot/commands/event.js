@@ -5,6 +5,7 @@ import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2
 import { fetchPowerbases, getPowerbase, recordKaggathResult } from "../services/powerbase-api.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./shift.js";
 import { postActivityLog } from "../services/activity-log.js";
+import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 
 const LOG_CHANNEL_ID = "1534165352756285450";
 const VERIFY_INSTRUCTIONS = "You are not linked yet. Go to <#1046452180074381403> and click the verify button, or use `/verify`.";
@@ -125,10 +126,56 @@ function renderEventWritePreview(sessionId, draft) {
   return ephemeral(componentsV2Message([previewContainer, controlsContainer]));
 }
 
+const DIVISION_TIERS = ["none", "member", "nco", "hr", "2ic", "1ic", "overseer"];
+
+export function canWriteEventDeployment(profile, divisionScope = null) {
+  if (!profile) return false;
+
+  if (
+    profile.isSuperUser ||
+    profile.hasFullAccess ||
+    profile.authorityRoles?.emperor ||
+    profile.authorityRoles?.groupOwner ||
+    profile.authorityRoles?.projectManager ||
+    profile.authorityRoles?.highCommand
+  ) {
+    return true;
+  }
+
+  const mainGroupRank = Number(profile.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0);
+  if (mainGroupRank >= 44 || hasAnyOverseer(profile) || hasDarkCouncilRank(profile, 44)) {
+    return true;
+  }
+
+  const perms = Array.isArray(profile.permissions) ? profile.permissions : [];
+  if (perms.includes("events:write") || perms.includes("reports:write:all") || perms.includes("pages:view:all")) {
+    return true;
+  }
+
+  if (divisionScope) {
+    const div = String(divisionScope).toLowerCase();
+    const tier = profile.divisions?.[div] || "none";
+    const isHRInDiv = DIVISION_TIERS.indexOf(tier) >= DIVISION_TIERS.indexOf("hr");
+    const hasDivPerm = perms.includes(`reports:write:${div}`);
+    return isHRInDiv || hasDivPerm;
+  }
+
+  const isHRInAnyDiv = Object.keys(profile.divisions || {}).some(div => {
+    const tier = profile.divisions[div];
+    return DIVISION_TIERS.indexOf(tier) >= DIVISION_TIERS.indexOf("hr") || perms.includes(`reports:write:${div}`);
+  });
+
+  return isHRInAnyDiv || perms.some(p => p.startsWith("reports:write:"));
+}
+
 async function handleWriteEventDeployment(interaction) {
   const verified = await getVerifiedProfile(interaction.user.id).catch(() => null);
   if (!verified) {
     return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(VERIFY_INSTRUCTIONS)])])));
+  }
+
+  if (!canWriteEventDeployment(verified.profile)) {
+    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have permission to write deployment events. Requires Divisional HR+ or Sith Overseer+.")])])));
   }
 
   const sessionId = `${interaction.user.id}_${Date.now()}`;
@@ -273,6 +320,11 @@ export async function handleButton(interaction) {
     }
     if (interaction.user.id !== draft.userId) {
       return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Only the user who started this setup can post it.")])])));
+    }
+
+    const verified = await getVerifiedProfile(interaction.user.id).catch(() => null);
+    if (!verified || !canWriteEventDeployment(verified.profile)) {
+      return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have clearance to post deployment events.")])])));
     }
 
     const channelId = draft.targetChannelId || "1046469967744356474";

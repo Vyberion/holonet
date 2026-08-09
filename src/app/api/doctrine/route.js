@@ -1,7 +1,7 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import { getAuthContext } from "../../../../modules/auth/auth-context.js";
 import { supabaseRest } from "../../../../modules/auth/session-store.js";
-import { canEditLibrary } from "../../../../modules/auth/permissions.js";
+import { canEditDoctrine } from "../../../../modules/auth/permissions.js";
 
 const DEFAULT_DIRECTIVES = [
   {
@@ -77,6 +77,12 @@ const handler = async (req, res) => {
     const auth = await getAuthContext(req);
     if (!auth.authenticated) {
       return res.status(200).json({ ok: false, authorized: false, reason: auth.reason || "SESSION_REQUIRED" });
+    }
+
+    const canEdit = canEditDoctrine(auth.profile);
+
+    if (!canEdit) {
+      return res.status(403).json({ ok: false, authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" });
     }
 
     if (method === "POST") {

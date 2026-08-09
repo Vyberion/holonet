@@ -1,10 +1,10 @@
 import { ROBLOX_GROUPS } from "../data/roblox-config.js";
 
 export const PERMISSIONS = {
-  SUPER_USER: ['pages:view:all', 'codex:edit', 'archives:edit', 'admin:access', 'reports:write:all', 'powerbase:create', 'holonet:operator', 'powerbase:manage:all', 'inspections:write'],
-  HIGH_COMMAND: ['pages:view:all', 'admin:access', 'reports:write:all', 'powerbase:create', 'inspections:write'],
-  DARK_COUNCIL: ['pages:view:standard', 'pages:view:divisions', 'pages:view:highranks', 'pages:view:darkcouncil', 'reports:write:all', 'powerbase:create'],
-  INQUISITOR_OVERSEER: ['pages:view:standard', 'pages:view:divisions', 'pages:view:highranks', 'pages:view:darkcouncil', 'pages:view:inquisitors', 'reports:write:all', 'powerbase:create'],
+  SUPER_USER: ['pages:view:all', 'codex:edit', 'doctrine:edit', 'archives:edit', 'admin:access', 'reports:write:all', 'events:write', 'powerbase:create', 'holonet:operator', 'powerbase:manage:all', 'inspections:write'],
+  HIGH_COMMAND: ['pages:view:all', 'admin:access', 'codex:edit', 'doctrine:edit', 'reports:write:all', 'events:write', 'powerbase:create', 'inspections:write'],
+  DARK_COUNCIL: ['pages:view:standard', 'pages:view:divisions', 'pages:view:highranks', 'pages:view:darkcouncil', 'codex:edit', 'doctrine:edit', 'reports:write:all', 'events:write', 'powerbase:create'],
+  INQUISITOR_OVERSEER: ['pages:view:standard', 'pages:view:divisions', 'pages:view:highranks', 'pages:view:darkcouncil', 'pages:view:inquisitors', 'codex:edit', 'doctrine:edit', 'reports:write:all', 'events:write', 'powerbase:create'],
   INQUISITORS: ['pages:view:standard', 'pages:view:divisions', 'pages:view:highranks', 'pages:view:inquisitors'],
   MEMBER: ['nexus:access', 'handbooks:view', 'registry:access', 'pages:view:standard'],
 };
@@ -17,8 +17,9 @@ export function getDivisionPermissions(division, tier) {
   // All division members get view access to their division's registry and pages
   perms.push(`pages:view:${division}`);
 
-  if (tier === 'hr' || tier === '1ic' || tier === '2ic' || tier === 'co') {
+  if (tier === 'hr' || tier === '1ic' || tier === '2ic' || tier === 'co' || tier === 'overseer') {
     perms.push(`reports:write:${division}`);
+    perms.push('events:write');
   }
 
   // Inquisitors have special viewing rights

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
+import { PageScripts } from "../../../components/PageScripts.jsx";
 
 const SECTIONS = [
   "SECTION I: IDENTITY & AUTHENTICATION",
@@ -26,7 +27,6 @@ export default function DoctrineClient() {
   const [directives, setDirectives] = useState([]);
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState("ALL");
   const [activeModal, setActiveModal] = useState(null); // 'view' | 'edit' | null
   const [currentDirective, setCurrentDirective] = useState(null);
@@ -52,11 +52,14 @@ export default function DoctrineClient() {
       const data = await res.json();
       if (data?.authorized) {
         const profile = data.profile;
+        const perms = Array.isArray(profile?.permissions) ? profile.permissions : [];
         const hasAdmin = profile?.isSuperUser || profile?.hasFullAccess ||
-                         profile?.authorityRoles?.emperor ||
-                         profile?.authorityRoles?.groupOwner ||
-                         profile?.authorityRoles?.projectManager ||
-                         (profile?.divisions?.darkCouncil && profile.divisions.darkCouncil !== "none");
+          profile?.authorityRoles?.emperor ||
+          profile?.authorityRoles?.groupOwner ||
+          profile?.authorityRoles?.projectManager ||
+          (profile?.divisions?.darkCouncil && profile.divisions.darkCouncil !== "none") ||
+          perms.includes("doctrine:edit") ||
+          perms.includes("codex:edit");
         setCanEdit(!!hasAdmin);
       }
     } catch (e) {
@@ -154,85 +157,71 @@ export default function DoctrineClient() {
   };
 
   const filteredDirectives = directives.filter(d => {
-    const matchesTag = selectedTag === "ALL" || d.tag === selectedTag;
-    const matchesSearch = !searchQuery.trim() ||
-      d.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.content?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesTag && matchesSearch;
+    return selectedTag === "ALL" || d.tag === selectedTag;
   });
 
   return (
-    <HolonetFrame activePage="doctrine" title="IMPERIAL DOCTRINE DIRECTIVES">
-      <div className="doctrine-container" style={{ width: "100%", maxWidth: "1600px", margin: "0 auto", padding: "0 1rem 3rem" }}>
-        
-        {/* Top Control Header */}
-        <header className="doctrine-header" style={{ borderBottom: "1px solid var(--border)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "1rem", marginBottom: "1.5rem" }}>
-            <div>
-              <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)", letterSpacing: "0.2em", textTransform: "uppercase" }}>[IMPERIAL GUIDANCE SYSTEM]</span>
-              <h1 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.8rem", color: "var(--red-bright)", letterSpacing: "0.12em", margin: "0.2rem 0 0" }}>DOCTRINE DIRECTIVES</h1>
-            </div>
+    <HolonetFrame activePage="doctrine" title="DOCTRINE" subtitle="IMPERIAL GUIDANCE" includeSearchOverlay>
+      <div className="doctrine-shell" style={{ width: "100%", maxWidth: "1600px", margin: "0 auto", padding: "0 1rem 3rem" }}>
+
+        {/* Top Control Bar: Tag Filters Left, Global Search & Action Buttons Right */}
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "1rem", borderBottom: "1px solid var(--border)", paddingBottom: "1.2rem", marginBottom: "2rem" }}>
+
+          {/* Tag Filter Chips */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center" }}>
+            <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.72rem", color: "var(--text-dim)", letterSpacing: "0.15em", marginRight: "0.4rem" }}>CLASSIFICATION:</span>
+            <button
+              type="button"
+              className={`tag-chip ${selectedTag === "ALL" ? "active" : ""}`}
+              onClick={() => setSelectedTag("ALL")}
+            >
+              ALL
+            </button>
+            {TAGS.map(tag => (
+              <button
+                key={tag}
+                type="button"
+                className={`tag-chip ${selectedTag === tag ? "active" : ""}`}
+                onClick={() => setSelectedTag(tag)}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Codex & New Directive Buttons */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
+            <button
+              type="button"
+              className="hub-cancel-btn"
+              onClick={() => window.initHolonetSearch?.()}
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <span>SEARCH CODEX</span>
+            </button>
 
             {canEdit && (
-              <button 
-                type="button" 
-                className="hub-write-btn" 
+              <button
+                type="button"
+                className="hub-write-btn"
                 onClick={handleOpenNew}
-                style={{ fontFamily: "Orbitron, monospace", letterSpacing: "0.15em", padding: "0.6rem 1.4rem" }}
               >
                 + NEW DIRECTIVE
               </button>
             )}
           </div>
 
-          {/* Search & Tag Filter Row */}
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "1rem", justifyContent: "space-between" }}>
-            <div style={{ position: "relative", minWidth: "260px", flex: "1" }}>
-              <input
-                type="text"
-                placeholder="SEARCH DIRECTIVES..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: "100%",
-                  background: "rgba(0,0,0,0.4)",
-                  border: "1px solid var(--border)",
-                  color: "var(--text-bright)",
-                  padding: "0.6rem 1rem",
-                  fontFamily: "Share Tech Mono, monospace",
-                  fontSize: "0.85rem",
-                  letterSpacing: "0.1em"
-                }}
-              />
-            </div>
+        </div>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center" }}>
-              <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.7rem", color: "var(--text-dim)", marginRight: "0.5rem" }}>TAG:</span>
-              <button
-                type="button"
-                className={`tag-chip ${selectedTag === "ALL" ? "active" : ""}`}
-                onClick={() => setSelectedTag("ALL")}
-              >
-                ALL
-              </button>
-              {TAGS.map(tag => (
-                <button
-                  key={tag}
-                  type="button"
-                  className={`tag-chip ${selectedTag === tag ? "active" : ""}`}
-                  onClick={() => setSelectedTag(tag)}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          </div>
-        </header>
-
-        {/* Trello-Style Kanban Board Layout (Responsive Multi-Column Grid, Zero Horizontal Scroll) */}
+        {/* Trello-Style Multi-Column Grid Board (Zero Horizontal Scroll, Multi-Column Wrapping) */}
         {loading ? (
-          <p style={{ fontFamily: "Share Tech Mono, monospace", color: "var(--text-dim)", textTransform: "uppercase" }}>Loading Imperial directives...</p>
+          <div style={{ padding: "4rem 1rem", textAlign: "center" }}>
+            <p style={{ fontFamily: "Share Tech Mono, monospace", color: "var(--text-dim)", letterSpacing: "0.15em", textTransform: "uppercase" }}>Loading Imperial Guidance Directives...</p>
+          </div>
         ) : (
           <div className="trello-board-grid">
             {SECTIONS.map((sectionTitle, sIndex) => {
@@ -295,7 +284,7 @@ export default function DoctrineClient() {
               <div className="codex-modal-header">
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
                   <span className="trello-card-tag">{currentDirective.tag || "GENERAL"}</span>
-                  <h2 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.4rem", color: "var(--red-bright)", margin: 0 }}>{currentDirective.title}</h2>
+                  <h2 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.4rem", color: "var(--theme-accent, var(--red-bright))", margin: 0 }}>{currentDirective.title}</h2>
                   <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)" }}>{currentDirective.section}</span>
                 </div>
                 <button type="button" className="codex-modal-close" onClick={() => setActiveModal(null)}>&times;</button>
@@ -303,7 +292,7 @@ export default function DoctrineClient() {
 
               <div className="codex-modal-body" style={{ padding: "1.5rem", color: "var(--text-bright)", lineHeight: "1.7" }}>
                 {currentDirective.summary && (
-                  <div style={{ background: "rgba(201, 7, 5, 0.08)", borderLeft: "3px solid var(--red-bright)", padding: "1rem", marginBottom: "1.5rem", fontStyle: "italic" }}>
+                  <div style={{ background: "rgba(201, 7, 5, 0.08)", borderLeft: "3px solid var(--theme-accent, var(--red-bright))", padding: "1rem", marginBottom: "1.5rem", fontStyle: "italic" }}>
                     {currentDirective.summary}
                   </div>
                 )}
@@ -332,7 +321,7 @@ export default function DoctrineClient() {
             <div className="codex-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "750px" }}>
               <form onSubmit={handleSave}>
                 <div className="codex-modal-header">
-                  <h2 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.2rem", color: "var(--red-bright)", margin: 0, letterSpacing: "0.15em" }}>
+                  <h2 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.2rem", color: "var(--theme-accent, var(--red-bright))", margin: 0, letterSpacing: "0.15em" }}>
                     {formData.id ? "EDIT IMPERIAL DIRECTIVE" : "CREATE IMPERIAL DIRECTIVE"}
                   </h2>
                   <button type="button" className="codex-modal-close" onClick={() => setActiveModal(null)}>&times;</button>
@@ -420,7 +409,7 @@ export default function DoctrineClient() {
                     <button
                       type="button"
                       className="hub-cancel-btn"
-                      style={{ color: "var(--red-bright)", borderColor: "var(--red-bright)", marginRight: "auto" }}
+                      style={{ color: "var(--theme-accent, var(--red-bright))", borderColor: "var(--theme-accent, var(--red-bright))", marginRight: "auto" }}
                       onClick={() => handleDelete(formData.id)}
                     >
                       PURGE DIRECTIVE
@@ -440,6 +429,9 @@ export default function DoctrineClient() {
 
       </div>
 
+      {/* Load core scripts for loader dismissal & global Codex search modal */}
+      <PageScripts scripts={["/js/main.js", "/modules/client/site.js", "/js/search.js"]} />
+
       <style jsx>{`
         .tag-chip {
           background: rgba(0, 0, 0, 0.4);
@@ -447,15 +439,15 @@ export default function DoctrineClient() {
           color: var(--text-dim);
           font-family: 'Share Tech Mono', monospace;
           font-size: 0.72rem;
-          padding: 0.3rem 0.7rem;
+          padding: 0.35rem 0.75rem;
           cursor: pointer;
           letter-spacing: 0.1em;
           transition: all 0.2s ease;
           clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
         }
         .tag-chip:hover, .tag-chip.active {
-          border-color: var(--red-bright);
-          color: var(--red-bright);
+          border-color: var(--theme-accent, var(--red-bright));
+          color: var(--theme-accent, var(--red-bright));
           background: rgba(201, 7, 5, 0.12);
         }
 
@@ -486,7 +478,7 @@ export default function DoctrineClient() {
         .trello-column-num {
           font-family: 'Share Tech Mono', monospace;
           font-size: 0.8rem;
-          color: var(--red-bright);
+          color: var(--theme-accent, var(--red-bright));
         }
         .trello-column-title {
           font-family: 'Orbitron', monospace;
@@ -527,7 +519,7 @@ export default function DoctrineClient() {
           clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
         }
         .trello-card:hover {
-          border-color: var(--red-bright);
+          border-color: var(--theme-accent, var(--red-bright));
           transform: translateY(-2px);
           box-shadow: 0 6px 20px rgba(201, 7, 5, 0.18);
         }
@@ -541,11 +533,11 @@ export default function DoctrineClient() {
         .trello-card-tag {
           font-family: 'Share Tech Mono', monospace;
           font-size: 0.65rem;
-          color: var(--red-bright);
+          color: var(--theme-accent, var(--red-bright));
           background: rgba(201, 7, 5, 0.15);
           padding: 0.2rem 0.5rem;
           letter-spacing: 0.1em;
-          border-left: 2px solid var(--red-bright);
+          border-left: 2px solid var(--theme-accent, var(--red-bright));
         }
         .trello-card-edit-btn {
           background: none;
@@ -556,7 +548,7 @@ export default function DoctrineClient() {
           cursor: pointer;
         }
         .trello-card-edit-btn:hover {
-          color: var(--red-bright);
+          color: var(--theme-accent, var(--red-bright));
         }
 
         .trello-card-title {
@@ -580,7 +572,7 @@ export default function DoctrineClient() {
           justify-content: flex-end;
           font-family: 'Share Tech Mono', monospace;
           font-size: 0.7rem;
-          color: var(--red-bright);
+          color: var(--theme-accent, var(--red-bright));
           letter-spacing: 0.1em;
         }
 
@@ -599,7 +591,7 @@ export default function DoctrineClient() {
 
         .codex-modal-dialog {
           background: rgba(12, 12, 18, 0.96);
-          border: 1px solid var(--red-bright);
+          border: 1px solid var(--theme-accent, var(--red-bright));
           box-shadow: 0 0 40px rgba(201, 7, 5, 0.3);
           width: 100%;
           max-height: 90vh;
@@ -624,7 +616,7 @@ export default function DoctrineClient() {
           line-height: 1;
         }
         .codex-modal-close:hover {
-          color: var(--red-bright);
+          color: var(--theme-accent, var(--red-bright));
         }
 
         .codex-modal-footer {
@@ -654,7 +646,7 @@ export default function DoctrineClient() {
           font-size: 0.9rem;
         }
         .codex-input:focus, .codex-select:focus, .codex-textarea:focus {
-          border-color: var(--red-bright);
+          border-color: var(--theme-accent, var(--red-bright));
           outline: none;
         }
 
@@ -666,12 +658,17 @@ export default function DoctrineClient() {
           font-size: 0.8rem;
           padding: 0.5rem 1.2rem;
           cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .hub-cancel-btn:hover {
+          border-color: var(--theme-accent, var(--red-bright));
+          color: var(--theme-accent, var(--red-bright));
         }
 
         .hub-write-btn {
           background: rgba(201, 7, 5, 0.2);
-          border: 1px solid var(--red-bright);
-          color: var(--red-bright);
+          border: 1px solid var(--theme-accent, var(--red-bright));
+          color: var(--theme-accent, var(--red-bright));
           font-family: 'Orbitron', monospace;
           font-size: 0.8rem;
           padding: 0.5rem 1.2rem;
@@ -679,7 +676,7 @@ export default function DoctrineClient() {
           transition: all 0.2s ease;
         }
         .hub-write-btn:hover {
-          background: var(--red-bright);
+          background: var(--theme-accent, var(--red-bright));
           color: #fff;
         }
       `}</style>

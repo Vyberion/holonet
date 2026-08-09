@@ -181,6 +181,17 @@ export function canEditStatutes(profile) {
   return { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
 }
 
+export function canEditDoctrine(profile) {
+  if (!profile) return false;
+  return Boolean(
+    profile.isSuperUser ||
+    profile.hasFullAccess ||
+    hasPermission(profile, 'doctrine:edit') ||
+    hasPermission(profile, 'codex:edit') ||
+    canViewStatuteDrafts(profile)
+  );
+}
+
 export function canViewStatuteDrafts(profile) {
   if (!profile) return false;
   return Boolean(

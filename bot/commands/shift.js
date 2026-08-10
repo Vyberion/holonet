@@ -4,10 +4,11 @@ import { config } from "../config/index.js";
 import { postActivityLog } from "../services/activity-log.js";
 import { botErrorMessage } from "../services/bot-errors.js";
 import { embed, ephemeral, errorEmbed, successEmbed, textModal } from "../services/discord-ui.js";
-import { canAdjustTime, canManageBot, getVerifiedProfile, inferScope, isMemberInScope } from "../services/roles.js";
+import { canAdjustTime, canManageBot, divisionTierWeight, getVerifiedProfile, inferScope, isMemberInScope } from "../services/roles.js";
 import { setShiftRemindersEnabled } from "../services/shift-reminders.js";
 import { supabase } from "../services/supabase.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
+import { checkResourceWriteAccess } from "../../modules/auth/permissions.js";
 
 const VERIFY_INSTRUCTIONS = "You are not linked yet. Use `/verify` or the verification panel.";
 const LEADERBOARD_PAGE_SIZE = 5;
@@ -132,7 +133,9 @@ async function requireScopeTimeAccess(interaction, scope) {
   const verified = await getVerifiedProfile(interaction.user.id).catch(() => null);
   if (canViewScopeTime(verified?.profile, scope, interaction.member)) return { allowed: true, profile: verified?.profile || null };
 
-  await interaction.reply(ephemeral({ embeds: [errorEmbed(`You do not have clearance to view ${scopeLabel(scope)} time.`)] }));
+  const content = { embeds: [errorEmbed(`You do not have clearance to view ${scopeLabel(scope)} time.`)] };
+  if (interaction.deferred || interaction.replied) await interaction.editReply(content);
+  else await interaction.reply(ephemeral(content));
   return { allowed: false, profile: verified?.profile || null };
 }
 
@@ -190,6 +193,12 @@ function leaderboardRow(scope, page, totalPages) {
 }
 
 async function replyScopeLeaderboard(interaction, scope, page = 0, update = false) {
+  if (update) {
+    await interaction.deferUpdate().catch(() => null);
+  } else if (!interaction.deferred && !interaction.replied) {
+    await interaction.deferReply({ ephemeral: true }).catch(() => null);
+  }
+
   const access = await requireScopeTimeAccess(interaction, scope);
   if (!access.allowed) return;
 
@@ -198,9 +207,12 @@ async function replyScopeLeaderboard(interaction, scope, page = 0, update = fals
   let validRows = rawRows;
   if (scope !== "all" && interaction.guild) {
     validRows = [];
+    const missingIds = rawRows.map(r => r.discordUserId).filter(id => !interaction.guild.members.cache.has(id));
+    if (missingIds.length > 0) {
+      await interaction.guild.members.fetch({ user: missingIds }).catch(() => null);
+    }
     for (const row of rawRows) {
-      const member = interaction.guild.members.cache.get(row.discordUserId) ||
-                     await interaction.guild.members.fetch(row.discordUserId).catch(() => null);
+      const member = interaction.guild.members.cache.get(row.discordUserId);
       if (member && isMemberInScope(member, scope)) {
         validRows.push(row);
       }
@@ -216,8 +228,7 @@ async function replyScopeLeaderboard(interaction, scope, page = 0, update = fals
     components: [leaderboardRow(scope, safePage, totalPages)]
   };
 
-  if (update) await interaction.update(payload);
-  else await interaction.reply(ephemeral(payload));
+  await interaction.editReply(payload);
 }
 
 async function allowedClockScopesForTarget(interaction, targetUser, verified = null) {
@@ -414,12 +425,16 @@ export async function handleCommand(interaction) {
     }
 
     if (subcommand === "reset") {
+      const scope = interaction.options.getString("scope", true);
       const verified = await getVerifiedProfile(interaction.user.id);
-      if (!canManageBot(verified?.profile, interaction.member)) {
-        await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to reset clock times.")] }));
+      const isHighCommand = canManageBot(verified?.profile, interaction.member);
+      const tierWeight = divisionTierWeight(verified?.profile?.divisions?.[scope] || "none");
+      const canReset = isHighCommand || tierWeight >= 4 || checkResourceWriteAccess(verified?.profile, { division: scope, resourceType: "report" })?.authorized;
+
+      if (!canReset) {
+        await interaction.reply(ephemeral({ embeds: [errorEmbed(`You do not have clearance to reset clock times for ${scopeLabel(scope)}.`)] }));
         return true;
       }
-      const scope = interaction.options.getString("scope", true);
       const user = interaction.options.getUser("user");
       const user2 = interaction.options.getUser("user2");
       const user3 = interaction.options.getUser("user3");

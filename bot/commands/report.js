@@ -28,12 +28,12 @@ export const commands = [
       .setName("write")
       .setDescription("Write this scope's weekly website report")
       .addStringOption(option => addReportScopeChoices(option.setName("scope").setDescription("Report scope").setRequired(true)))
-      .addStringOption(option => option.setName("start_date").setDescription("Week start date, YYYY-MM-DD").setRequired(true)))
+      .addStringOption(option => option.setName("start_date").setDescription("Week start date, YYYY-MM-DD (Defaults to last week's Monday)").setRequired(false)))
     .addSubcommand(subcommand => subcommand
       .setName("view")
       .setDescription("View a saved report or preview current entries")
       .addStringOption(option => addReportScopeChoices(option.setName("scope").setDescription("Report scope").setRequired(true)))
-      .addStringOption(option => option.setName("start_date").setDescription("Week start date, YYYY-MM-DD").setRequired(true))
+      .addStringOption(option => option.setName("start_date").setDescription("Week start date, YYYY-MM-DD (Defaults to last week's Monday)").setRequired(false))
       .addBooleanOption(option => option.setName("prefill-entries").setDescription("Preview current roster and clock entries instead of a saved report")))
 ];
 
@@ -60,15 +60,48 @@ function assertReportScope(scope) {
 async function fetchDivisionRoster(scope) {
   assertReportScope(scope);
 
+  if (scope === "highranks") {
+    const groupId = ROBLOX_GROUPS.MAIN_GROUP?.groupId || 3197893;
+    const highRankNumbers = Object.keys(ROBLOX_GROUPS.MAIN_GROUP.ranks || {}).map(Number);
+    const rolesRes = await fetch(`https://groups.roblox.com/v1/groups/${groupId}/roles`);
+    if (!rolesRes.ok) throw new Error("ROBLOX_ROSTER_LOOKUP_FAILED");
+    const rolesPayload = await rolesRes.json();
+    const targetRoles = (rolesPayload.roles || []).filter(r => highRankNumbers.includes(Number(r.rank)));
+
+    const members = [];
+    for (const role of targetRoles) {
+      let cursor = "";
+      do {
+        const url = new URL(`https://groups.roblox.com/v1/groups/${groupId}/roles/${role.id}/users`);
+        url.searchParams.set("limit", "100");
+        url.searchParams.set("sortOrder", "Asc");
+        if (cursor) url.searchParams.set("cursor", cursor);
+
+        const res = await fetch(url);
+        if (!res.ok) break;
+        const payload = await res.json();
+        (payload.data || []).forEach(item => {
+          members.push({
+            robloxId: String(item.userId || item.id || ""),
+            username: item.username || "",
+            displayName: item.displayName || "",
+            rank: Number(role.rank),
+            role: role.name || ""
+          });
+        });
+        cursor = payload.nextPageCursor || "";
+      } while (cursor);
+    }
+    return members.filter(m => m.robloxId);
+  }
+
   let groupId;
   let minRank = 1;
   let maxRank = 255;
 
   if (scope === "darkCouncil") {
     groupId = ROBLOX_GROUPS.DARK_COUNCIL?.groupId || 3199126;
-  } else if (scope === "highranks") {
-    groupId = ROBLOX_GROUPS.MAIN_GROUP?.groupId || 3197893;
-    minRank = 44;
+    maxRank = 253; // Capped at Emperor (excluding Project Manager 254 & Group Owner 255)
   } else if (ROBLOX_GROUPS.DIVISIONS[scope]) {
     const definition = ROBLOX_GROUPS.DIVISIONS[scope];
     groupId = definition.groupId;
@@ -118,13 +151,15 @@ function reportErrorMessage(error, interaction = null) {
 }
 
 async function replyReportError(interaction, error) {
-  await interaction.reply(ephemeral({ embeds: [errorEmbed(reportErrorMessage(error, interaction))] }));
+  const content = { embeds: [errorEmbed(reportErrorMessage(error, interaction))] };
+  if (interaction.deferred || interaction.replied) await interaction.editReply(content);
+  else await interaction.reply(ephemeral(content));
 }
 
 function weekStartValue(date = new Date()) {
   const working = new Date(date);
   const day = working.getDay() || 7;
-  working.setDate(working.getDate() - day + 1);
+  working.setDate(working.getDate() - day + 1 - 7);
   return working.toISOString().slice(0, 10);
 }
 
@@ -230,8 +265,6 @@ function normalizeReportMember(row, index = 0) {
   };
 }
 
-
-
 async function loadClockShiftTotalsForRoster(scope, members = []) {
   const { data: links, error: linkError } = await supabase
     .from("verification_links")
@@ -309,7 +342,7 @@ async function requireScopeReportWriteAccess(interaction, scope) {
 
 async function handleWriteReportCommand(interaction) {
   const scope = interaction.options.getString("scope", true);
-  const weekStart = interaction.options.getString("start_date", true);
+  const weekStart = interaction.options.getString("start_date") || weekStartValue();
   const verified = await requireScopeReportWriteAccess(interaction, scope);
 
   const payload = {
@@ -331,6 +364,10 @@ async function handleWriteReportCommand(interaction) {
 }
 
 async function confirmWriteReport(interaction, scope, dateInput) {
+  if (!interaction.deferred && !interaction.replied) {
+    await interaction.deferUpdate().catch(() => null);
+  }
+
   const verified = await requireScopeReportWriteAccess(interaction, scope);
   const weekStart = dateInput || weekStartValue();
   const members = await generatePrefilledReportMembers(scope);
@@ -393,7 +430,7 @@ async function confirmWriteReport(interaction, scope, dateInput) {
     members
   });
 
-  await interaction.update({
+  await interaction.editReply({
     embeds: [previewEmbed],
     components: []
   });
@@ -411,7 +448,7 @@ async function confirmWriteReport(interaction, scope, dateInput) {
 
 async function handleViewReportCommand(interaction) {
   const scope = interaction.options.getString("scope", true);
-  const weekStart = interaction.options.getString("start_date", true);
+  const weekStart = interaction.options.getString("start_date") || weekStartValue();
   const prefillEntries = interaction.options.getBoolean("prefill-entries", false);
 
   if (prefillEntries) {

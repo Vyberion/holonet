@@ -13,8 +13,8 @@ export async function activeShift(discordUserId) {
 }
 
 export async function clockIn(discordUser, options = {}) {
-  const discordUserId = discordUser.id;
-  const discordUsername = discordUser.username;
+  const discordUserId = typeof discordUser === "object" ? discordUser?.id : String(discordUser || "");
+  const discordUsername = typeof discordUser === "object" ? (discordUser?.username || discordUser?.tag || "") : "";
   if (await activeShift(discordUserId)) throw new Error("ALREADY_CLOCKED_IN");
 
   const verified = await getVerifiedProfile(discordUserId);
@@ -29,9 +29,9 @@ export async function clockIn(discordUser, options = {}) {
   const shift = await insert("clock_shifts", {
     scope,
     discord_user_id: discordUserId,
-    discord_username: discordUsername,
-    roblox_user_id: verified.link.roblox_user_id,
-    roblox_username: verified.profile?.name,
+    discord_username: discordUsername || verified.profile?.name || "",
+    roblox_user_id: String(verified.link.roblox_user_id),
+    roblox_username: String(verified.profile?.name || ""),
     started_at: startedAt.toISOString(),
     late: isLate,
     late_minutes: isLate ? lateMinutes : null,
@@ -43,8 +43,8 @@ export async function clockIn(discordUser, options = {}) {
 }
 
 export async function clockOut(discordUser, options = {}) {
-  const discordUserId = discordUser.id;
-  const discordUsername = discordUser.username;
+  const discordUserId = typeof discordUser === "object" ? discordUser?.id : String(discordUser || "");
+  const discordUsername = typeof discordUser === "object" ? (discordUser?.username || discordUser?.tag || "") : "";
   const shift = await activeShift(discordUserId);
   if (!shift) throw new Error("NOT_CLOCKED_IN");
 
@@ -79,7 +79,7 @@ export async function latestShift(discordUserId) {
   const { data, error } = await supabase
     .from("clock_shifts")
     .select("*")
-    .eq("discord_user_id", discordUserId)
+    .eq("discord_user_id", String(discordUserId))
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -87,26 +87,26 @@ export async function latestShift(discordUserId) {
   return data;
 }
 
-export async function adjustShiftTime(discordUser, minutes) {
-  const discordUserId = discordUser.id;
-  const discordUsername = discordUser.username;
-  const verified = await getVerifiedProfile(discordUserId);
-  if (!verified) throw new Error("DISCORD_NOT_LINKED");
+export async function adjustShiftTime(discordUser, minutes, overrideScope = null) {
+  const discordUserId = typeof discordUser === "object" ? String(discordUser?.id || "") : String(discordUser || "");
+  const discordUsername = typeof discordUser === "object" ? String(discordUser?.username || discordUser?.tag || "") : "";
 
-  let scope = inferScope(verified.profile);
-  if (!scope) {
+  const verified = await getVerifiedProfile(discordUserId).catch(() => null);
+
+  let scope = overrideScope || (verified ? inferScope(verified.profile) : null);
+  if (!scope && verified) {
     const shift = await latestShift(discordUserId);
     if (shift) scope = shift.scope;
   }
-  if (!scope) throw new Error("NO_CLOCK_SCOPE");
+  if (!scope) scope = "reavers";
 
   const now = new Date().toISOString();
   const data = await insert("clock_shifts", {
     scope,
     discord_user_id: discordUserId,
-    discord_username: discordUsername,
-    roblox_user_id: verified.link.roblox_user_id,
-    roblox_username: verified.profile?.name,
+    discord_username: discordUsername || verified?.profile?.name || "",
+    roblox_user_id: verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null,
+    roblox_username: verified?.profile?.name || null,
     started_at: now,
     ended_at: now,
     duration_seconds: 0,

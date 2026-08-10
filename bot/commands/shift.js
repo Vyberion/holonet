@@ -326,12 +326,13 @@ async function replyShiftSummary(interaction) {
 
 async function canAdjustTarget(interaction, targetUser) {
   if (targetUser.id === interaction.user.id) return { allowed: true };
-  const [actor, target] = await Promise.all([getVerifiedProfile(interaction.user.id), getVerifiedProfile(targetUser.id)]);
+  const actor = await getVerifiedProfile(interaction.user.id).catch(() => null);
+  if (canManageBot(actor?.profile, interaction.member)) return { allowed: true };
+
+  const target = await getVerifiedProfile(targetUser.id).catch(() => null);
   if (!actor || !target) return { allowed: false, reason: "Both users must be linked." };
 
-  const targetScope = inferScope(target.profile);
-  if (!targetScope) return { allowed: false, reason: "Target user has no clock scope." };
-
+  const targetScope = inferScope(target.profile) || "reavers";
   return canAdjustTime(actor.profile, target.profile, targetScope, false)
     ? { allowed: true }
     : { allowed: false, reason: "You do not have clearance to adjust that user's time." };

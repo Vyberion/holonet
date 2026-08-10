@@ -8,7 +8,7 @@ export function AiChatWidget() {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "LINK ESTABLISHED: I am the H.O.L.O, the Holonet Operations and Logistics Overseer. State your query."
+      content: "LINK ESTABLISHED: I am H.O.L.O, the Holonet Operations and Logistics Overseer. State your query."
     }
   ]);
   const [input, setInput] = useState("");
@@ -148,7 +148,7 @@ export function AiChatWidget() {
             <input
               type="text"
               className="ai-widget-input"
-              placeholder="Query Overseer terminal..."
+              placeholder="Query H.O.L.O terminal..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={isLoading}

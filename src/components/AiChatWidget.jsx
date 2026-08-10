@@ -103,13 +103,16 @@ export function AiChatWidget() {
       {/* Floating Chat Container */}
       {isOpen && (
         <div className="ai-widget-container">
+          <div className="ai-widget-corners" aria-hidden="true" />
+          <div className="ai-widget-scanlines" aria-hidden="true" />
+
           {/* Header */}
           <div className="ai-widget-header">
             <div className="ai-widget-header-title">
               <div className="ai-widget-status-dot" />
               <div className="ai-widget-header-text">
                 <h3>Holonet Overseer</h3>
-                <span>CITADEL DIRECT LINK // ONLINE</span>
+                <span>CITADEL DIRECT LINK // SECURE</span>
               </div>
             </div>
             <button className="ai-widget-close-btn" onClick={() => setIsOpen(false)} aria-label="Close">
@@ -124,15 +127,19 @@ export function AiChatWidget() {
           <div className="ai-widget-messages">
             {messages.map((msg, idx) => (
               <div key={idx} className={`ai-message ai-message-${msg.role}`}>
+                {msg.role === "assistant" && <div className="ai-message-tag">OVERSEER</div>}
                 {msg.content}
               </div>
             ))}
 
             {isLoading && (
               <div className="ai-message ai-message-assistant ai-typing-indicator">
-                <span />
-                <span />
-                <span />
+                <div className="ai-message-tag">PROCESSING</div>
+                <div className="ai-dots">
+                  <span />
+                  <span />
+                  <span />
+                </div>
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -158,7 +165,7 @@ export function AiChatWidget() {
             <input
               type="text"
               className="ai-widget-input"
-              placeholder="Transmit query to Overseer..."
+              placeholder="Query Overseer terminal..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={isLoading}

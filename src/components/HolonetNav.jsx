@@ -167,7 +167,13 @@ export function HolonetNav() {
 
   const canViewDrafts = Boolean(access?.permissions?.canViewStatuteDrafts);
   
-  const perms = new Set(access?.permissions || []);
+  const rawPerms = access?.permissions;
+  const permsList = Array.isArray(rawPerms)
+    ? rawPerms
+    : (rawPerms && typeof rawPerms === "object"
+        ? Object.entries(rawPerms).filter(([, val]) => Boolean(val)).map(([key]) => key)
+        : []);
+  const perms = new Set(permsList);
   const divisions = access?.profile?.divisions || {};
   const authority = access?.profile?.authorityRoles || {};
   const isAdmin = Boolean(access?.permissions?.canAccessAdmin || perms.has("pages:view:all") || perms.has("admin:access"));

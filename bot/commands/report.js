@@ -62,7 +62,7 @@ async function fetchDivisionRoster(scope) {
 
   if (scope === "highranks") {
     const groupId = ROBLOX_GROUPS.MAIN_GROUP?.groupId || 3197893;
-    const highRankNumbers = Object.keys(ROBLOX_GROUPS.MAIN_GROUP.ranks || {}).map(Number);
+    const highRankNumbers = Object.values(ROBLOX_GROUPS.MAIN_GROUP.tiers || {}).flat().map(Number);
     const rolesRes = await fetch(`https://groups.roblox.com/v1/groups/${groupId}/roles`);
     if (!rolesRes.ok) throw new Error("ROBLOX_ROSTER_LOOKUP_FAILED");
     const rolesPayload = await rolesRes.json();

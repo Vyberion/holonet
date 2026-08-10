@@ -400,6 +400,34 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
     let result = await response.json();
     let choiceMessage = result.choices?.[0]?.message;
 
+    // Fallback: intercept raw XML tool calls if the model failed to use native JSON tool calling
+    if (choiceMessage?.content && choiceMessage.content.includes("<tool_call>")) {
+      const contentStr = choiceMessage.content;
+      const funcMatch = contentStr.match(/<function=([^>]+)>/);
+      if (funcMatch) {
+        const fnName = funcMatch[1];
+        let fnArgs = {};
+        const paramRegex = /<parameter=([^>]+)>([\s\S]*?)<\/parameter>/g;
+        let pMatch;
+        while ((pMatch = paramRegex.exec(contentStr)) !== null) {
+          fnArgs[pMatch[1]] = pMatch[2].trim();
+        }
+        
+        choiceMessage.tool_calls = choiceMessage.tool_calls || [];
+        choiceMessage.tool_calls.push({
+          id: "call_" + Math.random().toString(36).substr(2, 9),
+          type: "function",
+          function: {
+            name: fnName,
+            arguments: JSON.stringify(fnArgs)
+          }
+        });
+        
+        // Remove the raw XML block from the visible message content
+        choiceMessage.content = contentStr.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "").trim();
+      }
+    }
+
     // Process Tool Calls (if model decides to execute tools)
     if (choiceMessage?.tool_calls && choiceMessage.tool_calls.length > 0) {
       messages.push(choiceMessage);

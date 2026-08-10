@@ -262,6 +262,17 @@
     padding-left: 18px;
   }
 
+  .nav-item--dropdown::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: -20px;
+    right: -20px;
+    height: 20px;
+    background: transparent;
+    z-index: 29;
+  }
+
   .nav-split {
     align-items: stretch;
     display: flex;
@@ -330,11 +341,12 @@
   .nav-dropdown-menu::before {
     content: '';
     position: absolute;
-    top: -16px;
+    top: -20px;
     left: -20px;
     right: -20px;
-    height: 16px;
+    height: 24px;
     background: transparent;
+    z-index: 1;
   }
 
   .nav-item--dropdown:hover .nav-dropdown-menu,

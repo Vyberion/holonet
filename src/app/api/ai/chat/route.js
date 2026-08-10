@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthContext } from "../../../../lib/api-helpers.js";
+import { getAuthContext } from "../../../../../modules/auth/auth-context.js";
 import { checkPageAccess } from "../../../../../modules/auth/permissions.js";
 import { supabaseRest } from "../../../../../modules/auth/session-store.js";
 

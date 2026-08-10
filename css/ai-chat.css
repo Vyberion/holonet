@@ -1,6 +1,10 @@
-/* Holonet Overseer AI Widget - Full Site Theme Integration */
+/* ── Holonet Overseer AI Widget ─────────────────────────────────
+   Uses ONLY site design tokens. Inherits --theme-* variables so
+   it automatically adapts to every division theme (Reavers, DHG,
+   Inquisitors, Dreadmasters, High Ranks, Dark Council, default). */
 
-.ai-widget-launcher.nav-link {
+/* ── Launcher Button ──────────────────────────────────────────── */
+.ai-widget-launcher {
   position: fixed;
   bottom: 24px;
   right: 24px;
@@ -11,43 +15,52 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--theme-nav-card-c, rgba(18, 8, 12, 0.96));
-  border: 1px solid var(--theme-accent-dim, #7a1a28);
+  background: var(--theme-nav-card-c);
+  border: 1px solid var(--theme-accent-dim);
   box-shadow:
-    0 0 14px var(--theme-accent-glow, rgba(255, 59, 79, 0.3)),
-    0 0 40px var(--theme-body-glow-a, rgba(160, 0, 22, 0.15));
-  color: var(--theme-accent-soft, #d1243a);
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+    0 0 14px var(--theme-accent-glow),
+    0 0 40px var(--theme-body-glow-a);
+  color: var(--theme-accent-soft);
+  cursor: crosshair;
+  transition: border-color 0.3s, box-shadow 0.3s, color 0.3s, transform 0.3s;
+  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+  /* Reset inherited .nav-link layout */
+  flex-direction: row;
+  text-decoration: none;
+  overflow: visible;
 }
 
-.ai-widget-launcher.nav-link:hover {
-  border-color: var(--theme-accent, #ff3b4f);
-  color: var(--theme-accent, #ff3b4f);
+.ai-widget-launcher:hover {
+  border-color: var(--theme-accent);
+  color: var(--theme-accent);
   box-shadow:
-    0 0 24px var(--theme-accent-glow, rgba(255, 59, 79, 0.6)),
-    0 0 60px var(--theme-body-glow-a, rgba(160, 0, 22, 0.3));
+    0 0 24px var(--theme-accent-glow),
+    0 0 60px var(--theme-body-glow-a);
   transform: translateY(-2px);
 }
 
-.ai-widget-launcher.nav-link .nav-link-corners::before,
-.ai-widget-launcher.nav-link .nav-link-corners::after {
+.ai-widget-launcher:hover .nav-link-corners::before,
+.ai-widget-launcher:hover .nav-link-corners::after {
   opacity: 1;
+  border-color: var(--theme-accent);
 }
 
-.ai-widget-launcher.nav-link svg {
+.ai-widget-launcher .nav-link-corners {
+  inset: 3px;
+}
+
+.ai-widget-launcher svg {
   width: 22px;
   height: 22px;
-  filter: drop-shadow(0 0 6px var(--theme-accent-glow, rgba(255, 59, 79, 0.5)));
+  filter: drop-shadow(0 0 6px var(--theme-accent-glow));
   transition: filter 0.3s;
 }
 
-.ai-widget-launcher.nav-link:hover svg {
-  filter: drop-shadow(0 0 12px var(--theme-accent, #ff3b4f));
+.ai-widget-launcher:hover svg {
+  filter: drop-shadow(0 0 12px var(--theme-accent));
 }
 
-/* Chat Terminal Window (Matches Codex & Search Container) */
+/* ── Chat Terminal Window ─────────────────────────────────────── */
 .ai-widget-container {
   position: fixed;
   bottom: 86px;
@@ -57,27 +70,27 @@
   max-width: calc(100vw - 32px);
   height: 600px;
   max-height: calc(100vh - 110px);
-  background: var(--panel, rgba(12, 4, 7, 0.94));
+  background: var(--panel);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-hot, #4a1c27);
+  border: 1px solid var(--border-hot);
   box-shadow:
     0 0 36px rgba(0, 0, 0, 0.6),
     0 28px 80px rgba(0, 0, 0, 0.95),
-    0 0 40px var(--theme-wash, rgba(192, 0, 26, 0.05)),
-    inset 0 0 40px rgba(192, 0, 26, 0.03);
+    0 0 40px var(--theme-wash),
+    inset 0 0 40px var(--theme-wash);
   clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: holonetCrtOpen 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+  animation: aiTerminalOpen 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .ai-widget-container::before {
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid var(--border, #3a2a31);
+  border: 1px solid var(--border);
   pointer-events: none;
   clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
   opacity: 0.5;
@@ -93,8 +106,8 @@
     0deg,
     transparent,
     transparent 2px,
-    var(--scanline, rgba(255, 210, 210, 0.018)) 2px,
-    var(--scanline, rgba(255, 210, 210, 0.018)) 4px
+    var(--scanline) 2px,
+    var(--scanline) 4px
   );
   opacity: 0.9;
 }
@@ -105,7 +118,7 @@
   position: absolute;
   width: 8px;
   height: 8px;
-  border-color: var(--theme-accent-dim, #7a1a28);
+  border-color: var(--theme-accent-dim);
   border-style: solid;
   pointer-events: none;
   z-index: 15;
@@ -123,7 +136,7 @@
   border-width: 0 1px 1px 0;
 }
 
-@keyframes holonetCrtOpen {
+@keyframes aiTerminalOpen {
   from {
     opacity: 0;
     transform: translateY(16px) scale(0.97);
@@ -134,13 +147,13 @@
   }
 }
 
-/* Header (Matches Codex Article Header & Nav) */
+/* ── Header ───────────────────────────────────────────────────── */
 .ai-widget-header {
   position: relative;
   z-index: 12;
   padding: 14px 18px;
-  background: linear-gradient(135deg, rgba(192, 0, 26, 0.08) 0%, transparent 80%);
-  border-bottom: 1px solid var(--border, #3a2a31);
+  background: linear-gradient(135deg, rgba(192, 0, 26, 0.05) 0%, transparent 60%);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -167,12 +180,12 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--theme-accent, #ff3b4f);
-  box-shadow: 0 0 8px var(--theme-accent-glow, #ff3b4f);
-  animation: holonetPulse 2.5s infinite ease-in-out;
+  background: var(--theme-accent);
+  box-shadow: 0 0 8px var(--theme-accent-glow);
+  animation: aiStatusPulse 2.5s infinite ease-in-out;
 }
 
-@keyframes holonetPulse {
+@keyframes aiStatusPulse {
   0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px var(--theme-accent-glow); }
   50% { opacity: 0.4; transform: scale(0.85); box-shadow: 0 0 2px var(--theme-accent-dim); }
 }
@@ -180,20 +193,20 @@
 .ai-widget-header-text h3 {
   margin: 0;
   font-family: 'Cinzel', serif;
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-size: 0.84rem;
+  font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--text, #ffffff);
+  color: var(--text);
   text-shadow: 0 0 8px var(--theme-accent-glow);
 }
 
 .ai-widget-header-text span {
   font-family: 'Share Tech Mono', monospace;
-  font-size: 0.48rem;
-  letter-spacing: 0.4em;
+  font-size: 0.42rem;
+  letter-spacing: 0.5em;
   text-transform: uppercase;
-  color: var(--theme-accent-soft, #d1243a);
+  color: var(--text-faint);
   display: block;
   margin-top: 2px;
 }
@@ -201,24 +214,23 @@
 .ai-widget-close-btn {
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text-dim, #ffffff);
-  cursor: pointer;
+  color: var(--text-dim);
+  cursor: crosshair;
   padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  transition: border-color 0.3s, box-shadow 0.3s, color 0.3s;
   clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
 }
 
 .ai-widget-close-btn:hover {
-  background: var(--theme-nav-card-a, rgba(155, 0, 24, 0.16));
   border-color: var(--theme-accent-dim);
   color: var(--theme-accent);
-  box-shadow: 0 0 10px var(--theme-accent-glow);
+  box-shadow: 0 0 14px var(--theme-accent-glow);
 }
 
-/* Messages Stream */
+/* ── Messages ─────────────────────────────────────────────────── */
 .ai-widget-messages {
   position: relative;
   z-index: 12;
@@ -234,8 +246,8 @@
   position: relative;
   max-width: 90%;
   padding: 12px 16px;
-  font-family: 'Cinzel', 'Inter', serif;
-  font-size: 0.84rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.82rem;
   line-height: 1.6;
   word-break: break-word;
   clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
@@ -243,26 +255,30 @@
 
 .ai-message-tag {
   font-family: 'Share Tech Mono', monospace;
-  font-size: 0.52rem;
-  letter-spacing: 0.35em;
+  font-size: 0.48rem;
+  letter-spacing: 0.4em;
   text-transform: uppercase;
-  color: var(--theme-accent-soft, #d1243a);
+  color: var(--theme-accent-soft);
   margin-bottom: 4px;
 }
 
 .ai-message-assistant {
   align-self: flex-start;
-  background: linear-gradient(135deg, rgba(192, 0, 26, 0.05) 0%, transparent 60%), var(--surface, #171014);
-  border: 1px solid var(--border-hot, #4a1c27);
-  color: var(--text, #ffffff);
-  box-shadow: 0 0 20px rgba(192, 0, 26, 0.04);
+  background:
+    linear-gradient(135deg, rgba(192, 0, 26, 0.05) 0%, transparent 60%),
+    var(--surface);
+  border: 1px solid var(--border-hot);
+  color: var(--text);
+  box-shadow:
+    0 0 30px var(--theme-wash),
+    inset 0 0 40px var(--theme-wash);
 }
 
 .ai-message-user {
   align-self: flex-end;
-  background: linear-gradient(135deg, var(--theme-nav-card-a, rgba(155, 0, 24, 0.25)) 0%, var(--theme-nav-card-b, rgba(52, 10, 18, 0.6)) 100%);
-  border: 1px solid var(--theme-accent, #ff3b4f);
-  color: var(--text, #ffffff);
+  background: linear-gradient(135deg, var(--theme-nav-card-a), var(--theme-nav-card-b));
+  border: 1px solid var(--theme-accent-dim);
+  color: var(--text);
   box-shadow: 0 0 16px var(--theme-accent-glow);
 }
 
@@ -280,64 +296,29 @@
 }
 
 .ai-dots span {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: var(--theme-accent, #ff3b4f);
+  background: var(--theme-accent);
   box-shadow: 0 0 6px var(--theme-accent-glow);
-  animation: holonetDotBounce 1.4s infinite ease-in-out both;
+  animation: aiDotPulse 1.4s infinite ease-in-out both;
 }
 
 .ai-dots span:nth-child(1) { animation-delay: -0.32s; }
 .ai-dots span:nth-child(2) { animation-delay: -0.16s; }
 
-@keyframes holonetDotBounce {
+@keyframes aiDotPulse {
   0%, 80%, 100% { transform: scale(0.3); opacity: 0.3; }
   40% { transform: scale(1.1); opacity: 1; }
 }
 
-/* Quick Prompts Chips (Matches Codex Toolbar & Nav Links) */
-.ai-quick-prompts {
-  position: relative;
-  z-index: 12;
-  padding: 10px 14px;
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  border-top: 1px solid var(--border, #3a2a31);
-  background: rgba(12, 4, 7, 0.8);
-}
-
-.ai-prompt-chip {
-  white-space: nowrap;
-  background: var(--theme-nav-card-b, rgba(52, 10, 18, 0.48));
-  border: 1px solid var(--theme-accent-dim, #7a1a28);
-  padding: 6px 12px;
-  font-family: 'Cinzel', serif;
-  font-size: 0.7rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-dim, #ffffff);
-  cursor: pointer;
-  transition: all 0.3s;
-  clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
-}
-
-.ai-prompt-chip:hover {
-  background: var(--theme-nav-card-hover-a, rgba(192, 0, 26, 0.16));
-  border-color: var(--theme-accent, #ff3b4f);
-  color: var(--theme-accent, #ff3b4f);
-  letter-spacing: 0.18em;
-  box-shadow: 0 0 10px var(--theme-accent-glow);
-}
-
-/* Input Form (Matches Holonet Search / Registry Forms) */
+/* ── Input Form ───────────────────────────────────────────────── */
 .ai-widget-input-form {
   position: relative;
   z-index: 12;
   padding: 14px;
-  background: rgba(12, 4, 7, 0.98);
-  border-top: 1px solid var(--border, #3a2a31);
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid var(--border);
   display: flex;
   gap: 10px;
 }
@@ -345,44 +326,46 @@
 .ai-widget-input {
   flex: 1;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--border, #3a2a31);
+  border: 1px solid var(--border);
   padding: 10px 14px;
-  color: var(--text, #ffffff);
-  font-family: 'Cinzel', 'Inter', serif;
-  font-size: 0.84rem;
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.82rem;
   outline: none;
-  transition: all 0.3s;
+  transition: border-color 0.3s, box-shadow 0.3s;
   clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
 }
 
 .ai-widget-input:focus {
-  border-color: var(--theme-accent, #ff3b4f);
+  border-color: var(--theme-accent);
   box-shadow: 0 0 12px var(--theme-accent-glow);
 }
 
 .ai-widget-input::placeholder {
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--text-faint);
+  opacity: 0.35;
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.75rem;
   letter-spacing: 0.1em;
 }
 
 .ai-widget-send-btn {
-  background: var(--theme-nav-card-b, rgba(52, 10, 18, 0.48));
-  border: 1px solid var(--theme-accent-dim, #7a1a28);
-  color: var(--theme-accent-soft, #d1243a);
-  padding: 0 16px;
-  cursor: pointer;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--theme-accent-dim);
+  color: var(--theme-accent-soft);
+  padding: 0 14px;
+  cursor: crosshair;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  transition: border-color 0.3s, box-shadow 0.3s, color 0.3s;
   clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+  box-shadow: 0 0 14px var(--theme-accent-glow);
 }
 
 .ai-widget-send-btn:hover:not(:disabled) {
-  border-color: var(--theme-accent, #ff3b4f);
-  color: var(--theme-accent, #ff3b4f);
+  border-color: var(--theme-accent);
+  color: var(--theme-accent);
   box-shadow: 0 0 14px var(--theme-accent-glow);
 }
 

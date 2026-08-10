@@ -572,23 +572,49 @@
     width: 20px;
   }
 
+  .nav-right {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .nav-privileged {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+  }
+
   .account-link,
+  .nav-right .nav-link,
+  .nav-privileged .nav-link,
   .nav-toggle {
     align-items: center;
     background: rgba(0, 0, 0, 0.18);
     border: 1px solid var(--theme-accent-dim);
     box-shadow: 0 0 14px var(--theme-accent-glow);
     display: flex;
+    flex-direction: row;
     height: 36px;
     justify-content: center;
-    padding: 8px;
+    padding: 0;
     width: 36px;
+    flex-shrink: 0;
     clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
   }
 
   .nav-toggle {
     flex-direction: column;
     gap: 5px;
+    padding: 8px;
   }
 
   .nav-toggle span {
@@ -615,8 +641,37 @@
     box-shadow: 0 0 14px var(--theme-accent-glow);
     filter: drop-shadow(0 0 6px var(--theme-accent-glow));
   }
-  .nav-right .nav-link {
-    flex-direction: column;
+
+  /* Prevent desktop hover/focus transforms from overlaying on mobile */
+  .nav-item--dropdown:hover .nav-dropdown-menu,
+  .nav-item--dropdown:focus-within .nav-dropdown-menu {
+    opacity: 0;
+    pointer-events: none;
+    transform: none;
+  }
+
+  .nav-dropdown-menu {
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none !important;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+    width: 100%;
+    box-shadow: none;
+    border: none;
+    background: rgba(0, 0, 0, 0.25);
+  }
+
+  .nav-item--dropdown.dropdown-open .nav-dropdown-menu {
+    max-height: 400px;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none !important;
+    padding: 6px 0;
   }
 
   .back-to-top-btn {

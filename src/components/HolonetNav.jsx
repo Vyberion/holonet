@@ -167,17 +167,45 @@ export function HolonetNav() {
 
   const canViewDrafts = Boolean(access?.permissions?.canViewStatuteDrafts);
   
+  const perms = new Set(access?.permissions || []);
+  const divisions = access?.profile?.divisions || {};
+  const authority = access?.profile?.authorityRoles || {};
+  const isAdmin = Boolean(access?.permissions?.canAccessAdmin || perms.has("pages:view:all") || perms.has("admin:access"));
+
   const registrySubItems = [];
-  if (access?.permissions?.canAccessAdmin || access?.profile?.authorityRoles?.highCommand || access?.profile?.authorityRoles?.darkCouncil) {
-    registrySubItems.push({ href: getHref("/high-ranks"), page: "high-ranks", label: "High Ranks" });
+
+  // 1. Reports
+  const canViewReports = isAdmin || perms.has("reports:write:all") || perms.has("pages:view:highranks") || Boolean(authority.highCommand || authority.darkCouncil || access?.profile?.highRank);
+  if (canViewReports) {
     registrySubItems.push({ href: getHref("/reports"), page: "reports", label: "Reports" });
   }
-  if (access?.profile?.divisions?.darkCouncil || access?.permissions?.canAccessAdmin) {
+
+  // 2. Dark Council
+  const canViewDarkCouncil = isAdmin || perms.has("pages:view:darkcouncil") || (divisions.darkCouncil && divisions.darkCouncil !== "none") || Boolean(authority.darkCouncil);
+  if (canViewDarkCouncil) {
     registrySubItems.push({ href: getHref("/dark-council"), page: "dark-council", label: "Dark Council" });
   }
-  if (access?.profile?.divisions && Object.values(access.profile.divisions).some(v => v && v !== "none")) {
-    registrySubItems.push({ href: getHref("/registry#divisions"), page: "registry-divisions", label: "Divisions" });
+
+  // 3. High Ranks
+  const canViewHighRanks = isAdmin || perms.has("pages:view:highranks") || (access?.profile?.highRank && access?.profile?.highRank !== "none") || Boolean(authority.highCommand);
+  if (canViewHighRanks) {
+    registrySubItems.push({ href: getHref("/high-ranks"), page: "high-ranks", label: "High Ranks" });
   }
+
+  // 4. Each Division
+  const divisionList = [
+    { id: "reavers", label: "Reavers", path: "/reavers" },
+    { id: "dhg", label: "DHG", path: "/dhg" },
+    { id: "inquisitors", label: "Inquisitors", path: "/inquisitors" },
+    { id: "dreadmasters", label: "Dread Masters", path: "/dreadmasters" }
+  ];
+
+  divisionList.forEach(div => {
+    const hasDivAccess = isAdmin || perms.has(`pages:view:${div.id}`) || perms.has("pages:view:divisions") || (divisions[div.id] && divisions[div.id] !== "none");
+    if (hasDivAccess) {
+      registrySubItems.push({ href: getHref(div.path), page: div.id, label: div.label });
+    }
+  });
 
   const codexDropdown = canViewDrafts ? [{ href: getHref("/statutes"), page: "statutes", label: "Statutes" }] : null;
 

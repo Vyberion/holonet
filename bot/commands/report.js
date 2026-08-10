@@ -92,7 +92,12 @@ async function fetchDivisionRoster(scope) {
         cursor = payload.nextPageCursor || "";
       } while (cursor);
     }
-    return members.filter(m => m.robloxId);
+    return members.filter(m => {
+      if (!m.robloxId) return false;
+      const uname = String(m.username || "").toLowerCase();
+      const dname = String(m.displayName || "").toLowerCase();
+      return uname !== "naktisterminus" && dname !== "naktisterminus";
+    });
   }
 
   let groupId;

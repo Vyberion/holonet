@@ -1,7 +1,7 @@
 /* ── Holonet Overseer AI Widget ─────────────────────────────────
    Uses ONLY site design tokens. Inherits --theme-* variables so
-   it automatically adapts to every division theme (Reavers, DHG,
-   Inquisitors, Dreadmasters, High Ranks, Dark Council, default). */
+   it automatically adapts to every division theme. Styled after
+   the Codex article & Search overlay patterns. */
 
 /* ── Launcher Button ──────────────────────────────────────────── */
 .ai-widget-launcher {
@@ -24,9 +24,6 @@
   cursor: crosshair;
   transition: border-color 0.3s, box-shadow 0.3s, color 0.3s, transform 0.3s;
   clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
-  /* Reset inherited .nav-link layout */
-  flex-direction: row;
-  text-decoration: none;
   overflow: visible;
 }
 
@@ -39,14 +36,37 @@
   transform: translateY(-2px);
 }
 
-.ai-widget-launcher:hover .nav-link-corners::before,
-.ai-widget-launcher:hover .nav-link-corners::after {
-  opacity: 1;
-  border-color: var(--theme-accent);
+.ai-widget-launcher .nav-link-corners {
+  position: absolute;
+  inset: 3px;
+  pointer-events: none;
 }
 
-.ai-widget-launcher .nav-link-corners {
-  inset: 3px;
+.ai-widget-launcher .nav-link-corners::before,
+.ai-widget-launcher .nav-link-corners::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-color: var(--theme-accent-dim);
+  border-style: solid;
+  opacity: 1;
+  transition: border-color 0.3s;
+}
+
+.ai-widget-launcher .nav-link-corners::before {
+  top: 0; left: 0;
+  border-width: 1px 0 0 1px;
+}
+
+.ai-widget-launcher .nav-link-corners::after {
+  bottom: 0; right: 0;
+  border-width: 0 1px 1px 0;
+}
+
+.ai-widget-launcher:hover .nav-link-corners::before,
+.ai-widget-launcher:hover .nav-link-corners::after {
+  border-color: var(--theme-accent);
 }
 
 .ai-widget-launcher svg {
@@ -60,7 +80,7 @@
   filter: drop-shadow(0 0 12px var(--theme-accent));
 }
 
-/* ── Chat Terminal Window ─────────────────────────────────────── */
+/* ── Chat Terminal (matches #search-container / .codex-article) ── */
 .ai-widget-container {
   position: fixed;
   bottom: 86px;
@@ -71,21 +91,19 @@
   height: 600px;
   max-height: calc(100vh - 110px);
   background: var(--panel);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-hot);
+  border: 2px solid var(--border-hot);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
   box-shadow:
     0 0 36px rgba(0, 0, 0, 0.6),
     0 28px 80px rgba(0, 0, 0, 0.95),
-    0 0 40px var(--theme-wash),
-    inset 0 0 40px var(--theme-wash);
-  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    inset 0 0 40px color-mix(in srgb, var(--theme-wash, rgba(192, 0, 26, 0.03)) 50%, transparent);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   animation: aiTerminalOpen 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+/* Inner border overlay (matches .codex-article::before) */
 .ai-widget-container::before {
   content: '';
   position: absolute;
@@ -97,6 +115,7 @@
   z-index: 11;
 }
 
+/* Scanlines (matches site-wide CRT overlay) */
 .ai-widget-scanlines {
   position: absolute;
   inset: 0;
@@ -112,6 +131,7 @@
   opacity: 0.9;
 }
 
+/* Corner brackets (matches .codex-article / nav corners) */
 .ai-widget-corners::before,
 .ai-widget-corners::after {
   content: '';
@@ -137,26 +157,20 @@
 }
 
 @keyframes aiTerminalOpen {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ── Header ───────────────────────────────────────────────────── */
+/* ── Header (matches .search-topbar) ──────────────────────────── */
 .ai-widget-header {
   position: relative;
   z-index: 12;
-  padding: 14px 18px;
-  background: linear-gradient(135deg, rgba(192, 0, 26, 0.05) 0%, transparent 60%);
-  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border-hot);
+  background: linear-gradient(90deg, rgba(192, 0, 26, 0.05) 0%, transparent 100%);
 }
 
 .ai-widget-header::after {
@@ -167,7 +181,8 @@
   right: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--theme-accent-dim) 15%, var(--theme-accent) 50%, var(--theme-accent-dim) 85%, transparent);
-  box-shadow: 0 0 10px var(--theme-accent-glow);
+  box-shadow: 0 0 10px var(--theme-accent-glow), 0 0 2px rgba(0, 200, 255, 0.1);
+  opacity: 0.6;
 }
 
 .ai-widget-header-title {
@@ -186,48 +201,40 @@
 }
 
 @keyframes aiStatusPulse {
-  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px var(--theme-accent-glow); }
-  50% { opacity: 0.4; transform: scale(0.85); box-shadow: 0 0 2px var(--theme-accent-dim); }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
 }
 
 .ai-widget-header-text h3 {
   margin: 0;
-  font-family: 'Cinzel', serif;
-  font-size: 0.84rem;
-  font-weight: 600;
-  letter-spacing: 0.22em;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.35em;
   text-transform: uppercase;
-  color: var(--text);
-  text-shadow: 0 0 8px var(--theme-accent-glow);
+  color: var(--text-dim);
+  text-shadow: 0 0 6px var(--theme-accent-glow);
 }
 
-.ai-widget-header-text span {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.42rem;
-  letter-spacing: 0.5em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  display: block;
-  margin-top: 2px;
-}
-
+/* Close button (matches .search-close) */
 .ai-widget-close-btn {
   background: transparent;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-hot);
   color: var(--text-dim);
   cursor: crosshair;
-  padding: 6px;
+  padding: 6px 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.3s, box-shadow 0.3s, color 0.3s;
+  transition: color 0.2s, border-color 0.2s, background 0.2s, text-shadow 0.2s;
   clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
 }
 
 .ai-widget-close-btn:hover {
-  border-color: var(--theme-accent-dim);
+  background: var(--red-deep);
   color: var(--theme-accent);
-  box-shadow: 0 0 14px var(--theme-accent-glow);
+  border-color: var(--theme-accent);
+  text-shadow: 0 0 8px var(--theme-accent-glow);
 }
 
 /* ── Messages ─────────────────────────────────────────────────── */
@@ -254,24 +261,26 @@
 }
 
 .ai-message-tag {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.48rem;
-  letter-spacing: 0.4em;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--theme-accent-soft);
   margin-bottom: 4px;
 }
 
+/* Assistant bubbles (matches .codex-article background) */
 .ai-message-assistant {
   align-self: flex-start;
   background:
-    linear-gradient(135deg, rgba(192, 0, 26, 0.05) 0%, transparent 60%),
-    var(--surface);
+    linear-gradient(135deg, rgba(192, 0, 26, 0.05) 0%, transparent 60%);
   border: 1px solid var(--border-hot);
   color: var(--text);
   box-shadow:
-    0 0 30px var(--theme-wash),
-    inset 0 0 40px var(--theme-wash);
+    0 0 30px rgba(192, 0, 26, 0.06),
+    0 0 80px rgba(192, 0, 26, 0.03),
+    inset 0 0 40px rgba(192, 0, 26, 0.03);
 }
 
 .ai-message-user {
@@ -312,61 +321,55 @@
   40% { transform: scale(1.1); opacity: 1; }
 }
 
-/* ── Input Form ───────────────────────────────────────────────── */
+/* ── Input (matches .search-input-row / #search-input) ────────── */
 .ai-widget-input-form {
   position: relative;
   z-index: 12;
-  padding: 14px;
-  background: rgba(0, 0, 0, 0.3);
-  border-top: 1px solid var(--border);
   display: flex;
+  align-items: center;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.4);
   gap: 10px;
 }
 
 .ai-widget-input {
   flex: 1;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--border);
-  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  outline: none;
   color: var(--text);
   font-family: 'Share Tech Mono', monospace;
-  font-size: 0.82rem;
-  outline: none;
-  transition: border-color 0.3s, box-shadow 0.3s;
-  clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
-}
-
-.ai-widget-input:focus {
-  border-color: var(--theme-accent);
-  box-shadow: 0 0 12px var(--theme-accent-glow);
+  font-size: 0.88rem;
+  letter-spacing: 0.05em;
+  caret-color: var(--theme-accent);
+  min-width: 0;
 }
 
 .ai-widget-input::placeholder {
-  color: var(--text-faint);
-  opacity: 0.35;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
+  color: var(--border-hot);
+  letter-spacing: 0.05em;
 }
 
 .ai-widget-send-btn {
-  background: rgba(0, 0, 0, 0.18);
-  border: 1px solid var(--theme-accent-dim);
-  color: var(--theme-accent-soft);
-  padding: 0 14px;
+  background: transparent;
+  border: 1px solid var(--border-hot);
+  color: var(--text-dim);
+  width: 36px;
+  height: 36px;
+  padding: 0;
   cursor: crosshair;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.3s, box-shadow 0.3s, color 0.3s;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
   clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
-  box-shadow: 0 0 14px var(--theme-accent-glow);
 }
 
 .ai-widget-send-btn:hover:not(:disabled) {
-  border-color: var(--theme-accent);
+  background: rgba(192, 0, 26, 0.08);
   color: var(--theme-accent);
-  box-shadow: 0 0 14px var(--theme-accent-glow);
+  border-color: var(--theme-accent);
 }
 
 .ai-widget-send-btn:disabled {

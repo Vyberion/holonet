@@ -104,7 +104,6 @@ export function AiChatWidget() {
               <div className="ai-widget-status-dot" />
               <div className="ai-widget-header-text">
                 <h3>Holonet Overseer</h3>
-                <span>CITADEL DIRECT LINK // SECURE</span>
               </div>
             </div>
             <button className="ai-widget-close-btn" onClick={() => setIsOpen(false)} aria-label="Close">

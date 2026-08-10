@@ -92,8 +92,8 @@
   }
 
 .nav-right .nav-link {
-    padding-top: 19px;
-    padding-bottom: 1px;
+    align-self: stretch;
+    justify-content: center;
   }
 
 /* Nav links */

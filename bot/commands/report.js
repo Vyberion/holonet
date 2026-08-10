@@ -227,62 +227,38 @@ function normalizeReportMember(row, index = 0) {
 
 
 
-async function loadVerificationLinksForRobloxIds(robloxIds = []) {
-  const ids = [...new Set(robloxIds.map(value => String(value || "")).filter(Boolean))];
-  if (!ids.length) return new Map();
-
-  const { data, error } = await supabase
-    .from("verification_links")
-    .select("discord_user_id,roblox_user_id")
-    .in("roblox_user_id", ids);
-  if (error) throw error;
-
-  return (data || []).reduce((links, row) => {
-    if (row.roblox_user_id && row.discord_user_id) links.set(String(row.roblox_user_id), String(row.discord_user_id));
-    return links;
-  }, new Map());
-}
-
 async function loadClockShiftTotalsForRoster(scope, members = []) {
-  const robloxIds = [...new Set(members.map(member => String(member.robloxId || "")).filter(Boolean))];
-  if (!robloxIds.length) return new Map();
+  const { data: links, error: linkError } = await supabase
+    .from("verification_links")
+    .select("discord_user_id,roblox_user_id");
+  if (linkError) throw linkError;
 
-  const linkMap = await loadVerificationLinksForRobloxIds(robloxIds);
-  const discordIds = [...new Set([...linkMap.values()])];
-  const rowMap = new Map();
-  const select = "id,scope,discord_user_id,roblox_user_id,status,started_at,duration_seconds,adjustment_seconds";
+  const discordToRoblox = new Map();
+  (links || []).forEach(row => {
+    if (row.discord_user_id && row.roblox_user_id) {
+      discordToRoblox.set(String(row.discord_user_id), String(row.roblox_user_id));
+    }
+  });
 
-  const { data: robloxRows, error: robloxError } = await supabase
+  const { data: shifts, error: shiftError } = await supabase
     .from("clock_shifts")
-    .select(select)
-    .eq("scope", scope)
-    .in("roblox_user_id", robloxIds);
-  if (robloxError) throw robloxError;
-  (robloxRows || []).forEach(row => rowMap.set(row.id, row));
-
-  if (discordIds.length) {
-    const { data: discordRows, error: discordError } = await supabase
-      .from("clock_shifts")
-      .select(select)
-      .eq("scope", scope)
-      .in("discord_user_id", discordIds);
-    if (discordError) throw discordError;
-    (discordRows || []).forEach(row => rowMap.set(row.id, row));
-  }
+    .select("id,scope,discord_user_id,roblox_user_id,status,started_at,duration_seconds,adjustment_seconds")
+    .eq("scope", scope);
+  if (shiftError) throw shiftError;
 
   const totals = new Map();
   const now = Date.now();
 
-  for (const shift of rowMap.values()) {
+  (shifts || []).forEach(shift => {
     let targetRobloxId = String(shift.roblox_user_id || "");
     if (!targetRobloxId && shift.discord_user_id) {
-      targetRobloxId = String(linkMap.get(String(shift.discord_user_id)) || "");
+      targetRobloxId = discordToRoblox.get(String(shift.discord_user_id)) || "";
     }
-    if (!targetRobloxId) continue;
+    if (!targetRobloxId) return;
 
     const seconds = shiftTotalSeconds(shift, now);
     totals.set(targetRobloxId, (totals.get(targetRobloxId) || 0) + seconds);
-  }
+  });
 
   return totals;
 }

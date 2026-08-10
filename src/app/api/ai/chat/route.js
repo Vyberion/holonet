@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { getAuthContext } from "../../../../../modules/auth/auth-context.js";
 import { checkPageAccess } from "../../../../../modules/auth/permissions.js";
 import { supabaseRest } from "../../../../../modules/auth/session-store.js";
+import {
+  resolveUserByUsername,
+  loadRobloxProfileSummary,
+  ROBLOX_GROUPS,
+  personnelLookupWarnings
+} from "../../../../lib/api-helpers.js";
 
 const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const MODEL_NAME = "openrouter/free";
@@ -113,7 +119,7 @@ async function executeToolCall(toolName, args, auth) {
       };
     }
 
-    if (toolName === "lookup_roblox_user") {
+    if (toolName === "lookup_roblox_user" || toolName === "lookup_personnel") {
       const allowed = checkPageAccess(auth.profile, "lookup");
       if (!allowed) {
         return {
@@ -122,76 +128,80 @@ async function executeToolCall(toolName, args, auth) {
         };
       }
 
-      const username = String(args.username || "").trim();
-      if (!username) return { error: "No username provided." };
+      const queryStr = String(args.query || args.username || "").trim();
+      if (!queryStr) return { error: "No query or username provided." };
 
-      const userRes = await fetch("https://users.roblox.com/v1/usernames/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usernames: [username], excludeBannedUsers: true })
-      }).catch(() => null);
+      let robloxUser = await resolveUserByUsername(queryStr).catch(() => null);
 
-      if (!userRes || !userRes.ok) return { error: "Failed to query Roblox API." };
-      
-      const userData = await userRes.json().catch(() => ({}));
-      if (!userData.data || userData.data.length === 0) {
-        return { message: `No active Roblox user found with username '${username}'.` };
-      }
-
-      const user = userData.data[0];
-      
-      const avatarRes = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${user.id}&size=150x150&format=Png&isCircular=false`).catch(() => null);
-      let headshotUrl = "";
-      if (avatarRes && avatarRes.ok) {
-        const avatarData = await avatarRes.json().catch(() => ({}));
-        if (avatarData.data && avatarData.data[0]) {
-          headshotUrl = avatarData.data[0].imageUrl;
+      if (!robloxUser?.id) {
+        const encoded = encodeURIComponent(queryStr);
+        const dbUsers = await supabaseRest(
+          `users?or=(roblox_username.ilike.*${encoded}*,discord_id.eq.${encoded})&select=id,roblox_username,discord_id&limit=1`
+        ).catch(() => []);
+        
+        if (dbUsers && dbUsers[0]?.roblox_username) {
+          robloxUser = await resolveUserByUsername(dbUsers[0].roblox_username).catch(() => null);
+        } else if (dbUsers && dbUsers[0]?.id) {
+          robloxUser = { id: dbUsers[0].id, name: dbUsers[0].roblox_username || queryStr };
         }
       }
 
-      return {
-        id: user.id,
-        username: user.name,
-        displayName: user.displayName,
-        hasVerifiedBadge: user.hasVerifiedBadge,
-        avatarThumbnail: headshotUrl
-      };
-    }
+      let profileData = null;
+      if (robloxUser?.id) {
+        try {
+          const { user, groups, accountAgeDays, friendsCount, badgeCount } = await loadRobloxProfileSummary(robloxUser.id);
+          const mainGroupMembership = (groups.data || []).find(
+            membership => membership?.group?.id === ROBLOX_GROUPS.MAIN_GROUP.groupId
+          );
+          const divisionMemberships = Object.entries(ROBLOX_GROUPS.DIVISIONS)
+            .map(([divisionKey, definition]) => {
+              const membership = (groups.data || []).find(item => item?.group?.id === definition.groupId);
+              if (!membership) return null;
+              return {
+                division: definition.label || divisionKey,
+                rankName: membership.role?.name || "Unknown",
+                rank: membership.role?.rank || 0,
+                joinedAt: membership.joinedAt || membership.joined_at || null
+              };
+            })
+            .filter(Boolean);
 
-    if (toolName === "lookup_personnel") {
-      const allowed = checkPageAccess(auth.profile, "lookup");
-      if (!allowed) {
-        return {
-          status: "DENIED",
-          error: "Security Clearance Failure: Personnel lacks authorization for lookup operations."
-        };
+          const warnings = personnelLookupWarnings({ accountAgeDays, friendsCount, badgeCount });
+
+          profileData = {
+            robloxId: String(robloxUser.id),
+            username: robloxUser.name || queryStr,
+            displayName: user.displayName || robloxUser.displayName || robloxUser.name,
+            created: user.created || null,
+            accountAgeDays,
+            friendsCount,
+            badgeCount,
+            profileUrl: `https://www.roblox.com/users/${robloxUser.id}/profile`,
+            mainGroupRank: mainGroupMembership ? `${mainGroupMembership.role?.name} (Rank ${mainGroupMembership.role?.rank})` : "Not in Sith Order main group",
+            divisionRanks: divisionMemberships,
+            warnings: warnings.map(w => `${w.label}: ${w.detail}`)
+          };
+        } catch (e) {
+          profileData = { robloxId: String(robloxUser.id), username: robloxUser.name, error: e.message };
+        }
       }
-
-      const queryStr = String(args.query || "").trim();
-      if (!queryStr) return { error: "No query provided." };
 
       const encoded = encodeURIComponent(queryStr);
+      const [dbUsers, discordUsers, links] = await Promise.all([
+        supabaseRest(`users?or=(roblox_username.ilike.*${encoded}*,id.eq.${encoded})&select=id,roblox_username,discord_id&limit=3`).catch(() => []),
+        supabaseRest(`discord_users?or=(username.ilike.*${encoded}*,id.eq.${encoded})&select=id,username,global_name&limit=3`).catch(() => []),
+        supabaseRest(`verification_links?or=(discord_user_id.eq.${encoded},roblox_user_id.eq.${encoded})&select=roblox_user_id,discord_user_id,created_at&limit=3`).catch(() => [])
+      ]);
 
-      const robloxUsers = await supabaseRest(
-        `users?or=(roblox_username.ilike.*${encoded}*,id.eq.${encoded})&select=id,roblox_username,discord_id&limit=3`
-      ).catch(() => []);
-
-      const discordUsers = await supabaseRest(
-        `discord_users?or=(username.ilike.*${encoded}*,id.eq.${encoded})&select=id,username,global_name&limit=3`
-      ).catch(() => []);
-
-      const links = await supabaseRest(
-        `verification_links?or=(discord_user_id.eq.${encoded},roblox_user_id.eq.${encoded})&select=roblox_user_id,discord_user_id,created_at&limit=3`
-      ).catch(() => []);
-
-      if (!robloxUsers.length && !discordUsers.length && !links.length) {
-        return { message: `No personnel record matching '${queryStr}' found in Citadel archives.` };
+      if (!profileData && !dbUsers.length && !discordUsers.length && !links.length) {
+        return { message: `No personnel record matching '${queryStr}' found in Roblox or Citadel archives.` };
       }
 
       return {
-        robloxRecords: robloxUsers,
-        discordRecords: discordUsers,
-        linkRecords: links
+        robloxProfile: profileData,
+        databaseUsers: dbUsers,
+        discordUsers: discordUsers,
+        verificationLinks: links
       };
     }
 

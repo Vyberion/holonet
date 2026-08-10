@@ -88,11 +88,12 @@ export function AiChatWidget() {
     <>
       {/* Floating Toggle Button */}
       <button
-        className="ai-widget-launcher"
+        className="ai-widget-launcher nav-link"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle Holonet Overseer Assistant"
         title="Holonet Operations & Logistics Overseer"
       >
+        <div className="nav-link-corners" aria-hidden="true" />
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="12 2 2 7 12 12 22 7 12 2" />
           <polyline points="2 17 12 22 22 17" />

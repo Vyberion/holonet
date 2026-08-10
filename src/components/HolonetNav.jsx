@@ -174,10 +174,10 @@ export function HolonetNav() {
 
   const registrySubItems = [];
 
-  // 1. Reports
+  // 1. Inspections
   const canViewReports = isAdmin || perms.has("reports:write:all") || perms.has("pages:view:highranks") || Boolean(authority.highCommand || authority.darkCouncil || access?.profile?.highRank);
   if (canViewReports) {
-    registrySubItems.push({ href: getHref("/reports"), page: "reports", label: "Reports" });
+    registrySubItems.push({ href: getHref("/reports"), page: "reports", label: "Inspections" });
   }
 
   // 2. Dark Council

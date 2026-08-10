@@ -16,7 +16,7 @@ function sectionTitle(section) {
     home: "Command Hub",
     handbooks: "Handbook Archive",
     transmissions: "Transmissions",
-    reports: "Reports",
+    reports: "Inspections",
     activity: "Activity",
     "council-floor": "Council Floor"
   }[section] || "Division";

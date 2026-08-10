@@ -345,26 +345,47 @@ async function confirmWriteReport(interaction, scope, dateInput) {
   const weekStart = dateInput || weekStartValue();
   const members = await generatePrefilledReportMembers(scope);
 
-  const { data: report, error: reportError } = await supabase
+  const { data: existing } = await supabase
     .from("division_weekly_reports")
-    .upsert({
-      division_key: scope,
-      week_start: weekStart,
-      status: "published",
-      author_id: String(verified.profile.robloxId || ""),
-      author_name: String(verified.profile.name || "")
-    }, { onConflict: "division_key,week_start" })
     .select("id")
-    .single();
-  if (reportError) throw reportError;
+    .eq("division_key", scope)
+    .eq("week_start", weekStart)
+    .maybeSingle();
+
+  let reportId = existing?.id;
+  if (reportId) {
+    const { error: updateError } = await supabase
+      .from("division_weekly_reports")
+      .update({
+        status: "published",
+        author_id: String(verified.profile.robloxId || ""),
+        author_name: String(verified.profile.name || "")
+      })
+      .eq("id", reportId);
+    if (updateError) throw updateError;
+  } else {
+    const { data: created, error: insertError } = await supabase
+      .from("division_weekly_reports")
+      .insert({
+        division_key: scope,
+        week_start: weekStart,
+        status: "published",
+        author_id: String(verified.profile.robloxId || ""),
+        author_name: String(verified.profile.name || "")
+      })
+      .select("id")
+      .single();
+    if (insertError) throw insertError;
+    reportId = created.id;
+  }
 
   const { error: deleteError } = await supabase
     .from("division_weekly_report_members")
     .delete()
-    .eq("report_id", report.id);
+    .eq("report_id", reportId);
   if (deleteError) throw deleteError;
 
-  const memberRows = reportMemberRows(report.id, members);
+  const memberRows = reportMemberRows(reportId, members);
   if (memberRows.length) {
     const { error: insertError } = await supabase
       .from("division_weekly_report_members")

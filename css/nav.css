@@ -43,7 +43,7 @@
   .site-nav::after {
     content: '';
     position: absolute;
-    bottom: 0;
+    bottom: -1px;
     left: 0;
     right: 0;
     height: 1px;
@@ -89,6 +89,11 @@
     display: flex;
     align-items: center;
     gap: 6px;
+  }
+
+.nav-right .nav-link {
+    padding-top: 19px;
+    padding-bottom: 1px;
   }
 
 /* Nav links */
@@ -522,6 +527,36 @@
 
     .nav-item--dropdown.dropdown-open .nav-dropdown-menu {
       max-height: 120px;
+      padding: 4px 0 8px;
+      pointer-events: auto;
+      transform: none;
+    }
+
+    .nav-dropdown-link {
+      justify-content: flex-start;
+      padding: 12px 24px 12px 52px;
+    }
+  }
+.account-icon {
+  display: none;
+  width: 20px;
+  height: 20px;
+  color: var(--theme-accent-dim);
+  transition: color 0.3s;
+}
+
+.account-link:hover .account-icon,
+.account-link.active .account-icon {
+  color: var(--theme-accent);
+  filter: drop-shadow(0 0 6px var(--theme-accent-glow));
+}
+
+.back-to-top-btn {
+  display: none;
+}
+
+/* Mobile overrides */
+@media (max-width: 700px) {
   .account-text {
     display: none; 
   }
@@ -595,8 +630,9 @@
     padding: 8px;
     clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
     transition: border-color 0.3s, box-shadow 0.3s;
-    position: relative;
-    z-index: 6;
+    position: fixed;
+    right: 16px;
+    z-index: 2100;
   }
 
   .nav-toggle:hover {
@@ -627,6 +663,7 @@
   .nav-toggle[aria-expanded="true"] span:nth-child(3) {
     transform: translateY(-6px) rotate(-45deg);
   }
+}
 
 @media (max-width: 700px) {
   :root {

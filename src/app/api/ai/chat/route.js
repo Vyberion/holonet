@@ -156,7 +156,7 @@ export async function POST(req) {
     const body = await req.json().catch(() => ({}));
     const userMessages = Array.isArray(body.messages) ? body.messages : [];
 
-    const apiKey =
+    const rawKey =
       process.env.OPENROUTER_API_KEY ||
       process.env.OPENROUTER_KEY ||
       process.env.AI_API_TOKEN ||
@@ -164,10 +164,13 @@ export async function POST(req) {
       process.env.AI_KEY ||
       process.env.OPENAI_API_KEY ||
       process.env.OPENAI_KEY;
+
+    const apiKey = String(rawKey || "").trim();
+
     if (!apiKey) {
       return NextResponse.json({
         role: "assistant",
-        content: "TRANSMISSION ERROR: Subspace AI communications channel unconfigured (Missing AI_API_TOKEN)."
+        content: "TRANSMISSION ERROR: Subspace AI communications channel unconfigured."
       }, { status: 500 });
     }
 

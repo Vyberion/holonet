@@ -14,6 +14,21 @@ export function AiChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
+  const renderFormattedText = (text) => {
+    if (!text) return null;
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return (
+          <strong key={idx} style={{ color: "var(--theme-accent)", fontWeight: 700 }}>
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      return <React.Fragment key={idx}>{part}</React.Fragment>;
+    });
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -79,7 +94,6 @@ export function AiChatWidget() {
       {/* Floating Chat Container */}
       {isOpen && (
         <div className="ai-widget-container">
-          <div className="ai-widget-corners" aria-hidden="true" />
           <div className="ai-widget-scanlines" aria-hidden="true" />
 
           {/* Header */}
@@ -104,7 +118,7 @@ export function AiChatWidget() {
               <div key={idx} className={`ai-message ai-message-${msg.role}`}>
                 {msg.role === "assistant" && <div className="ai-message-tag">H.O.L.O</div>}
                 {msg.role === "user" && <div className="ai-message-tag">OPERATIVE</div>}
-                {msg.content}
+                {renderFormattedText(msg.content)}
               </div>
             ))}
 

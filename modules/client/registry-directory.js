@@ -101,7 +101,7 @@ async function initRegistryDirectory() {
         enter.tabIndex = 0;
       }
     } else {
-      lockCard(overview, "Reports - access denied");
+      lockCard(overview, "Inspections - access denied");
     }
   }
 

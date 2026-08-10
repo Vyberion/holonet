@@ -100,7 +100,7 @@ export async function generateMetadata({ params }) {
     home: singularName,
     handbooks: `${singularName} Handbooks`,
     transmissions: `${singularName} Transmissions`,
-    reports: `${singularName} Reports`,
+    reports: `${singularName} Inspections`,
     activity: `${singularName} Activity`
   };
 

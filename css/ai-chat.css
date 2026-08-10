@@ -1,0 +1,280 @@
+/* Holonet AI Assistant Terminal Styling */
+.ai-widget-launcher {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(201, 7, 5, 0.9), rgba(40, 10, 10, 0.95));
+  border: 1px solid rgba(255, 70, 70, 0.4);
+  box-shadow: 0 0 20px rgba(201, 7, 5, 0.4), inset 0 0 10px rgba(255, 100, 100, 0.2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.ai-widget-launcher:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 0 30px rgba(201, 7, 5, 0.7), inset 0 0 15px rgba(255, 150, 150, 0.4);
+  border-color: rgba(255, 120, 120, 0.7);
+}
+
+.ai-widget-launcher svg {
+  width: 26px;
+  height: 26px;
+  filter: drop-shadow(0 0 4px rgba(255, 200, 200, 0.8));
+}
+
+.ai-widget-container {
+  position: fixed;
+  bottom: 92px;
+  right: 24px;
+  z-index: 9999;
+  width: 400px;
+  max-width: calc(100vw - 32px);
+  height: 580px;
+  max-height: calc(100vh - 120px);
+  background: rgba(12, 12, 14, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 25px rgba(201, 7, 5, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: aiWidgetSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes aiWidgetSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ai-widget-header {
+  padding: 14px 16px;
+  background: linear-gradient(90deg, rgba(25, 10, 10, 0.95), rgba(15, 15, 18, 0.9));
+  border-bottom: 1px solid rgba(251, 191, 36, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ai-widget-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-widget-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: aiStatusPulse 2s infinite;
+}
+
+@keyframes aiStatusPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+.ai-widget-header-text h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.ai-widget-header-text span {
+  font-size: 10px;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+  font-family: monospace;
+}
+
+.ai-widget-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.ai-widget-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+}
+
+.ai-widget-messages {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-widget-messages::-webkit-scrollbar {
+  width: 5px;
+}
+
+.ai-widget-messages::-webkit-scrollbar-thumb {
+  background: rgba(251, 191, 36, 0.2);
+  border-radius: 3px;
+}
+
+.ai-message {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.ai-message-assistant {
+  align-self: flex-start;
+  background: rgba(20, 20, 25, 0.9);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  color: #e2e8f0;
+  border-bottom-left-radius: 2px;
+}
+
+.ai-message-user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, rgba(201, 7, 5, 0.85), rgba(140, 5, 4, 0.9));
+  border: 1px solid rgba(255, 100, 100, 0.3);
+  color: #ffffff;
+  border-bottom-right-radius: 2px;
+}
+
+.ai-message-system {
+  align-self: center;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  font-size: 11px;
+  text-align: center;
+}
+
+.ai-typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+}
+
+.ai-typing-indicator span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(251, 191, 36, 0.7);
+  animation: aiTypingBounce 1.4s infinite ease-in-out both;
+}
+
+.ai-typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.ai-typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes aiTypingBounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+.ai-quick-prompts {
+  padding: 8px 12px;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(8, 8, 10, 0.5);
+}
+
+.ai-quick-prompts::-webkit-scrollbar {
+  display: none;
+}
+
+.ai-prompt-chip {
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ai-prompt-chip:hover {
+  background: rgba(201, 7, 5, 0.3);
+  border-color: rgba(201, 7, 5, 0.6);
+  color: #fff;
+}
+
+.ai-widget-input-form {
+  padding: 12px;
+  background: rgba(10, 10, 12, 0.95);
+  border-top: 1px solid rgba(251, 191, 36, 0.2);
+  display: flex;
+  gap: 8px;
+}
+
+.ai-widget-input {
+  flex: 1;
+  background: rgba(20, 20, 26, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #f8fafc;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.ai-widget-input:focus {
+  border-color: rgba(251, 191, 36, 0.5);
+}
+
+.ai-widget-send-btn {
+  background: linear-gradient(135deg, rgba(201, 7, 5, 0.9), rgba(150, 5, 5, 0.95));
+  border: 1px solid rgba(255, 80, 80, 0.4);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.ai-widget-send-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(230, 10, 8, 1), rgba(180, 5, 5, 1));
+  box-shadow: 0 0 10px rgba(201, 7, 5, 0.5);
+}
+
+.ai-widget-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

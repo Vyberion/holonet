@@ -234,7 +234,7 @@ function renderHub(division) {
   const documentsPanel = renderPanel("documents", "Documents", renderRows(documents, "NO DOCUMENTS", { kind: "documents", division }));
   const transmissionsPanel = renderPanel("transmissions", "Transmission Feed", renderFeed(transmissions, "NO TRANSMISSIONS"));
   const activityPanel = renderPanel("activity", "Activity", renderActivityOverview(division));
-  const reportsPanel = renderPanel("reports", "Reports", renderRows(reports, "NO REPORTS", { kind: "reports", division }));
+  const reportsPanel = renderPanel("reports", "Inspections", renderRows(reports, "NO INSPECTIONS", { kind: "reports", division }));
 
   const hasDocuments = division.id !== "darkCouncil";
   const hasPages = true;

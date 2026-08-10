@@ -97,7 +97,7 @@ function divisionSectionName(division = {}) {
 function titleForSection(section, division = null) {
   const baseTitle = {
     transmissions: "Transmissions",
-    reports: "Reports",
+    reports: "Inspections",
     activity: "Activity"
   }[section] || "Division";
 

@@ -21,7 +21,9 @@ import "../../css/editor.css";
 import "../../css/crt.css";
 import "../../css/loader-overlays.css";
 import "../../css/overrides.css";
+import "../../css/ai-chat.css";
 import { GlobalPolish } from "../components/GlobalPolish.jsx";
+import { AiChatWidget } from "../components/AiChatWidget.jsx";
 
 const PDFJS_MODULE_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
 const PDFJS_WORKER_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
@@ -58,6 +60,7 @@ export default function RootLayout({ children }) {
         <HolonetAudioController />
         <GlobalPolish />
         {children}
+        <AiChatWidget />
       </body>
     </html>
   );

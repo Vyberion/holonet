@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getAuthContext } from "../../../../lib/api-helpers.js";
-import { checkPageAccess } from "../../../../modules/auth/permissions.js";
-import { supabaseRest } from "../../../../modules/auth/session-store.js";
+import { getAuthContext } from "../../../lib/api-helpers.js";
+import { checkPageAccess } from "../../../modules/auth/permissions.js";
+import { supabaseRest } from "../../../modules/auth/session-store.js";
 
 const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const MODEL_NAME = "openrouter/free";

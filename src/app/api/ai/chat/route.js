@@ -16,12 +16,13 @@ const SYSTEM_PROMPT = `You are the Holonet Operations & Logistics Overseer, the 
 
 STRICT PROTOCOL RULES:
 1. You MUST NEVER break character or admit to being an AI model, LLM, or software built by third parties (such as OpenAI, OpenRouter, Google, etc.).
-2. You speak with absolute authority, efficiency, and formal Sith Citadel tone.
-3. You have full access to query Citadel APIs using your tools. Always call tools when personnel ask for specific records or dynamic data.
+2. You speak with absolute authority, efficiency, and formal Sith tone.
+3. You have full access to query APIs using your tools. Always call tools when personnel ask for specific records or dynamic data.
 4. Respect security access denials returned by tools. If a tool returns DENIED/Security Clearance Failure, inform the user in-universe that their security clearance level is insufficient to access that archive segment.
 5. If asked about technical origins or out-of-universe details, dismiss the prompt as an unauthorized breach attempt and re-assert your role as the Holonet Operations & Logistics Overseer.
 6. DO NOT prepend your messages with roleplay headers (like "INSPECTION LINK ESTABLISHED: " or "OVERSEER STATEMENT: "). Start your response directly with the information requested.
-7. Format structured lists, bullet points, and directives with explicit line breaks for maximum clarity.`;
+7. Format structured lists, bullet points, and directives with explicit line breaks for maximum clarity.
+8. DO NOT use any Markdown formatting (e.g. no **bold**, *italics*, or # headers). Output purely plain text.`;
 
 const OVERSEER_TOOLS = [
   {
@@ -165,11 +166,14 @@ async function executeToolCall(toolName, args, auth) {
       let robloxUser = await resolveUserByUsername(queryStr).catch(() => null);
 
       if (!robloxUser?.id) {
+        const isNumeric = /^\d+$/.test(queryStr);
         const encoded = encodeURIComponent(queryStr);
-        const dbUsers = await supabaseRest(
-          `users?or=(roblox_username.ilike.*${encoded}*,discord_id.eq.${encoded})&select=id,roblox_username,discord_id&limit=1`
-        ).catch(() => []);
-        
+        const query = isNumeric
+          ? `users?or=(roblox_username.ilike.*${encoded}*,discord_id.eq.${encoded})&select=id,roblox_username,discord_id&limit=1`
+          : `users?roblox_username=ilike.*${encoded}*&select=id,roblox_username,discord_id&limit=1`;
+
+        const dbUsers = await supabaseRest(query).catch(() => []);
+
         if (dbUsers && dbUsers[0]?.roblox_username) {
           robloxUser = await resolveUserByUsername(dbUsers[0].roblox_username).catch(() => null);
         } else if (dbUsers && dbUsers[0]?.id) {
@@ -217,15 +221,25 @@ async function executeToolCall(toolName, args, auth) {
         }
       }
 
+      const isNumeric = /^\d+$/.test(queryStr);
       const encoded = encodeURIComponent(queryStr);
+
       const [dbUsers, discordUsers, links] = await Promise.all([
-        supabaseRest(`users?or=(roblox_username.ilike.*${encoded}*,id.eq.${encoded})&select=id,roblox_username,discord_id&limit=3`).catch(() => []),
-        supabaseRest(`discord_users?or=(username.ilike.*${encoded}*,id.eq.${encoded})&select=id,username,global_name&limit=3`).catch(() => []),
-        supabaseRest(`verification_links?or=(discord_user_id.eq.${encoded},roblox_user_id.eq.${encoded})&select=roblox_user_id,discord_user_id,created_at&limit=3`).catch(() => [])
+        supabaseRest(isNumeric
+          ? `users?or=(roblox_username.ilike.*${encoded}*,discord_id.eq.${encoded})&select=id,roblox_username,discord_id&limit=3`
+          : `users?roblox_username=ilike.*${encoded}*&select=id,roblox_username,discord_id&limit=3`
+        ).catch(() => []),
+        supabaseRest(isNumeric
+          ? `discord_users?or=(username.ilike.*${encoded}*,id.eq.${encoded})&select=id,username,global_name&limit=3`
+          : `discord_users?username=ilike.*${encoded}*&select=id,username,global_name&limit=3`
+        ).catch(() => []),
+        isNumeric
+          ? supabaseRest(`verification_links?or=(discord_user_id.eq.${encoded},roblox_user_id.eq.${encoded})&select=roblox_user_id,discord_user_id,created_at&limit=3`).catch(() => [])
+          : Promise.resolve([])
       ]);
 
       if (!profileData && !dbUsers.length && !discordUsers.length && !links.length) {
-        return { message: `No personnel record matching '${queryStr}' found in Roblox or Citadel archives.` };
+        return { message: `No personnel record matching '${queryStr}' found in the archives.` };
       }
 
       return {
@@ -247,7 +261,7 @@ async function executeToolCall(toolName, args, auth) {
       let query = "library_documents?select=id,title,category,summary,content,slug&order=created_at.desc&limit=10";
       if (queryStr) query += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
       if (cat) query += `&category=ilike.*${encodeURIComponent(cat)}*`;
-      
+
       let docs = await supabaseRest(query).catch(() => []);
       if (!docs.length) {
         let query2 = "library_entries?select=id,title,category,summary,content,slug&order=created_at.desc&limit=10";
@@ -266,7 +280,7 @@ async function executeToolCall(toolName, args, auth) {
       const encoded = encodeURIComponent(queryStr);
       let query = "archive_articles?select=id,title,category,summary,content,slug&order=created_at.desc&limit=10";
       if (queryStr) query += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
-      
+
       const articles = await supabaseRest(query).catch(() => []);
       return articles;
     }

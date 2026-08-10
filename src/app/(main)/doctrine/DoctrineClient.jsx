@@ -162,6 +162,7 @@ export default function DoctrineClient() {
 
   return (
     <HolonetFrame activePage="doctrine" title="DOCTRINE" subtitle="IMPERIAL GUIDANCE" includeSearchOverlay>
+      <link rel="stylesheet" href="/css/codex.css" />
       <div className="doctrine-shell" style={{ width: "100%", maxWidth: "1600px", margin: "0 auto", padding: "0 1rem 3rem" }}>
 
         {/* Top Control Bar: Tag Filters Left, Global Search & Action Buttons Right */}
@@ -284,7 +285,7 @@ export default function DoctrineClient() {
               <div className="codex-modal-header">
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
                   <span className="trello-card-tag">{currentDirective.tag || "GENERAL"}</span>
-                  <h2 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.4rem", color: "var(--theme-accent, var(--red-bright))", margin: 0 }}>{currentDirective.title}</h2>
+                  <h2 style={{ fontFamily: "Cinzel, serif", fontSize: "1.4rem", color: "var(--theme-accent)", margin: 0, textShadow: "0 0 10px var(--theme-accent-glow)" }}>{currentDirective.title}</h2>
                   <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)" }}>{currentDirective.section}</span>
                 </div>
                 <button type="button" className="codex-modal-close" onClick={() => setActiveModal(null)}>&times;</button>
@@ -292,7 +293,7 @@ export default function DoctrineClient() {
 
               <div className="codex-modal-body" style={{ padding: "1.5rem", color: "var(--text-bright)", lineHeight: "1.7" }}>
                 {currentDirective.summary && (
-                  <div style={{ background: "rgba(201, 7, 5, 0.08)", borderLeft: "3px solid var(--theme-accent, var(--red-bright))", padding: "1rem", marginBottom: "1.5rem", fontStyle: "italic" }}>
+                  <div style={{ background: "var(--theme-accent-glow)", borderLeft: "3px solid var(--theme-accent)", padding: "1rem", marginBottom: "1.5rem", fontStyle: "italic" }}>
                     {currentDirective.summary}
                   </div>
                 )}
@@ -321,7 +322,7 @@ export default function DoctrineClient() {
             <div className="codex-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "750px" }}>
               <form onSubmit={handleSave}>
                 <div className="codex-modal-header">
-                  <h2 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.2rem", color: "var(--theme-accent, var(--red-bright))", margin: 0, letterSpacing: "0.15em" }}>
+                  <h2 style={{ fontFamily: "Cinzel, serif", fontSize: "1.2rem", color: "var(--theme-accent)", margin: 0, letterSpacing: "0.15em", textShadow: "0 0 10px var(--theme-accent-glow)" }}>
                     {formData.id ? "EDIT IMPERIAL DIRECTIVE" : "CREATE IMPERIAL DIRECTIVE"}
                   </h2>
                   <button type="button" className="codex-modal-close" onClick={() => setActiveModal(null)}>&times;</button>
@@ -409,7 +410,7 @@ export default function DoctrineClient() {
                     <button
                       type="button"
                       className="hub-cancel-btn"
-                      style={{ color: "var(--theme-accent, var(--red-bright))", borderColor: "var(--theme-accent, var(--red-bright))", marginRight: "auto" }}
+                      style={{ color: "var(--theme-accent)", borderColor: "var(--theme-accent)", marginRight: "auto" }}
                       onClick={() => handleDelete(formData.id)}
                     >
                       PURGE DIRECTIVE
@@ -434,7 +435,7 @@ export default function DoctrineClient() {
 
       <style jsx>{`
         .tag-chip {
-          background: rgba(0, 0, 0, 0.4);
+          background: var(--theme-surface);
           border: 1px solid var(--border);
           color: var(--text-dim);
           font-family: 'Share Tech Mono', monospace;
@@ -446,9 +447,10 @@ export default function DoctrineClient() {
           clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
         }
         .tag-chip:hover, .tag-chip.active {
-          border-color: var(--theme-accent, var(--red-bright));
-          color: var(--theme-accent, var(--red-bright));
-          background: rgba(201, 7, 5, 0.12);
+          border-color: var(--theme-accent);
+          color: var(--theme-accent);
+          background: var(--theme-accent-glow);
+          box-shadow: 0 0 12px var(--theme-accent-glow);
         }
 
         .trello-board-grid {
@@ -460,10 +462,10 @@ export default function DoctrineClient() {
         }
 
         .trello-column {
-          background: rgba(10, 10, 15, 0.7);
-          border: 1px solid var(--border);
+          background: var(--theme-surface);
+          border: 1px solid var(--border-hot);
           padding: 1.2rem;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+          box-shadow: 0 8px 32px var(--theme-wash);
           clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
         }
 
@@ -478,11 +480,12 @@ export default function DoctrineClient() {
         .trello-column-num {
           font-family: 'Share Tech Mono', monospace;
           font-size: 0.8rem;
-          color: var(--theme-accent, var(--red-bright));
+          color: var(--theme-accent);
         }
         .trello-column-title {
-          font-family: 'Orbitron', monospace;
-          font-size: 0.85rem;
+          font-family: 'Cinzel', serif;
+          font-size: 0.95rem;
+          font-weight: 700;
           color: var(--text-bright);
           letter-spacing: 0.1em;
           margin: 0;
@@ -510,7 +513,7 @@ export default function DoctrineClient() {
         }
 
         .trello-card {
-          background: linear-gradient(145deg, rgba(20, 20, 28, 0.8), rgba(12, 12, 18, 0.9));
+          background: linear-gradient(135deg, var(--theme-wash) 0%, var(--theme-surface) 100%);
           border: 1px solid var(--border);
           padding: 1.1rem;
           cursor: pointer;
@@ -519,9 +522,9 @@ export default function DoctrineClient() {
           clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
         }
         .trello-card:hover {
-          border-color: var(--theme-accent, var(--red-bright));
+          border-color: var(--theme-accent);
           transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(201, 7, 5, 0.18);
+          box-shadow: 0 0 24px var(--theme-accent-glow);
         }
 
         .trello-card-top {
@@ -533,11 +536,11 @@ export default function DoctrineClient() {
         .trello-card-tag {
           font-family: 'Share Tech Mono', monospace;
           font-size: 0.65rem;
-          color: var(--theme-accent, var(--red-bright));
-          background: rgba(201, 7, 5, 0.15);
+          color: var(--theme-accent);
+          background: var(--theme-accent-glow);
           padding: 0.2rem 0.5rem;
           letter-spacing: 0.1em;
-          border-left: 2px solid var(--theme-accent, var(--red-bright));
+          border-left: 2px solid var(--theme-accent);
         }
         .trello-card-edit-btn {
           background: none;
@@ -548,16 +551,22 @@ export default function DoctrineClient() {
           cursor: pointer;
         }
         .trello-card-edit-btn:hover {
-          color: var(--theme-accent, var(--red-bright));
+          color: var(--theme-accent);
         }
 
         .trello-card-title {
-          font-family: 'Orbitron', monospace;
-          font-size: 0.92rem;
+          font-family: 'Cinzel', serif;
+          font-size: 1.05rem;
+          font-weight: 700;
           color: var(--text-bright);
           margin: 0 0 0.5rem;
           letter-spacing: 0.08em;
           line-height: 1.3;
+          transition: color 0.3s, text-shadow 0.3s;
+        }
+        .trello-card:hover .trello-card-title {
+          color: var(--theme-accent);
+          text-shadow: 0 0 8px var(--theme-accent-glow);
         }
 
         .trello-card-summary {
@@ -572,7 +581,7 @@ export default function DoctrineClient() {
           justify-content: flex-end;
           font-family: 'Share Tech Mono', monospace;
           font-size: 0.7rem;
-          color: var(--theme-accent, var(--red-bright));
+          color: var(--theme-accent);
           letter-spacing: 0.1em;
         }
 
@@ -590,9 +599,9 @@ export default function DoctrineClient() {
         }
 
         .codex-modal-dialog {
-          background: rgba(12, 12, 18, 0.96);
-          border: 1px solid var(--theme-accent, var(--red-bright));
-          box-shadow: 0 0 40px rgba(201, 7, 5, 0.3);
+          background: var(--theme-surface);
+          border: 1px solid var(--theme-accent);
+          box-shadow: 0 0 40px var(--theme-accent-glow);
           width: 100%;
           max-height: 90vh;
           overflow-y: auto;
@@ -616,7 +625,7 @@ export default function DoctrineClient() {
           line-height: 1;
         }
         .codex-modal-close:hover {
-          color: var(--theme-accent, var(--red-bright));
+          color: var(--theme-accent);
         }
 
         .codex-modal-footer {
@@ -646,7 +655,7 @@ export default function DoctrineClient() {
           font-size: 0.9rem;
         }
         .codex-input:focus, .codex-select:focus, .codex-textarea:focus {
-          border-color: var(--theme-accent, var(--red-bright));
+          border-color: var(--theme-accent);
           outline: none;
         }
 
@@ -661,14 +670,14 @@ export default function DoctrineClient() {
           transition: all 0.2s ease;
         }
         .hub-cancel-btn:hover {
-          border-color: var(--theme-accent, var(--red-bright));
-          color: var(--theme-accent, var(--red-bright));
+          border-color: var(--theme-accent);
+          color: var(--theme-accent);
         }
 
         .hub-write-btn {
-          background: rgba(201, 7, 5, 0.2);
-          border: 1px solid var(--theme-accent, var(--red-bright));
-          color: var(--theme-accent, var(--red-bright));
+          background: var(--theme-accent-glow);
+          border: 1px solid var(--theme-accent);
+          color: var(--theme-accent);
           font-family: 'Orbitron', monospace;
           font-size: 0.8rem;
           padding: 0.5rem 1.2rem;
@@ -676,8 +685,9 @@ export default function DoctrineClient() {
           transition: all 0.2s ease;
         }
         .hub-write-btn:hover {
-          background: var(--theme-accent, var(--red-bright));
+          background: var(--theme-accent);
           color: #fff;
+          box-shadow: 0 0 16px var(--theme-accent-glow);
         }
       `}</style>
     </HolonetFrame>

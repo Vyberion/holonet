@@ -346,20 +346,20 @@ async function confirmWriteReport(interaction, scope, dateInput) {
   const members = await generatePrefilledReportMembers(scope);
 
   const { data: report, error: reportError } = await supabase
-    .from("weekly_reports")
+    .from("division_weekly_reports")
     .upsert({
-      scope,
+      division_key: scope,
       week_start: weekStart,
       status: "published",
-      author_roblox_id: String(verified.profile.robloxId || ""),
+      author_id: String(verified.profile.robloxId || ""),
       author_name: String(verified.profile.name || "")
-    }, { onConflict: "scope,week_start" })
+    }, { onConflict: "division_key,week_start" })
     .select("id")
     .single();
   if (reportError) throw reportError;
 
   const { error: deleteError } = await supabase
-    .from("weekly_report_members")
+    .from("division_weekly_report_members")
     .delete()
     .eq("report_id", report.id);
   if (deleteError) throw deleteError;
@@ -367,7 +367,7 @@ async function confirmWriteReport(interaction, scope, dateInput) {
   const memberRows = reportMemberRows(report.id, members);
   if (memberRows.length) {
     const { error: insertError } = await supabase
-      .from("weekly_report_members")
+      .from("division_weekly_report_members")
       .insert(memberRows);
     if (insertError) throw insertError;
   }
@@ -417,9 +417,9 @@ async function handleViewReportCommand(interaction) {
   }
 
   const { data: report, error } = await supabase
-    .from("weekly_reports")
-    .select("id,author_name,weekly_report_members(*)")
-    .eq("scope", scope)
+    .from("division_weekly_reports")
+    .select("id,author_name,division_weekly_report_members(*)")
+    .eq("division_key", scope)
     .eq("week_start", weekStart)
     .maybeSingle();
   if (error) throw error;
@@ -429,7 +429,7 @@ async function handleViewReportCommand(interaction) {
     return;
   }
 
-  const members = (report.weekly_report_members || []).map(normalizeReportMember);
+  const members = (report.division_weekly_report_members || []).map(normalizeReportMember);
   const previewEmbed = reportPreviewEmbed({
     title: "Weekly Report",
     scope,

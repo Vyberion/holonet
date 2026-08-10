@@ -70,7 +70,12 @@ async function fetchDivisionRoster(scope) {
     groupId = ROBLOX_GROUPS.MAIN_GROUP?.groupId || 3197893;
     minRank = 44;
   } else if (ROBLOX_GROUPS.DIVISIONS[scope]) {
-    groupId = ROBLOX_GROUPS.DIVISIONS[scope].groupId;
+    const definition = ROBLOX_GROUPS.DIVISIONS[scope];
+    groupId = definition.groupId;
+    const rankNumbers = Object.keys(definition.ranks || {}).map(Number).filter(n => !isNaN(n));
+    if (rankNumbers.length) {
+      maxRank = Math.max(...rankNumbers);
+    }
   } else {
     throw new Error("UNKNOWN_REPORT_SCOPE");
   }

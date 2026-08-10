@@ -39,10 +39,40 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_statutes",
-      description: "Retrieve official Sith Order statutes and codex documents.",
+      description: "Retrieve official Sith Order statutes, codex laws, and legal decree documents.",
       parameters: {
         type: "object",
-        properties: { category: { type: "string" } }
+        properties: {
+          query: { type: "string", description: "Search query or title keyword for statutes" },
+          category: { type: "string", description: "Category filter" }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_library_documents",
+      description: "Search and retrieve official Imperial regulations, library documents, handbooks, and operational guides.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search query or keyword for regulations and library documents" },
+          category: { type: "string", description: "Category filter" }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_archives",
+      description: "Search and retrieve Imperial lore, historical archives, Emperor entries, and historical records.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search query or keyword for lore and historical archive articles" }
+        }
       }
     }
   },
@@ -205,8 +235,59 @@ async function executeToolCall(toolName, args, auth) {
       };
     }
 
+    if (toolName === "get_library_documents") {
+      const allowed = checkPageAccess(auth.profile, "library") || checkPageAccess(auth.profile, "codex");
+      if (!allowed) {
+        return { status: "DENIED", error: "Security Clearance Failure: Personnel lacks clearance for library archives." };
+      }
+      const queryStr = String(args.query || "").trim();
+      const cat = String(args.category || "").trim();
+      const encoded = encodeURIComponent(queryStr);
+      let query = "library_documents?select=id,title,category,summary,content,slug&order=created_at.desc&limit=10";
+      if (queryStr) query += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
+      if (cat) query += `&category=ilike.*${encodeURIComponent(cat)}*`;
+      
+      let docs = await supabaseRest(query).catch(() => []);
+      if (!docs.length) {
+        let query2 = "library_entries?select=id,title,category,summary,content,slug&order=created_at.desc&limit=10";
+        if (queryStr) query2 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
+        docs = await supabaseRest(query2).catch(() => []);
+      }
+      return docs;
+    }
+
+    if (toolName === "get_archives") {
+      const allowed = checkPageAccess(auth.profile, "archives");
+      if (!allowed) {
+        return { status: "DENIED", error: "Security Clearance Failure: Personnel lacks clearance for lore archives." };
+      }
+      const queryStr = String(args.query || "").trim();
+      const encoded = encodeURIComponent(queryStr);
+      let query = "archive_articles?select=id,title,category,summary,content,slug&order=created_at.desc&limit=10";
+      if (queryStr) query += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
+      
+      const articles = await supabaseRest(query).catch(() => []);
+      return articles;
+    }
+
     if (toolName === "get_statutes") {
-      const statutes = await supabaseRest("statutes?select=slug,title,category,summary&order=created_at.desc&limit=10").catch(() => []);
+      const allowed = checkPageAccess(auth.profile, "codex");
+      if (!allowed) {
+        return { status: "DENIED", error: "Security Clearance Failure: Personnel lacks clearance for codex statutes." };
+      }
+      const queryStr = String(args.query || "").trim();
+      const cat = String(args.category || "").trim();
+      const encoded = encodeURIComponent(queryStr);
+      let query = "statutes?select=slug,title,category,summary,content&order=created_at.desc&limit=10";
+      if (queryStr) query += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
+      if (cat) query += `&category=ilike.*${encodeURIComponent(cat)}*`;
+
+      let statutes = await supabaseRest(query).catch(() => []);
+      if (!statutes.length) {
+        let query2 = "codex_statutes?select=slug,title,category,summary,content&order=created_at.desc&limit=10";
+        if (queryStr) query2 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
+        statutes = await supabaseRest(query2).catch(() => []);
+      }
       return statutes;
     }
 
@@ -259,8 +340,24 @@ export async function POST(req) {
       }, { status: 500 });
     }
 
+    const activeUser = auth?.user || {};
+    const activeProfile = auth?.profile || {};
+    const activeName = activeUser.username || activeProfile.robloxId || "Holonet Operator";
+    const activeDiscord = activeUser.discord_id || activeProfile.discordId || "Not Linked";
+    const activeRank = activeProfile.highRank || "Member";
+
+    const systemPromptWithContext = `${SYSTEM_PROMPT}
+
+CURRENT ACTIVE OPERATIVE SECURE TELEMETRY:
+- Operative Username: ${activeName}
+- Roblox User ID: ${activeProfile.robloxId || "Unknown"}
+- Discord ID: ${activeDiscord}
+- Clearance Level: ${activeProfile.isSuperUser ? "SUPERUSER / HOLONET OPERATOR (Full Access)" : activeRank}
+
+IDENTITY PROTOCOL: You already know the active operative's identity from the secure channel telemetry above. NEVER ask the operative who they are or what their name is—you already know. Address them respectfully as ${activeName} or by their clearance level when appropriate.`;
+
     let messages = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPromptWithContext },
       ...userMessages.map(m => ({
         role: m.role === "user" ? "user" : "assistant",
         content: String(m.content || "")

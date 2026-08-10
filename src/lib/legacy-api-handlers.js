@@ -1318,31 +1318,35 @@ async function fetchDivisionRoster(division) {
   let cursor = "";
   const members = [];
 
-  do {
-    const url = new URL(`https://groups.roblox.com/v1/groups/${definition.groupId}/users`);
-    url.searchParams.set("limit", "100");
-    url.searchParams.set("sortOrder", "Asc");
-    if (cursor) url.searchParams.set("cursor", cursor);
+  try {
+    do {
+      const url = new URL(`https://groups.roblox.com/v1/groups/${definition.groupId}/users`);
+      url.searchParams.set("limit", "100");
+      url.searchParams.set("sortOrder", "Asc");
+      if (cursor) url.searchParams.set("cursor", cursor);
 
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("ROBLOX_ROSTER_LOOKUP_FAILED");
-    const payload = await response.json();
+      const response = await fetch(url).catch(() => null);
+      if (!response || !response.ok) break;
+      const payload = await response.json().catch(() => ({}));
 
-    (payload.data || []).forEach(item => {
-      const rank = Number(item.role?.rank || 0);
-      if (rank <= maxRank) {
-        members.push({
-          robloxId: String(item.user?.userId || item.user?.id || ""),
-          username: item.user?.username || "",
-          displayName: item.user?.displayName || "",
-          rank,
-          role: item.role?.name || ""
-        });
-      }
-    });
+      (payload.data || []).forEach(item => {
+        const rank = Number(item.role?.rank || 0);
+        if (rank <= maxRank) {
+          members.push({
+            robloxId: String(item.user?.userId || item.user?.id || ""),
+            username: item.user?.username || "",
+            displayName: item.user?.displayName || "",
+            rank,
+            role: item.role?.name || ""
+          });
+        }
+      });
 
-    cursor = payload.nextPageCursor || "";
-  } while (cursor);
+      cursor = payload.nextPageCursor || "";
+    } while (cursor);
+  } catch (err) {
+    console.error("fetchDivisionRoster error:", err);
+  }
 
   return members.filter(member => member.robloxId);
 }

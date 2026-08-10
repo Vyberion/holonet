@@ -16,7 +16,7 @@ function sectionTitle(section) {
     home: "Command Hub",
     handbooks: "Handbook Archive",
     transmissions: "Transmissions",
-    reports: "Inspections",
+    reports: "Reports",
     activity: "Activity",
     "council-floor": "Council Floor"
   }[section] || "Division";
@@ -100,7 +100,7 @@ export async function generateMetadata({ params }) {
     home: singularName,
     handbooks: `${singularName} Handbooks`,
     transmissions: `${singularName} Transmissions`,
-    reports: `${singularName} Inspections`,
+    reports: `${singularName} Reports`,
     activity: `${singularName} Activity`
   };
 

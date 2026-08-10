@@ -312,14 +312,6 @@ export async function POST(req) {
   try {
     const auth = await getAuthContext(req, { optional: true });
 
-    // Restrict AI Overseer widget access strictly to Superusers
-    if (!auth?.profile?.isSuperUser) {
-      return NextResponse.json({
-        role: "assistant",
-        content: "ACCESS DENIED: H.O.L.O is currently restricted to Holonet Operators."
-      }, { status: 403 });
-    }
-
     const body = await req.json().catch(() => ({}));
     const userMessages = Array.isArray(body.messages) ? body.messages : [];
 

@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from "react";
 
 export function AiChatWidget() {
-  const [isSuperUser, setIsSuperUser] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -16,29 +15,10 @@ export function AiChatWidget() {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    let active = true;
-    fetch("/api/auth/check-access")
-      .then(res => res.json())
-      .then(data => {
-        if (active && data?.profile?.isSuperUser) {
-          setIsSuperUser(true);
-        }
-      })
-      .catch(() => { });
-    return () => { active = false; };
-  }, []);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
     if (isOpen) {
       scrollToBottom();
     }
   }, [messages, isOpen]);
-
-  if (!isSuperUser) return null;
 
   const handleSendMessage = async (textToSend) => {
     const query = String(textToSend || input).trim();

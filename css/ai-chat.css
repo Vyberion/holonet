@@ -17,9 +17,7 @@
   justify-content: center;
   background: var(--theme-nav-card-c);
   border: 1px solid var(--theme-accent-dim);
-  box-shadow:
-    0 0 14px var(--theme-accent-glow),
-    0 0 40px var(--theme-body-glow-a);
+  box-shadow: none;
   color: var(--theme-accent-soft);
   cursor: crosshair;
   transition: border-color 0.3s, box-shadow 0.3s, color 0.3s, transform 0.3s;
@@ -50,8 +48,8 @@
   height: 6px;
   border-color: var(--theme-accent-dim);
   border-style: solid;
-  opacity: 1;
-  transition: border-color 0.3s;
+  opacity: 0;
+  transition: opacity 0.3s, border-color 0.3s;
 }
 
 .ai-widget-launcher .nav-link-corners::before {
@@ -67,6 +65,7 @@
 .ai-widget-launcher:hover .nav-link-corners::before,
 .ai-widget-launcher:hover .nav-link-corners::after {
   border-color: var(--theme-accent);
+  opacity: 1;
 }
 
 .ai-widget-launcher svg {
@@ -91,7 +90,7 @@
   height: 600px;
   max-height: calc(100vh - 110px);
   background: var(--panel);
-  border: 2px solid var(--border-hot);
+  border: 1px solid var(--border-hot);
   clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
   box-shadow:
     0 0 36px rgba(0, 0, 0, 0.6),

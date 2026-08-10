@@ -8,7 +8,7 @@ export function AiChatWidget() {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "INSPECTION LINK ESTABLISHED: I am the Holonet Operations & Logistics Overseer. State your administrative or personnel query."
+      content: "LINK ESTABLISHED: I am the H.O.L.O, the Holonet Operations and Logistics Overseer. State your query."
     }
   ]);
   const [input, setInput] = useState("");

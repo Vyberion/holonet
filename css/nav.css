@@ -364,6 +364,7 @@
     padding: 12px 18px;
     position: relative;
     text-decoration: none;
+    text-align: center;
     transition: background 0.25s, color 0.25s;
   }
 

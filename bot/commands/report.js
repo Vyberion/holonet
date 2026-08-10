@@ -26,7 +26,7 @@ export const commands = [
     .setDescription("Report management tools")
     .addSubcommand(subcommand => subcommand
       .setName("write")
-      .setDescription("Write this scope's weekly website report and reset its clock time")
+      .setDescription("Write this scope's weekly website report")
       .addStringOption(option => addReportScopeChoices(option.setName("scope").setDescription("Report scope").setRequired(true)))
       .addStringOption(option => option.setName("start_date").setDescription("Week start date, YYYY-MM-DD").setRequired(true)))
     .addSubcommand(subcommand => subcommand
@@ -53,7 +53,58 @@ function scopeLabel(scope) {
 }
 
 function assertReportScope(scope) {
-  if (!ROBLOX_GROUPS.DIVISIONS[scope]) throw new Error("UNKNOWN_REPORT_SCOPE");
+  const validScopes = ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil"];
+  if (!validScopes.includes(scope)) throw new Error("UNKNOWN_REPORT_SCOPE");
+}
+
+async function fetchDivisionRoster(scope) {
+  assertReportScope(scope);
+
+  let groupId;
+  let minRank = 1;
+  let maxRank = 255;
+
+  if (scope === "darkCouncil") {
+    groupId = ROBLOX_GROUPS.DARK_COUNCIL?.groupId || 3199126;
+  } else if (scope === "highranks") {
+    groupId = ROBLOX_GROUPS.MAIN_GROUP?.groupId || 3197893;
+    minRank = 44;
+  } else if (ROBLOX_GROUPS.DIVISIONS[scope]) {
+    groupId = ROBLOX_GROUPS.DIVISIONS[scope].groupId;
+  } else {
+    throw new Error("UNKNOWN_REPORT_SCOPE");
+  }
+
+  let cursor = "";
+  const members = [];
+
+  do {
+    const url = new URL(`https://groups.roblox.com/v1/groups/${groupId}/users`);
+    url.searchParams.set("limit", "100");
+    url.searchParams.set("sortOrder", "Asc");
+    if (cursor) url.searchParams.set("cursor", cursor);
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("ROBLOX_ROSTER_LOOKUP_FAILED");
+    const payload = await response.json();
+
+    (payload.data || []).forEach(item => {
+      const rank = Number(item.role?.rank || 0);
+      if (rank >= minRank && rank <= maxRank) {
+        members.push({
+          robloxId: String(item.user?.userId || item.user?.id || ""),
+          username: item.user?.username || "",
+          displayName: item.user?.displayName || "",
+          rank,
+          role: item.role?.name || ""
+        });
+      }
+    });
+
+    cursor = payload.nextPageCursor || "";
+  } while (cursor);
+
+  return members.filter(member => member.robloxId);
 }
 
 function reportErrorMessage(error, interaction = null) {
@@ -174,41 +225,7 @@ function normalizeReportMember(row, index = 0) {
   };
 }
 
-async function fetchDivisionRoster(scope) {
-  assertReportScope(scope);
-  const definition = ROBLOX_GROUPS.DIVISIONS[scope];
-  const maxRank = Math.max(...Object.values(definition.ranks || {}).flat().map(Number).filter(Boolean));
-  let cursor = "";
-  const members = [];
 
-  do {
-    const url = new URL(`https://groups.roblox.com/v1/groups/${definition.groupId}/users`);
-    url.searchParams.set("limit", "100");
-    url.searchParams.set("sortOrder", "Asc");
-    if (cursor) url.searchParams.set("cursor", cursor);
-
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("ROBLOX_ROSTER_LOOKUP_FAILED");
-    const payload = await response.json();
-
-    (payload.data || []).forEach(item => {
-      const rank = Number(item.role?.rank || 0);
-      if (rank <= maxRank) {
-        members.push({
-          robloxId: String(item.user?.userId || item.user?.id || ""),
-          username: item.user?.username || "",
-          displayName: item.user?.displayName || "",
-          rank,
-          role: item.role?.name || ""
-        });
-      }
-    });
-
-    cursor = payload.nextPageCursor || "";
-  } while (cursor);
-
-  return members.filter(member => member.robloxId);
-}
 
 async function loadVerificationLinksForRobloxIds(robloxIds = []) {
   const ids = [...new Set(robloxIds.map(value => String(value || "")).filter(Boolean))];
@@ -294,7 +311,7 @@ async function generatePrefilledReportMembers(scope) {
 }
 
 async function requireScopeReportWriteAccess(interaction, scope) {
-  const verified = await getVerifiedProfile(interaction.user.id).catch(() => null);
+  const verified = await getVerifiedProfile(interaction.user.id);
   if (!verified?.profile) throw new Error("DISCORD_NOT_LINKED");
 
   assertReportScope(scope);
@@ -309,14 +326,6 @@ async function requireScopeReportWriteAccess(interaction, scope) {
   return verified;
 }
 
-async function wipeClockShiftsForScope(scope) {
-  const { error } = await supabase
-    .from("clock_shifts")
-    .delete()
-    .eq("scope", scope);
-  if (error) throw error;
-}
-
 async function handleWriteReportCommand(interaction) {
   const scope = interaction.options.getString("scope", true);
   const weekStart = interaction.options.getString("start_date", true);
@@ -328,11 +337,11 @@ async function handleWriteReportCommand(interaction) {
       `Week Start: **${weekStart}**`,
       `Author: **${verified.profile.name}**`,
       "",
-      "Writing this report will compile the current roster and clock times, save the report to Holonet, and **reset all clock shifts** for this scope.",
+      "Writing this report will compile the current roster and clock times and save the report to Holonet.",
       "Are you sure you want to proceed?"
     ].join("\n"))],
     components: [new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`rptwrite:${scope}:${weekStart}`).setLabel("Write Report & Reset Clock").setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId(`rptwrite:${scope}:${weekStart}`).setLabel("Write Report").setStyle(ButtonStyle.Primary),
       new ButtonBuilder().setCustomId("rptcancel").setLabel("Cancel").setStyle(ButtonStyle.Secondary)
     )]
   };
@@ -386,14 +395,14 @@ async function confirmWriteReport(interaction, scope, dateInput) {
   if (deleteError) throw deleteError;
 
   const memberRows = reportMemberRows(reportId, members);
-  if (memberRows.length) {
-    const { error: insertError } = await supabase
-      .from("division_weekly_report_members")
-      .insert(memberRows);
-    if (insertError) throw insertError;
+  if (!memberRows.length) {
+    throw new Error("NO_MEMBERS_FOUND_REPORT_WRITE_ABORTED.");
   }
 
-  await wipeClockShiftsForScope(scope);
+  const { error: insertError } = await supabase
+    .from("division_weekly_report_members")
+    .insert(memberRows);
+  if (insertError) throw insertError;
 
   const previewEmbed = reportPreviewEmbed({
     title: "Weekly Report Published",

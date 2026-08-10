@@ -144,19 +144,26 @@ async function executeToolCall(toolName, args, auth) {
 export async function POST(req) {
   try {
     const auth = await getAuthContext(req, { optional: true });
-    
+
     // Restrict AI Overseer widget access strictly to Superusers
     if (!auth?.profile?.isSuperUser) {
       return NextResponse.json({
         role: "assistant",
-        content: "ACCESS DENIED: Holonet Overseer AI is currently restricted to Imperial Superuser Clearance."
+        content: "ACCESS DENIED: H.O.L.O is currently restricted to Holonet Operators."
       }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
     const userMessages = Array.isArray(body.messages) ? body.messages : [];
 
-    const apiKey = process.env.AI_API_TOKEN || process.env.OPENROUTER_API_KEY;
+    const apiKey =
+      process.env.OPENROUTER_API_KEY ||
+      process.env.OPENROUTER_KEY ||
+      process.env.AI_API_TOKEN ||
+      process.env.AI_TOKEN ||
+      process.env.AI_KEY ||
+      process.env.OPENAI_API_KEY ||
+      process.env.OPENAI_KEY;
     if (!apiKey) {
       return NextResponse.json({
         role: "assistant",
@@ -194,7 +201,7 @@ export async function POST(req) {
       console.error("OpenRouter API error:", response.status, errText);
       return NextResponse.json({
         role: "assistant",
-        content: "COMMUNICATION BREACH: Subspace link unstable. Please retry transmission."
+        content: `COMMUNICATION BREACH: H.O.L.O  returned ${response.status} - ${errText}`
       });
     }
 
@@ -210,7 +217,7 @@ export async function POST(req) {
         let fnArgs = {};
         try {
           fnArgs = JSON.parse(toolCall.function?.arguments || "{}");
-        } catch {}
+        } catch { }
 
         const toolResult = await executeToolCall(fnName, fnArgs, auth);
 
@@ -243,7 +250,7 @@ export async function POST(req) {
       }
     }
 
-    const replyContent = choiceMessage?.content || "OVERSEER STATEMENT: Transmission acknowledged, query logged.";
+    const replyContent = choiceMessage?.content || "H.O.L.O STATEMENT: Transmission acknowledged, query logged.";
 
     return NextResponse.json({
       role: "assistant",
@@ -253,7 +260,7 @@ export async function POST(req) {
     console.error("Overseer Chat Error:", err);
     return NextResponse.json({
       role: "assistant",
-      content: "ALERT: Imperial Holonet Overseer sub-processor encountered an internal exception."
+      content: "ALERT: H.O.L.O sub-processor encountered an internal exception."
     }, { status: 500 });
   }
 }

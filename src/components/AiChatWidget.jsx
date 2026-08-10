@@ -24,7 +24,7 @@ export function AiChatWidget() {
           setIsSuperUser(true);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => { active = false; };
   }, []);
 
@@ -69,7 +69,7 @@ export function AiChatWidget() {
         ...newMessages,
         {
           role: "assistant",
-          content: "ALERT: Subspace link failure. Holonet Overseer sub-processor is currently unreachable."
+          content: "ALERT: Subspace link failure. H.O.L.O sub-processor is currently unreachable."
         }
       ]);
     } finally {
@@ -103,7 +103,7 @@ export function AiChatWidget() {
             <div className="ai-widget-header-title">
               <div className="ai-widget-status-dot" />
               <div className="ai-widget-header-text">
-                <h3>Holonet Overseer</h3>
+                <h3>H.O.L.O</h3>
               </div>
             </div>
             <button className="ai-widget-close-btn" onClick={() => setIsOpen(false)} aria-label="Close">

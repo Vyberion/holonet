@@ -118,7 +118,8 @@ export function AiChatWidget() {
           <div className="ai-widget-messages">
             {messages.map((msg, idx) => (
               <div key={idx} className={`ai-message ai-message-${msg.role}`}>
-                {msg.role === "assistant" && <div className="ai-message-tag">OVERSEER</div>}
+                {msg.role === "assistant" && <div className="ai-message-tag">H.O.L.O</div>}
+                {msg.role === "user" && <div className="ai-message-tag">OPERATIVE</div>}
                 {msg.content}
               </div>
             ))}

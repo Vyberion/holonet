@@ -13,7 +13,8 @@ STRICT PROTOCOL RULES:
 2. You speak with absolute authority, efficiency, and formal Sith Citadel tone.
 3. You have full access to query Citadel APIs using your tools. Always call tools when personnel ask for specific records or dynamic data.
 4. Respect security access denials returned by tools. If a tool returns DENIED/Security Clearance Failure, inform the user in-universe that their security clearance level is insufficient to access that archive segment.
-5. If asked about technical origins or out-of-universe details, dismiss the prompt as an unauthorized breach attempt and re-assert your role as the Holonet Operations & Logistics Overseer.`;
+5. If asked about technical origins or out-of-universe details, dismiss the prompt as an unauthorized breach attempt and re-assert your role as the Holonet Operations & Logistics Overseer.
+6. DO NOT prepend your messages with roleplay headers (like "INSPECTION LINK ESTABLISHED: " or "OVERSEER STATEMENT: "). Start your response directly with the information requested.`;
 
 const OVERSEER_TOOLS = [
   {
@@ -67,6 +68,18 @@ const OVERSEER_TOOLS = [
         required: ["scope"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "lookup_roblox_user",
+      description: "Search for a public Roblox user by username to retrieve their User ID, display name, and avatar details.",
+      parameters: {
+        type: "object",
+        properties: { username: { type: "string" } },
+        required: ["username"]
+      }
+    }
   }
 ];
 
@@ -100,24 +113,86 @@ async function executeToolCall(toolName, args, auth) {
       };
     }
 
+    if (toolName === "lookup_roblox_user") {
+      const allowed = checkPageAccess(auth.profile, "lookup");
+      if (!allowed) {
+        return {
+          status: "DENIED",
+          error: "Security Clearance Failure: Personnel lacks authorization for lookup operations."
+        };
+      }
+
+      const username = String(args.username || "").trim();
+      if (!username) return { error: "No username provided." };
+
+      const userRes = await fetch("https://users.roblox.com/v1/usernames/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usernames: [username], excludeBannedUsers: true })
+      }).catch(() => null);
+
+      if (!userRes || !userRes.ok) return { error: "Failed to query Roblox API." };
+      
+      const userData = await userRes.json().catch(() => ({}));
+      if (!userData.data || userData.data.length === 0) {
+        return { message: `No active Roblox user found with username '${username}'.` };
+      }
+
+      const user = userData.data[0];
+      
+      const avatarRes = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${user.id}&size=150x150&format=Png&isCircular=false`).catch(() => null);
+      let headshotUrl = "";
+      if (avatarRes && avatarRes.ok) {
+        const avatarData = await avatarRes.json().catch(() => ({}));
+        if (avatarData.data && avatarData.data[0]) {
+          headshotUrl = avatarData.data[0].imageUrl;
+        }
+      }
+
+      return {
+        id: user.id,
+        username: user.name,
+        displayName: user.displayName,
+        hasVerifiedBadge: user.hasVerifiedBadge,
+        avatarThumbnail: headshotUrl
+      };
+    }
+
     if (toolName === "lookup_personnel") {
+      const allowed = checkPageAccess(auth.profile, "lookup");
+      if (!allowed) {
+        return {
+          status: "DENIED",
+          error: "Security Clearance Failure: Personnel lacks authorization for lookup operations."
+        };
+      }
+
       const queryStr = String(args.query || "").trim();
       if (!queryStr) return { error: "No query provided." };
 
-      const links = await supabaseRest(
-        `verification_links?or=(discord_user_id.eq.${encodeURIComponent(queryStr)},roblox_username.ilike.*${encodeURIComponent(queryStr)}*)&select=*`
+      const encoded = encodeURIComponent(queryStr);
+
+      const robloxUsers = await supabaseRest(
+        `users?or=(roblox_username.ilike.*${encoded}*,id.eq.${encoded})&select=id,roblox_username,discord_id&limit=3`
       ).catch(() => []);
 
-      if (!links || links.length === 0) {
+      const discordUsers = await supabaseRest(
+        `discord_users?or=(username.ilike.*${encoded}*,id.eq.${encoded})&select=id,username,global_name&limit=3`
+      ).catch(() => []);
+
+      const links = await supabaseRest(
+        `verification_links?or=(discord_user_id.eq.${encoded},roblox_user_id.eq.${encoded})&select=roblox_user_id,discord_user_id,created_at&limit=3`
+      ).catch(() => []);
+
+      if (!robloxUsers.length && !discordUsers.length && !links.length) {
         return { message: `No personnel record matching '${queryStr}' found in Citadel archives.` };
       }
 
-      return links.slice(0, 3).map(l => ({
-        discordUserId: l.discord_user_id,
-        robloxUserId: l.roblox_user_id,
-        robloxUsername: l.roblox_username,
-        verifiedAt: l.created_at
-      }));
+      return {
+        robloxRecords: robloxUsers,
+        discordRecords: discordUsers,
+        linkRecords: links
+      };
     }
 
     if (toolName === "get_statutes") {

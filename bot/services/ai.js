@@ -3,7 +3,7 @@ import { getVerifiedProfile } from "./roles.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL_NAME = "llama-3.1-8b-instant";
+const MODEL_NAME = "llama-3.3-70b-versatile";
 
 const BOT_SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), the Sith Empire's central automated artificial intelligence and tactical command system.
 
@@ -388,12 +388,12 @@ function parseXmlToolCalls(choiceMessage) {
   if (!choiceMessage?.content) return;
   const contentStr = choiceMessage.content;
 
-  if (contentStr.includes("<tool_call>")) {
-    const toolCallBlocks = contentStr.match(/<tool_call>[\s\S]*?<\/tool_call>/g) || [];
+  if (contentStr.includes("<tool_call>") || contentStr.includes("<function=")) {
     choiceMessage.tool_calls = choiceMessage.tool_calls || [];
 
-    for (const block of toolCallBlocks) {
-      const funcMatch = block.match(/<function=([^>]+)>/);
+    const blocks = contentStr.match(/<tool_call>[\s\S]*?<\/tool_call>/g) || [contentStr];
+    for (const block of blocks) {
+      const funcMatch = block.match(/<function=([^>]+)>/) || block.match(/<name>([^<]+)<\/name>/);
       if (funcMatch) {
         const fnName = funcMatch[1].trim();
         let fnArgs = {};
@@ -405,15 +405,16 @@ function parseXmlToolCalls(choiceMessage) {
         choiceMessage.tool_calls.push({
           id: "call_" + Math.random().toString(36).substr(2, 9),
           type: "function",
-          function: {
-            name: fnName,
-            arguments: JSON.stringify(fnArgs)
-          }
+          function: { name: fnName, arguments: JSON.stringify(fnArgs) }
         });
       }
     }
 
-    choiceMessage.content = contentStr.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "").trim();
+    choiceMessage.content = contentStr
+      .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "")
+      .replace(/<function=[^>]+>[\s\S]*?<\/function>/g, "")
+      .replace(/<[\/]?tool_call>/g, "")
+      .trim();
   }
 }
 

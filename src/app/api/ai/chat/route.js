@@ -10,7 +10,7 @@ import {
 } from "../../../../lib/api-helpers.js";
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL_NAME = "llama-3.1-8b-instant";
+const MODEL_NAME = "llama-3.3-70b-versatile";
 
 const SYSTEM_PROMPT = `You are the Holonet Operations & Logistics Overseer, the Sith Empire's automated central intelligence and administrative interface.
 
@@ -449,32 +449,35 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
     let result = await response.json();
     let choiceMessage = result.choices?.[0]?.message;
 
-    // Fallback: intercept raw XML tool calls if the model failed to use native JSON tool calling
-    if (choiceMessage?.content && choiceMessage.content.includes("<tool_call>")) {
+    // Fallback: intercept raw XML tool calls if model used XML tags instead of native JSON function calls
+    if (choiceMessage?.content && (choiceMessage.content.includes("<tool_call>") || choiceMessage.content.includes("<function="))) {
       const contentStr = choiceMessage.content;
-      const funcMatch = contentStr.match(/<function=([^>]+)>/);
-      if (funcMatch) {
-        const fnName = funcMatch[1];
-        let fnArgs = {};
-        const paramRegex = /<parameter=([^>]+)>([\s\S]*?)<\/parameter>/g;
-        let pMatch;
-        while ((pMatch = paramRegex.exec(contentStr)) !== null) {
-          fnArgs[pMatch[1]] = pMatch[2].trim();
-        }
+      choiceMessage.tool_calls = choiceMessage.tool_calls || [];
 
-        choiceMessage.tool_calls = choiceMessage.tool_calls || [];
-        choiceMessage.tool_calls.push({
-          id: "call_" + Math.random().toString(36).substr(2, 9),
-          type: "function",
-          function: {
-            name: fnName,
-            arguments: JSON.stringify(fnArgs)
+      const blocks = contentStr.match(/<tool_call>[\s\S]*?<\/tool_call>/g) || [contentStr];
+      for (const block of blocks) {
+        const funcMatch = block.match(/<function=([^>]+)>/) || block.match(/<name>([^<]+)<\/name>/);
+        if (funcMatch) {
+          const fnName = funcMatch[1].trim();
+          let fnArgs = {};
+          const paramRegex = /<parameter=([^>]+)>([\s\S]*?)<\/parameter>/g;
+          let pMatch;
+          while ((pMatch = paramRegex.exec(block)) !== null) {
+            fnArgs[pMatch[1].trim()] = pMatch[2].trim();
           }
-        });
-
-        // Remove the raw XML block from the visible message content
-        choiceMessage.content = contentStr.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "").trim();
+          choiceMessage.tool_calls.push({
+            id: "call_" + Math.random().toString(36).substr(2, 9),
+            type: "function",
+            function: { name: fnName, arguments: JSON.stringify(fnArgs) }
+          });
+        }
       }
+
+      choiceMessage.content = contentStr
+        .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "")
+        .replace(/<function=[^>]+>[\s\S]*?<\/function>/g, "")
+        .replace(/<[\/]?tool_call>/g, "")
+        .trim();
     }
 
     // Process Tool Calls (if model decides to execute tools)

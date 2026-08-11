@@ -23,10 +23,11 @@ const OLD_BOT_IDS = new Set(["242385236259405824", "1536841658149376100", "42653
 const LEGACY_TEXT_TRIGGERS = [";getrole", "!getrole", "/getrole", ";verify", "!verify", ";update-roles", "!update-roles"];
 
 async function maybeHandleHoloAiResponse(message) {
-  if (message.author?.bot) return;
-
   const ALWAYS_RESPOND_USER_IDS = new Set(["1467651749815914546"]);
-  const isAlwaysRespondUser = ALWAYS_RESPOND_USER_IDS.has(message.author.id);
+  const isAlwaysRespondUser = ALWAYS_RESPOND_USER_IDS.has(message.author?.id);
+
+  if (client.user && message.author?.id === client.user.id) return;
+  if (message.author?.bot && !isAlwaysRespondUser) return;
 
   const content = message.content || "";
   const isMentioned = Boolean(

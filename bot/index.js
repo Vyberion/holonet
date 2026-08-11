@@ -67,9 +67,9 @@ async function maybeHandleHoloAiResponse(message) {
     if (errText.includes("429") || errText.includes("rate_limit")) {
       const secondsMatch = errText.match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
       const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
-      await message.reply(`OVERSEER NOTICE: Transmission rate limit reached. Try again in ${timeStr}.`).catch(() => { });
+      await message.reply(`Transmission rate limit reached. Try again in ${timeStr}.`).catch(() => { });
     } else {
-      await message.reply("OVERSEER NOTICE: Holonet sub-processor offline or unavailable.").catch(() => { });
+      await message.reply("Holonet sub-processor offline or unavailable.").catch(() => { });
     }
   }
 }

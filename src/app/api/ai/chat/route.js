@@ -250,72 +250,82 @@ async function executeToolCall(toolName, args, auth) {
       };
     }
 
-function formatStatuteText(st) {
-  let text = `[DOCUMENT]: ${st.title || "Untitled Document"}\nCategory: ${st.category || "Imperial Decree"}\nSummary: ${st.summary || "None"}\n`;
-  if (Array.isArray(st.sections)) {
-    text += st.sections.slice(0, 5).map((s, idx) => `Section ${idx + 1} (${s.title || "Untitled"}): ${String(s.content || "").slice(0, 400)}`).join("\n");
-  } else if (st.content) {
-    text += `Content: ${String(st.content).slice(0, 800)}`;
-  }
-  return text;
-}
-
-const ROMAN_NUMERALS = {
-  "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V",
-  "6": "VI", "7": "VII", "8": "VIII", "9": "IX", "10": "X",
-  "i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5",
-  "vi": "6", "vii": "7", "viii": "8", "ix": "9", "x": "10"
-};
-
-function extractSearchTokens(queryStr) {
-  const clean = String(queryStr || "").toLowerCase().trim();
-  const words = clean.split(/\s+/).filter(w => w && !["the", "a", "an", "for", "of", "in"].includes(w));
-  const expanded = new Set(words);
-
-  for (const word of words) {
-    if (ROMAN_NUMERALS[word]) {
-      expanded.add(ROMAN_NUMERALS[word].toLowerCase());
-    }
-  }
-  return Array.from(expanded);
-}
-
-async function fetchTheCodexApi() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000";
-  let codexDocuments = [];
-
-  // 1. Fetch from /api/codex/statutes API endpoint
-  try {
-    const res1 = await fetch(`${siteUrl}/api/codex/statutes`, { headers: { "Cache-Control": "no-cache" } });
-    if (res1.ok) {
-      const json1 = await res1.json();
-      if (json1?.ok && Array.isArray(json1.data)) {
-        codexDocuments.push(...json1.data);
+    function formatStatuteText(st) {
+      let text = `[DOCUMENT]: ${st.title || "Untitled Document"}\nCategory: ${st.category || "Imperial Decree"}\nSummary: ${st.summary || "None"}\n`;
+      if (Array.isArray(st.sections)) {
+        text += st.sections.slice(0, 5).map((s, idx) => `Section ${idx + 1} (${s.title || "Untitled"}): ${String(s.content || "").slice(0, 400)}`).join("\n");
+      } else if (st.content) {
+        text += `Content: ${String(st.content).slice(0, 800)}`;
       }
+      return text;
     }
-  } catch (e) { }
 
-  // 2. Fetch from /api/library?library=codex API endpoint
-  try {
-    const res2 = await fetch(`${siteUrl}/api/library?library=codex`, { headers: { "Cache-Control": "no-cache" } });
-    if (res2.ok) {
-      const json2 = await res2.json();
-      if (json2?.ok && Array.isArray(json2.documents)) {
-        codexDocuments.push(...json2.documents);
+    const ROMAN_NUMERALS = {
+      "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V",
+      "6": "VI", "7": "VII", "8": "VIII", "9": "IX", "10": "X",
+      "i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5",
+      "vi": "6", "vii": "7", "viii": "8", "ix": "9", "x": "10"
+    };
+
+    function extractSearchTokens(queryStr) {
+      const clean = String(queryStr || "").toLowerCase().trim();
+      const words = clean.split(/\s+/).filter(w => w && !["the", "a", "an", "for", "of", "in"].includes(w));
+      const expanded = new Set(words);
+
+      for (const word of words) {
+        if (ROMAN_NUMERALS[word]) {
+          expanded.add(ROMAN_NUMERALS[word].toLowerCase());
+        }
       }
+      return Array.from(expanded);
     }
-  } catch (e) { }
 
-  if (!codexDocuments.length) {
-    const fallback = await supabaseRest("codex_statutes?select=*&order=created_at.asc").catch(() => []);
-    codexDocuments.push(...fallback);
-  }
+    async function fetchTheCodexApi() {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000";
+      let codexDocuments = [];
 
-  return codexDocuments;
+      // 1. Fetch from /api/codex/statutes API endpoint
+      try {
+        const res1 = await fetch(`${siteUrl}/api/codex/statutes`, { headers: { "Cache-Control": "no-cache" } });
+        if (res1.ok) {
+          const json1 = await res1.json();
+          if (json1?.ok && Array.isArray(json1.data)) {
+            codexDocuments.push(...json1.data);
+          }
+        }
+      } catch (e) { }
+
+      // 2. Fetch from /api/library?library=codex API endpoint
+      try {
+        const res2 = await fetch(`${siteUrl}/api/library?library=codex`, { headers: { "Cache-Control": "no-cache" } });
+        if (res2.ok) {
+          const json2 = await res2.json();
+          if (json2?.ok && Array.isArray(json2.documents)) {
+            codexDocuments.push(...json2.documents);
+          }
+        }
+      } catch (e) { }
+
+      if (!codexDocuments.length) {
+        const fallback = await supabaseRest("codex_statutes?select=*&order=created_at.asc").catch(() => []);
+        codexDocuments.push(...fallback);
+      }
+
+      return codexDocuments;
+    }
+
+    async function searchAllImperialDocuments(queryStr, cat) {
+      const cleanQuery = String(queryStr || "").trim().toLowerCase();
+      const tokens = extractSearchTokens(cleanQuery);
+function sanitizeQueryForSearch(raw) {
+  let s = String(raw || "").toLowerCase();
+  s = s.replace(/<@!?\d+>/g, "");
+  s = s.replace(/\b(yo|lad|bro|hey|hi|hello|whats|what is|tell me|show me|find|search|about|holo|please|can you|the)\b/gi, " ");
+  return s.replace(/\s+/g, " ").trim();
 }
 
 async function searchAllImperialDocuments(queryStr, cat) {
-  const cleanQuery = String(queryStr || "").trim().toLowerCase();
+  const cleanQuery = sanitizeQueryForSearch(queryStr);
   const tokens = extractSearchTokens(cleanQuery);
   let results = [];
 
@@ -334,7 +344,7 @@ async function searchAllImperialDocuments(queryStr, cat) {
 
   // 2. Fetch statutes, library_documents, and archive_articles
   for (const table of ["statutes", "library_documents", "archive_articles"]) {
-    const docs = await supabaseRest(`${table}?select=*&limit=20`).catch(() => []);
+    const docs = await supabaseRest(`${table}?select=*&limit=10`).catch(() => []);
     for (const d of docs) {
       results.push({
         id: d.id,
@@ -367,12 +377,15 @@ async function searchAllImperialDocuments(queryStr, cat) {
   }
 
   const seen = new Set();
-  return results.filter(doc => {
+  const uniqueDocs = results.filter(doc => {
     const key = doc.id || doc.title;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+
+  // Strict cap to top 3 documents to avoid token bloat & 429 rate limits
+  return uniqueDocs.slice(0, 3);
 }
 
     if (toolName === "get_library_documents") {
@@ -508,7 +521,7 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
           const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
           return NextResponse.json({
             role: "assistant",
-            content: `OVERSEER NOTICE: Transmission rate limit reached. Try again in ${timeStr}.`
+            content: `Transmission rate limit reached. Try again in ${timeStr}.`
           });
         }
         return NextResponse.json({
@@ -556,7 +569,7 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
       const lastUserMsg = userMessages.filter(m => m.role === "user").slice(-1)[0]?.content || "";
       const lowerUserMsg = String(lastUserMsg).toLowerCase();
       const codexKeywords = ["regulation", "regulations", "codex", "statute", "statutes", "policy", "ip ", "ip-", "law", "laws", "rule", "rules"];
-      
+
       if (iterations === 1 && (!choiceMessage.tool_calls || choiceMessage.tool_calls.length === 0)) {
         if (codexKeywords.some(kw => lowerUserMsg.includes(kw))) {
           console.log("[H.O.L.O AI] Auto-triggering Codex lookup for query:", lastUserMsg);

@@ -218,7 +218,7 @@ async function executeToolCall(toolName, args, auth) {
       const targetRobloxId = robloxUser?.id ? String(robloxUser.id) : isNumeric ? queryStr : "";
       const targetQuery = targetRobloxId ? encodeURIComponent(targetRobloxId) : encoded;
 
-      const [dbUsers, discordUsers, links] = await Promise.all([
+      const [dbUsers, discordUsers, links, shiftLogs] = await Promise.all([
         supabaseRest(isNumeric
           ? `users?or=(roblox_username.ilike.*${encoded}*,discord_id.eq.${encoded})&select=id,roblox_username,discord_id&limit=3`
           : `users?roblox_username=ilike.*${encoded}*&select=id,roblox_username,discord_id&limit=3`
@@ -229,10 +229,11 @@ async function executeToolCall(toolName, args, auth) {
         ).catch(() => []),
         targetRobloxId || isNumeric
           ? supabaseRest(`verification_links?or=(discord_user_id.eq.${encoded},roblox_user_id.eq.${targetQuery})&select=roblox_user_id,discord_user_id,created_at&limit=3`).catch(() => [])
-          : Promise.resolve([])
+          : Promise.resolve([]),
+        supabaseRest(`clock_shifts?or=(roblox_username.ilike.*${encoded}*,discord_username.ilike.*${encoded}*)&select=discord_user_id,discord_username,roblox_user_id,roblox_username&limit=3`).catch(() => [])
       ]);
 
-      if (!profileData && !dbUsers.length && !discordUsers.length && !links.length) {
+      if (!profileData && !dbUsers.length && !discordUsers.length && !links.length && !shiftLogs.length) {
         return { message: `No personnel record matching '${queryStr}' found in the archives.` };
       }
 
@@ -240,7 +241,8 @@ async function executeToolCall(toolName, args, auth) {
         robloxProfile: profileData,
         databaseUsers: dbUsers,
         discordUsers: discordUsers,
-        verificationLinks: links
+        verificationLinks: links,
+        recentShiftRecords: shiftLogs
       };
     }
 

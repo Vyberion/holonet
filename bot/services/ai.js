@@ -198,7 +198,24 @@ async function executeBotToolCall(toolName, args) {
             .maybeSingle();
           linkRow = data;
         }
+      }
 
+      if (!linkRow || !robloxId) {
+        const { data: shiftMatches } = await supabase
+          .from("clock_shifts")
+          .select("discord_user_id, discord_username, roblox_user_id, roblox_username")
+          .or(`roblox_username.ilike.%${queryStr}%,discord_username.ilike.%${queryStr}%,discord_user_id.eq.${queryStr},roblox_user_id.eq.${queryStr}`)
+          .limit(1);
+
+        if (shiftMatches?.[0]) {
+          const match = shiftMatches[0];
+          if (!robloxId && match.roblox_user_id) robloxId = String(match.roblox_user_id);
+          if (!robloxUsername && match.roblox_username) robloxUsername = match.roblox_username;
+          if (!linkRow && match.discord_user_id) linkRow = { discord_user_id: match.discord_user_id, roblox_user_id: match.roblox_user_id };
+        }
+      }
+
+      if (robloxId) {
         const groupInfo = await fetchRobloxGroupRosters(robloxId);
 
         return {

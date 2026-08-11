@@ -215,8 +215,8 @@ async function executeToolCall(toolName, args, auth) {
         }
       }
 
-      const isNumeric = /^\d+$/.test(queryStr);
-      const encoded = encodeURIComponent(queryStr);
+      const targetRobloxId = robloxUser?.id ? String(robloxUser.id) : isNumeric ? queryStr : "";
+      const targetQuery = targetRobloxId ? encodeURIComponent(targetRobloxId) : encoded;
 
       const [dbUsers, discordUsers, links] = await Promise.all([
         supabaseRest(isNumeric
@@ -227,8 +227,8 @@ async function executeToolCall(toolName, args, auth) {
           ? `discord_users?or=(username.ilike.*${encoded}*,id.eq.${encoded})&select=id,username,global_name&limit=3`
           : `discord_users?username=ilike.*${encoded}*&select=id,username,global_name&limit=3`
         ).catch(() => []),
-        isNumeric
-          ? supabaseRest(`verification_links?or=(discord_user_id.eq.${encoded},roblox_user_id.eq.${encoded})&select=roblox_user_id,discord_user_id,created_at&limit=3`).catch(() => [])
+        targetRobloxId || isNumeric
+          ? supabaseRest(`verification_links?or=(discord_user_id.eq.${encoded},roblox_user_id.eq.${targetQuery})&select=roblox_user_id,discord_user_id,created_at&limit=3`).catch(() => [])
           : Promise.resolve([])
       ]);
 

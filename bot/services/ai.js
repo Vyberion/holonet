@@ -163,8 +163,11 @@ async function executeBotToolCall(toolName, args) {
       const queryStr = String(args.query || args.username || "").trim();
       if (!queryStr) return { error: "No query provided." };
 
-      const isNumeric = /^\d+$/.test(queryStr);
+      let robloxId = null;
+      let robloxUsername = null;
       let linkRow = null;
+
+      const isNumeric = /^\d+$/.test(queryStr);
 
       if (isNumeric) {
         const { data } = await supabase
@@ -173,19 +176,12 @@ async function executeBotToolCall(toolName, args) {
           .or(`discord_user_id.eq.${queryStr},roblox_user_id.eq.${queryStr}`)
           .maybeSingle();
         linkRow = data;
+        if (linkRow) {
+          robloxId = String(linkRow.roblox_user_id);
+        } else {
+          robloxId = queryStr;
+        }
       } else {
-        const { data } = await supabase
-          .from("verification_links")
-          .select("*")
-          .ilike("roblox_username", `%${queryStr}%`)
-          .limit(1);
-        linkRow = data?.[0] || null;
-      }
-
-      let robloxId = linkRow?.roblox_user_id;
-      let robloxUsername = linkRow?.roblox_username;
-
-      if (!robloxId) {
         const rUser = await resolveRobloxUser(queryStr);
         if (rUser?.id) {
           robloxId = String(rUser.id);
@@ -194,7 +190,17 @@ async function executeBotToolCall(toolName, args) {
       }
 
       if (robloxId) {
+        if (!linkRow) {
+          const { data } = await supabase
+            .from("verification_links")
+            .select("*")
+            .eq("roblox_user_id", String(robloxId))
+            .maybeSingle();
+          linkRow = data;
+        }
+
         const groupInfo = await fetchRobloxGroupRosters(robloxId);
+
         return {
           found: true,
           robloxUserId: String(robloxId),

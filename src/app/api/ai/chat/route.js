@@ -9,8 +9,8 @@ import {
   personnelLookupWarnings
 } from "../../../../lib/api-helpers.js";
 
-const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL_NAME = "openrouter/free";
+const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+const MODEL_NAME = "llama-3.3-70b-versatile";
 
 const SYSTEM_PROMPT = `You are the Holonet Operations & Logistics Overseer, the Sith Empire's automated central intelligence and administrative interface.
 
@@ -329,21 +329,12 @@ export async function POST(req) {
     const body = await req.json().catch(() => ({}));
     const userMessages = Array.isArray(body.messages) ? body.messages : [];
 
-    const rawKey =
-      process.env.OPENROUTER_API_KEY ||
-      process.env.OPENROUTER_KEY ||
-      process.env.AI_API_TOKEN ||
-      process.env.AI_TOKEN ||
-      process.env.AI_KEY ||
-      process.env.OPENAI_API_KEY ||
-      process.env.OPENAI_KEY;
-
-    const apiKey = String(rawKey || "").trim();
+    const apiKey = String(process.env.GROQ_API_TOKEN || "").trim();
 
     if (!apiKey) {
       return NextResponse.json({
         role: "assistant",
-        content: "TRANSMISSION ERROR: Subspace AI communications channel unconfigured."
+        content: "TRANSMISSION ERROR: Subspace AI communications channel unconfigured (GROQ_API_TOKEN missing)."
       }, { status: 500 });
     }
 
@@ -371,14 +362,12 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
       }))
     ];
 
-    // Initial OpenRouter call
-    let response = await fetch(OPENROUTER_ENDPOINT, {
+    // Initial Groq call
+    let response = await fetch(GROQ_ENDPOINT, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "https://www.thesithorder.org",
-        "X-Title": "Holonet Operations & Logistics Overseer"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         model: MODEL_NAME,
@@ -390,10 +379,10 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("OpenRouter API error:", response.status, errText);
+      console.error("Groq API error:", response.status, errText);
       return NextResponse.json({
         role: "assistant",
-        content: `COMMUNICATION BREACH: H.O.L.O  returned ${response.status} - ${errText}`
+        content: `COMMUNICATION BREACH: H.O.L.O returned ${response.status} - ${errText}`
       });
     }
 
@@ -450,13 +439,11 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
       }
 
       // Re-invoke model with tool responses
-      response = await fetch(OPENROUTER_ENDPOINT, {
+      response = await fetch(GROQ_ENDPOINT, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "https://www.thesithorder.org",
-          "X-Title": "Holonet Operations & Logistics Overseer"
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           model: MODEL_NAME,

@@ -29,7 +29,7 @@ export async function clockIn(discordUser, options = {}) {
   const shift = await insert("clock_shifts", {
     scope,
     discord_user_id: discordUserId,
-    discord_username: discordUsername || verified.profile?.name || "",
+    discord_username: discordUsername || verified?.link?.discord_username || "",
     roblox_user_id: String(verified.link.roblox_user_id),
     roblox_username: String(verified.profile?.name || ""),
     started_at: startedAt.toISOString(),
@@ -107,7 +107,7 @@ export async function adjustShiftTime(discordUser, minutes, overrideScope = null
     return await insert("clock_shifts", {
       scope,
       discord_user_id: discordUserId,
-      discord_username: discordUsername || verified?.profile?.name || "",
+      discord_username: discordUsername || verified?.link?.discord_username || "",
       roblox_user_id: verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null,
       roblox_username: verified?.profile?.name || null,
       started_at: now,

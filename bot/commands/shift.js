@@ -471,7 +471,7 @@ export async function handleCommand(interaction) {
 
       if (explicitMinutes !== null && explicitMinutes !== undefined) {
         const minutes = Math.max(0, explicitMinutes);
-        const shift = await adjustShiftTime(target.id, type === "add" ? minutes : -minutes);
+        const shift = await adjustShiftTime(target, type === "add" ? minutes : -minutes);
         const totals = await shiftTotals(target.id);
 
         await interaction.reply(ephemeral({ embeds: [successEmbed("Time Adjusted", `${type === "add" ? "Added" : "Removed"} ${minutes} minute(s) ${target.id === interaction.user.id ? "from your total time" : `for <@${target.id}>`}.\nNew total time: ${formatDuration(totals.totalSeconds)}.`)] }));
@@ -547,7 +547,8 @@ export async function handleModal(interaction) {
     const [, action, targetId] = interaction.customId.split(":");
     const minutes = Math.max(0, Number(interaction.fields.getTextInputValue("minutes")) || 0);
     try {
-      const shift = await adjustShiftTime(targetId, action === "add" ? minutes : -minutes);
+      const targetUser = await interaction.client.users.fetch(targetId).catch(() => null);
+      const shift = await adjustShiftTime(targetUser || targetId, action === "add" ? minutes : -minutes);
       const totals = await shiftTotals(targetId);
       
       await interaction.reply(ephemeral({ embeds: [successEmbed("Time Adjusted", `${action === "add" ? "Added" : "Removed"} ${minutes} minute(s) ${targetId === interaction.user.id ? "from your total time" : `for <@${targetId}>`}.\nNew total time: ${formatDuration(totals.totalSeconds)}.`)] }));

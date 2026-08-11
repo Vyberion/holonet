@@ -7,6 +7,8 @@ import { syncClockPanels } from "./services/clock-panels.js";
 import { startShiftReminderLoop } from "./services/shift-reminders.js";
 import { syncStoredPowerbaseRosters } from "./services/powerbase-api.js";
 import { registerRoleConnectionMetadata } from "./services/discord-linked-roles.js";
+import { queryHoloAi } from "./services/ai.js";
+import { getVerifiedProfile } from "./services/roles.js";
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages],
@@ -19,6 +21,50 @@ const client = new Client({
 let lastCheekyResponseAt = 0;
 const OLD_BOT_IDS = new Set(["242385236259405824", "1536841658149376100", "426537812993638400"]);
 const LEGACY_TEXT_TRIGGERS = [";getrole", "!getrole", "/getrole", ";verify", "!verify", ";update-roles", "!update-roles"];
+
+async function maybeHandleHoloAiResponse(message) {
+  if (message.author?.bot) return;
+
+  const content = message.content || "";
+  const isMentioned = Boolean(
+    (client.user && message.mentions?.has?.(client.user.id)) ||
+    (client.user && content.includes(`<@${client.user.id}>`)) ||
+    (client.user && content.includes(`<@!${client.user.id}>`))
+  );
+
+  const isExactHoloName = /\bH\.O\.L\.O\b/i.test(content);
+
+  if (!isMentioned && !isExactHoloName) return;
+
+  const verified = await getVerifiedProfile(message.author.id).catch(() => null);
+  const isSuperUser = Boolean(verified?.profile?.isSuperUser);
+
+  if (!isSuperUser) return;
+
+  let cleanPrompt = content;
+  if (client.user) {
+    cleanPrompt = cleanPrompt.replace(new RegExp(`<@!?${client.user.id}>`, "g"), "");
+  }
+  cleanPrompt = cleanPrompt.replace(/\bH\.O\.L\.O\b/gi, "").trim();
+
+  if (!cleanPrompt) cleanPrompt = "Awaiting command, Overseer.";
+
+  await message.channel.sendTyping().catch(() => { });
+
+  try {
+    const aiReply = await queryHoloAi({
+      prompt: cleanPrompt,
+      userTag: message.author.tag || message.author.username,
+      robloxName: verified?.profile?.name || "",
+      isSuperUser: true
+    });
+
+    await message.reply(aiReply);
+  } catch (error) {
+    console.error("H.O.L.O AI response failed:", error);
+    await message.reply(`H.O.L.O AI Error: ${error.message}`).catch(() => { });
+  }
+}
 
 async function maybeSendOldBotRedirectNotice(message) {
   const isOldBotMsg = OLD_BOT_IDS.has(message.author?.id);
@@ -135,6 +181,7 @@ client.on("interactionCreate", async interaction => {
 client.on("messageCreate", async message => {
   try {
     await maybeSendOldBotRedirectNotice(message);
+    await maybeHandleHoloAiResponse(message);
     await maybeSendCheekyResponse(message);
   } catch (error) {
     console.error("Message handler failed", error);

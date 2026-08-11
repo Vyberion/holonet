@@ -84,10 +84,12 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_powerbases",
-      description: "Fetch active Powerbases, sovereign leaders, and member counts.",
+      description: "Fetch all active Imperial Powerbases, sovereign leaders, prestige, and member counts.",
       parameters: {
         type: "object",
-        properties: { name: { type: "string" } }
+        properties: {
+          name: { type: "string", description: "Optional name of a specific powerbase to filter by. Omit or leave empty to list all powerbases." }
+        }
       }
     }
   },
@@ -304,13 +306,32 @@ async function executeToolCall(toolName, args, auth) {
     }
 
     if (toolName === "get_powerbases") {
-      const nameFilter = args.name ? String(args.name).trim() : "";
-      let query = "powerbases?select=id,name,description,leader_discord_id,created_at";
+      let nameFilter = String(args.name || args.query || "").trim();
+      if (["all", "any", "list", "*", "undefined", "null"].includes(nameFilter.toLowerCase())) {
+        nameFilter = "";
+      }
+
+      let query = "powerbases?select=id,name,description,tier,prestige,leader_discord_id,leader_roblox_id,status,created_at,powerbase_members(id,user_id,roblox_user_id,role)";
       if (nameFilter) {
         query += `&name=ilike.*${encodeURIComponent(nameFilter)}*`;
       }
-      const powerbases = await supabaseRest(query).catch(() => []);
-      return powerbases;
+      let powerbases = await supabaseRest(query).catch(() => []);
+      if (!powerbases.length) {
+        powerbases = await supabaseRest("powerbases?select=id,name,description,tier,prestige,leader_discord_id,leader_roblox_id,status,created_at,powerbase_members(id,user_id,roblox_user_id,role)").catch(() => []);
+      }
+
+      return powerbases.map(pb => ({
+        id: pb.id,
+        name: pb.name,
+        description: pb.description,
+        tier: pb.tier,
+        prestige: pb.prestige,
+        leaderDiscordId: pb.leader_discord_id,
+        leaderRobloxId: pb.leader_roblox_id,
+        status: pb.status || "ACTIVE",
+        memberCount: (pb.powerbase_members?.length || 0) + 1,
+        members: pb.powerbase_members || []
+      }));
     }
 
     return { error: `Tool ${toolName} is not recognized.` };

@@ -129,6 +129,7 @@ const OVERSEER_TOOLS = [
 ];
 
 async function executeToolCall(toolName, args, auth) {
+  console.log(`[H.O.L.O AI Executing Tool] Function: ${toolName}`, args);
   try {
     if (toolName === "get_shift_totals") {
       const scope = args.scope || "all";
@@ -541,6 +542,25 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
           .replace(/<function=[^>]+>[\s\S]*?<\/function>/g, "")
           .replace(/<[\/]?tool_call>/g, "")
           .trim();
+      }
+
+      // Auto-trigger Codex tool call if prompt mentions codex/regulation/statute/ip and model didn't emit a tool call
+      const lastUserMsg = userMessages.filter(m => m.role === "user").slice(-1)[0]?.content || "";
+      const lowerUserMsg = String(lastUserMsg).toLowerCase();
+      const codexKeywords = ["regulation", "regulations", "codex", "statute", "statutes", "policy", "ip ", "ip-", "law", "laws", "rule", "rules"];
+      
+      if (iterations === 1 && (!choiceMessage.tool_calls || choiceMessage.tool_calls.length === 0)) {
+        if (codexKeywords.some(kw => lowerUserMsg.includes(kw))) {
+          console.log("[H.O.L.O AI] Auto-triggering Codex lookup for query:", lastUserMsg);
+          choiceMessage.tool_calls = [{
+            id: "call_auto_" + Math.random().toString(36).substr(2, 9),
+            type: "function",
+            function: {
+              name: "get_library_documents",
+              arguments: JSON.stringify({ query: lastUserMsg })
+            }
+          }];
+        }
       }
 
       if (choiceMessage.tool_calls && choiceMessage.tool_calls.length > 0) {

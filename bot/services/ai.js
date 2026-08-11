@@ -163,6 +163,7 @@ async function fetchRobloxGroupRosters(robloxId) {
 }
 
 async function executeBotToolCall(toolName, args) {
+  console.log(`[H.O.L.O Bot AI Executing Tool] Function: ${toolName}`, args);
   try {
     if (toolName === "lookup_personnel" || toolName === "lookup_roblox_user") {
       const queryStr = String(args.query || args.username || "").trim();
@@ -538,6 +539,24 @@ ACTIVE OPERATIVE TELEMETRY:
     if (!choiceMessage) break;
 
     parseXmlToolCalls(choiceMessage);
+
+    // Auto-trigger Codex tool call if prompt mentions codex/regulation/statute/ip and model didn't emit a tool call
+    const lowerPrompt = String(prompt || "").toLowerCase();
+    const codexKeywords = ["regulation", "regulations", "codex", "statute", "statutes", "policy", "ip ", "ip-", "law", "laws", "rule", "rules"];
+    
+    if (iterations === 1 && (!choiceMessage.tool_calls || choiceMessage.tool_calls.length === 0)) {
+      if (codexKeywords.some(kw => lowerPrompt.includes(kw))) {
+        console.log("[H.O.L.O Bot AI] Auto-triggering Codex lookup for prompt:", prompt);
+        choiceMessage.tool_calls = [{
+          id: "call_auto_" + Math.random().toString(36).substr(2, 9),
+          type: "function",
+          function: {
+            name: "get_library_documents",
+            arguments: JSON.stringify({ query: prompt })
+          }
+        }];
+      }
+    }
 
     if (choiceMessage.tool_calls && choiceMessage.tool_calls.length > 0) {
       messages.push(choiceMessage);

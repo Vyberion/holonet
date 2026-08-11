@@ -267,9 +267,8 @@ async function replyUserTime(interaction, user) {
   const totals = await shiftTotals(user.id, visibleScopes);
   await interaction.reply(ephemeral({ embeds: [embed("Shift Time", [
     `User: <@${user.id}>`,
-    visibleScopes ? `Scopes: ${visibleScopes.map(scopeLabel).join(", ")}` : `Scope: ${scope ? scopeLabel(scope) : "Unassigned"}`,
+    `Scope: ${scope ? scopeLabel(scope) : "Unassigned"}`,
     `Total Time: ${formatDurationLong(totals.totalSeconds)}`,
-    totals.adjustmentSeconds ? `Adjustments: ${totals.adjustmentSeconds >= 0 ? "+" : "-"}${formatDurationLong(Math.abs(totals.adjustmentSeconds))}` : "",
     totals.hasActiveShift ? "Current Shift: active" : "Current Shift: none"
   ].filter(Boolean).join("\n"))] }));
 }
@@ -303,7 +302,7 @@ async function doClockOut(interaction, options = {}, targetUser = null) {
   const isForced = user.id !== interaction.user.id;
   const total = Math.max(0, Number(shift.duration_seconds || 0) + Number(shift.adjustment_seconds || 0));
 
-  await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked Out", `${isForced ? `Clocked out <@${user.id}>\n` : ""}Duration: ${formatDuration(total)}${shift.adjustment_seconds ? `\nAdjustment: ${formatDuration(Math.abs(shift.adjustment_seconds))} ${shift.adjustment_seconds > 0 ? "added" : "removed"}` : ""}${shift.clockout_late ? `\nLate clock-out: ${shift.clockout_late_minutes || 0} minutes` : ""}`)] }));
+  await interaction.reply(ephemeral({ embeds: [successEmbed("Clocked Out", `${isForced ? `Clocked out <@${user.id}>\n` : ""}Duration: ${formatDuration(total)}${shift.clockout_late ? `\nLate clock-out: ${shift.clockout_late_minutes || 0} minutes` : ""}`)] }));
   await postActivityLog(interaction.client, {
     title: "Clock Out",
     description: isForced ? `<@${interaction.user.id}> clocked out <@${user.id}>${shift.clockout_late ? " late" : ""}.` : `<@${user.id}> clocked out${shift.clockout_late ? " late" : ""}.`,
@@ -335,8 +334,7 @@ async function replyShiftSummary(interaction) {
     "Current Shift: none",
     "Started: none"
   ];
-  const adjustmentText = totals.adjustmentSeconds ? `\nAdjustments: ${totals.adjustmentSeconds >= 0 ? "+" : "-"}${formatDuration(Math.abs(totals.adjustmentSeconds))}` : "";
-  await interaction.reply(ephemeral({ embeds: [embed("Shift Time", `${activeLines.join("\n")}\nTotal Time: ${formatDuration(totals.totalSeconds)}${adjustmentText}`)] }));
+  await interaction.reply(ephemeral({ embeds: [embed("Shift Time", `${activeLines.join("\n")}\nTotal Time: ${formatDuration(totals.totalSeconds)}`)] }));
 }
 
 async function canAdjustTarget(interaction, targetUser) {

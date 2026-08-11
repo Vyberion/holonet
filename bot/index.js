@@ -25,6 +25,9 @@ const LEGACY_TEXT_TRIGGERS = [";getrole", "!getrole", "/getrole", ";verify", "!v
 async function maybeHandleHoloAiResponse(message) {
   if (message.author?.bot) return;
 
+  const ALWAYS_RESPOND_USER_IDS = new Set(["1467651749815914546"]);
+  const isAlwaysRespondUser = ALWAYS_RESPOND_USER_IDS.has(message.author.id);
+
   const content = message.content || "";
   const isMentioned = Boolean(
     (client.user && message.mentions?.has?.(client.user.id)) ||
@@ -34,15 +37,14 @@ async function maybeHandleHoloAiResponse(message) {
 
   const isExactHoloName = /\bH\.O\.L\.O\b/i.test(content);
 
-  if (!isMentioned && !isExactHoloName) return;
+  if (!isAlwaysRespondUser) {
+    if (!isMentioned && !isExactHoloName) return;
 
-  const ALLOWED_AI_USER_IDS = new Set(["1467651749815914546"]);
-  const isExplicitlyAllowed = ALLOWED_AI_USER_IDS.has(message.author.id);
+    const verified = await getVerifiedProfile(message.author.id).catch(() => null);
+    const isSuperUser = Boolean(verified?.profile?.isSuperUser);
 
-  const verified = await getVerifiedProfile(message.author.id).catch(() => null);
-  const isSuperUser = Boolean(verified?.profile?.isSuperUser);
-
-  if (!isSuperUser && !isExplicitlyAllowed) return;
+    if (!isSuperUser) return;
+  }
 
   let cleanPrompt = content;
   if (client.user) {
@@ -55,11 +57,12 @@ async function maybeHandleHoloAiResponse(message) {
   await message.channel.sendTyping().catch(() => { });
 
   try {
+    const verified = await getVerifiedProfile(message.author.id).catch(() => null);
     const aiReply = await queryHoloAi({
       prompt: cleanPrompt,
       userTag: message.author.tag || message.author.username,
       robloxName: verified?.profile?.name || "",
-      isSuperUser: isSuperUser || isExplicitlyAllowed
+      isSuperUser: true
     });
 
     await message.reply(aiReply);

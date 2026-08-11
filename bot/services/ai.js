@@ -237,6 +237,16 @@ async function executeBotToolCall(toolName, args) {
       return { found: false, message: `No Imperial personnel or Roblox user record found for '${queryStr}'.` };
     }
 
+function formatStatuteText(st) {
+  let text = `[DOCUMENT]: ${st.title || "Untitled Document"}\nCategory: ${st.category || "Imperial Decree"}\nSummary: ${st.summary || "None"}\n`;
+  if (Array.isArray(st.sections)) {
+    text += st.sections.map((s, idx) => `Section ${idx + 1} (${s.title || "Untitled"}): ${s.content || ""}`).join("\n");
+  } else if (st.content) {
+    text += `Content: ${st.content}`;
+  }
+  return text;
+}
+
 const ROMAN_NUMERALS = {
   "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V",
   "6": "VI", "7": "VII", "8": "VIII", "9": "IX", "10": "X",
@@ -257,34 +267,94 @@ function extractSearchTokens(queryStr) {
   return Array.from(expanded);
 }
 
-async function searchAllBotImperialDocuments(queryStr) {
-  const cleanQuery = String(queryStr || "").trim();
-  const tokens = extractSearchTokens(cleanQuery);
-  const tables = ["codex_statutes", "library_documents", "statutes", "archive_articles"];
-  let results = [];
+async function fetchTheCodexApi() {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000";
+  let codexDocuments = [];
 
-  for (const table of tables) {
-    let { data } = await supabase.from(table).select("id,slug,title,category,summary,content");
-    if (data?.length) results.push(...data);
+  // 1. Fetch from /api/codex/statutes API endpoint
+  try {
+    const res1 = await fetch(`${siteUrl}/api/codex/statutes`, { headers: { "Cache-Control": "no-cache" } });
+    if (res1.ok) {
+      const json1 = await res1.json();
+      if (json1?.ok && Array.isArray(json1.data)) {
+        codexDocuments.push(...json1.data);
+      }
+    }
+  } catch (e) { }
+
+  // 2. Fetch from /api/library?library=codex API endpoint
+  try {
+    const res2 = await fetch(`${siteUrl}/api/library?library=codex`, { headers: { "Cache-Control": "no-cache" } });
+    if (res2.ok) {
+      const json2 = await res2.json();
+      if (json2?.ok && Array.isArray(json2.documents)) {
+        codexDocuments.push(...json2.documents);
+      }
+    }
+  } catch (e) { }
+
+  if (!codexDocuments.length) {
+    const { data } = await supabase.from("codex_statutes").select("*");
+    if (data) codexDocuments.push(...data);
   }
 
-  if (cleanQuery && results.length) {
-    const lowerQuery = cleanQuery.toLowerCase();
-    let matches = results.filter(d =>
-      String(d.title || "").toLowerCase().includes(lowerQuery) ||
-      String(d.summary || "").toLowerCase().includes(lowerQuery) ||
-      String(d.content || "").toLowerCase().includes(lowerQuery) ||
-      String(d.category || "").toLowerCase().includes(lowerQuery)
-    );
+  return codexDocuments;
+}
 
-    if (!matches.length && tokens.length > 0) {
-      matches = results.filter(d => {
-        const text = `${d.title} ${d.summary} ${d.content} ${d.category}`.toLowerCase();
-        return tokens.some(t => text.includes(t));
+async function searchAllBotImperialDocuments(queryStr) {
+  const cleanQuery = String(queryStr || "").trim().toLowerCase();
+  const tokens = extractSearchTokens(cleanQuery);
+  let results = [];
+
+  // 1. Fetch from official Codex API endpoints
+  const codexRows = await fetchTheCodexApi();
+  if (codexRows?.length) {
+    for (const st of codexRows) {
+      results.push({
+        id: st.id,
+        title: st.title || st.name,
+        category: st.category || "Codex",
+        summary: st.summary || "",
+        content: formatStatuteText(st),
+        slug: st.slug || st.id
+      });
+    }
+  }
+
+  // 2. Fetch statutes, library_documents, and archive_articles
+  for (const table of ["statutes", "library_documents", "archive_articles"]) {
+    const { data: docs } = await supabase.from(table).select("*").limit(20);
+    if (docs?.length) {
+      for (const d of docs) {
+        results.push({
+          id: d.id,
+          title: d.title || d.name || "Untitled",
+          category: d.category || table,
+          summary: d.summary || "",
+          content: d.content || d.description || formatStatuteText(d),
+          slug: d.slug || d.id
+        });
+      }
+    }
+  }
+
+  // 3. Filter in memory by cleanQuery and tokens
+  if (cleanQuery) {
+    let filtered = results.filter(doc => {
+      const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category}`.toLowerCase();
+      return fullText.includes(cleanQuery);
+    });
+
+    if (!filtered.length && tokens.length > 0) {
+      filtered = results.filter(doc => {
+        const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category}`.toLowerCase();
+        return tokens.some(t => fullText.includes(t));
       });
     }
 
-    if (matches.length) results = matches;
+    if (filtered.length) {
+      results = filtered;
+    }
   }
 
   const seen = new Set();

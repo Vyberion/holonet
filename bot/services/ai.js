@@ -34,11 +34,11 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_statutes",
-      description: "Retrieve official Sith Order statutes, codex laws, and legal decree documents.",
+      description: "Retrieve official Sith Order statutes, Codex laws, Imperial Policy (IP), decrees, and legal governance rules.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query or title keyword for statutes" },
+          query: { type: "string", description: "Search query, keyword, or IP number for statutes and codex laws" },
           category: { type: "string", description: "Category filter" }
         }
       }
@@ -48,11 +48,11 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_library_documents",
-      description: "Search and retrieve official Imperial regulations, library documents, handbooks, and operational guides.",
+      description: "Search and retrieve official Imperial regulations, Imperial Policy (IP), library documents, codex entries, handbooks, and operational directives.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query or keyword for regulations and library documents" },
+          query: { type: "string", description: "Search query or keyword for regulations, IP, and library documents" },
           category: { type: "string", description: "Category filter" }
         }
       }
@@ -238,30 +238,92 @@ async function executeBotToolCall(toolName, args) {
     }
 
     if (toolName === "get_statutes") {
-      const queryStr = String(args.query || "").trim();
-      let query = supabase.from("statutes").select("slug,title,category,summary,content").limit(10);
-      if (queryStr) query = query.or(`title.ilike.%${queryStr}%,summary.ilike.%${queryStr}%,content.ilike.%${queryStr}%`);
+      let queryStr = String(args.query || args.search || "").trim();
+      if (["all", "laws", "codex", "statutes", "list", "ip", "imperial policy", "imperial policies", "policy", "policies", "rules", "rulebook", "*"].includes(queryStr.toLowerCase())) {
+        queryStr = "";
+      }
 
-      const { data } = await query;
-      return data?.length ? data : { message: `No statutes found matching '${queryStr}'.` };
+      let { data: statutes } = await supabase
+        .from("codex_statutes")
+        .select("id,slug,title,category,summary,content");
+
+      if (!statutes || !statutes.length) {
+        const { data: s2 } = await supabase
+          .from("statutes")
+          .select("id,slug,title,category,summary,content");
+        statutes = s2 || [];
+      }
+
+      if (!statutes || !statutes.length) {
+        const { data: s3 } = await supabase
+          .from("library_documents")
+          .select("id,slug,title,category,summary,content");
+        statutes = s3 || [];
+      }
+
+      if (queryStr && statutes.length) {
+        const lower = queryStr.toLowerCase();
+        statutes = statutes.filter(s =>
+          String(s.title || "").toLowerCase().includes(lower) ||
+          String(s.summary || "").toLowerCase().includes(lower) ||
+          String(s.content || "").toLowerCase().includes(lower) ||
+          String(s.category || "").toLowerCase().includes(lower)
+        );
+      }
+
+      return statutes?.length ? statutes : { message: `No Sith Order statutes or codex laws found matching '${queryStr || "all"}'.` };
     }
 
     if (toolName === "get_library_documents") {
-      const queryStr = String(args.query || "").trim();
-      let query = supabase.from("library_documents").select("title,category,summary,content").limit(10);
-      if (queryStr) query = query.or(`title.ilike.%${queryStr}%,summary.ilike.%${queryStr}%,content.ilike.%${queryStr}%`);
+      let queryStr = String(args.query || args.search || "").trim();
+      if (["all", "list", "library", "documents", "ip", "imperial policy", "imperial policies", "policy", "policies", "*"].includes(queryStr.toLowerCase())) {
+        queryStr = "";
+      }
 
-      const { data } = await query;
-      return data?.length ? data : { message: `No library documents found matching '${queryStr}'.` };
+      let { data: docs } = await supabase
+        .from("library_documents")
+        .select("id,slug,title,category,summary,content");
+
+      if (!docs || !docs.length) {
+        const { data: d2 } = await supabase
+          .from("codex_statutes")
+          .select("id,slug,title,category,summary,content");
+        docs = d2 || [];
+      }
+
+      if (queryStr && docs.length) {
+        const lower = queryStr.toLowerCase();
+        docs = docs.filter(d =>
+          String(d.title || "").toLowerCase().includes(lower) ||
+          String(d.summary || "").toLowerCase().includes(lower) ||
+          String(d.content || "").toLowerCase().includes(lower) ||
+          String(d.category || "").toLowerCase().includes(lower)
+        );
+      }
+
+      return docs?.length ? docs : { message: `No library documents or regulations found matching '${queryStr || "all"}'.` };
     }
 
     if (toolName === "get_archives") {
-      const queryStr = String(args.query || "").trim();
-      let query = supabase.from("archive_articles").select("title,category,summary,content").limit(10);
-      if (queryStr) query = query.or(`title.ilike.%${queryStr}%,summary.ilike.%${queryStr}%,content.ilike.%${queryStr}%`);
+      let queryStr = String(args.query || args.search || "").trim();
+      if (["all", "list", "archives", "*"].includes(queryStr.toLowerCase())) {
+        queryStr = "";
+      }
 
-      const { data } = await query;
-      return data?.length ? data : { message: `No archive articles found matching '${queryStr}'.` };
+      let { data: articles } = await supabase
+        .from("archive_articles")
+        .select("id,slug,title,category,summary,content");
+
+      if (queryStr && articles?.length) {
+        const lower = queryStr.toLowerCase();
+        articles = articles.filter(a =>
+          String(a.title || "").toLowerCase().includes(lower) ||
+          String(a.summary || "").toLowerCase().includes(lower) ||
+          String(a.content || "").toLowerCase().includes(lower)
+        );
+      }
+
+      return articles?.length ? articles : { message: `No archive articles found matching '${queryStr || "all"}'.` };
     }
 
     if (toolName === "get_powerbases") {
@@ -322,6 +384,39 @@ async function executeBotToolCall(toolName, args) {
   }
 }
 
+function parseXmlToolCalls(choiceMessage) {
+  if (!choiceMessage?.content) return;
+  const contentStr = choiceMessage.content;
+
+  if (contentStr.includes("<tool_call>")) {
+    const toolCallBlocks = contentStr.match(/<tool_call>[\s\S]*?<\/tool_call>/g) || [];
+    choiceMessage.tool_calls = choiceMessage.tool_calls || [];
+
+    for (const block of toolCallBlocks) {
+      const funcMatch = block.match(/<function=([^>]+)>/);
+      if (funcMatch) {
+        const fnName = funcMatch[1].trim();
+        let fnArgs = {};
+        const paramRegex = /<parameter=([^>]+)>([\s\S]*?)<\/parameter>/g;
+        let pMatch;
+        while ((pMatch = paramRegex.exec(block)) !== null) {
+          fnArgs[pMatch[1].trim()] = pMatch[2].trim();
+        }
+        choiceMessage.tool_calls.push({
+          id: "call_" + Math.random().toString(36).substr(2, 9),
+          type: "function",
+          function: {
+            name: fnName,
+            arguments: JSON.stringify(fnArgs)
+          }
+        });
+      }
+    }
+
+    choiceMessage.content = contentStr.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "").trim();
+  }
+}
+
 export async function queryHoloAi({ prompt, userTag, robloxName, isSuperUser }) {
   const apiKey = String(process.env.GROQ_API_TOKEN || "").trim();
 
@@ -363,6 +458,8 @@ ACTIVE OPERATIVE TELEMETRY:
 
   let data = await response.json();
   let choiceMessage = data.choices?.[0]?.message;
+
+  parseXmlToolCalls(choiceMessage);
 
   if (choiceMessage?.tool_calls && choiceMessage.tool_calls.length > 0) {
     messages.push(choiceMessage);

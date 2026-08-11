@@ -43,11 +43,11 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_statutes",
-      description: "Retrieve official Sith Order statutes, codex laws, and legal decree documents.",
+      description: "Retrieve official Sith Order statutes, Codex laws, Imperial Policy (IP), decrees, and legal governance rules.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query or title keyword for statutes" },
+          query: { type: "string", description: "Search query, keyword, or IP number for statutes and codex laws" },
           category: { type: "string", description: "Category filter" }
         }
       }
@@ -57,11 +57,11 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_library_documents",
-      description: "Search and retrieve official Imperial regulations, library documents, handbooks, and operational guides.",
+      description: "Search and retrieve official Imperial regulations, Imperial Policy (IP), library documents, codex entries, handbooks, and operational directives.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query or keyword for regulations and library documents" },
+          query: { type: "string", description: "Search query or keyword for regulations, IP, and library documents" },
           category: { type: "string", description: "Category filter" }
         }
       }
@@ -250,59 +250,69 @@ async function executeToolCall(toolName, args, auth) {
     }
 
     if (toolName === "get_library_documents") {
-      const allowed = checkPageAccess(auth.profile, "library") || checkPageAccess(auth.profile, "codex");
-      if (!allowed) {
-        return { status: "DENIED", error: "Security Clearance Failure: Personnel lacks clearance for library archives." };
+      let queryStr = String(args.query || args.search || "").trim();
+      if (["all", "list", "library", "documents", "ip", "imperial policy", "imperial policies", "policy", "policies", "*"].includes(queryStr.toLowerCase())) {
+        queryStr = "";
       }
-      const queryStr = String(args.query || "").trim();
       const cat = String(args.category || "").trim();
       const encoded = encodeURIComponent(queryStr);
-      let query = "library_documents?select=id,title,category,summary,content,slug&order=created_at.desc&limit=10";
-      if (queryStr) query += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
-      if (cat) query += `&category=ilike.*${encodeURIComponent(cat)}*`;
 
-      let docs = await supabaseRest(query).catch(() => []);
+      let docs = [];
+      let q1 = "library_documents?select=id,title,category,summary,content,slug&order=created_at.desc&limit=15";
+      if (queryStr) q1 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
+      if (cat) q1 += `&category=ilike.*${encodeURIComponent(cat)}*`;
+      docs = await supabaseRest(q1).catch(() => []);
+
       if (!docs.length) {
-        let query2 = "library_entries?select=id,title,category,summary,content,slug&order=created_at.desc&limit=10";
-        if (queryStr) query2 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
-        docs = await supabaseRest(query2).catch(() => []);
+        let q2 = "codex_statutes?select=id,title,category,summary,content,slug&order=created_at.desc&limit=15";
+        if (queryStr) q2 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
+        docs = await supabaseRest(q2).catch(() => []);
       }
-      return docs;
+
+      return docs.length ? docs : { message: `No library documents or regulations found matching '${queryStr || "all"}'.` };
     }
 
     if (toolName === "get_archives") {
-      const allowed = checkPageAccess(auth.profile, "archives");
-      if (!allowed) {
-        return { status: "DENIED", error: "Security Clearance Failure: Personnel lacks clearance for lore archives." };
+      let queryStr = String(args.query || args.search || "").trim();
+      if (["all", "list", "archives", "*"].includes(queryStr.toLowerCase())) {
+        queryStr = "";
       }
-      const queryStr = String(args.query || "").trim();
       const encoded = encodeURIComponent(queryStr);
-      let query = "archive_articles?select=id,title,category,summary,content,slug&order=created_at.desc&limit=10";
+      let query = "archive_articles?select=id,title,category,summary,content,slug&order=created_at.desc&limit=15";
       if (queryStr) query += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
 
       const articles = await supabaseRest(query).catch(() => []);
-      return articles;
+      return articles.length ? articles : { message: `No archive articles found matching '${queryStr || "all"}'.` };
     }
 
     if (toolName === "get_statutes") {
-      const allowed = checkPageAccess(auth.profile, "codex");
-      if (!allowed) {
-        return { status: "DENIED", error: "Security Clearance Failure: Personnel lacks clearance for codex statutes." };
+      let queryStr = String(args.query || args.search || "").trim();
+      if (["all", "laws", "codex", "statutes", "list", "ip", "imperial policy", "imperial policies", "policy", "policies", "rules", "rulebook", "*"].includes(queryStr.toLowerCase())) {
+        queryStr = "";
       }
-      const queryStr = String(args.query || "").trim();
       const cat = String(args.category || "").trim();
       const encoded = encodeURIComponent(queryStr);
-      let query = "statutes?select=slug,title,category,summary,content&order=created_at.desc&limit=10";
-      if (queryStr) query += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
-      if (cat) query += `&category=ilike.*${encodeURIComponent(cat)}*`;
 
-      let statutes = await supabaseRest(query).catch(() => []);
+      let statutes = [];
+      let q1 = "codex_statutes?select=id,slug,title,category,summary,content&order=created_at.desc&limit=15";
+      if (queryStr) q1 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
+      if (cat) q1 += `&category=ilike.*${encodeURIComponent(cat)}*`;
+      statutes = await supabaseRest(q1).catch(() => []);
+
       if (!statutes.length) {
-        let query2 = "codex_statutes?select=slug,title,category,summary,content&order=created_at.desc&limit=10";
-        if (queryStr) query2 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
-        statutes = await supabaseRest(query2).catch(() => []);
+        let q2 = "statutes?select=id,slug,title,category,summary,content&order=created_at.desc&limit=15";
+        if (queryStr) q2 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
+        if (cat) q2 += `&category=ilike.*${encodeURIComponent(cat)}*`;
+        statutes = await supabaseRest(q2).catch(() => []);
       }
-      return statutes;
+
+      if (!statutes.length) {
+        let q3 = "library_documents?select=id,title,category,summary,content,slug&order=created_at.desc&limit=15";
+        if (queryStr) q3 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
+        statutes = await supabaseRest(q3).catch(() => []);
+      }
+
+      return statutes.length ? statutes : { message: `No Sith Order statutes or codex laws found matching '${queryStr || "all"}'.` };
     }
 
     if (toolName === "get_powerbases") {

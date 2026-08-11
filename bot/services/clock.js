@@ -100,21 +100,60 @@ export async function adjustShiftTime(discordUser, minutes, overrideScope = null
   }
   if (!scope) scope = "reavers";
 
-  const now = new Date().toISOString();
-  const data = await insert("clock_shifts", {
-    scope,
-    discord_user_id: discordUserId,
-    discord_username: discordUsername || verified?.profile?.name || "",
-    roblox_user_id: verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null,
-    roblox_username: verified?.profile?.name || null,
-    started_at: now,
-    ended_at: now,
-    duration_seconds: 0,
-    adjustment_seconds: Math.trunc(minutes * 60),
-    status: "completed"
-  });
+  const targetSeconds = Math.trunc(minutes * 60);
 
-  return data;
+  if (targetSeconds >= 0) {
+    const now = new Date().toISOString();
+    return await insert("clock_shifts", {
+      scope,
+      discord_user_id: discordUserId,
+      discord_username: discordUsername || verified?.profile?.name || "",
+      roblox_user_id: verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null,
+      roblox_username: verified?.profile?.name || null,
+      started_at: now,
+      ended_at: now,
+      duration_seconds: targetSeconds,
+      adjustment_seconds: 0,
+      status: "completed"
+    });
+  } else {
+    let secondsToRemove = Math.abs(targetSeconds);
+
+    let query = supabase
+      .from("clock_shifts")
+      .select("id, duration_seconds")
+      .eq("discord_user_id", discordUserId)
+      .eq("status", "completed")
+      .order("started_at", { ascending: false });
+
+    if (overrideScope) query = query.eq("scope", overrideScope);
+
+    const { data: shifts, error } = await query;
+    if (error) throw error;
+
+    for (const shift of (shifts || [])) {
+      if (secondsToRemove <= 0) break;
+      const currentDuration = Number(shift.duration_seconds || 0);
+      if (currentDuration <= 0) continue;
+
+      if (currentDuration >= secondsToRemove) {
+        const newDuration = currentDuration - secondsToRemove;
+        secondsToRemove = 0;
+        await supabase
+          .from("clock_shifts")
+          .update({ duration_seconds: newDuration })
+          .eq("id", shift.id);
+      } else {
+        secondsToRemove -= currentDuration;
+        await supabase
+          .from("clock_shifts")
+          .update({ duration_seconds: 0 })
+          .eq("id", shift.id);
+      }
+    }
+
+    return { scope, discord_user_id: discordUserId };
+  }
 }
 
 export async function shiftTotals(discordUserId, scopes = null) {
@@ -130,23 +169,25 @@ export async function shiftTotals(discordUserId, scopes = null) {
   if (error) throw error;
 
   const now = Date.now();
+  let total = 0;
 
-  return (data || []).reduce((totals, shift) => {
-    const liveSeconds = shift.status === "active"
-      ? Math.max(0, Math.floor((now - new Date(shift.started_at).getTime()) / 1000))
-      : Number(shift.duration_seconds || 0);
+  for (const shift of (data || [])) {
+    if (shift.status === "active") {
+      total += Math.max(0, Math.floor((now - new Date(shift.started_at).getTime()) / 1000));
+    } else {
+      total += Number(shift.duration_seconds || 0);
+    }
+    total += Number(shift.adjustment_seconds || 0);
+  }
 
-    totals.rawSeconds += liveSeconds;
-    totals.adjustmentSeconds += Number(shift.adjustment_seconds || 0);
-    return totals;
-  }, {
-    rawSeconds: 0,
+  const finalTotal = Math.max(0, total);
+
+  return {
+    rawSeconds: finalTotal,
     adjustmentSeconds: 0,
-    get totalSeconds() {
-      return Math.max(0, this.rawSeconds + this.adjustmentSeconds);
-    },
+    totalSeconds: finalTotal,
     hasActiveShift: (data || []).some(shift => shift.status === "active")
-  });
+  };
 }
 
 export function formatDuration(seconds = 0) {

@@ -2,7 +2,7 @@ import { ActivityType, Client, GatewayIntentBits, MessageFlags, Partials } from 
 import { config, requireEnv } from "./config/index.js";
 import { routeInteraction } from "./commands/index.js";
 import { botErrorPayload } from "./services/bot-errors.js";
-import { ephemeral, errorEmbed } from "./services/discord-ui.js";
+import { componentsV2Message, containerV2, ephemeral, errorEmbed, textDisplayV2 } from "./services/discord-ui.js";
 import { syncClockPanels } from "./services/clock-panels.js";
 import { startShiftReminderLoop } from "./services/shift-reminders.js";
 import { syncStoredPowerbaseRosters } from "./services/powerbase-api.js";
@@ -17,6 +17,22 @@ const client = new Client({
 });
 
 let lastCheekyResponseAt = 0;
+const OLD_BOT_ID = "1536841658149376100";
+const VERIFICATION_CHANNEL_ID = "1046841602519343164";
+
+async function maybeSendOldBotRedirectNotice(message) {
+  if (message.author?.id !== OLD_BOT_ID) return;
+  if (message.channelId !== VERIFICATION_CHANNEL_ID) return;
+
+  const payload = componentsV2Message([
+    containerV2([
+      textDisplayV2("### Incorrect Bot"),
+      textDisplayV2("Bloxlink is no longer use. Use H.O.L.O to manage your verification & roles:\n\n• </verify:0> — Link your Roblox account\n• </role get:0> — Sync your Roblox ranks & roles\n• </update-roles:0> — Sync roles for another member")
+    ], 0xc90705)
+  ]);
+
+  await message.reply(payload).catch(() => { });
+}
 
 function pickRandom(items) {
   return items[Math.floor(Math.random() * items.length)];
@@ -115,9 +131,10 @@ client.on("interactionCreate", async interaction => {
 
 client.on("messageCreate", async message => {
   try {
+    await maybeSendOldBotRedirectNotice(message);
     await maybeSendCheekyResponse(message);
   } catch (error) {
-    console.error("Cheeky responder failed", error);
+    console.error("Message handler failed", error);
   }
 });
 

@@ -237,40 +237,72 @@ async function executeBotToolCall(toolName, args) {
       return { found: false, message: `No Imperial personnel or Roblox user record found for '${queryStr}'.` };
     }
 
+const ROMAN_NUMERALS = {
+  "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V",
+  "6": "VI", "7": "VII", "8": "VIII", "9": "IX", "10": "X",
+  "i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5",
+  "vi": "6", "vii": "7", "viii": "8", "ix": "9", "x": "10"
+};
+
+function extractSearchTokens(queryStr) {
+  const clean = String(queryStr || "").toLowerCase().trim();
+  const words = clean.split(/\s+/).filter(w => w && !["the", "a", "an", "for", "of", "in"].includes(w));
+  const expanded = new Set(words);
+
+  for (const word of words) {
+    if (ROMAN_NUMERALS[word]) {
+      expanded.add(ROMAN_NUMERALS[word].toLowerCase());
+    }
+  }
+  return Array.from(expanded);
+}
+
+async function searchAllBotImperialDocuments(queryStr) {
+  const cleanQuery = String(queryStr || "").trim();
+  const tokens = extractSearchTokens(cleanQuery);
+  const tables = ["codex_statutes", "library_documents", "statutes", "archive_articles"];
+  let results = [];
+
+  for (const table of tables) {
+    let { data } = await supabase.from(table).select("id,slug,title,category,summary,content");
+    if (data?.length) results.push(...data);
+  }
+
+  if (cleanQuery && results.length) {
+    const lowerQuery = cleanQuery.toLowerCase();
+    let matches = results.filter(d =>
+      String(d.title || "").toLowerCase().includes(lowerQuery) ||
+      String(d.summary || "").toLowerCase().includes(lowerQuery) ||
+      String(d.content || "").toLowerCase().includes(lowerQuery) ||
+      String(d.category || "").toLowerCase().includes(lowerQuery)
+    );
+
+    if (!matches.length && tokens.length > 0) {
+      matches = results.filter(d => {
+        const text = `${d.title} ${d.summary} ${d.content} ${d.category}`.toLowerCase();
+        return tokens.some(t => text.includes(t));
+      });
+    }
+
+    if (matches.length) results = matches;
+  }
+
+  const seen = new Set();
+  return results.filter(doc => {
+    const key = doc.id || doc.title;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
     if (toolName === "get_statutes") {
       let queryStr = String(args.query || args.search || "").trim();
       if (["all", "laws", "codex", "statutes", "list", "ip", "imperial policy", "imperial policies", "policy", "policies", "rules", "rulebook", "*"].includes(queryStr.toLowerCase())) {
         queryStr = "";
       }
 
-      let { data: statutes } = await supabase
-        .from("codex_statutes")
-        .select("id,slug,title,category,summary,content");
-
-      if (!statutes || !statutes.length) {
-        const { data: s2 } = await supabase
-          .from("statutes")
-          .select("id,slug,title,category,summary,content");
-        statutes = s2 || [];
-      }
-
-      if (!statutes || !statutes.length) {
-        const { data: s3 } = await supabase
-          .from("library_documents")
-          .select("id,slug,title,category,summary,content");
-        statutes = s3 || [];
-      }
-
-      if (queryStr && statutes.length) {
-        const lower = queryStr.toLowerCase();
-        statutes = statutes.filter(s =>
-          String(s.title || "").toLowerCase().includes(lower) ||
-          String(s.summary || "").toLowerCase().includes(lower) ||
-          String(s.content || "").toLowerCase().includes(lower) ||
-          String(s.category || "").toLowerCase().includes(lower)
-        );
-      }
-
+      const statutes = await searchAllBotImperialDocuments(queryStr);
       return statutes?.length ? statutes : { message: `No Sith Order statutes or codex laws found matching '${queryStr || "all"}'.` };
     }
 
@@ -280,27 +312,7 @@ async function executeBotToolCall(toolName, args) {
         queryStr = "";
       }
 
-      let { data: docs } = await supabase
-        .from("library_documents")
-        .select("id,slug,title,category,summary,content");
-
-      if (!docs || !docs.length) {
-        const { data: d2 } = await supabase
-          .from("codex_statutes")
-          .select("id,slug,title,category,summary,content");
-        docs = d2 || [];
-      }
-
-      if (queryStr && docs.length) {
-        const lower = queryStr.toLowerCase();
-        docs = docs.filter(d =>
-          String(d.title || "").toLowerCase().includes(lower) ||
-          String(d.summary || "").toLowerCase().includes(lower) ||
-          String(d.content || "").toLowerCase().includes(lower) ||
-          String(d.category || "").toLowerCase().includes(lower)
-        );
-      }
-
+      const docs = await searchAllBotImperialDocuments(queryStr);
       return docs?.length ? docs : { message: `No library documents or regulations found matching '${queryStr || "all"}'.` };
     }
 
@@ -310,19 +322,7 @@ async function executeBotToolCall(toolName, args) {
         queryStr = "";
       }
 
-      let { data: articles } = await supabase
-        .from("archive_articles")
-        .select("id,slug,title,category,summary,content");
-
-      if (queryStr && articles?.length) {
-        const lower = queryStr.toLowerCase();
-        articles = articles.filter(a =>
-          String(a.title || "").toLowerCase().includes(lower) ||
-          String(a.summary || "").toLowerCase().includes(lower) ||
-          String(a.content || "").toLowerCase().includes(lower)
-        );
-      }
-
+      const articles = await searchAllBotImperialDocuments(queryStr);
       return articles?.length ? articles : { message: `No archive articles found matching '${queryStr || "all"}'.` };
     }
 

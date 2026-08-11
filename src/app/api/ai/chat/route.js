@@ -249,26 +249,82 @@ async function executeToolCall(toolName, args, auth) {
       };
     }
 
+const ROMAN_NUMERALS = {
+  "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V",
+  "6": "VI", "7": "VII", "8": "VIII", "9": "IX", "10": "X",
+  "i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5",
+  "vi": "6", "vii": "7", "viii": "8", "ix": "9", "x": "10"
+};
+
+function extractSearchTokens(queryStr) {
+  const clean = String(queryStr || "").toLowerCase().trim();
+  const words = clean.split(/\s+/).filter(w => w && !["the", "a", "an", "for", "of", "in"].includes(w));
+  const expanded = new Set(words);
+
+  for (const word of words) {
+    if (ROMAN_NUMERALS[word]) {
+      expanded.add(ROMAN_NUMERALS[word].toLowerCase());
+    }
+  }
+  return Array.from(expanded);
+}
+
+async function searchAllImperialDocuments(queryStr, cat) {
+  const cleanQuery = String(queryStr || "").trim();
+  const tokens = extractSearchTokens(cleanQuery);
+  const tables = ["codex_statutes", "library_documents", "statutes", "archive_articles"];
+  let results = [];
+
+  // 1. Exact string search across all tables
+  for (const table of tables) {
+    let q = `${table}?select=id,title,category,summary,content,slug&order=created_at.desc&limit=15`;
+    if (cleanQuery) {
+      const encoded = encodeURIComponent(cleanQuery);
+      q += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
+    }
+    if (cat) q += `&category=ilike.*${encodeURIComponent(cat)}*`;
+
+    const docs = await supabaseRest(q).catch(() => []);
+    if (docs.length) results.push(...docs);
+  }
+
+  // 2. Token / Roman numeral variation search
+  if (!results.length && tokens.length > 0) {
+    for (const token of tokens) {
+      if (token.length < 2 && !/^\d+$/.test(token)) continue;
+      const encodedToken = encodeURIComponent(token);
+      for (const table of tables) {
+        const q = `${table}?or=(title.ilike.*${encodedToken}*,summary.ilike.*${encodedToken}*,content.ilike.*${encodedToken}*)&select=id,title,category,summary,content,slug&limit=15`;
+        const docs = await supabaseRest(q).catch(() => []);
+        if (docs.length) results.push(...docs);
+      }
+    }
+  }
+
+  // 3. Fallback: Fetch all codex statutes & library documents so the AI model can inspect the actual rules
+  if (!results.length) {
+    for (const table of ["codex_statutes", "library_documents", "statutes"]) {
+      const docs = await supabaseRest(`${table}?select=id,title,category,summary,content,slug&limit=15`).catch(() => []);
+      if (docs.length) results.push(...docs);
+    }
+  }
+
+  const seen = new Set();
+  return results.filter(doc => {
+    const key = doc.id || doc.title;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
     if (toolName === "get_library_documents") {
       let queryStr = String(args.query || args.search || "").trim();
       if (["all", "list", "library", "documents", "ip", "imperial policy", "imperial policies", "policy", "policies", "*"].includes(queryStr.toLowerCase())) {
         queryStr = "";
       }
       const cat = String(args.category || "").trim();
-      const encoded = encodeURIComponent(queryStr);
-
-      let docs = [];
-      let q1 = "library_documents?select=id,title,category,summary,content,slug&order=created_at.desc&limit=15";
-      if (queryStr) q1 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
-      if (cat) q1 += `&category=ilike.*${encodeURIComponent(cat)}*`;
-      docs = await supabaseRest(q1).catch(() => []);
-
-      if (!docs.length) {
-        let q2 = "codex_statutes?select=id,title,category,summary,content,slug&order=created_at.desc&limit=15";
-        if (queryStr) q2 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
-        docs = await supabaseRest(q2).catch(() => []);
-      }
-
+      const docs = await searchAllImperialDocuments(queryStr, cat);
       return docs.length ? docs : { message: `No library documents or regulations found matching '${queryStr || "all"}'.` };
     }
 
@@ -277,12 +333,8 @@ async function executeToolCall(toolName, args, auth) {
       if (["all", "list", "archives", "*"].includes(queryStr.toLowerCase())) {
         queryStr = "";
       }
-      const encoded = encodeURIComponent(queryStr);
-      let query = "archive_articles?select=id,title,category,summary,content,slug&order=created_at.desc&limit=15";
-      if (queryStr) query += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
-
-      const articles = await supabaseRest(query).catch(() => []);
-      return articles.length ? articles : { message: `No archive articles found matching '${queryStr || "all"}'.` };
+      const docs = await searchAllImperialDocuments(queryStr, "");
+      return docs.length ? docs : { message: `No archive articles found matching '${queryStr || "all"}'.` };
     }
 
     if (toolName === "get_statutes") {
@@ -291,27 +343,7 @@ async function executeToolCall(toolName, args, auth) {
         queryStr = "";
       }
       const cat = String(args.category || "").trim();
-      const encoded = encodeURIComponent(queryStr);
-
-      let statutes = [];
-      let q1 = "codex_statutes?select=id,slug,title,category,summary,content&order=created_at.desc&limit=15";
-      if (queryStr) q1 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
-      if (cat) q1 += `&category=ilike.*${encodeURIComponent(cat)}*`;
-      statutes = await supabaseRest(q1).catch(() => []);
-
-      if (!statutes.length) {
-        let q2 = "statutes?select=id,slug,title,category,summary,content&order=created_at.desc&limit=15";
-        if (queryStr) q2 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
-        if (cat) q2 += `&category=ilike.*${encodeURIComponent(cat)}*`;
-        statutes = await supabaseRest(q2).catch(() => []);
-      }
-
-      if (!statutes.length) {
-        let q3 = "library_documents?select=id,title,category,summary,content,slug&order=created_at.desc&limit=15";
-        if (queryStr) q3 += `&or=(title.ilike.*${encoded}*,summary.ilike.*${encoded}*,content.ilike.*${encoded}*)`;
-        statutes = await supabaseRest(q3).catch(() => []);
-      }
-
+      const statutes = await searchAllImperialDocuments(queryStr, cat);
       return statutes.length ? statutes : { message: `No Sith Order statutes or codex laws found matching '${queryStr || "all"}'.` };
     }
 

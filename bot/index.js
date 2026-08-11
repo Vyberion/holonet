@@ -30,7 +30,7 @@ async function maybeSendOldBotRedirectNotice(message) {
   const payload = componentsV2Message([
     containerV2([
       textDisplayV2("### Incorrect Bot"),
-      textDisplayV2("Bloxlink is no longer in use. Please use **H.O.L.O** commands to manage your verification & roles:\n\n• </verify:0> — Link your Roblox account\n• </role get:0> — Sync your Roblox ranks & roles\n• </update-roles:0> — Sync roles for another member")
+      textDisplayV2("Bloxlink is no longer in use. Please use **H.O.L.O** commands to manage your verification & roles:\n\n- </verify:0> — Link your Roblox account\n- </role get:0> — Sync your Roblox ranks & roles\n- </role update:0> — Sync roles for another member")
     ], 0xc90705)
   ]);
 

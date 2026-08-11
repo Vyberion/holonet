@@ -17,17 +17,20 @@ const client = new Client({
 });
 
 let lastCheekyResponseAt = 0;
-const OLD_BOT_ID = "1536841658149376100";
-const VERIFICATION_CHANNEL_ID = "1046841602519343164";
+const OLD_BOT_IDS = new Set(["242385236259405824", "1536841658149376100", "426537812993638400"]);
+const LEGACY_TEXT_TRIGGERS = [";getrole", "!getrole", "/getrole", ";verify", "!verify", ";update-roles", "!update-roles"];
 
 async function maybeSendOldBotRedirectNotice(message) {
-  if (message.author?.id !== OLD_BOT_ID) return;
-  if (message.channelId !== VERIFICATION_CHANNEL_ID) return;
+  const isOldBotMsg = OLD_BOT_IDS.has(message.author?.id);
+  const contentLower = message.content?.toLowerCase() || "";
+  const isLegacyUserTrigger = !message.author?.bot && LEGACY_TEXT_TRIGGERS.some(trigger => contentLower.startsWith(trigger));
+
+  if (!isOldBotMsg && !isLegacyUserTrigger) return;
 
   const payload = componentsV2Message([
     containerV2([
       textDisplayV2("### Incorrect Bot"),
-      textDisplayV2("Bloxlink is no longer use. Use H.O.L.O to manage your verification & roles:\n\n• </verify:0> — Link your Roblox account\n• </role get:0> — Sync your Roblox ranks & roles\n• </update-roles:0> — Sync roles for another member")
+      textDisplayV2("Bloxlink is no longer in use. Please use **H.O.L.O** commands to manage your verification & roles:\n\n• </verify:0> — Link your Roblox account\n• </role get:0> — Sync your Roblox ranks & roles\n• </update-roles:0> — Sync roles for another member")
     ], 0xc90705)
   ]);
 

@@ -422,87 +422,13 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
       }))
     ];
 
-    // Initial Groq call
-    let response = await fetch(GROQ_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: MODEL_NAME,
-        messages,
-        tools: OVERSEER_TOOLS,
-        tool_choice: "auto"
-      })
-    });
+    let iterations = 0;
+    let finalContent = "";
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Groq API error:", response.status, errText);
-      return NextResponse.json({
-        role: "assistant",
-        content: `COMMUNICATION BREACH: H.O.L.O returned ${response.status} - ${errText}`
-      });
-    }
+    while (iterations < 5) {
+      iterations++;
 
-    let result = await response.json();
-    let choiceMessage = result.choices?.[0]?.message;
-
-    // Fallback: intercept raw XML tool calls if model used XML tags instead of native JSON function calls
-    if (choiceMessage?.content && (choiceMessage.content.includes("<tool_call>") || choiceMessage.content.includes("<function="))) {
-      const contentStr = choiceMessage.content;
-      choiceMessage.tool_calls = choiceMessage.tool_calls || [];
-
-      const blocks = contentStr.match(/<tool_call>[\s\S]*?<\/tool_call>/g) || [contentStr];
-      for (const block of blocks) {
-        const funcMatch = block.match(/<function=([^>]+)>/) || block.match(/<name>([^<]+)<\/name>/);
-        if (funcMatch) {
-          const fnName = funcMatch[1].trim();
-          let fnArgs = {};
-          const paramRegex = /<parameter=([^>]+)>([\s\S]*?)<\/parameter>/g;
-          let pMatch;
-          while ((pMatch = paramRegex.exec(block)) !== null) {
-            fnArgs[pMatch[1].trim()] = pMatch[2].trim();
-          }
-          choiceMessage.tool_calls.push({
-            id: "call_" + Math.random().toString(36).substr(2, 9),
-            type: "function",
-            function: { name: fnName, arguments: JSON.stringify(fnArgs) }
-          });
-        }
-      }
-
-      choiceMessage.content = contentStr
-        .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "")
-        .replace(/<function=[^>]+>[\s\S]*?<\/function>/g, "")
-        .replace(/<[\/]?tool_call>/g, "")
-        .trim();
-    }
-
-    // Process Tool Calls (if model decides to execute tools)
-    if (choiceMessage?.tool_calls && choiceMessage.tool_calls.length > 0) {
-      messages.push(choiceMessage);
-
-      for (const toolCall of choiceMessage.tool_calls) {
-        const fnName = toolCall.function?.name;
-        let fnArgs = {};
-        try {
-          fnArgs = JSON.parse(toolCall.function?.arguments || "{}");
-        } catch { }
-
-        const toolResult = await executeToolCall(fnName, fnArgs, auth);
-
-        messages.push({
-          role: "tool",
-          tool_call_id: toolCall.id,
-          name: fnName,
-          content: JSON.stringify(toolResult)
-        });
-      }
-
-      // Re-invoke model with tool responses
-      response = await fetch(GROQ_ENDPOINT, {
+      const response = await fetch(GROQ_ENDPOINT, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
@@ -510,21 +436,92 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
         },
         body: JSON.stringify({
           model: MODEL_NAME,
-          messages
+          messages,
+          tools: OVERSEER_TOOLS,
+          tool_choice: "auto",
+          temperature: 0.2
         })
       });
 
-      if (response.ok) {
-        result = await response.json();
-        choiceMessage = result.choices?.[0]?.message;
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("Groq API error:", response.status, errText);
+        return NextResponse.json({
+          role: "assistant",
+          content: `COMMUNICATION BREACH: H.O.L.O returned ${response.status} - ${errText}`
+        });
       }
-    }
 
-    const replyContent = choiceMessage?.content || "H.O.L.O STATEMENT: Transmission acknowledged, query logged.";
+      const result = await response.json();
+      const choiceMessage = result.choices?.[0]?.message;
+      if (!choiceMessage) break;
+
+      // Intercept & parse XML tool call tags
+      if (choiceMessage.content && (choiceMessage.content.includes("<tool_call>") || choiceMessage.content.includes("<function="))) {
+        const contentStr = choiceMessage.content;
+        choiceMessage.tool_calls = choiceMessage.tool_calls || [];
+
+        const blocks = contentStr.match(/<tool_call>[\s\S]*?<\/tool_call>/g) || [contentStr];
+        for (const block of blocks) {
+          const funcMatch = block.match(/<function=([^>]+)>/) || block.match(/<name>([^<]+)<\/name>/);
+          if (funcMatch) {
+            const fnName = funcMatch[1].trim();
+            let fnArgs = {};
+            const paramRegex = /<parameter=([^>]+)>([\s\S]*?)<\/parameter>/g;
+            let pMatch;
+            while ((pMatch = paramRegex.exec(block)) !== null) {
+              fnArgs[pMatch[1].trim()] = pMatch[2].trim();
+            }
+            choiceMessage.tool_calls.push({
+              id: "call_" + Math.random().toString(36).substr(2, 9),
+              type: "function",
+              function: { name: fnName, arguments: JSON.stringify(fnArgs) }
+            });
+          }
+        }
+
+        choiceMessage.content = contentStr
+          .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "")
+          .replace(/<function=[^>]+>[\s\S]*?<\/function>/g, "")
+          .replace(/<[\/]?tool_call>/g, "")
+          .trim();
+      }
+
+      if (choiceMessage.tool_calls && choiceMessage.tool_calls.length > 0) {
+        messages.push(choiceMessage);
+
+        for (const toolCall of choiceMessage.tool_calls) {
+          const fnName = toolCall.function?.name;
+          let fnArgs = {};
+          try {
+            fnArgs = JSON.parse(toolCall.function?.arguments || "{}");
+          } catch { }
+
+          const toolResult = await executeToolCall(fnName, fnArgs, auth);
+
+          messages.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            name: fnName,
+            content: JSON.stringify(toolResult)
+          });
+        }
+        continue;
+      }
+
+      finalContent = String(choiceMessage.content || "")
+        .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "")
+        .replace(/<function=[^>]+>[\s\S]*?<\/function>/g, "")
+        .replace(/<[\/]?tool_call>/g, "")
+        .replace(/<[\/]?parameter>/g, "")
+        .trim();
+
+      break;
+    }
 
     return NextResponse.json({
       role: "assistant",
-      content: replyContent
+      content: finalContent || "H.O.L.O STATEMENT: Transmission acknowledged, query logged."
     });
   } catch (err) {
     console.error("Overseer Chat Error:", err);

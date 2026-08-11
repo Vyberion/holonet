@@ -437,52 +437,13 @@ ACTIVE OPERATIVE TELEMETRY:
     { role: "user", content: prompt }
   ];
 
-  let response = await fetch(GROQ_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: MODEL_NAME,
-      messages,
-      tools: OVERSEER_TOOLS,
-      tool_choice: "auto",
-      temperature: 0.2
-    })
-  });
+  let iterations = 0;
+  let finalContent = "";
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Groq API returned ${response.status}: ${errText}`);
-  }
+  while (iterations < 5) {
+    iterations++;
 
-  let data = await response.json();
-  let choiceMessage = data.choices?.[0]?.message;
-
-  parseXmlToolCalls(choiceMessage);
-
-  if (choiceMessage?.tool_calls && choiceMessage.tool_calls.length > 0) {
-    messages.push(choiceMessage);
-
-    for (const toolCall of choiceMessage.tool_calls) {
-      const fnName = toolCall.function?.name;
-      let fnArgs = {};
-      try {
-        fnArgs = JSON.parse(toolCall.function?.arguments || "{}");
-      } catch { }
-
-      const toolResult = await executeBotToolCall(fnName, fnArgs);
-
-      messages.push({
-        role: "tool",
-        tool_call_id: toolCall.id,
-        name: fnName,
-        content: JSON.stringify(toolResult)
-      });
-    }
-
-    response = await fetch(GROQ_ENDPOINT, {
+    const response = await fetch(GROQ_ENDPOINT, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -491,16 +452,54 @@ ACTIVE OPERATIVE TELEMETRY:
       body: JSON.stringify({
         model: MODEL_NAME,
         messages,
+        tools: OVERSEER_TOOLS,
+        tool_choice: "auto",
         temperature: 0.2
       })
     });
 
-    if (response.ok) {
-      data = await response.json();
-      choiceMessage = data.choices?.[0]?.message;
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Groq API returned ${response.status}: ${errText}`);
     }
+
+    const data = await response.json();
+    const choiceMessage = data.choices?.[0]?.message;
+    if (!choiceMessage) break;
+
+    parseXmlToolCalls(choiceMessage);
+
+    if (choiceMessage.tool_calls && choiceMessage.tool_calls.length > 0) {
+      messages.push(choiceMessage);
+
+      for (const toolCall of choiceMessage.tool_calls) {
+        const fnName = toolCall.function?.name;
+        let fnArgs = {};
+        try {
+          fnArgs = JSON.parse(toolCall.function?.arguments || "{}");
+        } catch { }
+
+        const toolResult = await executeBotToolCall(fnName, fnArgs);
+
+        messages.push({
+          role: "tool",
+          tool_call_id: toolCall.id,
+          name: fnName,
+          content: JSON.stringify(toolResult)
+        });
+      }
+      continue;
+    }
+
+    finalContent = String(choiceMessage.content || "")
+      .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "")
+      .replace(/<function=[^>]+>[\s\S]*?<\/function>/g, "")
+      .replace(/<[\/]?tool_call>/g, "")
+      .replace(/<[\/]?parameter>/g, "")
+      .trim();
+
+    break;
   }
 
-  const content = choiceMessage?.content;
-  return content || "H.O.L.O STATEMENT: Query logged. No response generated.";
+  return finalContent || "H.O.L.O STATEMENT: Query logged. No response generated.";
 }

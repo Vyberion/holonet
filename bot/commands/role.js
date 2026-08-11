@@ -1,8 +1,9 @@
 import { SlashCommandBuilder } from "discord.js";
 import { botErrorPayload } from "../services/bot-errors.js";
-import { ephemeral, successEmbed } from "../services/discord-ui.js";
+import { embed, ephemeral, errorEmbed, successEmbed } from "../services/discord-ui.js";
 import { postVerificationLog } from "../services/activity-log.js";
 import { canUpdateMemberRoles, getVerifiedProfile, syncMemberRoles } from "../services/roles.js";
+import { config } from "../config/index.js";
 
 export const commands = [
   new SlashCommandBuilder()
@@ -52,11 +53,18 @@ export async function handleCommand(interaction) {
   if (subcommand === "update") {
     try {
       const targetUser = interaction.options.getUser("user") || interaction.user;
-      const verified = await getVerifiedProfile(interaction.user.id);
+      const sameUser = targetUser.id === interaction.user.id;
 
-      if (targetUser.id !== interaction.user.id && !canUpdateMemberRoles(verified?.profile, interaction.member)) {
-        await interaction.reply(ephemeral({ embeds: [successEmbed("Permission Denied", "You do not have permission to update roles for other users.")] }));
-        return true;
+      if (!sameUser) {
+        const [actor, target] = await Promise.all([
+          getVerifiedProfile(interaction.user.id),
+          getVerifiedProfile(targetUser.id)
+        ]);
+
+        if (!canUpdateMemberRoles(actor?.profile, target?.profile, interaction.member, interaction.user.id)) {
+          await interaction.reply(ephemeral({ embeds: [embed("Permission Denied", "You do not have permission to update roles for other users.", { color: config.theme.errorColor })] }));
+          return true;
+        }
       }
 
       const targetMember = targetUser.id === interaction.user.id

@@ -224,9 +224,8 @@ export async function handleCommand(interaction) {
           getVerifiedProfile(targetUser.id)
         ]);
 
-        if (!actor) throw new Error("YOUR_DISCORD_NOT_LINKED");
-
-        if (!canUpdateMemberRoles(actor.profile, target?.profile, interaction.member, interaction.user.id)) {
+        if (!canUpdateMemberRoles(actor?.profile, target?.profile, interaction.member, interaction.user.id)) {
+          if (!actor) throw new Error("YOUR_DISCORD_NOT_LINKED");
           throw new Error("You do not have clearance to update that user's roles.");
         }
       }

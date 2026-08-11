@@ -13,6 +13,10 @@ import { checkResourceWriteAccess } from "../../modules/auth/permissions.js";
 const VERIFY_INSTRUCTIONS = "You are not linked yet. Use `/verify` or the verification panel.";
 const LEADERBOARD_PAGE_SIZE = 5;
 const PANEL_DESCRIPTION = "Use the buttons below to clock in, clock in late, clock out, clock out late, check your current shift or view the leaderboard.";
+
+function unique(arr) {
+  return Array.from(new Set((arr || []).filter(Boolean)));
+}
 const SCOPE_CHOICES = [
   { name: "Reavers", value: "reavers" },
   { name: "DHG", value: "dhg" },

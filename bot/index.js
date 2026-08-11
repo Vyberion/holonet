@@ -36,10 +36,13 @@ async function maybeHandleHoloAiResponse(message) {
 
   if (!isMentioned && !isExactHoloName) return;
 
+  const ALLOWED_AI_USER_IDS = new Set(["1467651749815914546"]);
+  const isExplicitlyAllowed = ALLOWED_AI_USER_IDS.has(message.author.id);
+
   const verified = await getVerifiedProfile(message.author.id).catch(() => null);
   const isSuperUser = Boolean(verified?.profile?.isSuperUser);
 
-  if (!isSuperUser) return;
+  if (!isSuperUser && !isExplicitlyAllowed) return;
 
   let cleanPrompt = content;
   if (client.user) {
@@ -56,7 +59,7 @@ async function maybeHandleHoloAiResponse(message) {
       prompt: cleanPrompt,
       userTag: message.author.tag || message.author.username,
       robloxName: verified?.profile?.name || "",
-      isSuperUser: true
+      isSuperUser: isSuperUser || isExplicitlyAllowed
     });
 
     await message.reply(aiReply);

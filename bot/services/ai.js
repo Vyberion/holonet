@@ -241,9 +241,9 @@ async function executeBotToolCall(toolName, args) {
 function formatStatuteText(st) {
   let text = `[DOCUMENT]: ${st.title || "Untitled Document"}\nCategory: ${st.category || "Imperial Decree"}\nSummary: ${st.summary || "None"}\n`;
   if (Array.isArray(st.sections)) {
-    text += st.sections.map((s, idx) => `Section ${idx + 1} (${s.title || "Untitled"}): ${s.content || ""}`).join("\n");
+    text += st.sections.slice(0, 5).map((s, idx) => `Section ${idx + 1} (${s.title || "Untitled"}): ${String(s.content || "").slice(0, 400)}`).join("\n");
   } else if (st.content) {
-    text += `Content: ${st.content}`;
+    text += `Content: ${String(st.content).slice(0, 800)}`;
   }
   return text;
 }
@@ -531,6 +531,11 @@ ACTIVE OPERATIVE TELEMETRY:
 
     if (!response.ok) {
       const errText = await response.text();
+      if (response.status === 429 || errText.includes("rate_limit_exceeded")) {
+        const secondsMatch = errText.match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
+        const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
+        return `OVERSEER NOTICE: Transmission rate limit reached. Try again in ${timeStr}.`;
+      }
       throw new Error(`Groq API returned ${response.status}: ${errText}`);
     }
 

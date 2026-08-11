@@ -253,9 +253,9 @@ async function executeToolCall(toolName, args, auth) {
 function formatStatuteText(st) {
   let text = `[DOCUMENT]: ${st.title || "Untitled Document"}\nCategory: ${st.category || "Imperial Decree"}\nSummary: ${st.summary || "None"}\n`;
   if (Array.isArray(st.sections)) {
-    text += st.sections.map((s, idx) => `Section ${idx + 1} (${s.title || "Untitled"}): ${s.content || ""}`).join("\n");
+    text += st.sections.slice(0, 5).map((s, idx) => `Section ${idx + 1} (${s.title || "Untitled"}): ${String(s.content || "").slice(0, 400)}`).join("\n");
   } else if (st.content) {
-    text += `Content: ${st.content}`;
+    text += `Content: ${String(st.content).slice(0, 800)}`;
   }
   return text;
 }
@@ -503,9 +503,17 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
       if (!response.ok) {
         const errText = await response.text();
         console.error("Groq API error:", response.status, errText);
+        if (response.status === 429 || errText.includes("rate_limit_exceeded")) {
+          const secondsMatch = errText.match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
+          const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
+          return NextResponse.json({
+            role: "assistant",
+            content: `OVERSEER NOTICE: Transmission rate limit reached. Try again in ${timeStr}.`
+          });
+        }
         return NextResponse.json({
           role: "assistant",
-          content: `COMMUNICATION BREACH: H.O.L.O returned ${response.status} - ${errText}`
+          content: `COMMUNICATION BREACH: Sub-processor error ${response.status}.`
         });
       }
 

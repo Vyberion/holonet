@@ -101,6 +101,66 @@ const OVERSEER_TOOLS = [
   }
 ];
 
+async function resolveRobloxUser(queryStr) {
+  const isNumeric = /^\d+$/.test(queryStr);
+  if (isNumeric) {
+    const res = await fetch(`https://users.roblox.com/v1/users/${queryStr}`).catch(() => null);
+    if (res?.ok) {
+      const data = await res.json();
+      return { id: data.id, name: data.name, displayName: data.displayName };
+    }
+  }
+
+  const res = await fetch("https://users.roblox.com/v1/usernames/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ usernames: [queryStr], excludeBannedUsers: false })
+  }).catch(() => null);
+
+  if (res?.ok) {
+    const data = await res.json();
+    if (data.data?.[0]) return data.data[0];
+  }
+
+  const searchRes = await fetch(`https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(queryStr)}&limit=1`).catch(() => null);
+  if (searchRes?.ok) {
+    const searchData = await searchRes.json();
+    if (searchData.data?.[0]) return searchData.data[0];
+  }
+
+  return null;
+}
+
+async function fetchRobloxGroupRosters(robloxId) {
+  const MAIN_GROUP_ID = 3199126;
+  const DIVISION_GROUPS = {
+    reavers: 3201416,
+    dhg: 3201407,
+    inquisitors: 3201412,
+    dreadmasters: 3201414
+  };
+
+  const res = await fetch(`https://groups.roblox.com/v1/users/${robloxId}/groups/roles`).catch(() => null);
+  if (!res?.ok) return { mainGroupRank: "Unknown", divisions: {} };
+
+  const json = await res.json();
+  const groups = json.data || [];
+
+  const mainGroup = groups.find(g => g.group?.id === MAIN_GROUP_ID);
+  const divisions = {};
+  for (const [divKey, divId] of Object.entries(DIVISION_GROUPS)) {
+    const divGroup = groups.find(g => g.group?.id === divId);
+    if (divGroup) {
+      divisions[divKey] = `${divGroup.role?.name} (Rank ${divGroup.role?.rank})`;
+    }
+  }
+
+  return {
+    mainGroupRank: mainGroup ? `${mainGroup.role?.name} (Rank ${mainGroup.role?.rank})` : "Not in main group",
+    divisions
+  };
+}
+
 async function executeBotToolCall(toolName, args) {
   try {
     if (toolName === "lookup_personnel" || toolName === "lookup_roblox_user") {
@@ -126,33 +186,26 @@ async function executeBotToolCall(toolName, args) {
         linkRow = data?.[0] || null;
       }
 
-      if (linkRow?.discord_user_id) {
-        const verified = await getVerifiedProfile(linkRow.discord_user_id).catch(() => null);
-        if (verified) {
-          return {
-            found: true,
-            discordUserId: linkRow.discord_user_id,
-            robloxUserId: linkRow.roblox_user_id,
-            robloxUsername: verified.profile?.name || linkRow.roblox_username,
-            highRank: verified.profile?.highRank || "Member",
-            divisions: verified.profile?.divisions || {},
-            isSuperUser: Boolean(verified.profile?.isSuperUser)
-          };
+      let robloxId = linkRow?.roblox_user_id;
+      let robloxUsername = linkRow?.roblox_username;
+
+      if (!robloxId) {
+        const rUser = await resolveRobloxUser(queryStr);
+        if (rUser?.id) {
+          robloxId = String(rUser.id);
+          robloxUsername = rUser.name;
         }
       }
 
-      const robloxRes = await fetch(`https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(queryStr)}&limit=1`)
-        .then(r => r.json())
-        .catch(() => null);
-
-      const searchedUser = robloxRes?.data?.[0];
-      if (searchedUser?.id) {
+      if (robloxId) {
+        const groupInfo = await fetchRobloxGroupRosters(robloxId);
         return {
           found: true,
-          robloxUserId: searchedUser.id,
-          robloxUsername: searchedUser.name,
-          displayName: searchedUser.displayName,
-          note: "Unlinked Discord user or raw Roblox account."
+          robloxUserId: String(robloxId),
+          robloxUsername: robloxUsername || queryStr,
+          discordUserId: linkRow?.discord_user_id || "Unlinked",
+          mainGroupRank: groupInfo.mainGroupRank,
+          divisionRanks: groupInfo.divisions
         };
       }
 

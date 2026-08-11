@@ -154,14 +154,6 @@ async function executeToolCall(toolName, args, auth) {
     }
 
     if (toolName === "lookup_roblox_user" || toolName === "lookup_personnel") {
-      const allowed = checkPageAccess(auth.profile, "lookup");
-      if (!allowed) {
-        return {
-          status: "DENIED",
-          error: "Security Clearance Failure: Personnel lacks authorization for lookup operations."
-        };
-      }
-
       const queryStr = String(args.query || args.username || "").trim();
       if (!queryStr) return { error: "No query or username provided." };
 

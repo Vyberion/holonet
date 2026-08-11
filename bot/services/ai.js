@@ -86,17 +86,20 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_shift_totals",
-      description: "Query duty shift totals and active clock-in counts for a division scope.",
+      description: "Query duty shift totals, logged hours, and active status for a specific user or division scope.",
       parameters: {
         type: "object",
         properties: {
+          user: {
+            type: "string",
+            description: "Optional Roblox username or Discord ID of a specific user to query shift time for."
+          },
           scope: {
             type: "string",
             enum: ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil", "all"],
             description: "Division scope to query shift totals for."
           }
-        },
-        required: ["scope"]
+        }
       }
     }
   }
@@ -270,16 +273,23 @@ async function executeBotToolCall(toolName, args) {
 
     if (toolName === "get_shift_totals") {
       const scope = args.scope || "all";
-      let query = supabase.from("clock_shifts").select("discord_user_id,roblox_username,duration_seconds,status");
+      const targetUser = String(args.user || args.username || "").trim();
+
+      let query = supabase.from("clock_shifts").select("discord_user_id,discord_username,roblox_username,duration_seconds,status,scope");
       if (scope !== "all") query = query.eq("scope", scope);
+      if (targetUser) {
+        query = query.or(`discord_user_id.eq.${targetUser},roblox_username.ilike.%${targetUser}%,discord_username.ilike.%${targetUser}%`);
+      }
 
       const { data: shifts } = await query;
       const totalSeconds = (shifts || []).reduce((acc, s) => acc + (s.duration_seconds || 0), 0);
 
       return {
+        userQuery: targetUser || "All Users",
         scope,
         totalShiftsLogged: (shifts || []).length,
         totalHoursLogged: Math.round((totalSeconds / 3600) * 10) / 10,
+        totalMinutesLogged: Math.round(totalSeconds / 60),
         activeShiftsCount: (shifts || []).filter(s => s.status === "active").length
       };
     }

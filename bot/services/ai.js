@@ -1,5 +1,6 @@
 import { supabase } from "./supabase.js";
 import { getVerifiedProfile } from "./roles.js";
+import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL_NAME = "llama-3.3-70b-versatile";
@@ -132,24 +133,18 @@ async function resolveRobloxUser(queryStr) {
 }
 
 async function fetchRobloxGroupRosters(robloxId) {
-  const MAIN_GROUP_ID = 3199126;
-  const DIVISION_GROUPS = {
-    reavers: 3201416,
-    dhg: 3201407,
-    inquisitors: 3201412,
-    dreadmasters: 3201414
-  };
-
   const res = await fetch(`https://groups.roblox.com/v1/users/${robloxId}/groups/roles`).catch(() => null);
-  if (!res?.ok) return { mainGroupRank: "Unknown", divisions: {} };
+  if (!res?.ok) return { mainGroupRank: "Unknown", darkCouncilRank: "None", divisions: {} };
 
   const json = await res.json();
   const groups = json.data || [];
 
-  const mainGroup = groups.find(g => g.group?.id === MAIN_GROUP_ID);
+  const mainGroup = groups.find(g => g.group?.id === ROBLOX_GROUPS.MAIN_GROUP.groupId);
+  const darkCouncil = groups.find(g => g.group?.id === ROBLOX_GROUPS.DARK_COUNCIL.groupId);
+
   const divisions = {};
-  for (const [divKey, divId] of Object.entries(DIVISION_GROUPS)) {
-    const divGroup = groups.find(g => g.group?.id === divId);
+  for (const [divKey, divDef] of Object.entries(ROBLOX_GROUPS.DIVISIONS)) {
+    const divGroup = groups.find(g => g.group?.id === divDef.groupId);
     if (divGroup) {
       divisions[divKey] = `${divGroup.role?.name} (Rank ${divGroup.role?.rank})`;
     }
@@ -157,6 +152,7 @@ async function fetchRobloxGroupRosters(robloxId) {
 
   return {
     mainGroupRank: mainGroup ? `${mainGroup.role?.name} (Rank ${mainGroup.role?.rank})` : "Not in main group",
+    darkCouncilRank: darkCouncil ? `${darkCouncil.role?.name} (Rank ${darkCouncil.role?.rank})` : "None",
     divisions
   };
 }
@@ -205,6 +201,7 @@ async function executeBotToolCall(toolName, args) {
           robloxUsername: robloxUsername || queryStr,
           discordUserId: linkRow?.discord_user_id || "Unlinked",
           mainGroupRank: groupInfo.mainGroupRank,
+          darkCouncilRank: groupInfo.darkCouncilRank,
           divisionRanks: groupInfo.divisions
         };
       }

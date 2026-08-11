@@ -3,7 +3,7 @@ import { getVerifiedProfile } from "./roles.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL_NAME = "llama-3.3-70b-versatile";
+const MODEL_NAME = "llama-3.1-8b-instant";
 
 const BOT_SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), the Sith Empire's central automated artificial intelligence and tactical command system.
 

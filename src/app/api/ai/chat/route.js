@@ -10,7 +10,7 @@ import {
 } from "../../../../lib/api-helpers.js";
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL_NAME = "llama-3.3-70b-versatile";
+const MODEL_NAME = "llama-3.1-8b-instant";
 
 const SYSTEM_PROMPT = `You are the Holonet Operations & Logistics Overseer, the Sith Empire's automated central intelligence and administrative interface.
 
@@ -419,7 +419,7 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
         while ((pMatch = paramRegex.exec(contentStr)) !== null) {
           fnArgs[pMatch[1]] = pMatch[2].trim();
         }
-        
+
         choiceMessage.tool_calls = choiceMessage.tool_calls || [];
         choiceMessage.tool_calls.push({
           id: "call_" + Math.random().toString(36).substr(2, 9),
@@ -429,7 +429,7 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
             arguments: JSON.stringify(fnArgs)
           }
         });
-        
+
         // Remove the raw XML block from the visible message content
         choiceMessage.content = contentStr.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "").trim();
       }

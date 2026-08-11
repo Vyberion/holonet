@@ -23,11 +23,11 @@ const OLD_BOT_IDS = new Set(["242385236259405824", "1536841658149376100", "42653
 const LEGACY_TEXT_TRIGGERS = [";getrole", "!getrole", "/getrole", ";verify", "!verify", ";update-roles", "!update-roles"];
 
 async function maybeHandleHoloAiResponse(message) {
-  const ALWAYS_RESPOND_USER_IDS = new Set(["1467651749815914546"]);
-  const isAlwaysRespondUser = ALWAYS_RESPOND_USER_IDS.has(message.author?.id);
+  const ALLOWED_BOT_USER_IDS = new Set(["1467651749815914546"]);
+  const isAllowedBotUser = ALLOWED_BOT_USER_IDS.has(message.author?.id);
 
   if (client.user && message.author?.id === client.user.id) return;
-  if (message.author?.bot && !isAlwaysRespondUser) return;
+  if (message.author?.bot && !isAllowedBotUser) return;
 
   const content = message.content || "";
   const isMentioned = Boolean(
@@ -38,14 +38,12 @@ async function maybeHandleHoloAiResponse(message) {
 
   const isExactHoloName = /\bH\.O\.L\.O\b/i.test(content);
 
-  if (!isAlwaysRespondUser) {
-    if (!isMentioned && !isExactHoloName) return;
+  if (!isMentioned && !isExactHoloName) return;
 
-    const verified = await getVerifiedProfile(message.author.id).catch(() => null);
-    const isSuperUser = Boolean(verified?.profile?.isSuperUser);
+  const verified = await getVerifiedProfile(message.author.id).catch(() => null);
+  const isSuperUser = Boolean(verified?.profile?.isSuperUser);
 
-    if (!isSuperUser) return;
-  }
+  if (!isSuperUser && !isAllowedBotUser) return;
 
   let cleanPrompt = content;
   if (client.user) {

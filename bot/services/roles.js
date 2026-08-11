@@ -147,7 +147,8 @@ function hasHigherSharedRobloxRank(actorProfile, targetProfile) {
 const UPDATE_ROLES_BYPASS_ROLES = new Set([
   "1164544685222658138",
   "1150992093435666432",
-  "1150907546773749820"
+  "1150907546773749820",
+  "1046546991360004136"
 ]);
 
 export function canUpdateMemberRoles(actorProfile, targetProfile, actorMember = null, actorDiscordId = "") {

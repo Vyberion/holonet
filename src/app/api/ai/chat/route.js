@@ -10,7 +10,8 @@ import {
 } from "../../../../lib/api-helpers.js";
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL_NAME = "llama-3.1-8b-instant";
+const PRIMARY_MODEL = "llama-3.3-70b-versatile";
+const FALLBACK_MODEL = "llama-3.1-8b-instant";
 
 const SYSTEM_PROMPT = `You are the Holonet Operations & Logistics Overseer, the Sith Empire's automated central intelligence and administrative interface.
 
@@ -494,18 +495,19 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
 
     let iterations = 0;
     let finalContent = "";
+    let activeModel = PRIMARY_MODEL;
 
     while (iterations < 5) {
       iterations++;
 
-      const response = await fetch(GROQ_ENDPOINT, {
+      let response = await fetch(GROQ_ENDPOINT, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: MODEL_NAME,
+          model: activeModel,
           messages,
           tools: OVERSEER_TOOLS,
           tool_choice: "auto",
@@ -515,19 +517,42 @@ IDENTITY PROTOCOL: You already know the active operative's identity from the sec
 
       if (!response.ok) {
         const errText = await response.text();
-        console.error("Groq API error:", response.status, errText);
-        if (response.status === 429 || errText.includes("rate_limit_exceeded")) {
-          const secondsMatch = errText.match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
-          const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
-          return NextResponse.json({
-            role: "assistant",
-            content: `Transmission rate limit reached. Try again in ${timeStr}.`
+        // If PRIMARY_MODEL (3.3-70b) hits rate limit, failover to FALLBACK_MODEL (3.1-8b)
+        if ((response.status === 429 || errText.includes("rate_limit_exceeded")) && activeModel === PRIMARY_MODEL) {
+          console.log(`[H.O.L.O AI Failover] Model ${PRIMARY_MODEL} rate limited. Failing over to ${FALLBACK_MODEL}...`);
+          activeModel = FALLBACK_MODEL;
+          response = await fetch(GROQ_ENDPOINT, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: activeModel,
+              messages,
+              tools: OVERSEER_TOOLS,
+              tool_choice: "auto",
+              temperature: 0.2
+            })
           });
         }
-        return NextResponse.json({
-          role: "assistant",
-          content: `COMMUNICATION BREACH: Sub-processor error ${response.status}.`
-        });
+
+        if (!response.ok) {
+          const finalErrText = await response.text().catch(() => errText);
+          console.error("Groq API error:", response.status, finalErrText);
+          if (response.status === 429 || finalErrText.includes("rate_limit_exceeded")) {
+            const secondsMatch = finalErrText.match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
+            const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
+            return NextResponse.json({
+              role: "assistant",
+              content: `Transmission rate limit reached. Try again in ${timeStr}.`
+            });
+          }
+          return NextResponse.json({
+            role: "assistant",
+            content: `COMMUNICATION BREACH: Sub-processor error ${response.status}.`
+          });
+        }
       }
 
       const result = await response.json();

@@ -3,7 +3,8 @@ import { getVerifiedProfile } from "./roles.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL_NAME = "llama-3.1-8b-instant";
+const PRIMARY_MODEL = "llama-3.3-70b-versatile";
+const FALLBACK_MODEL = "llama-3.1-8b-instant";
 
 const BOT_SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), the Sith Empire's central automated artificial intelligence and tactical command system.
 
@@ -520,18 +521,19 @@ ACTIVE OPERATIVE TELEMETRY:
 
   let iterations = 0;
   let finalContent = "";
+  let activeModel = PRIMARY_MODEL;
 
   while (iterations < 5) {
     iterations++;
 
-    const response = await fetch(GROQ_ENDPOINT, {
+    let response = await fetch(GROQ_ENDPOINT, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: MODEL_NAME,
+        model: activeModel,
         messages,
         tools: OVERSEER_TOOLS,
         tool_choice: "auto",
@@ -541,12 +543,35 @@ ACTIVE OPERATIVE TELEMETRY:
 
     if (!response.ok) {
       const errText = await response.text();
-      if (response.status === 429 || errText.includes("rate_limit_exceeded")) {
-        const secondsMatch = errText.match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
-        const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
-        return `Transmission rate limit reached. Try again in ${timeStr}.`;
+      // If PRIMARY_MODEL (3.3-70b) hits rate limit, failover to FALLBACK_MODEL (3.1-8b)
+      if ((response.status === 429 || errText.includes("rate_limit_exceeded")) && activeModel === PRIMARY_MODEL) {
+        console.log(`[H.O.L.O Bot AI Failover] Model ${PRIMARY_MODEL} rate limited. Failing over to ${FALLBACK_MODEL}...`);
+        activeModel = FALLBACK_MODEL;
+        response = await fetch(GROQ_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: activeModel,
+            messages,
+            tools: OVERSEER_TOOLS,
+            tool_choice: "auto",
+            temperature: 0.2
+          })
+        });
       }
-      throw new Error(`Groq API returned ${response.status}: ${errText}`);
+
+      if (!response.ok) {
+        const finalErrText = await response.text().catch(() => errText);
+        if (response.status === 429 || finalErrText.includes("rate_limit_exceeded")) {
+          const secondsMatch = finalErrText.match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
+          const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
+          return `Transmission rate limit reached. Try again in ${timeStr}.`;
+        }
+        throw new Error(`Groq API returned ${response.status}: ${finalErrText}`);
+      }
     }
 
     const data = await response.json();

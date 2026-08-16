@@ -2,12 +2,23 @@ import { audit, insert, supabase } from "./supabase.js";
 import { getVerifiedProfile, inferScope } from "./roles.js";
 
 export async function activeShift(discordUserId) {
-  const { data, error } = await supabase
+  const idStr = typeof discordUserId === "object" ? String(discordUserId?.id || "") : String(discordUserId || "");
+  const verified = await getVerifiedProfile(idStr).catch(() => null);
+  const discordId = verified?.link?.discord_user_id ? String(verified.link.discord_user_id) : idStr;
+  const robloxId = verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null;
+
+  let query = supabase
     .from("clock_shifts")
     .select("*")
-    .eq("discord_user_id", discordUserId)
-    .eq("status", "active")
-    .maybeSingle();
+    .eq("status", "active");
+
+  if (robloxId && discordId) {
+    query = query.or(`discord_user_id.eq.${discordId},roblox_user_id.eq.${robloxId}`);
+  } else {
+    query = query.or(`discord_user_id.eq.${discordId},roblox_user_id.eq.${discordId}`);
+  }
+
+  const { data, error } = await query.maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -76,13 +87,24 @@ export async function latestShift(discordUserId) {
   const active = await activeShift(discordUserId);
   if (active) return active;
 
-  const { data, error } = await supabase
+  const idStr = typeof discordUserId === "object" ? String(discordUserId?.id || "") : String(discordUserId || "");
+  const verified = await getVerifiedProfile(idStr).catch(() => null);
+  const discordId = verified?.link?.discord_user_id ? String(verified.link.discord_user_id) : idStr;
+  const robloxId = verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null;
+
+  let query = supabase
     .from("clock_shifts")
     .select("*")
-    .eq("discord_user_id", String(discordUserId))
     .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  if (robloxId && discordId) {
+    query = query.or(`discord_user_id.eq.${discordId},roblox_user_id.eq.${robloxId}`);
+  } else {
+    query = query.or(`discord_user_id.eq.${discordId},roblox_user_id.eq.${discordId}`);
+  }
+
+  const { data, error } = await query.maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -92,6 +114,8 @@ export async function adjustShiftTime(discordUser, minutes, overrideScope = null
   const discordUsername = typeof discordUser === "object" ? String(discordUser?.username || discordUser?.tag || "") : "";
 
   const verified = await getVerifiedProfile(discordUserId).catch(() => null);
+  const discordId = verified?.link?.discord_user_id ? String(verified.link.discord_user_id) : discordUserId;
+  const robloxId = verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null;
 
   let scope = overrideScope || (verified ? inferScope(verified.profile) : null);
   if (!scope && verified) {
@@ -106,9 +130,9 @@ export async function adjustShiftTime(discordUser, minutes, overrideScope = null
     const now = new Date().toISOString();
     return await insert("clock_shifts", {
       scope,
-      discord_user_id: discordUserId,
+      discord_user_id: discordId || null,
       discord_username: discordUsername || verified?.link?.discord_username || "",
-      roblox_user_id: verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null,
+      roblox_user_id: robloxId || null,
       roblox_username: verified?.profile?.name || null,
       started_at: now,
       ended_at: now,
@@ -122,9 +146,14 @@ export async function adjustShiftTime(discordUser, minutes, overrideScope = null
     let query = supabase
       .from("clock_shifts")
       .select("id, duration_seconds")
-      .eq("discord_user_id", discordUserId)
       .eq("status", "completed")
       .order("started_at", { ascending: false });
+
+    if (robloxId && discordId) {
+      query = query.or(`discord_user_id.eq.${discordId},roblox_user_id.eq.${robloxId}`);
+    } else {
+      query = query.or(`discord_user_id.eq.${discordId},roblox_user_id.eq.${discordId}`);
+    }
 
     if (overrideScope) query = query.eq("scope", overrideScope);
 
@@ -152,7 +181,7 @@ export async function adjustShiftTime(discordUser, minutes, overrideScope = null
       }
     }
 
-    return { scope, discord_user_id: discordUserId };
+    return { scope, discord_user_id: discordId };
   }
 }
 
@@ -161,6 +190,8 @@ export async function setShiftTime(discordUser, minutes, overrideScope = null) {
   const discordUsername = typeof discordUser === "object" ? String(discordUser?.username || discordUser?.tag || "") : "";
 
   const verified = await getVerifiedProfile(discordUserId).catch(() => null);
+  const discordId = verified?.link?.discord_user_id ? String(verified.link.discord_user_id) : discordUserId;
+  const robloxId = verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null;
 
   let scope = overrideScope || (verified ? inferScope(verified.profile) : null);
   if (!scope && verified) {
@@ -174,8 +205,13 @@ export async function setShiftTime(discordUser, minutes, overrideScope = null) {
   let deleteQuery = supabase
     .from("clock_shifts")
     .delete()
-    .eq("discord_user_id", discordUserId)
     .eq("status", "completed");
+
+  if (robloxId && discordId) {
+    deleteQuery = deleteQuery.or(`discord_user_id.eq.${discordId},roblox_user_id.eq.${robloxId}`);
+  } else {
+    deleteQuery = deleteQuery.or(`discord_user_id.eq.${discordId},roblox_user_id.eq.${discordId}`);
+  }
 
   if (overrideScope) deleteQuery = deleteQuery.eq("scope", overrideScope);
   const { error: delErr } = await deleteQuery;
@@ -185,9 +221,9 @@ export async function setShiftTime(discordUser, minutes, overrideScope = null) {
     const now = new Date().toISOString();
     return await insert("clock_shifts", {
       scope,
-      discord_user_id: discordUserId,
+      discord_user_id: discordId || null,
       discord_username: discordUsername || verified?.link?.discord_username || "",
-      roblox_user_id: verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null,
+      roblox_user_id: robloxId || null,
       roblox_username: verified?.profile?.name || null,
       started_at: now,
       ended_at: now,
@@ -197,14 +233,26 @@ export async function setShiftTime(discordUser, minutes, overrideScope = null) {
     });
   }
 
-  return { scope, discord_user_id: discordUserId };
+  return { scope, discord_user_id: discordId };
 }
 
-export async function shiftTotals(discordUserId, scopes = null) {
+export async function shiftTotals(userIdentifier, scopes = null) {
+  const idStr = typeof userIdentifier === "object" ? String(userIdentifier?.id || "") : String(userIdentifier || "");
+  if (!idStr) return { rawSeconds: 0, adjustmentSeconds: 0, totalSeconds: 0, hasActiveShift: false };
+
+  const verified = await getVerifiedProfile(idStr).catch(() => null);
+  const discordId = verified?.link?.discord_user_id ? String(verified.link.discord_user_id) : idStr;
+  const robloxId = verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null;
+
   let query = supabase
     .from("clock_shifts")
-    .select("duration_seconds,adjustment_seconds,status,started_at")
-    .eq("discord_user_id", discordUserId);
+    .select("duration_seconds,adjustment_seconds,status,started_at,discord_user_id,roblox_user_id");
+
+  if (robloxId && discordId) {
+    query = query.or(`discord_user_id.eq.${discordId},roblox_user_id.eq.${robloxId}`);
+  } else {
+    query = query.or(`discord_user_id.eq.${discordId},roblox_user_id.eq.${discordId}`);
+  }
 
   if (Array.isArray(scopes) && scopes.length) query = query.in("scope", scopes);
   else if (typeof scopes === "string" && scopes) query = query.eq("scope", scopes);
@@ -235,8 +283,9 @@ export async function shiftTotals(discordUserId, scopes = null) {
 }
 
 export function formatDuration(seconds = 0) {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
+  const total = Math.max(0, Math.trunc(Number(seconds) || 0));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
   return `${hours}h ${minutes}m`;
 }
 

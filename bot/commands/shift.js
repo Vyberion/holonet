@@ -164,7 +164,10 @@ async function loadScopeLeaderboard(scope) {
   const pageSize = 1000;
 
   for (let from = 0; ; from += pageSize) {
-    let query = supabase.from("clock_shifts").select("discord_user_id,scope,status,started_at,ended_at,duration_seconds,adjustment_seconds").not("discord_user_id", "is", null).range(from, from + pageSize - 1);
+    let query = supabase
+      .from("clock_shifts")
+      .select("discord_user_id,roblox_user_id,scope,status,started_at,ended_at,duration_seconds,adjustment_seconds")
+      .range(from, from + pageSize - 1);
     if (scope !== "all") query = query.eq("scope", scope);
     const { data, error } = await query;
     if (error) throw error;
@@ -172,10 +175,25 @@ async function loadScopeLeaderboard(scope) {
     if (!data || data.length < pageSize) break;
   }
 
+  // Get verification mapping for any roblox_user_id that doesn't have a discord_user_id
+  const unlinkedRobloxIds = [...new Set(rows.filter(r => !r.discord_user_id && r.roblox_user_id).map(r => String(r.roblox_user_id)))];
+  const robloxToDiscord = new Map();
+  if (unlinkedRobloxIds.length > 0) {
+    const { data: links } = await supabase
+      .from("verification_links")
+      .select("discord_user_id,roblox_user_id")
+      .in("roblox_user_id", unlinkedRobloxIds);
+    for (const link of (links || [])) {
+      if (link.roblox_user_id && link.discord_user_id) {
+        robloxToDiscord.set(String(link.roblox_user_id), String(link.discord_user_id));
+      }
+    }
+  }
+
   const now = Date.now();
   const totals = new Map();
   for (const shift of rows) {
-    const userId = String(shift.discord_user_id || "");
+    const userId = String(shift.discord_user_id || robloxToDiscord.get(String(shift.roblox_user_id)) || "");
     if (userId) totals.set(userId, (totals.get(userId) || 0) + shiftTotalSeconds(shift, now));
   }
 
@@ -440,7 +458,15 @@ export async function handleCommand(interaction) {
 
       let query = supabase.from("clock_shifts").delete();
       if (usersToWipe.length > 0) {
-        query = query.in("discord_user_id", usersToWipe.map(u => u.id));
+        const userIds = [];
+        for (const u of usersToWipe) {
+          const v = await getVerifiedProfile(u.id).catch(() => null);
+          if (v?.link?.discord_user_id) userIds.push(String(v.link.discord_user_id));
+          if (v?.link?.roblox_user_id) userIds.push(String(v.link.roblox_user_id));
+          userIds.push(String(u.id));
+        }
+        const uniqueIds = [...new Set(userIds)];
+        query = query.or(`discord_user_id.in.(${uniqueIds.join(",")}),roblox_user_id.in.(${uniqueIds.join(",")})`);
       } else {
         query = query.eq("scope", scope);
       }

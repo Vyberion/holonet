@@ -58,7 +58,9 @@ async function maybeHandleHoloAiResponse(message) {
       prompt: cleanPrompt,
       userTag: message.author.tag || message.author.username,
       robloxName: verified?.profile?.name || "",
-      isSuperUser: true
+      isSuperUser: true,
+      userId: message.author.id,
+      channelId: message.channel.id
     });
 
     await message.reply(aiReply);

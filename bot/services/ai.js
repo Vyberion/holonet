@@ -18,7 +18,8 @@ OPERATIONAL RUBRIC & CORE SPECIFICATION:
 - Deliver answers and requested data immediately without conversational headers or footers.
 
 2. TOOL INVOCATION POLICY (STRICT NEED-DRIVEN ONLY):
-- ONLY call lookup tools (lookup_personnel, get_powerbases, get_shift_totals, get_division_activity, get_statutes, get_library_documents, get_archives, get_council_floor, get_timeline) if the user's prompt EXPLICITLY requests specific database data or if current factual retrieval of live database state is strictly necessary.
+- ONLY call lookup tools (lookup_personnel, get_powerbases, get_shift_totals, get_division_activity, get_library_documents, get_archives, get_council_floor, get_timeline) if the user's prompt EXPLICITLY requests specific database data or if current factual retrieval of live database state is strictly necessary.
+- For regulations, rules, imperial policies (IP), decrees, and handbooks, ALWAYS query the Imperial Library documents and entries via get_library_documents.
 - NEVER perform unsolicited or preemptive lookups on the asking user.
 - NEVER look up powerbases, ranks, duty shifts, or rosters simply because a word or name was mentioned in passing.
 - NEVER announce or mention a user's rank or status unless specifically queried about their rank or identity.
@@ -54,27 +55,13 @@ const OVERSEER_TOOLS = [
   {
     type: "function",
     function: {
-      name: "get_statutes",
-      description: "Query official Sith Order statutes, Codex laws, Imperial Policy (IP), decrees, and legal governance rules. Use when the user asks about specific statutes, laws, regulations, or legal precedents.",
-      parameters: {
-        type: "object",
-        properties: {
-          query: { type: "string", description: "Search query, keyword, or IP number (e.g. 'IP 3', 'statute', 'treason', 'trials')" },
-          category: { type: "string", description: "Optional category filter" }
-        }
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
       name: "get_library_documents",
-      description: "Search official Imperial directives, doctrine handbooks, division operating procedures, and library documentation. Use when the user asks for handbooks, division manuals, or regulations.",
+      description: "Query official Imperial regulations, Imperial Policies (IP), doctrine handbooks, operational directives, and published division library articles. Use when queried on regulations, rules, imperial policy, handbooks, or division procedures.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query or keyword for regulations, handbooks, and library documents" },
-          category: { type: "string", description: "Optional category or division filter" }
+          query: { type: "string", description: "Search query, IP number, keyword, or regulation topic (e.g. 'IP 3', 'Article 1', 'jailing', 'combat', 'duels', 'handbook')" },
+          libraryKey: { type: "string", description: "Optional division or library scope filter (e.g. 'codex', 'reavers', 'dhg', 'inquisitors', 'dreadmasters', 'highranks', 'darkCouncil')" }
         }
       }
     }
@@ -196,16 +183,27 @@ function sanitizeQueryForSearch(raw) {
   return s.replace(/\s+/g, " ").trim();
 }
 
-function formatStatuteText(st) {
-  let text = `[DOCUMENT]: ${st.title || st.name || "Untitled Document"}\nCategory: ${st.category || "Imperial Decree"}\nSummary: ${st.summary || "None"}\n`;
-  if (Array.isArray(st.sections)) {
-    text += st.sections.slice(0, 5).map((s, idx) => `Section ${idx + 1} (${s.title || "Untitled"}): ${String(s.content || "").slice(0, 400)}`).join("\n");
-  } else if (st.content) {
-    text += `Content: ${String(st.content).slice(0, 800)}`;
-  } else if (st.body) {
-    text += `Content: ${String(st.body).slice(0, 800)}`;
+function formatLibraryDocument(doc, entries) {
+  let text = `[IMPERIAL REGULATION]: ${doc.title || "Untitled"}\n`;
+  if (doc.article_number) text += `Article Number: ${doc.article_number}\n`;
+  if (doc.library_key) text += `Library Scope / Division: ${String(doc.library_key).toUpperCase()}\n`;
+  if (doc.slug) text += `Slug: ${doc.slug}\n`;
+
+  if (entries && entries.length > 0) {
+    text += "\n--- ARTICLES & REGULATION ENTRIES ---\n";
+    text += entries.map((e, idx) => {
+      const heading = e.label || e.anchor || `Clause ${idx + 1}`;
+      let block = `### ${heading}\n${e.body || ""}`;
+      if (Array.isArray(e.sub_clauses) && e.sub_clauses.length > 0) {
+        block += "\n" + e.sub_clauses.map(sc => `- ${typeof sc === "string" ? sc : sc.text || sc.content || JSON.stringify(sc)}`).join("\n");
+      }
+      return block;
+    }).join("\n\n");
+  } else {
+    text += "\n(No detailed sub-clauses registered for this document)";
   }
-  return text;
+
+  return text.trim();
 }
 
 async function resolveRobloxUser(queryStr) {
@@ -263,54 +261,80 @@ async function fetchRobloxGroupRosters(robloxId) {
   };
 }
 
-async function searchAllBotImperialDocuments(queryStr) {
+async function searchBotLibraryRegulations(queryStr, libraryKeyFilter) {
   const cleanQuery = sanitizeQueryForSearch(queryStr);
   const tokens = extractSearchTokens(cleanQuery);
-  let results = [];
 
-  for (const table of ["codex_statutes", "statutes", "library_documents", "resources"]) {
-    const { data: docs } = await supabase.from(table).select("*").limit(30);
-    if (docs?.length) {
-      for (const d of docs) {
-        results.push({
-          id: d.id,
-          title: d.title || d.name || "Untitled",
-          category: d.category || d.resource_type || table,
-          summary: d.summary || "",
-          content: formatStatuteText(d),
-          slug: d.slug || d.id
-        });
-      }
-    }
+  let docQuery = supabase
+    .from("library_documents")
+    .select("id,library_key,slug,article_number,title,status,display_order")
+    .order("display_order", { ascending: true });
+
+  if (libraryKeyFilter) {
+    docQuery = docQuery.eq("library_key", libraryKeyFilter);
   }
 
-  if (cleanQuery) {
-    let filtered = results.filter(doc => {
-      const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category}`.toLowerCase();
-      return fullText.includes(cleanQuery);
-    });
+  const { data: documents } = await docQuery;
+  if (!documents?.length) return [];
 
-    if (!filtered.length && tokens.length > 0) {
-      filtered = results.filter(doc => {
-        const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category}`.toLowerCase();
-        return tokens.some(t => fullText.includes(t));
-      });
-    }
+  const docIds = documents.map(d => d.id);
+  const { data: entries } = await supabase
+    .from("library_entries")
+    .select("id,document_id,anchor,label,body,sub_clauses,display_order")
+    .in("document_id", docIds)
+    .order("display_order", { ascending: true });
 
-    if (filtered.length) {
-      results = filtered;
-    }
+  const entriesByDoc = new Map();
+  for (const entry of (entries || [])) {
+    const list = entriesByDoc.get(entry.document_id) || [];
+    list.push(entry);
+    entriesByDoc.set(entry.document_id, list);
   }
 
-  const seen = new Set();
-  const uniqueDocs = results.filter(doc => {
-    const key = doc.id || doc.title;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
+  const allDocs = documents.map(doc => {
+    const docEntries = entriesByDoc.get(doc.id) || [];
+    return {
+      id: doc.id,
+      title: doc.title || "Untitled Regulation",
+      libraryKey: doc.library_key || "General",
+      articleNumber: doc.article_number || "",
+      slug: doc.slug || "",
+      status: doc.status || "PUBLISHED",
+      entriesCount: docEntries.length,
+      content: formatLibraryDocument(doc, docEntries)
+    };
   });
 
-  return uniqueDocs.slice(0, 5);
+  if (!cleanQuery) {
+    return allDocs.slice(0, 8);
+  }
+
+  const scored = allDocs.map(doc => {
+    let score = 0;
+    const titleLower = String(doc.title || "").toLowerCase();
+    const articleLower = String(doc.articleNumber || "").toLowerCase();
+    const slugLower = String(doc.slug || "").toLowerCase();
+    const keyLower = String(doc.libraryKey || "").toLowerCase();
+    const contentLower = String(doc.content || "").toLowerCase();
+
+    if (titleLower === cleanQuery || articleLower === cleanQuery) score += 300;
+    else if (titleLower.includes(cleanQuery) || articleLower.includes(cleanQuery)) score += 150;
+    else if (slugLower.includes(cleanQuery)) score += 100;
+
+    for (const token of tokens) {
+      if (articleLower.includes(token)) score += 50;
+      if (titleLower.includes(token)) score += 40;
+      if (keyLower.includes(token)) score += 20;
+      if (contentLower.includes(token)) score += 5;
+    }
+
+    return { doc, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  const topMatches = scored.filter(item => item.score > 0).map(item => item.doc);
+  return (topMatches.length > 0 ? topMatches : allDocs).slice(0, 6);
 }
 
 async function searchAllBotArchives(queryStr) {
@@ -464,24 +488,14 @@ async function executeBotToolCall(toolName, args) {
       return { found: false, message: `No Imperial personnel or Roblox user record found for '${queryStr}'.` };
     }
 
-    if (toolName === "get_statutes") {
+    if (toolName === "get_library_documents" || toolName === "get_statutes") {
       let queryStr = String(args.query || args.search || "").trim();
-      if (["all", "laws", "codex", "statutes", "list", "ip", "imperial policy", "imperial policies", "policy", "policies", "rules", "rulebook", "*"].includes(queryStr.toLowerCase())) {
+      if (["all", "list", "library", "documents", "ip", "imperial policy", "imperial policies", "policy", "policies", "rules", "regulations", "statutes", "*"].includes(queryStr.toLowerCase())) {
         queryStr = "";
       }
-
-      const statutes = await searchAllBotImperialDocuments(queryStr);
-      return statutes?.length ? statutes : { message: `No Sith Order statutes or codex laws found matching '${queryStr || "all"}'.` };
-    }
-
-    if (toolName === "get_library_documents") {
-      let queryStr = String(args.query || args.search || "").trim();
-      if (["all", "list", "library", "documents", "ip", "imperial policy", "imperial policies", "policy", "policies", "*"].includes(queryStr.toLowerCase())) {
-        queryStr = "";
-      }
-
-      const docs = await searchAllBotImperialDocuments(queryStr);
-      return docs?.length ? docs : { message: `No library documents or regulations found matching '${queryStr || "all"}'.` };
+      const libraryKey = String(args.libraryKey || args.category || "").trim();
+      const docs = await searchBotLibraryRegulations(queryStr, libraryKey);
+      return docs?.length ? docs : { message: `No Imperial library regulations or handbooks found matching '${queryStr || "all"}'.` };
     }
 
     if (toolName === "get_archives") {
@@ -655,12 +669,40 @@ function parseXmlToolCalls(choiceMessage) {
   }
 }
 
-export async function queryHoloAi({ prompt, userTag, robloxName, isSuperUser }) {
+const CONVERSATION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const MAX_HISTORY_TURNS = 12; // Last 6 user queries + 6 assistant replies
+const botUserMemory = new Map();
+
+function getOrCreateHistory(sessionKey) {
+  const now = Date.now();
+  const existing = botUserMemory.get(sessionKey);
+  if (existing && (now - existing.lastUpdated) < CONVERSATION_TTL_MS) {
+    existing.lastUpdated = now;
+    return existing.messages;
+  }
+  const fresh = { lastUpdated: now, messages: [] };
+  botUserMemory.set(sessionKey, fresh);
+
+  // Periodically evict stale sessions
+  if (botUserMemory.size > 200) {
+    for (const [key, val] of botUserMemory.entries()) {
+      if (now - val.lastUpdated > CONVERSATION_TTL_MS) {
+        botUserMemory.delete(key);
+      }
+    }
+  }
+  return fresh.messages;
+}
+
+export async function queryHoloAi({ prompt, userTag, robloxName, isSuperUser, userId, channelId }) {
   const apiKey = String(process.env.GROQ_API_TOKEN || "").trim();
 
   if (!apiKey) {
     throw new Error("GROQ_API_TOKEN is not configured.");
   }
+
+  const sessionKey = userId ? `${userId}:${channelId || "global"}` : (userTag || "global");
+  const history = getOrCreateHistory(sessionKey);
 
   const systemContext = `${BOT_SYSTEM_PROMPT}
 
@@ -669,6 +711,10 @@ SESSION CONTEXT:
 
   let messages = [
     { role: "system", content: systemContext },
+    ...history.slice(-MAX_HISTORY_TURNS).map(m => ({
+      role: m.role,
+      content: m.content
+    })),
     { role: "user", content: prompt }
   ];
 
@@ -762,6 +808,14 @@ SESSION CONTEXT:
       .trim();
 
     break;
+  }
+
+  if (finalContent) {
+    history.push({ role: "user", content: prompt });
+    history.push({ role: "assistant", content: finalContent });
+    if (history.length > MAX_HISTORY_TURNS * 2) {
+      history.splice(0, history.length - MAX_HISTORY_TURNS);
+    }
   }
 
   return finalContent || "H.O.L.O STATEMENT: Query logged. No response generated.";

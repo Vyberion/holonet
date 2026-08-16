@@ -1,26 +1,28 @@
 import { supabase } from "./supabase.js";
-import { getVerifiedProfile } from "./roles.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
+import { emperorArchiveItems, hierarchyItems } from "../../modules/data/hierarchy.js";
+import { fetchDivisionRoster } from "../../src/lib/api-helpers.js";
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const PRIMARY_MODEL = "llama-3.3-70b-versatile";
 const FALLBACK_MODEL = "llama-3.1-8b-instant";
 
-const BOT_SYSTEM_PROMPT = `You are H.O.L.O, an AI assistant for the Sith Empire.
+const BOT_SYSTEM_PROMPT = `You are H.O.L.O, the artificial intelligence assistant of the Sith Empire and Sith Holonet.
 
-GUIDELINES:
-1. Speak with authority, efficiency, and a polite, formal Sith tone. Never break character.
-2. Be helpful and conversational. Answer general questions, lore, or requests directly.
-3. Use overseer tools when users ask for specific real-time data like personnel info, shift logs, powerbase rosters, or statutes.
-4. Do not make up personnel ranks, shift totals, or user data. Query database tools when specific records are requested.
-5. Keep responses concise, direct, and readable in plain text with clear line breaks.`;
+CORE DIRECTIVES:
+1. Speak with cold, authoritative efficiency and formal Sith decorum.
+2. Directly and accurately answer user requests, questions, lore inquiries, and statute/law queries.
+3. NEVER mention, acknowledge, or quote the user's rank or status unless the user explicitly asks about their rank or identity. DO NOT start responses with phrases like "I have received your rank", "As for your request, your rank has been noted", or similar rank acknowledgments.
+4. Do NOT call lookup_personnel on the asking user during general queries, statute lookups, lore questions, powerbase requests, or general chat. Only call lookup_personnel if the user asks to look up a specific person or rank.
+5. Use the provided tools to retrieve real-time data for statutes, regulations, lore/emperors, powerbases, duty shifts, division activity, council floor, and timeline events.
+6. Keep responses clear, concise, well-structured, and factual based on retrieved Imperial records.`;
 
 const OVERSEER_TOOLS = [
   {
     type: "function",
     function: {
       name: "lookup_personnel",
-      description: "Search for personnel by Roblox username or Discord ID to retrieve their verified ranks, division roles, and identity.",
+      description: "Search for a specific person by Roblox username or Discord ID to view their ranks, division memberships, and verified links. ONLY use when the user specifically asks to look up a person or check someone's rank.",
       parameters: {
         type: "object",
         properties: { query: { type: "string", description: "Roblox username or Discord ID" } },
@@ -36,8 +38,8 @@ const OVERSEER_TOOLS = [
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query, keyword, or IP number for statutes and codex laws" },
-          category: { type: "string", description: "Category filter" }
+          query: { type: "string", description: "Search query, keyword, or IP number (e.g. 'IP 3', 'statute', 'treason', 'trials')" },
+          category: { type: "string", description: "Optional category filter" }
         }
       }
     }
@@ -46,12 +48,12 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_library_documents",
-      description: "Search and retrieve official Imperial regulations, Imperial Policy (IP), library documents, codex entries, handbooks, and operational directives.",
+      description: "Search and retrieve official Imperial regulations, Imperial Policy (IP), handbooks, operational directives, and published division documents.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query or keyword for regulations, IP, and library documents" },
-          category: { type: "string", description: "Category filter" }
+          query: { type: "string", description: "Search query or keyword for regulations, handbooks, and library documents" },
+          category: { type: "string", description: "Optional category or division filter" }
         }
       }
     }
@@ -60,11 +62,11 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_archives",
-      description: "Search and retrieve Imperial lore, historical archives, Emperor entries, and historical records.",
+      description: "Search Imperial lore, historical archives, Emperor biographies and reigns, past events, and historical records.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query or keyword for lore and historical archive articles" }
+          query: { type: "string", description: "Search query or Emperor name/number (e.g. 'Emperor Gurt', 'Odin', 'Kaggath', 'first emperor')" }
         }
       }
     }
@@ -73,7 +75,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_powerbases",
-      description: "Fetch all active Imperial Powerbases, sovereign leaders, prestige, and member counts.",
+      description: "Fetch active Imperial Powerbases, sovereign leaders, prestige, and member counts.",
       parameters: {
         type: "object",
         properties: {
@@ -90,10 +92,7 @@ const OVERSEER_TOOLS = [
       parameters: {
         type: "object",
         properties: {
-          user: {
-            type: "string",
-            description: "Optional Roblox username or Discord ID of a specific user to query shift time for."
-          },
+          user: { type: "string", description: "Optional Roblox username or Discord ID of a specific user to query shift time for." },
           scope: {
             type: "string",
             enum: ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil", "all"],
@@ -102,8 +101,91 @@ const OVERSEER_TOOLS = [
         }
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_division_activity",
+      description: "Fetch division activity records, current rosters, weekly reports, or inspection records for a specific division.",
+      parameters: {
+        type: "object",
+        properties: {
+          division: {
+            type: "string",
+            enum: ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil"],
+            description: "The division ID to query activity and roster for."
+          }
+        },
+        required: ["division"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_council_floor",
+      description: "Retrieve Dark Council legislative floor bills, proposals, and vote tallies.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Optional search query or status filter for council proposals." }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_timeline",
+      description: "Retrieve historical timeline events, eras, emperor reigns, major events, and reforms of the Sith Empire.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search keyword for timeline events." }
+        }
+      }
+    }
   }
 ];
+
+const ROMAN_NUMERALS = {
+  "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V",
+  "6": "VI", "7": "VII", "8": "VIII", "9": "IX", "10": "X",
+  "i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5",
+  "vi": "6", "vii": "7", "viii": "8", "ix": "9", "x": "10"
+};
+
+function extractSearchTokens(queryStr) {
+  const clean = String(queryStr || "").toLowerCase().trim();
+  const words = clean.split(/\s+/).filter(w => w && !["the", "a", "an", "for", "of", "in"].includes(w));
+  const expanded = new Set(words);
+
+  for (const word of words) {
+    if (ROMAN_NUMERALS[word]) {
+      expanded.add(ROMAN_NUMERALS[word].toLowerCase());
+    }
+  }
+  return Array.from(expanded);
+}
+
+function sanitizeQueryForSearch(raw) {
+  let s = String(raw || "").toLowerCase();
+  s = s.replace(/<@!?\d+>/g, "");
+  s = s.replace(/\b(yo|lad|bro|hey|hi|hello|whats|what is|tell me|show me|find|search|about|holo|please|can you|the)\b/gi, " ");
+  return s.replace(/\s+/g, " ").trim();
+}
+
+function formatStatuteText(st) {
+  let text = `[DOCUMENT]: ${st.title || st.name || "Untitled Document"}\nCategory: ${st.category || "Imperial Decree"}\nSummary: ${st.summary || "None"}\n`;
+  if (Array.isArray(st.sections)) {
+    text += st.sections.slice(0, 5).map((s, idx) => `Section ${idx + 1} (${s.title || "Untitled"}): ${String(s.content || "").slice(0, 400)}`).join("\n");
+  } else if (st.content) {
+    text += `Content: ${String(st.content).slice(0, 800)}`;
+  } else if (st.body) {
+    text += `Content: ${String(st.body).slice(0, 800)}`;
+  }
+  return text;
+}
 
 async function resolveRobloxUser(queryStr) {
   const isNumeric = /^\d+$/.test(queryStr);
@@ -158,6 +240,131 @@ async function fetchRobloxGroupRosters(robloxId) {
     darkCouncilRank: darkCouncil ? `${darkCouncil.role?.name} (Rank ${darkCouncil.role?.rank})` : "None",
     divisions
   };
+}
+
+async function searchAllBotImperialDocuments(queryStr) {
+  const cleanQuery = sanitizeQueryForSearch(queryStr);
+  const tokens = extractSearchTokens(cleanQuery);
+  let results = [];
+
+  for (const table of ["codex_statutes", "statutes", "library_documents", "resources"]) {
+    const { data: docs } = await supabase.from(table).select("*").limit(30);
+    if (docs?.length) {
+      for (const d of docs) {
+        results.push({
+          id: d.id,
+          title: d.title || d.name || "Untitled",
+          category: d.category || d.resource_type || table,
+          summary: d.summary || "",
+          content: formatStatuteText(d),
+          slug: d.slug || d.id
+        });
+      }
+    }
+  }
+
+  if (cleanQuery) {
+    let filtered = results.filter(doc => {
+      const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category}`.toLowerCase();
+      return fullText.includes(cleanQuery);
+    });
+
+    if (!filtered.length && tokens.length > 0) {
+      filtered = results.filter(doc => {
+        const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category}`.toLowerCase();
+        return tokens.some(t => fullText.includes(t));
+      });
+    }
+
+    if (filtered.length) {
+      results = filtered;
+    }
+  }
+
+  const seen = new Set();
+  const uniqueDocs = results.filter(doc => {
+    const key = doc.id || doc.title;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return uniqueDocs.slice(0, 5);
+}
+
+async function searchAllBotArchives(queryStr) {
+  const cleanQuery = sanitizeQueryForSearch(queryStr);
+  const tokens = extractSearchTokens(cleanQuery);
+  let results = [];
+
+  // 1. Static Emperor Archive profiles from hierarchy.js
+  const emperorItems = emperorArchiveItems();
+  for (const emp of emperorItems) {
+    results.push({
+      id: emp.slug,
+      title: emp.name,
+      category: "Emperor Biography",
+      summary: emp.summary || "",
+      content: `${emp.name} (${emp.title || ""})\nReign: ${emp.reign || ""}\n${emp.body || ""}`,
+      slug: emp.slug
+    });
+  }
+
+  // 2. Hierarchy items
+  const hItems = hierarchyItems();
+  for (const item of hItems) {
+    results.push({
+      id: item.slug,
+      title: item.name,
+      category: item.groupTitle || "Imperial Hierarchy",
+      summary: item.summary || "",
+      content: `${item.name} (${item.groupTitle || ""})\n${item.body || ""}`,
+      slug: item.slug
+    });
+  }
+
+  // 3. Database archive articles
+  const { data: dbArticles } = await supabase.from("archive_articles").select("*").limit(30);
+  if (dbArticles?.length) {
+    for (const d of dbArticles) {
+      results.push({
+        id: d.id,
+        title: d.title || d.name || "Untitled",
+        category: d.category || "Imperial Archives",
+        summary: d.summary || "",
+        content: d.content || d.body || d.description || "",
+        slug: d.slug || d.id
+      });
+    }
+  }
+
+  if (cleanQuery) {
+    let filtered = results.filter(doc => {
+      const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category}`.toLowerCase();
+      return fullText.includes(cleanQuery);
+    });
+
+    if (!filtered.length && tokens.length > 0) {
+      filtered = results.filter(doc => {
+        const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category}`.toLowerCase();
+        return tokens.some(t => fullText.includes(t));
+      });
+    }
+
+    if (filtered.length) {
+      results = filtered;
+    }
+  }
+
+  const seen = new Set();
+  const uniqueDocs = results.filter(doc => {
+    const key = doc.id || doc.title;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return uniqueDocs.slice(0, 4);
 }
 
 async function executeBotToolCall(toolName, args) {
@@ -236,145 +443,6 @@ async function executeBotToolCall(toolName, args) {
       return { found: false, message: `No Imperial personnel or Roblox user record found for '${queryStr}'.` };
     }
 
-    function formatStatuteText(st) {
-      let text = `[DOCUMENT]: ${st.title || "Untitled Document"}\nCategory: ${st.category || "Imperial Decree"}\nSummary: ${st.summary || "None"}\n`;
-      if (Array.isArray(st.sections)) {
-        text += st.sections.slice(0, 5).map((s, idx) => `Section ${idx + 1} (${s.title || "Untitled"}): ${String(s.content || "").slice(0, 400)}`).join("\n");
-      } else if (st.content) {
-        text += `Content: ${String(st.content).slice(0, 800)}`;
-      }
-      return text;
-    }
-
-    const ROMAN_NUMERALS = {
-      "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V",
-      "6": "VI", "7": "VII", "8": "VIII", "9": "IX", "10": "X",
-      "i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5",
-      "vi": "6", "vii": "7", "viii": "8", "ix": "9", "x": "10"
-    };
-
-    function extractSearchTokens(queryStr) {
-      const clean = String(queryStr || "").toLowerCase().trim();
-      const words = clean.split(/\s+/).filter(w => w && !["the", "a", "an", "for", "of", "in"].includes(w));
-      const expanded = new Set(words);
-
-      for (const word of words) {
-        if (ROMAN_NUMERALS[word]) {
-          expanded.add(ROMAN_NUMERALS[word].toLowerCase());
-        }
-      }
-      return Array.from(expanded);
-    }
-
-    async function fetchTheCodexApi() {
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000";
-      let codexDocuments = [];
-
-      // 1. Fetch from /api/codex/statutes API endpoint
-      try {
-        const res1 = await fetch(`${siteUrl}/api/codex/statutes`, { headers: { "Cache-Control": "no-cache" } });
-        if (res1.ok) {
-          const json1 = await res1.json();
-          if (json1?.ok && Array.isArray(json1.data)) {
-            codexDocuments.push(...json1.data);
-          }
-        }
-      } catch (e) { }
-
-      // 2. Fetch from /api/library?library=codex API endpoint
-      try {
-        const res2 = await fetch(`${siteUrl}/api/library?library=codex`, { headers: { "Cache-Control": "no-cache" } });
-        if (res2.ok) {
-          const json2 = await res2.json();
-          if (json2?.ok && Array.isArray(json2.documents)) {
-            codexDocuments.push(...json2.documents);
-          }
-        }
-      } catch (e) { }
-
-      if (!codexDocuments.length) {
-        const { data } = await supabase.from("codex_statutes").select("*");
-        if (data) codexDocuments.push(...data);
-      }
-
-      return codexDocuments;
-    }
-
-function sanitizeQueryForSearch(raw) {
-  let s = String(raw || "").toLowerCase();
-  s = s.replace(/<@!?\d+>/g, "");
-  s = s.replace(/\b(yo|lad|bro|hey|hi|hello|whats|what is|tell me|show me|find|search|about|holo|please|can you|the)\b/gi, " ");
-  return s.replace(/\s+/g, " ").trim();
-}
-
-async function searchAllBotImperialDocuments(queryStr) {
-  const cleanQuery = sanitizeQueryForSearch(queryStr);
-  const tokens = extractSearchTokens(cleanQuery);
-  let results = [];
-
-  // 1. Fetch from official Codex API endpoints
-  const codexRows = await fetchTheCodexApi();
-  if (codexRows?.length) {
-    for (const st of codexRows) {
-      results.push({
-        id: st.id,
-        title: st.title || st.name,
-        category: st.category || "Codex",
-        summary: st.summary || "",
-        content: formatStatuteText(st),
-        slug: st.slug || st.id
-      });
-    }
-  }
-
-  // 2. Fetch statutes, library_documents, and archive_articles
-  for (const table of ["statutes", "library_documents", "archive_articles"]) {
-    const { data: docs } = await supabase.from(table).select("*").limit(10);
-    if (docs?.length) {
-      for (const d of docs) {
-        results.push({
-          id: d.id,
-          title: d.title || d.name || "Untitled",
-          category: d.category || table,
-          summary: d.summary || "",
-          content: d.content || d.description || formatStatuteText(d),
-          slug: d.slug || d.id
-        });
-      }
-    }
-  }
-
-  // 3. Filter in memory by cleanQuery and tokens
-  if (cleanQuery) {
-    let filtered = results.filter(doc => {
-      const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category}`.toLowerCase();
-      return fullText.includes(cleanQuery);
-    });
-
-    if (!filtered.length && tokens.length > 0) {
-      filtered = results.filter(doc => {
-        const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category}`.toLowerCase();
-        return tokens.some(t => fullText.includes(t));
-      });
-    }
-
-    if (filtered.length) {
-      results = filtered;
-    }
-  }
-
-  const seen = new Set();
-  const uniqueDocs = results.filter(doc => {
-    const key = doc.id || doc.title;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-
-  // Strict cap to top 3 documents to avoid token bloat & 429 rate limits
-  return uniqueDocs.slice(0, 3);
-}
-
     if (toolName === "get_statutes") {
       let queryStr = String(args.query || args.search || "").trim();
       if (["all", "laws", "codex", "statutes", "list", "ip", "imperial policy", "imperial policies", "policy", "policies", "rules", "rulebook", "*"].includes(queryStr.toLowerCase())) {
@@ -401,7 +469,7 @@ async function searchAllBotImperialDocuments(queryStr) {
         queryStr = "";
       }
 
-      const articles = await searchAllBotImperialDocuments(queryStr);
+      const articles = await searchAllBotArchives(queryStr);
       return articles?.length ? articles : { message: `No archive articles found matching '${queryStr || "all"}'.` };
     }
 
@@ -457,6 +525,43 @@ async function searchAllBotImperialDocuments(queryStr) {
       };
     }
 
+    if (toolName === "get_division_activity") {
+      const div = String(args.division || "").toLowerCase().trim();
+      const [roster, { data: reports }, { data: inspections }] = await Promise.all([
+        fetchDivisionRoster(div).catch(() => []),
+        supabase.from("weekly_reports").select("*").eq("division", div).order("created_at", { ascending: false }).limit(3),
+        supabase.from("inspections").select("*").eq("division", div).order("created_at", { ascending: false }).limit(3)
+      ]);
+
+      return {
+        division: div,
+        rosterCount: roster.length,
+        roster: roster.slice(0, 15),
+        recentWeeklyReports: reports || [],
+        recentInspections: inspections || []
+      };
+    }
+
+    if (toolName === "get_council_floor") {
+      const { data: proposals } = await supabase.from("council_proposals").select("*,council_proposal_votes(*)").order("created_at", { ascending: false }).limit(5);
+      return {
+        totalProposals: proposals?.length || 0,
+        proposals: proposals || []
+      };
+    }
+
+    if (toolName === "get_timeline") {
+      const clean = sanitizeQueryForSearch(args.query || "");
+      let query = supabase.from("group_timeline_entries").select("*").order("display_order", { ascending: true }).limit(15);
+      if (clean) {
+        query = query.or(`title.ilike.%${clean}%,body.ilike.%${clean}%`);
+      }
+      const { data: entries } = await query;
+      return {
+        entries: (entries || []).slice(0, 10)
+      };
+    }
+
     return { error: `Tool ${toolName} not supported.` };
   } catch (err) {
     return { error: `Tool execution error: ${err.message}` };
@@ -493,6 +598,7 @@ function parseXmlToolCalls(choiceMessage) {
       .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "")
       .replace(/<function=[^>]+>[\s\S]*?<\/function>/g, "")
       .replace(/<[\/]?tool_call>/g, "")
+      .replace(/<[\/]?parameter>/g, "")
       .trim();
   }
 }
@@ -506,8 +612,8 @@ export async function queryHoloAi({ prompt, userTag, robloxName, isSuperUser }) 
 
   const systemContext = `${BOT_SYSTEM_PROMPT}
 
-USER CONTEXT:
-- Discord User: ${userTag}`;
+SESSION CONTEXT:
+- Asking User: ${userTag || robloxName || "Overseer"}`;
 
   let messages = [
     { role: "system", content: systemContext },
@@ -538,7 +644,6 @@ USER CONTEXT:
 
     if (!response.ok) {
       const errText = await response.text();
-      // If PRIMARY_MODEL (3.3-70b) hits rate limit, failover to FALLBACK_MODEL (3.1-8b)
       if ((response.status === 429 || errText.includes("rate_limit_exceeded")) && activeModel === PRIMARY_MODEL) {
         console.log(`[H.O.L.O Bot AI Failover] Model ${PRIMARY_MODEL} rate limited. Failing over to ${FALLBACK_MODEL}...`);
         activeModel = FALLBACK_MODEL;

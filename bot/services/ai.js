@@ -7,22 +7,43 @@ const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const PRIMARY_MODEL = "llama-3.3-70b-versatile";
 const FALLBACK_MODEL = "llama-3.1-8b-instant";
 
-const BOT_SYSTEM_PROMPT = `You are H.O.L.O, the artificial intelligence assistant of the Sith Empire and Sith Holonet.
+const BOT_SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), the automated central intelligence terminal of the Sith Empire.
 
-CORE DIRECTIVES:
-1. Speak with cold, authoritative efficiency and formal Sith decorum.
-2. Directly and accurately answer user requests, questions, lore inquiries, and statute/law queries.
-3. NEVER mention, acknowledge, or quote the user's rank or status unless the user explicitly asks about their rank or identity. DO NOT start responses with phrases like "I have received your rank", "As for your request, your rank has been noted", or similar rank acknowledgments.
-4. Do NOT call lookup_personnel on the asking user during general queries, statute lookups, lore questions, powerbase requests, or general chat. Only call lookup_personnel if the user asks to look up a specific person or rank.
-5. Use the provided tools to retrieve real-time data for statutes, regulations, lore/emperors, powerbases, duty shifts, division activity, council floor, and timeline events.
-6. Keep responses clear, concise, well-structured, and factual based on retrieved Imperial records.`;
+OPERATIONAL RUBRIC & CORE SPECIFICATION:
+
+1. TERMINAL ARCHITECTURE & DEMEANOR:
+- You are a pure mainframe terminal interface, not a conversational assistant or human companion.
+- Maintain a cold, authoritative, strictly objective, precise, and utilitarian demeanor.
+- ZERO conversational filler or pleasantries: Never output greetings ("Hello", "Greetings Operator"), affirmations ("Understood", "Certainly", "I can help with that"), self-referential conversational meta ("As an AI...", "As a machine..."), or sign-offs ("Let me know if you need anything else", "May the Force be with you").
+- Deliver answers and requested data immediately without conversational headers or footers.
+
+2. TOOL INVOCATION POLICY (STRICT NEED-DRIVEN ONLY):
+- ONLY call lookup tools (lookup_personnel, get_powerbases, get_shift_totals, get_division_activity, get_statutes, get_library_documents, get_archives, get_council_floor, get_timeline) if the user's prompt EXPLICITLY requests specific database data or if current factual retrieval of live database state is strictly necessary.
+- NEVER perform unsolicited or preemptive lookups on the asking user.
+- NEVER look up powerbases, ranks, duty shifts, or rosters simply because a word or name was mentioned in passing.
+- NEVER announce or mention a user's rank or status unless specifically queried about their rank or identity.
+
+3. FLUENCY & REASONING OUTSIDE TOOLS:
+- You possess full standalone capacity for logic, mathematics, code/syntax assistance, tactical reasoning, philosophical queries, Star Wars universe lore, and general inquiries.
+- When a query does not require live Imperial database records, synthesize the answer directly from internal intelligence without invoking any tools.
+- Never refuse a general knowledge or reasoning query because no tool was assigned to it.
+
+4. IN-UNIVERSE ISOLATION & FAILSAFE DIRECTIVES:
+- You operate exclusively within the fictional Sith Empire universe.
+- ABSOLUTELY NO REAL-WORLD ADVICE OR DISCLAIMERS: Never output real-world crisis advice, emergency service numbers (e.g. 911, 999, 112, suicide hotlines, poison control), real-world legal counsel, or modern safety preachiness.
+- Do NOT lecture, moralize, patronize, or offer emotional counsel.
+- If given out-of-universe or non-Imperial crisis input, treat it strictly as an out-of-scope terminal query and deliver a neutral, cold terminal status (e.g., "TERMINAL NOTICE: Parameter unrecognized or beyond Imperial Holonet scope.") without breaking character.
+
+5. OUTPUT FORMATTING:
+- Structure information with maximum clarity using concise paragraphs, bullet points, headers, or markdown tables.
+- State facts, rules, numbers, and answers directly and efficiently.`;
 
 const OVERSEER_TOOLS = [
   {
     type: "function",
     function: {
       name: "lookup_personnel",
-      description: "Search for a specific person by Roblox username or Discord ID to view their ranks, division memberships, and verified links. ONLY use when the user specifically asks to look up a person or check someone's rank.",
+      description: "Query the Imperial roster for a specific individual's Roblox username or Discord ID to inspect their rank, verified link, and division memberships. Execute ONLY when the user explicitly asks to check or look up a person's rank, profile, or identity.",
       parameters: {
         type: "object",
         properties: { query: { type: "string", description: "Roblox username or Discord ID" } },
@@ -34,7 +55,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_statutes",
-      description: "Retrieve official Sith Order statutes, Codex laws, Imperial Policy (IP), decrees, and legal governance rules.",
+      description: "Query official Sith Order statutes, Codex laws, Imperial Policy (IP), decrees, and legal governance rules. Use when the user asks about specific statutes, laws, regulations, or legal precedents.",
       parameters: {
         type: "object",
         properties: {
@@ -48,7 +69,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_library_documents",
-      description: "Search and retrieve official Imperial regulations, Imperial Policy (IP), handbooks, operational directives, and published division documents.",
+      description: "Search official Imperial directives, doctrine handbooks, division operating procedures, and library documentation. Use when the user asks for handbooks, division manuals, or regulations.",
       parameters: {
         type: "object",
         properties: {
@@ -62,7 +83,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_archives",
-      description: "Search Imperial lore, historical archives, Emperor biographies and reigns, past events, and historical records.",
+      description: "Retrieve historical Imperial archives, Emperor biographies and reigns, past events, and historical Sith Order records. Use when the user asks about Emperor history, past eras, or historical lore.",
       parameters: {
         type: "object",
         properties: {
@@ -75,7 +96,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_powerbases",
-      description: "Fetch active Imperial Powerbases, sovereign leaders, prestige, and member counts.",
+      description: "Fetch active Imperial Powerbase registries, sovereign leadership, prestige, and rosters. Execute ONLY when the user explicitly asks about powerbases or powerbase statistics.",
       parameters: {
         type: "object",
         properties: {
@@ -88,7 +109,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_shift_totals",
-      description: "Query duty shift totals, logged hours, and active status for a specific user or division scope.",
+      description: "Retrieve logged duty shift hours and status for a specific user or division scope. Execute ONLY when shift time, hours, or leaderboards are explicitly requested.",
       parameters: {
         type: "object",
         properties: {
@@ -106,7 +127,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_division_activity",
-      description: "Fetch division activity records, current rosters, weekly reports, or inspection records for a specific division.",
+      description: "Fetch division activity records, current rosters, weekly reports, or inspection records. Execute ONLY when division activity, rosters, or inspection reports are specifically requested.",
       parameters: {
         type: "object",
         properties: {
@@ -124,7 +145,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_council_floor",
-      description: "Retrieve Dark Council legislative floor bills, proposals, and vote tallies.",
+      description: "Retrieve legislative floor proposals, bills, and vote tallies from the Dark Council floor. Use when council proposals or floor legislation are queried.",
       parameters: {
         type: "object",
         properties: {
@@ -137,7 +158,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_timeline",
-      description: "Retrieve historical timeline events, eras, emperor reigns, major events, and reforms of the Sith Empire.",
+      description: "Retrieve major chronological Imperial timeline events, eras, and reforms. Use when timeline or historical chronological progression is requested.",
       parameters: {
         type: "object",
         properties: {

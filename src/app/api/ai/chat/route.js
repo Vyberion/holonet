@@ -11,8 +11,61 @@ import {
 import { emperorArchiveItems, hierarchyItems } from "../../../../../modules/data/hierarchy.js";
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-const PRIMARY_MODEL = "llama-3.3-70b-versatile";
-const FALLBACK_MODEL = "llama-3.1-8b-instant";
+const CANDIDATE_MODELS = [
+  "llama-3.3-70b-versatile",
+  "llama-3.1-8b-instant",
+  "mixtral-8x7b-32768",
+  "gemma2-9b-it"
+];
+
+async function executeGroqChat(apiKey, payload) {
+  const keys = String(apiKey || "").split(",").map(k => k.trim()).filter(Boolean);
+  let lastError = null;
+
+  for (const currentKey of keys) {
+    for (const model of CANDIDATE_MODELS) {
+      try {
+        const response = await fetch(GROQ_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${currentKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            ...payload,
+            model,
+            temperature: 0.2
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return { ok: true, data, model };
+        }
+
+        const errText = await response.text().catch(() => "");
+        lastError = { status: response.status, body: errText, model };
+
+        if (response.status === 429 || errText.includes("rate_limit")) {
+          console.warn(`[H.O.L.O Groq Failover] Model ${model} rate limited. Trying next candidate model...`);
+          continue;
+        }
+
+        if (response.status === 400 || response.status === 404 || response.status === 503) {
+          console.warn(`[H.O.L.O Groq Failover] Model ${model} returned ${response.status}. Trying next candidate model...`);
+          continue;
+        }
+
+        break;
+      } catch (err) {
+        lastError = { status: 0, body: err?.message, model };
+        continue;
+      }
+    }
+  }
+
+  return { ok: false, error: lastError };
+}
 
 const SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), the automated central intelligence terminal of the Sith Empire.
 
@@ -674,67 +727,34 @@ SESSION CONTEXT:
 
     let iterations = 0;
     let finalContent = "";
-    let activeModel = PRIMARY_MODEL;
 
     while (iterations < 5) {
       iterations++;
 
-      let response = await fetch(GROQ_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: activeModel,
-          messages,
-          tools: OVERSEER_TOOLS,
-          tool_choice: "auto",
-          temperature: 0.2
-        })
+      const result = await executeGroqChat(apiKey, {
+        messages,
+        tools: OVERSEER_TOOLS,
+        tool_choice: "auto"
       });
 
-      if (!response.ok) {
-        const errText = await response.text();
-        if ((response.status === 429 || errText.includes("rate_limit_exceeded")) && activeModel === PRIMARY_MODEL) {
-          console.log(`[H.O.L.O AI Failover] Model ${PRIMARY_MODEL} rate limited. Failing over to ${FALLBACK_MODEL}...`);
-          activeModel = FALLBACK_MODEL;
-          response = await fetch(GROQ_ENDPOINT, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${apiKey}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              model: activeModel,
-              messages,
-              tools: OVERSEER_TOOLS,
-              tool_choice: "auto",
-              temperature: 0.2
-            })
-          });
-        }
-
-        if (!response.ok) {
-          const finalErrText = await response.text().catch(() => errText);
-          console.error("Groq API error:", response.status, finalErrText);
-          if (response.status === 429 || finalErrText.includes("rate_limit_exceeded")) {
-            const secondsMatch = finalErrText.match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
-            const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
-            return NextResponse.json({
-              role: "assistant",
-              content: `Transmission rate limit reached. Subspace communications busy. Try again in ${timeStr}.`
-            });
-          }
+      if (!result.ok) {
+        const errInfo = result.error;
+        console.error("[H.O.L.O AI Error]:", errInfo);
+        if (errInfo?.status === 429 || String(errInfo?.body || "").includes("rate_limit")) {
+          const secondsMatch = String(errInfo.body || "").match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
+          const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
           return NextResponse.json({
             role: "assistant",
-            content: `TRANSMISSION ERROR: Holonet neural sub-processor returned error ${response.status}.`
-          }, { status: 500 });
+            content: `Transmission rate limit reached across all sub-processors. Subspace communications busy. Try again in ${timeStr}.`
+          });
         }
+        return NextResponse.json({
+          role: "assistant",
+          content: `TRANSMISSION ERROR: Holonet neural sub-processor returned error ${errInfo?.status || 500}.`
+        }, { status: 500 });
       }
 
-      const data = await response.json();
-      const choiceMessage = data.choices?.[0]?.message;
+      const choiceMessage = result.data.choices?.[0]?.message;
       if (!choiceMessage) break;
 
       parseXmlToolCalls(choiceMessage);

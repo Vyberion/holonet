@@ -76,15 +76,8 @@ async function maybeHandleHoloAiResponse(message) {
 }
 
 async function maybeSendOldBotRedirectNotice(message) {
-  if (message.channel?.id !== OLD_BOT_REDIRECT_CHANNEL_ID) return;
-
-  const isOldBotMsg = OLD_BOT_IDS.has(message.author?.id);
-  const contentLower = message.content?.toLowerCase() || "";
-  const isLegacyUserTrigger =
-    !message.author?.bot &&
-    LEGACY_TEXT_TRIGGERS.some(trigger => contentLower.startsWith(trigger));
-
-  if (!isOldBotMsg && !isLegacyUserTrigger) return;
+  if (message.channel?.id !== "1046841602519343164") return;
+  if (message.author?.id !== "426537812993638400") return;
 
   const payload = componentsV2Message([
     containerV2([

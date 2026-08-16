@@ -375,26 +375,58 @@ async function executeToolCall(toolName, args, auth) {
         nameFilter = "";
       }
 
-      let query = "powerbases?select=id,name,description,tier,prestige,leader_discord_id,leader_roblox_id,status,created_at,powerbase_members(id,user_id,roblox_user_id,role)";
+      let query = "powerbases?select=*,powerbase_members(*)&status=neq.DISSOLVED";
       if (nameFilter) {
         query += `&name=ilike.*${encodeURIComponent(nameFilter)}*`;
       }
       let powerbases = await supabaseRest(query).catch(() => []);
-      if (!powerbases.length) {
-        powerbases = await supabaseRest("powerbases?select=id,name,description,tier,prestige,leader_discord_id,leader_roblox_id,status,created_at,powerbase_members(id,user_id,roblox_user_id,role)").catch(() => []);
+      if (!powerbases.length && nameFilter) {
+        const allPbs = await supabaseRest("powerbases?select=*,powerbase_members(*)&status=neq.DISSOLVED").catch(() => []);
+        powerbases = allPbs.filter(pb => 
+          pb.name?.toLowerCase().includes(nameFilter.toLowerCase()) || 
+          pb.description?.toLowerCase().includes(nameFilter.toLowerCase())
+        );
+        if (!powerbases.length && !nameFilter) {
+          powerbases = allPbs;
+        }
+      }
+      if (!powerbases.length && !nameFilter) {
+        powerbases = await supabaseRest("powerbases?select=*,powerbase_members(*)").catch(() => []);
       }
 
-      return powerbases.map(pb => ({
+      const allUserIds = new Set();
+      (powerbases || []).forEach(pb => {
+        if (pb.leader_id) allUserIds.add(String(pb.leader_id));
+        (pb.powerbase_members || []).forEach(m => {
+          if (m.user_id) allUserIds.add(String(m.user_id));
+        });
+      });
+
+      const userMap = {};
+      if (allUserIds.size > 0) {
+        const idList = Array.from(allUserIds);
+        const links = await supabaseRest(`verification_links?discord_user_id=in.(${idList.map(encodeURIComponent).join(",")})&select=discord_user_id,discord_username,roblox_username`).catch(() => []);
+        (links || []).forEach(l => {
+          userMap[l.discord_user_id] = l.roblox_username || l.discord_username || l.discord_user_id;
+        });
+      }
+
+      return (powerbases || []).map(pb => ({
         id: pb.id,
         name: pb.name,
-        description: pb.description,
+        description: pb.description || "No description.",
         tier: pb.tier,
         prestige: pb.prestige,
-        leaderDiscordId: pb.leader_discord_id,
-        leaderRobloxId: pb.leader_roblox_id,
+        leaderId: pb.leader_id,
+        leaderName: userMap[pb.leader_id] || `Discord:<@${pb.leader_id}>`,
         status: pb.status || "ACTIVE",
+        isSuddenDeath: Boolean(pb.is_sudden_death),
         memberCount: (pb.powerbase_members?.length || 0) + 1,
-        members: pb.powerbase_members || []
+        members: (pb.powerbase_members || []).map(m => ({
+          userId: m.user_id,
+          name: userMap[m.user_id] || `Discord:<@${m.user_id}>`,
+          role: m.role || "Apprentice"
+        }))
       }));
     }
 

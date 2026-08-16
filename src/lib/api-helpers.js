@@ -1317,7 +1317,11 @@ export async function fetchDivisionRoster(division) {
   const definition = rosterDefinitionForDivision(division);
   if (!definition?.groupId) return [];
 
-  const allowedRanks = new Set(Object.values(definition.ranks || {}).flat().map(Number).filter(Boolean));
+  const allowedRanks = new Set(
+    division === "highranks"
+      ? Object.values(definition.tiers || {}).flat().map(Number).filter(Boolean)
+      : Object.keys(definition.ranks || {}).map(Number).filter(n => !isNaN(n) && n <= (division === "darkCouncil" ? 253 : 250))
+  );
   if (allowedRanks.size === 0) return []; // Require explicit ranks for safety
 
   // 1. Fetch group roles to map rank to roleId
@@ -1327,7 +1331,6 @@ export async function fetchDivisionRoster(division) {
 
   const targetRoles = (rolesPayload.roles || []).filter(role => 
     allowedRanks.has(Number(role.rank)) && 
-    role.name !== "Member" && 
     role.name !== "Guest"
   );
   const members = [];
@@ -1348,6 +1351,10 @@ export async function fetchDivisionRoster(division) {
       (payload.data || []).forEach(item => {
         const userId = String(item.userId || item.id || "");
         if (!userId || userId === "245850865") return;
+
+        const uname = String(item.username || "").toLowerCase();
+        const dname = String(item.displayName || "").toLowerCase();
+        if (uname === "naktisterminus" || dname === "naktisterminus") return;
 
         members.push({
           robloxId: userId,

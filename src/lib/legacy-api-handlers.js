@@ -1314,41 +1314,62 @@ async function fetchDivisionRoster(division) {
   const definition = rosterDefinitionForDivision(division);
   if (!definition?.groupId) return [];
 
-  const maxRank = Math.max(...Object.values(definition.ranks || {}).flat().map(Number).filter(Boolean));
-  let cursor = "";
-  const members = [];
+  const allowedRanks = new Set(
+    division === "highranks"
+      ? Object.values(definition.tiers || {}).flat().map(Number).filter(Boolean)
+      : Object.keys(definition.ranks || {}).map(Number).filter(n => !isNaN(n) && n <= (division === "darkCouncil" ? 253 : 250))
+  );
+  if (allowedRanks.size === 0) return [];
 
   try {
-    do {
-      const url = new URL(`https://groups.roblox.com/v1/groups/${definition.groupId}/users`);
-      url.searchParams.set("limit", "100");
-      url.searchParams.set("sortOrder", "Asc");
-      if (cursor) url.searchParams.set("cursor", cursor);
+    const rolesResponse = await fetch(`https://groups.roblox.com/v1/groups/${definition.groupId}/roles`);
+    if (!rolesResponse.ok) return [];
+    const rolesPayload = await rolesResponse.json();
 
-      const response = await fetch(url).catch(() => null);
-      if (!response || !response.ok) break;
-      const payload = await response.json().catch(() => ({}));
+    const targetRoles = (rolesPayload.roles || []).filter(role => 
+      allowedRanks.has(Number(role.rank)) && 
+      role.name !== "Guest"
+    );
+    const members = [];
 
-      (payload.data || []).forEach(item => {
-        const rank = Number(item.role?.rank || 0);
-        if (rank <= maxRank) {
+    for (const role of targetRoles) {
+      let cursor = "";
+      do {
+        const url = new URL(`https://groups.roblox.com/v1/groups/${definition.groupId}/roles/${role.id}/users`);
+        url.searchParams.set("limit", "100");
+        url.searchParams.set("sortOrder", "Asc");
+        if (cursor) url.searchParams.set("cursor", cursor);
+
+        const response = await fetch(url).catch(() => null);
+        if (!response || !response.ok) break;
+        const payload = await response.json().catch(() => ({}));
+
+        (payload.data || []).forEach(item => {
+          const userId = String(item.userId || item.id || "");
+          if (!userId || userId === "245850865") return;
+
+          const uname = String(item.username || "").toLowerCase();
+          const dname = String(item.displayName || "").toLowerCase();
+          if (uname === "naktisterminus" || dname === "naktisterminus") return;
+
           members.push({
-            robloxId: String(item.user?.userId || item.user?.id || ""),
-            username: item.user?.username || "",
-            displayName: item.user?.displayName || "",
-            rank,
-            role: item.role?.name || ""
+            robloxId: userId,
+            username: item.username || "",
+            displayName: item.displayName || "",
+            rank: Number(role.rank),
+            role: role.name || ""
           });
-        }
-      });
+        });
 
-      cursor = payload.nextPageCursor || "";
-    } while (cursor);
+        cursor = payload.nextPageCursor || "";
+      } while (cursor);
+    }
+
+    return members.filter(member => member.robloxId);
   } catch (err) {
     console.error("fetchDivisionRoster error:", err);
+    return [];
   }
-
-  return members.filter(member => member.robloxId);
 }
 
 function normalizeReportMember(row, index = 0) {

@@ -156,6 +156,50 @@ export async function adjustShiftTime(discordUser, minutes, overrideScope = null
   }
 }
 
+export async function setShiftTime(discordUser, minutes, overrideScope = null) {
+  const discordUserId = typeof discordUser === "object" ? String(discordUser?.id || "") : String(discordUser || "");
+  const discordUsername = typeof discordUser === "object" ? String(discordUser?.username || discordUser?.tag || "") : "";
+
+  const verified = await getVerifiedProfile(discordUserId).catch(() => null);
+
+  let scope = overrideScope || (verified ? inferScope(verified.profile) : null);
+  if (!scope && verified) {
+    const shift = await latestShift(discordUserId);
+    if (shift) scope = shift.scope;
+  }
+  if (!scope) scope = "reavers";
+
+  const targetSeconds = Math.max(0, Math.trunc(minutes * 60));
+
+  let deleteQuery = supabase
+    .from("clock_shifts")
+    .delete()
+    .eq("discord_user_id", discordUserId)
+    .eq("status", "completed");
+
+  if (overrideScope) deleteQuery = deleteQuery.eq("scope", overrideScope);
+  const { error: delErr } = await deleteQuery;
+  if (delErr) throw delErr;
+
+  if (targetSeconds > 0) {
+    const now = new Date().toISOString();
+    return await insert("clock_shifts", {
+      scope,
+      discord_user_id: discordUserId,
+      discord_username: discordUsername || verified?.link?.discord_username || "",
+      roblox_user_id: verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null,
+      roblox_username: verified?.profile?.name || null,
+      started_at: now,
+      ended_at: now,
+      duration_seconds: targetSeconds,
+      adjustment_seconds: 0,
+      status: "completed"
+    });
+  }
+
+  return { scope, discord_user_id: discordUserId };
+}
+
 export async function shiftTotals(discordUserId, scopes = null) {
   let query = supabase
     .from("clock_shifts")

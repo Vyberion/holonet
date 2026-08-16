@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from "discord.js";
-import { activeShift, adjustShiftTime, clockIn, clockOut, formatDuration, saveClockPanel, shiftTotals } from "../services/clock.js";
+import { activeShift, adjustShiftTime, clockIn, clockOut, formatDuration, saveClockPanel, setShiftTime, shiftTotals } from "../services/clock.js";
 import { config } from "../config/index.js";
 import { postActivityLog } from "../services/activity-log.js";
 import { botErrorMessage } from "../services/bot-errors.js";
@@ -66,8 +66,8 @@ export const commands = [
       .addUserOption(option => option.setName("user2").setDescription("Optional second user to wipe"))
       .addUserOption(option => option.setName("user3").setDescription("Optional third user to wipe")))
     .addSubcommand(subcommand => subcommand.setName("time")
-      .setDescription("Add or remove shift time for a user")
-      .addStringOption(option => option.setName("type").setDescription("Add or remove time").setRequired(true).addChoices({ name: "Add", value: "add" }, { name: "Remove", value: "remove" }))
+      .setDescription("Add, remove, or set shift time for a user")
+      .addStringOption(option => option.setName("type").setDescription("Add, remove, or set time").setRequired(true).addChoices({ name: "Add", value: "add" }, { name: "Remove", value: "remove" }, { name: "Set", value: "set" }))
       .addUserOption(option => option.setName("user").setDescription("User to adjust").setRequired(true))
       .addIntegerOption(option => option.setName("minutes").setDescription("Number of minutes (leave empty for popup modal)").setRequired(false)))
     .addSubcommand(subcommand => subcommand.setName("view")
@@ -152,15 +152,11 @@ function formatDurationLong(seconds = 0) {
 }
 
 function shiftTotalSeconds(shift, now = Date.now()) {
-  let liveSeconds = 0;
-  if (shift.status === "active") {
-    liveSeconds = Math.max(0, Math.floor((now - new Date(shift.started_at).getTime()) / 1000));
-  } else if (shift.duration_seconds && Number(shift.duration_seconds) > 0) {
-    liveSeconds = Number(shift.duration_seconds);
-  } else if (shift.ended_at && shift.started_at) {
-    liveSeconds = Math.max(0, Math.floor((new Date(shift.ended_at).getTime() - new Date(shift.started_at).getTime()) / 1000));
-  }
-  return liveSeconds + Number(shift.adjustment_seconds || 0);
+  const baseSeconds = shift.status === "active"
+    ? Math.max(0, Math.floor((now - new Date(shift.started_at).getTime()) / 1000))
+    : Number(shift.duration_seconds || 0);
+
+  return Math.max(0, baseSeconds + Number(shift.adjustment_seconds || 0));
 }
 
 async function loadScopeLeaderboard(scope) {
@@ -471,24 +467,30 @@ export async function handleCommand(interaction) {
 
       if (explicitMinutes !== null && explicitMinutes !== undefined) {
         const minutes = Math.max(0, explicitMinutes);
-        const shift = await adjustShiftTime(target, type === "add" ? minutes : -minutes);
+        let shift;
+        if (type === "set") {
+          shift = await setShiftTime(target, minutes);
+        } else {
+          shift = await adjustShiftTime(target, type === "add" ? minutes : -minutes);
+        }
         const totals = await shiftTotals(target.id);
 
-        await interaction.reply(ephemeral({ embeds: [successEmbed("Time Adjusted", `${type === "add" ? "Added" : "Removed"} ${minutes} minute(s) ${target.id === interaction.user.id ? "from your total time" : `for <@${target.id}>`}.\nNew total time: ${formatDuration(totals.totalSeconds)}.`)] }));
-        if (minutes > 0) {
-          await postActivityLog(interaction.client, {
-            title: type === "add" ? "Time Added" : "Time Removed",
-            description: `<@${interaction.user.id}> ${type === "add" ? "added time to" : "removed time from"} ${target.id === interaction.user.id ? "their own total time" : `<@${target.id}>'s total time`}.`,
-            channelKey: shift.scope === "darkCouncil" ? "highCommandLog" : "activityLog",
-            fields: [
-              { name: "Scope", value: scopeLabel(shift.scope), inline: true },
-              { name: "Amount", value: formatDuration(minutes * 60), inline: true },
-              { name: "New Total Time", value: formatDuration(totals.totalSeconds), inline: true }
-            ]
-          });
-        }
+        const actionText = type === "set" ? `Set total time to ${minutes} minute(s)` : `${type === "add" ? "Added" : "Removed"} ${minutes} minute(s)`;
+        await interaction.reply(ephemeral({ embeds: [successEmbed("Time Adjusted", `${actionText} ${target.id === interaction.user.id ? "for your total time" : `for <@${target.id}>`}.\nNew total time: ${formatDuration(totals.totalSeconds)}.`)] }));
+        
+        await postActivityLog(interaction.client, {
+          title: type === "set" ? "Time Set" : type === "add" ? "Time Added" : "Time Removed",
+          description: `<@${interaction.user.id}> ${type === "set" ? `set total time to ${formatDuration(minutes * 60)} for` : type === "add" ? "added time to" : "removed time from"} ${target.id === interaction.user.id ? "their own total time" : `<@${target.id}>'s total time`}.`,
+          channelKey: shift.scope === "darkCouncil" ? "highCommandLog" : "activityLog",
+          fields: [
+            { name: "Scope", value: scopeLabel(shift.scope), inline: true },
+            { name: "Amount", value: formatDuration(minutes * 60), inline: true },
+            { name: "New Total Time", value: formatDuration(totals.totalSeconds), inline: true }
+          ]
+        });
       } else {
-        await interaction.showModal(textModal(`timeadjust:${type}:${target.id}`, `${type === "add" ? "Add" : "Remove"} Time`, [{ id: "minutes", label: "How many minutes?", placeholder: "10" }]));
+        const modalTitle = type === "set" ? "Set Time" : `${type === "add" ? "Add" : "Remove"} Time`;
+        await interaction.showModal(textModal(`timeadjust:${type}:${target.id}`, modalTitle, [{ id: "minutes", label: "How many minutes?", placeholder: "10" }]));
       }
       return true;
     }
@@ -548,22 +550,27 @@ export async function handleModal(interaction) {
     const minutes = Math.max(0, Number(interaction.fields.getTextInputValue("minutes")) || 0);
     try {
       const targetUser = await interaction.client.users.fetch(targetId).catch(() => null);
-      const shift = await adjustShiftTime(targetUser || targetId, action === "add" ? minutes : -minutes);
+      let shift;
+      if (action === "set") {
+        shift = await setShiftTime(targetUser || targetId, minutes);
+      } else {
+        shift = await adjustShiftTime(targetUser || targetId, action === "add" ? minutes : -minutes);
+      }
       const totals = await shiftTotals(targetId);
       
-      await interaction.reply(ephemeral({ embeds: [successEmbed("Time Adjusted", `${action === "add" ? "Added" : "Removed"} ${minutes} minute(s) ${targetId === interaction.user.id ? "from your total time" : `for <@${targetId}>`}.\nNew total time: ${formatDuration(totals.totalSeconds)}.`)] }));
-      if (minutes > 0) {
-        await postActivityLog(interaction.client, {
-          title: action === "add" ? "Time Added" : "Time Removed",
-          description: `<@${interaction.user.id}> ${action === "add" ? "added time to" : "removed time from"} ${targetId === interaction.user.id ? "their own total time" : `<@${targetId}>'s total time`}.`,
-          channelKey: shift.scope === "darkCouncil" ? "highCommandLog" : "activityLog",
-          fields: [
-            { name: "Scope", value: scopeLabel(shift.scope), inline: true },
-            { name: "Amount", value: formatDuration(minutes * 60), inline: true },
-            { name: "New Total Time", value: formatDuration(totals.totalSeconds), inline: true }
-          ]
-        });
-      }
+      const actionText = action === "set" ? `Set total time to ${minutes} minute(s)` : `${action === "add" ? "Added" : "Removed"} ${minutes} minute(s)`;
+      await interaction.reply(ephemeral({ embeds: [successEmbed("Time Adjusted", `${actionText} ${targetId === interaction.user.id ? "for your total time" : `for <@${targetId}>`}.\nNew total time: ${formatDuration(totals.totalSeconds)}.`)] }));
+      
+      await postActivityLog(interaction.client, {
+        title: action === "set" ? "Time Set" : action === "add" ? "Time Added" : "Time Removed",
+        description: `<@${interaction.user.id}> ${action === "set" ? `set total time to ${formatDuration(minutes * 60)} for` : action === "add" ? "added time to" : "removed time from"} ${targetId === interaction.user.id ? "their own total time" : `<@${targetId}>'s total time`}.`,
+        channelKey: shift.scope === "darkCouncil" ? "highCommandLog" : "activityLog",
+        fields: [
+          { name: "Scope", value: scopeLabel(shift.scope), inline: true },
+          { name: "Amount", value: formatDuration(minutes * 60), inline: true },
+          { name: "New Total Time", value: formatDuration(totals.totalSeconds), inline: true }
+        ]
+      });
     } catch (error) {
       await replyClockError(interaction, error);
     }

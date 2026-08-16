@@ -9,6 +9,7 @@ import { syncStoredPowerbaseRosters } from "./services/powerbase-api.js";
 import { registerRoleConnectionMetadata } from "./services/discord-linked-roles.js";
 import { queryHoloAi } from "./services/ai.js";
 import { getVerifiedProfile } from "./services/roles.js";
+const OLD_BOT_REDIRECT_CHANNEL_ID = "1046841602519343164";
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages],
@@ -75,20 +76,22 @@ async function maybeHandleHoloAiResponse(message) {
 }
 
 async function maybeSendOldBotRedirectNotice(message) {
-  const isOldBotMsg = OLD_BOT_IDS.has(message.author?.id);
-  const contentLower = message.content?.toLowerCase() || "";
-  const isLegacyUserTrigger = !message.author?.bot && LEGACY_TEXT_TRIGGERS.some(trigger => contentLower.startsWith(trigger));
-
-  if (!isOldBotMsg && !isLegacyUserTrigger) return;
+  if (message.channel?.id !== "1046841602519343164") return;
+  if (message.author?.id !== "426537812993638400") return;
 
   const payload = componentsV2Message([
     containerV2([
       textDisplayV2("### Incorrect Bot"),
-      textDisplayV2("Bloxlink is no longer in use. Please use **H.O.L.O** commands to manage your verification & roles:\n\n- </verify:0> — Link your Roblox account\n- </role get:0> — Sync your Roblox ranks & roles\n- </role update:0> — Sync roles for another member")
+      textDisplayV2(
+        "Bloxlink is no longer in use. Please use **H.O.L.O** commands to manage your verification & roles:\n\n" +
+        "- </verify:0> — Link your Roblox account\n" +
+        "- </role get:0> — Sync your Roblox ranks & roles\n" +
+        "- </role update:0> — Sync roles for another member"
+      )
     ], 0xc90705)
   ]);
 
-  await message.reply(payload).catch(() => { });
+  await message.reply(payload).catch(() => {});
 }
 
 function pickRandom(items) {

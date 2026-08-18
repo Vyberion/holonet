@@ -1,6 +1,6 @@
-import { HolonetFrame } from "../../../../../components/HolonetFrame.jsx";
-import { PageScripts } from "../../../../../components/PageScripts.jsx";
-import { holonetMetadata } from "../../../../../lib/metadata.js";
+import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
+import { PageScripts } from "../../../components/PageScripts.jsx";
+import { holonetMetadata } from "../../../lib/metadata.js";
 import "./reformation.css";
 
 export const metadata = holonetMetadata({
@@ -20,10 +20,6 @@ export default function TheReformationPage() {
       includeSearchOverlay={false}
     >
       <div className="mandate-bg"></div>
-
-      <div className="mandate-intro">
-        <h1>The Reformation</h1>
-      </div>
 
       <div className="mandate-content">
         <div className="mandate-viewer-container">

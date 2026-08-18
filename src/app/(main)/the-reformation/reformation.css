@@ -25,46 +25,6 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Epic Intro */
-.mandate-intro {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  background: #000;
-  animation: intro-fade-out 2s forwards 3.5s;
-  pointer-events: none;
-}
-
-.mandate-intro h1 {
-  font-size: clamp(3rem, 6vw, 6rem);
-  letter-spacing: clamp(0.5rem, 2vw, 2rem);
-  color: #fff;
-  text-shadow: 0 0 20px rgba(255, 0, 0, 0.8), 0 0 40px rgba(255, 0, 0, 0.4);
-  animation: title-pulse 4s forwards;
-  opacity: 0;
-  font-weight: 300;
-  text-transform: uppercase;
-  margin-left: clamp(0.5rem, 2vw, 2rem);
-  font-family: "Cinzel", "Trajan Pro", "Trajan", serif;
-}
-
-@keyframes title-pulse {
-  0% { opacity: 0; transform: scale(0.9); }
-  20% { opacity: 1; transform: scale(1); }
-  80% { opacity: 1; transform: scale(1.05); }
-  100% { opacity: 0; transform: scale(1.1); }
-}
-
-@keyframes intro-fade-out {
-  to { opacity: 0; visibility: hidden; }
-}
-
 /* Main Content Area */
 .mandate-content {
   position: relative;
@@ -74,13 +34,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  opacity: 0;
-  animation: content-fade-in 2s forwards 4s;
   box-sizing: border-box;
-}
-
-@keyframes content-fade-in {
-  to { opacity: 1; }
 }
 
 /* Invisible Container, Floating Document */

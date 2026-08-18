@@ -38,9 +38,7 @@ import { exportGoogleDocPdf, extractGoogleFileId, extractGoogleTabId, fetchGoogl
 export const VERIFICATION_LOG_COLOR = 0xc90705;
 export const VERIFICATION_WARNING_COLOR = 0xc90705;
 export const VERIFICATION_WARNING_ROLE_IDS = [
-  "1046451376236003359",
-  "1046451364965920848",
-  "1302790774458552331"
+  "1046451376236003359"
 ];
 export const DEFAULT_SITE_ORIGIN = "https://www.thesithorder.org";
 export const OAUTH_STATE_MAX_AGE_SECONDS = 60 * 10;
@@ -2023,7 +2021,7 @@ export function personnelLookupWarnings({ accountAgeDays, friendsCount, badgeCou
     warnings.push({ key: "low_age", label: "Low age account", detail: `Account is ${accountAgeDays} day${accountAgeDays === 1 ? "" : "s"} old.` });
   }
 
-  if (typeof friendsCount === "number" && friendsCount < 20) {
+  if (typeof friendsCount === "number" && friendsCount < 10) {
     warnings.push({ key: "low_friends", label: "Low number of friends", detail: `${friendsCount} friend${friendsCount === 1 ? "" : "s"} found.` });
   }
 

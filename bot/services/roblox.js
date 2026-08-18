@@ -81,7 +81,7 @@ export function personnelLookupWarnings({ accountAgeDays, friendsCount, badgeCou
     warnings.push({ key: "low_age", label: "Low age account", detail: `Account is ${accountAgeDays} day${accountAgeDays === 1 ? "" : "s"} old.` });
   }
 
-  if (typeof friendsCount === "number" && friendsCount < 20) {
+  if (typeof friendsCount === "number" && friendsCount < 10) {
     warnings.push({ key: "low_friends", label: "Low number of friends", detail: `${friendsCount} friend${friendsCount === 1 ? "" : "s"} found.` });
   }
 

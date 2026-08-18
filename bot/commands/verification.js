@@ -73,49 +73,6 @@ async function syncLinkedDiscordMemberRoles(client, guildId, discordUserId) {
   const robloxLabel = robloxName && robloxName !== robloxId ? `${robloxName} (${robloxId})` : robloxId;
 
   console.log(`Post-link role sync updated ${discordUserId}: added ${result.added.length}, removed ${result.removed.length}.`);
-
-  await postVerificationLog(client, {
-    title: "User Verified",
-    description: `<@${discordUserId}> linked their Discord to Roblox.`,
-    fields: [
-      { name: "Discord", value: `<@${discordUserId}>`, inline: true },
-      { name: "Roblox", value: robloxLabel, inline: true },
-      { name: "Web Link", value: lookupUrl(robloxName), inline: false }
-    ].filter(Boolean)
-  });
-
-  const warningSummary = robloxId !== "Unknown"
-    ? await loadRobloxProfileSummary(robloxId)
-      .then(summary => ({
-        ...summary,
-        warnings: personnelLookupWarnings(summary)
-      }))
-      .catch(error => {
-        console.warn("Post-link warning lookup failed", {
-          discordUserId,
-          robloxId,
-          reason: roleSyncLogReason(error)
-        });
-        return null;
-      })
-    : null;
-
-  if (warningSummary?.warnings?.length) {
-    const warningMentions = VERIFICATION_WARNING_ROLE_IDS.map(roleId => `<@&${roleId}>`).join(" ");
-    await postVerificationLog(client, {
-      title: "User Verified - Warning",
-      description: `<@${discordUserId}> linked Discord to Roblox with warnings.`,
-      color: VERIFICATION_WARNING_COLOR,
-      content: warningMentions,
-      allowedRoleIds: VERIFICATION_WARNING_ROLE_IDS,
-      fields: [
-        { name: "Discord", value: `<@${discordUserId}>`, inline: true },
-        { name: "Roblox", value: robloxLabel, inline: true },
-        { name: "Warnings", value: warningSummary.warnings.map(item => `**${item.label}:** ${item.detail}`).join("\n"), inline: false },
-        { name: "Web Link", value: lookupUrl(robloxName), inline: false }
-      ]
-    });
-  }
 }
 
 function schedulePostLinkRoleSync(interaction, link) {

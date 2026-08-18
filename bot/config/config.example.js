@@ -14,7 +14,7 @@ export default {
   channels: {
     activityLog: "1455303713701757138",
     highCommandLog: "1452731886148255755",
-    verificationLog: "CHANNEL_ID",
+    verificationLog: "1046442817427353641",
     announcements: {
       holonet: "CHANNEL_ID",
       reavers: "CHANNEL_ID",

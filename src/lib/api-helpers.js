@@ -752,22 +752,6 @@ export async function confirmDiscordLink(req) {
   const robloxLabel = `${auth.user.roblox_username || auth.user.roblox_display_name || robloxId} (${robloxId})`;
   const webLink = lookupUrlForRequest(req, auth.user.roblox_username || robloxId);
 
-  const linkedLogSent = await postVerificationLogSafely({
-    title: "User Verified",
-    description: `<@${pending.discord_user_id}> linked Discord to Roblox.`,
-    fields: [
-      { name: "Discord", value: `<@${pending.discord_user_id}>`, inline: true },
-      { name: "Roblox", value: robloxLabel, inline: true },
-      { name: "Web Link", value: webLink, inline: false }
-    ]
-  });
-  logVerificationConfirm("Discord linked log processed.", {
-    host: requestHost,
-    robloxId,
-    discordUserId: pending.discord_user_id,
-    sent: linkedLogSent
-  });
-
   const warningSummary = await loadRobloxProfileSummary(robloxId)
     .then(summary => ({
       ...summary,
@@ -806,10 +790,20 @@ export async function confirmDiscordLink(req) {
       sent: warningLogSent
     });
   } else {
-    logVerificationConfirm("No verification warnings found.", {
+    const linkedLogSent = await postVerificationLogSafely({
+      title: "User Verified",
+      description: `<@${pending.discord_user_id}> linked Discord to Roblox.`,
+      fields: [
+        { name: "Discord", value: `<@${pending.discord_user_id}>`, inline: true },
+        { name: "Roblox", value: robloxLabel, inline: true },
+        { name: "Web Link", value: webLink, inline: false }
+      ]
+    });
+    logVerificationConfirm("Discord linked log processed.", {
       host: requestHost,
       robloxId,
-      discordUserId: pending.discord_user_id
+      discordUserId: pending.discord_user_id,
+      sent: linkedLogSent
     });
   }
 

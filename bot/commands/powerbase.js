@@ -366,19 +366,26 @@ export async function handleModal(interaction) {
 }
 
 async function handleEditMembers(interaction) {
-  const selectedMembers = interaction.values;
+  await interaction.deferUpdate();
+
+  const selectedMembers = interaction.values || [];
   const pbId = interaction.customId.includes(":")
     ? interaction.customId.split(":")[1]
     : globalThis.__pbEditMembersCache?.get(interaction.user.id)?.pbId;
 
   if (!pbId) {
-    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Your edit session expired. Please try again.")])])));
+    return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Your edit session expired. Please try again.")])])));
   }
 
   const pb = await getPowerbase(pbId);
-  if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase no longer exists.")])])));
+  if (!pb) return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase no longer exists.")])])));
 
-  const actorProfile = await getVerifiedProfile(interaction.user.id);
+  const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
+  const maxCapacity = isImperial ? 3 : getPowerbaseCapacity(pb.tier);
+
+  if (selectedMembers.length > maxCapacity) {
+    return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** You can select at most ${maxCapacity} Apprentices.`)])])));
+  }
 
   const finalMemberIds = [];
   try {
@@ -424,15 +431,19 @@ async function handleEditMembers(interaction) {
       });
     }
 
+    const memberMentions = finalMemberIds.length > 0
+      ? finalMemberIds.map(id => `<@${id}>`).join(", ")
+      : "*None*";
+
     const v2Payload = componentsV2Message([
       containerV2([
         textDisplayV2(`### Powerbase Updated`),
-        textDisplayV2(`Roster for Powerbase **${pb.name}** updated successfully!`)
+        textDisplayV2(`Apprentices for Powerbase **${pb.name}** updated successfully!\n\n**Current Apprentices:** ${memberMentions}`)
       ])
     ]);
-    return interaction.update(ephemeral(v2Payload));
+    return interaction.editReply(ephemeral(v2Payload));
   } catch (err) {
-    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`**Error:** ${err.message}`)])])));
+    return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ${err.message}`)])])));
   }
 }
 
@@ -608,78 +619,6 @@ async function handleManageActionSelect(interaction) {
     ])));
     return true;
   }
-
-async function handleEditMembers(interaction) {
-  const pbId = interaction.customId.split(":")[1];
-  const selectedMemberIds = interaction.values || [];
-
-  // Defer update immediately to acknowledge interaction before 3s Discord timeout
-  await interaction.deferUpdate();
-
-  const pb = await getPowerbase(pbId);
-  if (!pb) return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
-
-  try {
-    const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
-    const maxCapacity = isImperial ? 3 : getPowerbaseCapacity(pb.tier);
-
-    if (selectedMemberIds.length > maxCapacity) {
-      throw new Error(`You can select at most ${maxCapacity} Apprentices.`);
-    }
-
-    // Verify all selected users
-    for (const userId of selectedMemberIds) {
-      const verified = await getVerifiedProfile(userId);
-      if (!verified) throw new Error(`<@${userId}> is not verified with Holonet.`);
-      
-      const existingPb = await getPowerbaseForUser(userId);
-      if (existingPb && existingPb.id !== pbId) {
-        throw new Error(`<@${userId}> is already in another Powerbase (${existingPb.name}).`);
-      }
-    }
-
-    const oldMemberIds = (pb.powerbase_members || [])
-      .map(m => String(m.user_id || m.discord_user_id || ""))
-      .filter(Boolean);
-
-    await updatePowerbase(pbId, {}, selectedMemberIds);
-    await syncPowerbaseRosterMessage(interaction.client, pbId);
-
-    const addedIds = selectedMemberIds.filter(id => !oldMemberIds.includes(id));
-    const removedIds = oldMemberIds.filter(id => !selectedMemberIds.includes(id));
-
-    if (addedIds.length > 0 || removedIds.length > 0) {
-      const addedText = addedIds.length > 0 ? addedIds.map(id => `<@${id}>`).join("\n") : "*None*";
-      const removedText = removedIds.length > 0 ? removedIds.map(id => `<@${id}>`).join("\n") : "*None*";
-
-      await postPowerbaseLog(interaction.client, {
-        title: "Powerbase Roster Updated",
-        description: `Roster for Powerbase **${pb.name}** has been updated.`,
-        fields: [
-          { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
-          { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
-          { name: "Apprentices Added", value: addedText, inline: false },
-          { name: "Apprentices Removed", value: removedText, inline: false }
-        ],
-        color: 0xc90705
-      });
-    }
-
-    const memberMentions = selectedMemberIds.length > 0
-      ? selectedMemberIds.map(id => `<@${id}>`).join(", ")
-      : "*None*";
-
-    const v2Payload = componentsV2Message([
-      containerV2([
-        textDisplayV2(`### Apprentices Updated`),
-        textDisplayV2(`Apprentices for Powerbase **${pb.name}** have been updated.\n\n**Current Apprentices:** ${memberMentions}`)
-      ])
-    ]);
-    return interaction.editReply(ephemeral(v2Payload));
-  } catch (err) {
-    return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ${err.message}`)])])));
-  }
-}
 
   if (action === "leader") {
     const userSelect = new UserSelectMenuBuilder()

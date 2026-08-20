@@ -600,6 +600,51 @@ async function handleManageActionSelect(interaction) {
     return true;
   }
 
+async function handleEditMembers(interaction) {
+  const pbId = interaction.customId.split(":")[1];
+  const selectedMemberIds = interaction.values || [];
+
+  const pb = await getPowerbase(pbId);
+  if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+
+  try {
+    const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
+    const maxCapacity = isImperial ? 3 : getPowerbaseCapacity(pb.tier);
+
+    if (selectedMemberIds.length > maxCapacity) {
+      throw new Error(`You can select at most ${maxCapacity} Apprentices.`);
+    }
+
+    // Verify all selected users
+    for (const userId of selectedMemberIds) {
+      const verified = await getVerifiedProfile(userId);
+      if (!verified) throw new Error(`<@${userId}> is not verified with Holonet.`);
+      
+      const existingPb = await getPowerbaseForUser(userId);
+      if (existingPb && existingPb.id !== pbId) {
+        throw new Error(`<@${userId}> is already in another Powerbase (${existingPb.name}).`);
+      }
+    }
+
+    await updatePowerbase(pbId, {}, selectedMemberIds);
+    await syncPowerbaseRosterMessage(interaction.client, pbId);
+
+    const memberMentions = selectedMemberIds.length > 0
+      ? selectedMemberIds.map(id => `<@${id}>`).join(", ")
+      : "*None*";
+
+    const v2Payload = componentsV2Message([
+      containerV2([
+        textDisplayV2(`### Apprentices Updated`),
+        textDisplayV2(`Apprentices for Powerbase **${pb.name}** have been updated.\n\n**Current Apprentices:** ${memberMentions}`)
+      ])
+    ]);
+    return interaction.update(ephemeral(v2Payload));
+  } catch (err) {
+    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ${err.message}`)])])));
+  }
+}
+
   if (action === "leader") {
     const userSelect = new UserSelectMenuBuilder()
       .setCustomId(`pb_change_leader:${pbId}`)

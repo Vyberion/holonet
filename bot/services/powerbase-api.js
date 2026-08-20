@@ -226,17 +226,18 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
         components.push(separatorV2());
       }
 
-      // Roster section: Leadership
-      let leaderText = `**Leader:**\n${emperorId ? `<@${emperorId}>` : "*Vacant*"}`;
+      // Roster section: Leader (Emperor)
+      components.push(textDisplayV2(`### Roster\n**Leader:**\n${emperorId ? `<@${emperorId}>` : "*Vacant*"}`));
+
+      // Emperor's Voice and Wrath section
       const secondaries = [];
       if (voiceId) secondaries.push(`**Emperor's Voice:**\n<@${voiceId}>`);
       if (wrathId) secondaries.push(`**Emperor's Wrath:**\n<@${wrathId}>`);
 
       if (secondaries.length > 0) {
-        leaderText += `\n\n${secondaries.join("\n")}`;
+        components.push(separatorV2());
+        components.push(textDisplayV2(secondaries.join("\n\n")));
       }
-
-      components.push(textDisplayV2(`### Roster\n${leaderText}`));
 
       // Shadow Guards section (only if any exist)
       if (shadowGuardIds.length > 0) {

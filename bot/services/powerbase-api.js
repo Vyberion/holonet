@@ -1,16 +1,68 @@
 import { supabase } from "./supabase.js";
 import { rawRanksFromProfile } from "./roblox.js";
 import { componentsV2Message, containerV2, textDisplayV2, separatorV2, mediaGalleryV2 } from "./discord-ui.js";
+import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
+import { getVerifiedProfile } from "./roles.js";
 
 export const ROSTER_CHANNEL_ID = "1046537270150299720";
 
 function romanize(num) {
+  if (num === 10 || num === "X" || String(num).toUpperCase() === "X") return "X";
   return ["I", "II", "III", "IV"][num - 1] || "I";
 }
 
-export function getPowerbaseCapacity(tier) {
+export function getPowerbaseCapacity(tier, isImperial = false) {
+  if (isImperial || tier === 10 || tier === "X") return 3;
   const cap = { 1: 4, 2: 6, 3: 8, 4: 10 };
   return cap[Number(tier)] || 4;
+}
+
+/**
+ * Auto-detect and sync verified members for the Imperial Powerbase.
+ * Looks up verified Roblox profiles for Emperor (253), Voice (252), Wrath (251), and Shadow Guards (42).
+ */
+export async function syncImperialPowerbaseData(pb) {
+  try {
+    const { data: verifiedLinks } = await supabase
+      .from("verification_links")
+      .select("discord_user_id, roblox_user_id");
+
+    if (!verifiedLinks || verifiedLinks.length === 0) return { emperorId: pb.leader_id, voiceId: null, wrathId: null, shadowGuardIds: [] };
+
+    let emperorId = null;
+    let voiceId = null;
+    let wrathId = null;
+    const shadowGuardIds = [];
+
+    // Check profiles
+    for (const link of verifiedLinks) {
+      if (!link.discord_user_id) continue;
+      try {
+        const verified = await getVerifiedProfile(link.discord_user_id);
+        if (!verified?.profile) continue;
+
+        const dcRank = Number(verified.profile.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0);
+        const mainRank = Number(verified.profile.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0);
+
+        if (dcRank === 253) emperorId = link.discord_user_id;
+        if (dcRank === 252) voiceId = link.discord_user_id;
+        if (dcRank === 251) wrathId = link.discord_user_id;
+        if (mainRank === 42) shadowGuardIds.push(link.discord_user_id);
+      } catch (e) {
+        // ignore profile lookup failure for single user
+      }
+    }
+
+    if (emperorId && emperorId !== pb.leader_id) {
+      await supabase.from("powerbases").update({ leader_id: emperorId }).eq("id", pb.id);
+      pb.leader_id = emperorId;
+    }
+
+    return { emperorId: pb.leader_id || emperorId, voiceId, wrathId, shadowGuardIds };
+  } catch (err) {
+    console.error("Failed to sync Imperial Powerbase data:", err);
+    return { emperorId: pb.leader_id, voiceId: null, wrathId: null, shadowGuardIds: [] };
+  }
 }
 
 /**
@@ -42,15 +94,11 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
       return;
     }
 
+    const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
+
     const memberIds = (pb.powerbase_members || [])
       .map(m => String(m.user_id || m.discord_user_id || ""))
       .filter(Boolean);
-
-    const apprenticeText = memberIds.length > 0
-      ? memberIds.map(id => `<@${id}>`).join("\n")
-      : "*None*";
-
-    const sdBadge = pb.is_sudden_death ? " **[SUDDEN DEATH]**" : "";
 
     const pbSlug = slugifyPowerbase(pb.name);
     const pbUrl = `https://www.thesithorder.org/powerbases/${pbSlug}`;
@@ -64,27 +112,82 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
       groupLinkText = `**Roblox Group:** [Group Link](${cleanUrl})`;
     }
 
-    const components = [
-      textDisplayV2(`# [${pb.name}](${pbUrl})`),
-      textDisplayV2(`**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}\n**Members:** ${memberIds.length + 1} / ${getPowerbaseCapacity(pb.tier)}`),
-      separatorV2()
-    ];
+    const components = [];
 
-    if (pb.description) {
-      components.push(textDisplayV2(`### Description\n${pb.description}`));
+    if (isImperial) {
+      // Imperial Powerbase Embed Formatting
+      const { emperorId, voiceId, wrathId, shadowGuardIds } = await syncImperialPowerbaseData(pb);
+      const totalMemberCount = (emperorId ? 1 : 0) + (voiceId ? 1 : 0) + (wrathId ? 1 : 0) + shadowGuardIds.length + memberIds.length;
+
+      components.push(textDisplayV2(`# [${pb.name}](${pbUrl})`));
+      components.push(textDisplayV2(`**Tier:** X\n**Members:** ${totalMemberCount}`));
       components.push(separatorV2());
-    }
 
-    if (groupLinkText) {
-      components.push(textDisplayV2(groupLinkText));
+      if (pb.description) {
+        components.push(textDisplayV2(`### Description\n${pb.description}`));
+        components.push(separatorV2());
+      }
+
+      if (groupLinkText) {
+        components.push(textDisplayV2(groupLinkText));
+        components.push(separatorV2());
+      }
+
+      // Roster section: Leadership
+      const leaderLines = [];
+      leaderLines.push(`**Leader:**\n${emperorId ? `<@${emperorId}>` : "*Vacant*"}`);
+      if (voiceId) leaderLines.push(`**Emperor's Voice:**\n<@${voiceId}>`);
+      if (wrathId) leaderLines.push(`**Emperor's Wrath:**\n<@${wrathId}>`);
+
+      components.push(textDisplayV2(`### Roster\n${leaderLines.join("\n\n")}`));
+
+      // Shadow Guards section (only if any exist)
+      if (shadowGuardIds.length > 0) {
+        components.push(separatorV2());
+        const sgLines = shadowGuardIds.map(id => `**Shadow Guard:**\n<@${id}>`).join("\n\n");
+        components.push(textDisplayV2(sgLines));
+      }
+
+      // Apprentices section (only if any exist)
+      if (memberIds.length > 0) {
+        components.push(separatorV2());
+        const appLines = memberIds.map(id => `**Apprentice:**\n<@${id}>`).join("\n\n");
+        components.push(textDisplayV2(appLines));
+      }
+
+      if (pb.image_url) {
+        components.push(separatorV2());
+        components.push(mediaGalleryV2(pb.image_url));
+      }
+
+    } else {
+      // Standard Powerbase Embed Formatting
+      const apprenticeText = memberIds.length > 0
+        ? memberIds.map(id => `<@${id}>`).join("\n")
+        : "*None*";
+
+      const sdBadge = pb.is_sudden_death ? " **[SUDDEN DEATH]**" : "";
+
+      components.push(textDisplayV2(`# [${pb.name}](${pbUrl})`));
+      components.push(textDisplayV2(`**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}\n**Members:** ${memberIds.length + 1} / ${getPowerbaseCapacity(pb.tier)}`));
       components.push(separatorV2());
-    }
 
-    components.push(textDisplayV2(`### Roster\n**Leader:**\n<@${pb.leader_id}>\n\n**Apprentices:**\n${apprenticeText}`));
+      if (pb.description) {
+        components.push(textDisplayV2(`### Description\n${pb.description}`));
+        components.push(separatorV2());
+      }
 
-    if (pb.image_url) {
-      components.push(separatorV2());
-      components.push(mediaGalleryV2(pb.image_url));
+      if (groupLinkText) {
+        components.push(textDisplayV2(groupLinkText));
+        components.push(separatorV2());
+      }
+
+      components.push(textDisplayV2(`### Roster\n**Leader:**\n<@${pb.leader_id}>\n\n**Apprentices:**\n${apprenticeText}`));
+
+      if (pb.image_url) {
+        components.push(separatorV2());
+        components.push(mediaGalleryV2(pb.image_url));
+      }
     }
 
     const v2Payload = componentsV2Message([containerV2(components, 0xc90705)]);
@@ -456,6 +559,9 @@ export async function recordKaggathResult(winnerPbId, loserPbId, winnerPrestigeC
 export async function adjustPrestige(powerbaseId, amount, client = null) {
   const pb = await getPowerbase(powerbaseId);
   if (!pb) return null;
+  if (pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase")) {
+    return pb;
+  }
   
   const currentPrestige = pb.prestige || 0;
   const currentTier = pb.tier || 1;
@@ -507,6 +613,10 @@ export function isHigherRank(profileA, profileB) {
  * Hard delete a powerbase and its members.
  */
 export async function deletePowerbase(id) {
+  const pb = await getPowerbase(id);
+  if (pb && (pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"))) {
+    throw new Error("The Imperial Powerbase cannot be deleted or dissolved.");
+  }
   await supabase.from("powerbase_members").delete().eq("powerbase_id", id);
   const { error } = await supabase.from("powerbases").delete().eq("id", id);
   if (error) throw error;

@@ -418,17 +418,21 @@ async function handleEditMembers(interaction) {
 // --------------------------------------------------------------------------------------
 
 async function showManageOptions(interaction, pb, canManageAll) {
+  const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
+
   const options = [
     { label: "Edit Details (Name / Description / Group ID)", value: "edit" },
     { label: "Set / Change Banner Image", value: "image" },
     { label: "Manage Roster (Add / Remove Apprentices)", value: "members" }
   ];
 
-  if (canManageAll) {
+  if (canManageAll && !isImperial) {
     options.push({ label: "Transfer Leadership", value: "leader" });
   }
 
-  options.push({ label: "Dissolve Powerbase", value: "dissolve" });
+  if (!isImperial) {
+    options.push({ label: "Dissolve Powerbase", value: "dissolve" });
+  }
 
   const select = new StringSelectMenuBuilder()
     .setCustomId(`pb_manage_action:${pb.id}`)
@@ -546,6 +550,9 @@ async function handleManageActionSelect(interaction) {
   }
 
   if (action === "members") {
+    const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
+    const maxCapacity = isImperial ? 3 : getPowerbaseCapacity(pb.tier);
+
     const currentMemberIds = (pb?.powerbase_members || [])
       .map(m => String(m.user_id || m.discord_user_id))
       .filter(Boolean);
@@ -554,16 +561,16 @@ async function handleManageActionSelect(interaction) {
       .setCustomId(`pb_edit_members:${pbId}`)
       .setPlaceholder("Select Apprentices to include")
       .setMinValues(0)
-      .setMaxValues(10);
+      .setMaxValues(maxCapacity);
 
     if (typeof selectMenu.setDefaultUsers === "function" && currentMemberIds.length > 0) {
-      selectMenu.setDefaultUsers(currentMemberIds);
+      selectMenu.setDefaultUsers(currentMemberIds.slice(0, maxCapacity));
     }
 
     await interaction.update(ephemeral(componentsV2Message([
       containerV2([
         textDisplayV2(`### Powerbase: ${pb.name}`),
-        textDisplayV2("Please select the Apprentices for this Powerbase. Anyone not selected will be removed. (Max 10)."),
+        textDisplayV2(`Please select the Apprentices for this Powerbase. Anyone not selected will be removed. (Max ${maxCapacity}).`),
         new ActionRowBuilder().addComponents(selectMenu)
       ])
     ])));

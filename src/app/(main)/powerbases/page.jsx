@@ -37,9 +37,11 @@ function PowerbaseCard({ pb }) {
       
       <div className="dir-card-top">
         <h2 className="dir-card-title">{pb.name}</h2>
-        <span className="dir-card-badge" style={pb.is_sudden_death ? { color: "var(--red-bright)", borderColor: "var(--red-bright)" } : {}}>
-          {pb.is_sudden_death ? "SUDDEN DEATH | " : ""}PRESTIGE: {pb.prestige}
-        </span>
+        {!pb.hidePrestige && (
+          <span className="dir-card-badge" style={pb.is_sudden_death ? { color: "var(--red-bright)", borderColor: "var(--red-bright)" } : {}}>
+            {pb.is_sudden_death ? "SUDDEN DEATH | " : ""}PRESTIGE: {pb.prestige}
+          </span>
+        )}
       </div>
 
       <p className="dir-card-desc">{pb.description || "No description provided."}</p>
@@ -58,10 +60,11 @@ export default async function PowerbasesPage() {
   const powerbases = await supabaseRest("powerbases?select=*,powerbase_members(user_id)&status=eq.ACTIVE&order=tier.desc,prestige.desc").catch(() => []);
 
   const tiers = {
-    4: powerbases.filter(p => p.tier === 4),
-    3: powerbases.filter(p => p.tier === 3),
-    2: powerbases.filter(p => p.tier === 2),
-    1: powerbases.filter(p => p.tier === 1),
+    X: powerbases.filter(p => p.is_imperial || p.tier === 10 || p.tier === "X" || p.name?.toLowerCase().includes("imperial powerbase")),
+    4: powerbases.filter(p => !p.is_imperial && p.tier !== 10 && p.tier !== "X" && !p.name?.toLowerCase().includes("imperial powerbase") && p.tier === 4),
+    3: powerbases.filter(p => !p.is_imperial && p.tier !== 10 && p.tier !== "X" && !p.name?.toLowerCase().includes("imperial powerbase") && p.tier === 3),
+    2: powerbases.filter(p => !p.is_imperial && p.tier !== 10 && p.tier !== "X" && !p.name?.toLowerCase().includes("imperial powerbase") && p.tier === 2),
+    1: powerbases.filter(p => !p.is_imperial && p.tier !== 10 && p.tier !== "X" && !p.name?.toLowerCase().includes("imperial powerbase") && p.tier === 1),
   };
 
   return (
@@ -76,6 +79,24 @@ export default async function PowerbasesPage() {
       mainClassName="powerbases-main"
     >
       <div className="registry-main">
+        {/* Tier X (Imperial Sovereign Powerbase) - Full Row */}
+        {tiers.X.length > 0 && (
+          <section className="registry-section" aria-labelledby="sec-tier-x">
+            <div className="section-header">
+              <span className="section-tag" id="sec-tier-x">
+                // TIER X // IMPERIAL SOVEREIGN POWERBASE
+              </span>
+              <div className="section-rule" />
+            </div>
+
+            <div className="dir-grid" style={{ gridTemplateColumns: "1fr" }}>
+              {tiers.X.map(pb => (
+                <PowerbaseCard key={pb.id} pb={{ ...pb, tier: "X", hidePrestige: true }} />
+              ))}
+            </div>
+          </section>
+        )}
+
         {[4, 3, 2, 1].map(tier => {
           if (tiers[tier].length === 0) return null;
 

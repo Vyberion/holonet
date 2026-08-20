@@ -53,40 +53,76 @@ async function syncRosterViaRest(powerbaseId, forceDelete = false, cachedPb = nu
       ? memberIds.map(id => `<@${id}> *(Apprentice)*`).join("\n")
       : "*No apprentices assigned*";
 
+    const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
     const romanize = (num) => ["I", "II", "III", "IV"][num - 1] || "I";
     const sdBadge = pb.is_sudden_death ? " ⚠️ **[SUDDEN DEATH]**" : "";
 
     const slug = String(pb.name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
     const pbUrl = `https://www.thesithorder.org/powerbases/${slug}`;
 
-    const capacity = ({ 1: 4, 2: 6, 3: 8, 4: 10 })[Number(pb.tier)] || 4;
-    const components = [
-      { type: 10, content: `# [${pb.name}](${pbUrl})` },
-      { type: 10, content: `**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}\n**Members:** ${memberIds.length + 1} / ${capacity}` },
-      { type: 14, divider: true, spacing: 1 }
-    ];
-
-    if (pb.description) {
-      components.push({ type: 10, content: `### Description\n${pb.description}` });
-      components.push({ type: 14, divider: true, spacing: 1 });
-    }
-
+    let groupLinkText = "";
     if (pb.roblox_group_id) {
       const match = String(pb.roblox_group_id).match(/\d+/);
       const cleanUrl = String(pb.roblox_group_id).startsWith("http")
         ? pb.roblox_group_id
         : `https://www.roblox.com/groups/${match ? match[0] : pb.roblox_group_id}`;
-      components.push({ type: 10, content: `**Roblox Group:** [Group Link](${cleanUrl})` });
-      components.push({ type: 14, divider: true, spacing: 1 });
+      groupLinkText = `**Roblox Group:** [Group Link](${cleanUrl})`;
     }
 
-    const appText = memberIds.length > 0 ? memberIds.map(id => `<@${id}>`).join("\n") : "*None*";
+    const components = [];
 
-    components.push({ type: 10, content: `### Roster\n**Leader:**\n<@${pb.leader_id}>\n\n**Apprentices:**\n${appText}` });
-
-    if (pb.image_url) {
+    if (isImperial) {
+      const totalMemberCount = (pb.leader_id ? 1 : 0) + memberIds.length;
+      components.push({ type: 10, content: `# [${pb.name}](${pbUrl})` });
+      components.push({ type: 10, content: `**Tier:** X\n**Members:** ${totalMemberCount}` });
       components.push({ type: 14, divider: true, spacing: 1 });
-      components.push({ type: 12, items: [{ media: { url: pb.image_url } }] });
+
+      if (pb.description) {
+        components.push({ type: 10, content: `### Description\n${pb.description}` });
+        components.push({ type: 14, divider: true, spacing: 1 });
+      }
+
+      if (groupLinkText) {
+        components.push({ type: 10, content: groupLinkText });
+        components.push({ type: 14, divider: true, spacing: 1 });
+      }
+
+      components.push({ type: 10, content: `### Roster\n**Leader:**\n${pb.leader_id ? `<@${pb.leader_id}>` : "*Vacant*"}` });
+
+      if (memberIds.length > 0) {
+        components.push({ type: 14, divider: true, spacing: 1 });
+        const appLines = memberIds.map(id => `**Apprentice:**\n<@${id}>`).join("\n\n");
+        components.push({ type: 10, content: appLines });
+      }
+
+      if (pb.image_url) {
+        components.push({ type: 14, divider: true, spacing: 1 });
+        components.push({ type: 12, items: [{ media: { url: pb.image_url } }] });
+      }
+    } else {
+      const capacity = ({ 1: 4, 2: 6, 3: 8, 4: 10 })[Number(pb.tier)] || 4;
+      const appText = memberIds.length > 0 ? memberIds.map(id => `<@${id}>`).join("\n") : "*None*";
+
+      components.push({ type: 10, content: `# [${pb.name}](${pbUrl})` });
+      components.push({ type: 10, content: `**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}\n**Members:** ${memberIds.length + 1} / ${capacity}` });
+      components.push({ type: 14, divider: true, spacing: 1 });
+
+      if (pb.description) {
+        components.push({ type: 10, content: `### Description\n${pb.description}` });
+        components.push({ type: 14, divider: true, spacing: 1 });
+      }
+
+      if (groupLinkText) {
+        components.push({ type: 10, content: groupLinkText });
+        components.push({ type: 14, divider: true, spacing: 1 });
+      }
+
+      components.push({ type: 10, content: `### Roster\n**Leader:**\n<@${pb.leader_id}>\n\n**Apprentices:**\n${appText}` });
+
+      if (pb.image_url) {
+        components.push({ type: 14, divider: true, spacing: 1 });
+        components.push({ type: 12, items: [{ media: { url: pb.image_url } }] });
+      }
     }
 
     const payload = {

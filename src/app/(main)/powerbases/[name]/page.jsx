@@ -137,20 +137,24 @@ export default async function PowerbaseDetailPage({ params }) {
           <div className="hub-status-grid">
             <div className="hub-status-cell">
               <span className="hub-label">Members</span>
-              <span className="hub-value">{memberCount} / {getPowerbaseCapacity(pb.tier)}</span>
+              <span className="hub-value">{memberCount}</span>
             </div>
-            <div className="hub-status-cell">
-              <span className="hub-label">Capacity</span>
-              <span className="hub-value">{getPowerbaseCapacity(pb.tier)}</span>
-            </div>
-            <div className="hub-status-cell">
-              <span className="hub-label">Prestige</span>
-              <span className="hub-value">{pb.prestige}</span>
-            </div>
+            {!(pb.is_imperial || pb.tier === 10 || pb.tier === "X") && (
+              <>
+                <div className="hub-status-cell">
+                  <span className="hub-label">Capacity</span>
+                  <span className="hub-value">{getPowerbaseCapacity(pb.tier)}</span>
+                </div>
+                <div className="hub-status-cell">
+                  <span className="hub-label">Prestige</span>
+                  <span className="hub-value">{pb.prestige}</span>
+                </div>
+              </>
+            )}
             <div className="hub-status-cell">
               <span className="hub-label">Tier</span>
               <span className="hub-value" style={pb.is_sudden_death ? { color: "var(--red-bright)" } : {}}>
-                Tier {romanize(pb.tier)} {pb.is_sudden_death ? "(SUDDEN DEATH)" : ""}
+                Tier {(pb.is_imperial || pb.tier === 10 || pb.tier === "X") ? "X" : romanize(pb.tier)} {pb.is_sudden_death ? "(SUDDEN DEATH)" : ""}
               </span>
             </div>
           </div>

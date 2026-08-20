@@ -104,6 +104,10 @@ export async function handleSelectMenu(interaction) {
 }
 
 export async function handleButton(interaction) {
+  if (interaction.customId.startsWith("pb_save_members:")) {
+    return await handleSaveMembersButton(interaction);
+  }
+
   if (interaction.customId.startsWith("pb_img_manage:")) {
     const pbId = interaction.customId.split(":")[1];
     return await showImageOptions(interaction, pbId);
@@ -366,16 +370,27 @@ export async function handleModal(interaction) {
 }
 
 async function handleEditMembers(interaction) {
+  // When users change selection in the dropdown, cache their selected user IDs immediately
+  const selectedMembers = interaction.values || [];
+  const pbId = interaction.customId.split(":")[1];
+
+  globalThis.__pbMemberSelectionCache = globalThis.__pbMemberSelectionCache || new Map();
+  globalThis.__pbMemberSelectionCache.set(interaction.user.id, {
+    pbId,
+    selected: selectedMembers
+  });
+
+  // Acknowledge dropdown change without altering UI
+  await interaction.deferUpdate();
+  return true;
+}
+
+async function handleSaveMembersButton(interaction) {
   await interaction.deferUpdate();
 
-  const selectedMembers = interaction.values || [];
-  const pbId = interaction.customId.includes(":")
-    ? interaction.customId.split(":")[1]
-    : globalThis.__pbEditMembersCache?.get(interaction.user.id)?.pbId;
-
-  if (!pbId) {
-    return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Your edit session expired. Please try again.")])])));
-  }
+  const pbId = interaction.customId.split(":")[1];
+  const cached = globalThis.__pbMemberSelectionCache?.get(interaction.user.id);
+  const selectedMembers = cached?.pbId === pbId ? cached.selected : (interaction.values || []);
 
   const pb = await getPowerbase(pbId);
   if (!pb) return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase no longer exists.")])])));
@@ -409,7 +424,7 @@ async function handleEditMembers(interaction) {
     const normFinalMemberIds = finalMemberIds.map(String);
 
     await updatePowerbase(pb.id, {}, normFinalMemberIds);
-    if (globalThis.__pbEditMembersCache) globalThis.__pbEditMembersCache.delete(interaction.user.id);
+    if (globalThis.__pbMemberSelectionCache) globalThis.__pbMemberSelectionCache.delete(interaction.user.id);
 
     await syncPowerbaseRosterMessage(interaction.client, pb.id);
 
@@ -602,8 +617,15 @@ async function handleManageActionSelect(interaction) {
       .map(m => String(m.user_id || m.discord_user_id))
       .filter(Boolean);
 
+    // Initialize cache with current members for this user
+    globalThis.__pbMemberSelectionCache = globalThis.__pbMemberSelectionCache || new Map();
+    globalThis.__pbMemberSelectionCache.set(interaction.user.id, {
+      pbId: pb.id,
+      selected: currentMemberIds.slice(0, maxCapacity)
+    });
+
     const selectMenu = new UserSelectMenuBuilder()
-      .setCustomId(`pb_edit_members:${pbId}`)
+      .setCustomId(`pb_edit_members_select:${pbId}`)
       .setPlaceholder("Select Apprentices to include")
       .setMinValues(0)
       .setMaxValues(maxCapacity);
@@ -612,11 +634,17 @@ async function handleManageActionSelect(interaction) {
       selectMenu.setDefaultUsers(currentMemberIds.slice(0, maxCapacity));
     }
 
+    const saveBtn = new ButtonBuilder()
+      .setCustomId(`pb_save_members:${pbId}`)
+      .setLabel("Save")
+      .setStyle(ButtonStyle.Success);
+
     await interaction.update(ephemeral(componentsV2Message([
       containerV2([
         textDisplayV2(`### Powerbase: ${pb.name}`),
-        textDisplayV2(`Please select the Apprentices for this Powerbase. Anyone not selected will be removed. (Max ${maxCapacity}).`),
-        new ActionRowBuilder().addComponents(selectMenu)
+        textDisplayV2(`Select the Apprentices below and click **Save** when done. (Max ${maxCapacity}).`),
+        new ActionRowBuilder().addComponents(selectMenu),
+        new ActionRowBuilder().addComponents(saveBtn)
       ])
     ])));
     return true;

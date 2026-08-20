@@ -417,8 +417,8 @@ async function handleEditMembers(interaction) {
         fields: [
           { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
           { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
-          { name: "Apprentices Added", value: addedText, inline: true },
-          { name: "Apprentices Removed", value: removedText, inline: true }
+          { name: "Apprentices Added", value: addedText, inline: false },
+          { name: "Apprentices Removed", value: removedText, inline: false }
         ],
         color: 0xc90705
       });
@@ -638,8 +638,32 @@ async function handleEditMembers(interaction) {
       }
     }
 
+    const oldMemberIds = (pb.powerbase_members || [])
+      .map(m => String(m.user_id || m.discord_user_id || ""))
+      .filter(Boolean);
+
     await updatePowerbase(pbId, {}, selectedMemberIds);
     await syncPowerbaseRosterMessage(interaction.client, pbId);
+
+    const addedIds = selectedMemberIds.filter(id => !oldMemberIds.includes(id));
+    const removedIds = oldMemberIds.filter(id => !selectedMemberIds.includes(id));
+
+    if (addedIds.length > 0 || removedIds.length > 0) {
+      const addedText = addedIds.length > 0 ? addedIds.map(id => `<@${id}>`).join("\n") : "*None*";
+      const removedText = removedIds.length > 0 ? removedIds.map(id => `<@${id}>`).join("\n") : "*None*";
+
+      await postPowerbaseLog(interaction.client, {
+        title: "Powerbase Roster Updated",
+        description: `Roster for Powerbase **${pb.name}** has been updated.`,
+        fields: [
+          { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+          { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+          { name: "Apprentices Added", value: addedText, inline: false },
+          { name: "Apprentices Removed", value: removedText, inline: false }
+        ],
+        color: 0xc90705
+      });
+    }
 
     const memberMentions = selectedMemberIds.length > 0
       ? selectedMemberIds.map(id => `<@${id}>`).join(", ")

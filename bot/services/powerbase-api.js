@@ -30,10 +30,10 @@ export async function persistBannerImage(imageUrl, pbId) {
     const arrayBuffer = await res.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const bucketName = "archives";
-    const filePath = `powerbases/${pbId || "banner"}_${Date.now()}.${extension}`;
+    const bucketName = "powerbases";
+    const filePath = `banners/${pbId || "banner"}_${Date.now()}.${extension}`;
 
-    // Upload to Supabase Storage bucket 'archives' with public access
+    // Upload to Supabase Storage bucket 'powerbases' with public access
     const { error: uploadError } = await supabase.storage
       .from(bucketName)
       .upload(filePath, buffer, {
@@ -58,12 +58,12 @@ export async function persistBannerImage(imageUrl, pbId) {
 }
 
 /**
- * Deletes a stored banner image from Supabase storage if it was stored in the archives bucket.
+ * Deletes a stored banner image from Supabase storage if it was stored in the powerbases bucket.
  */
 export async function removePersistedBannerImage(imageUrl) {
   if (!imageUrl || typeof imageUrl !== "string") return;
   try {
-    const bucketName = "archives";
+    const bucketName = "powerbases";
     const marker = `/storage/v1/object/public/${bucketName}/`;
     if (imageUrl.includes(marker)) {
       const storagePath = imageUrl.substring(imageUrl.indexOf(marker) + marker.length);

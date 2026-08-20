@@ -200,11 +200,11 @@ const handler = async (req, res) => {
             await syncRosterViaRest(id, true, pb);
 
             // Clean up storage banner image if present
-            if (pb.image_url && pb.image_url.includes("/storage/v1/object/public/archives/")) {
-              const marker = "/storage/v1/object/public/archives/";
+            if (pb.image_url && pb.image_url.includes("/storage/v1/object/public/powerbases/")) {
+              const marker = "/storage/v1/object/public/powerbases/";
               const storagePath = pb.image_url.substring(pb.image_url.indexOf(marker) + marker.length);
               if (storagePath) {
-                await supabaseRest(`storage/v1/object/archives/${encodeURIComponent(decodeURIComponent(storagePath))}`, { method: "DELETE" }).catch(() => null);
+                await supabaseRest(`storage/v1/object/powerbases/${encodeURIComponent(decodeURIComponent(storagePath))}`, { method: "DELETE" }).catch(() => null);
               }
             }
 

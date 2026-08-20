@@ -135,7 +135,9 @@ async function syncPowerbaseRostersOnStartup() {
   }
 }
 
-client.once("clientReady", () => {
+import { Events } from "discord.js";
+
+client.once(Events.ClientReady, () => {
   console.log(`Holonet bot online as ${client.user.tag}`);
   client.user.setPresence({ status: "dnd" });
   syncStoredClockPanels();

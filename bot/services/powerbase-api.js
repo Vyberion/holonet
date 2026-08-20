@@ -14,7 +14,7 @@ export async function persistBannerImage(imageUrl, pbId) {
   if (!imageUrl || typeof imageUrl !== "string") return null;
   
   // If it's already hosted on Supabase Storage, no need to re-upload
-  if (imageUrl.includes("supabase.co/storage/v1/object/public/")) {
+  if (imageUrl.includes("/storage/v1/object/public/")) {
     return imageUrl;
   }
 
@@ -25,18 +25,33 @@ export async function persistBannerImage(imageUrl, pbId) {
       return imageUrl;
     }
 
-    const contentType = res.headers.get("content-type") || "image/png";
-    const extension = contentType.includes("gif") ? "gif" : contentType.includes("jpeg") || contentType.includes("jpg") ? "jpg" : "png";
+    const rawType = res.headers.get("content-type") || "";
+    let contentType = "image/png";
+    let extension = "png";
+
+    if (rawType.includes("gif")) {
+      contentType = "image/gif";
+      extension = "gif";
+    } else if (rawType.includes("jpeg") || rawType.includes("jpg")) {
+      contentType = "image/jpeg";
+      extension = "jpg";
+    } else if (rawType.includes("webp")) {
+      contentType = "image/webp";
+      extension = "webp";
+    }
+
     const arrayBuffer = await res.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     const bucketName = "powerbases";
     const filePath = `banners/${pbId || "banner"}_${Date.now()}.${extension}`;
 
-    // Ensure bucket exists (or create if missing with public: true)
-    try {
+    // Ensure bucket exists with public access
+    const { data: buckets } = await supabase.storage.listBuckets().catch(() => ({ data: [] }));
+    const exists = (buckets || []).some(b => b.name === bucketName);
+    if (!exists) {
       await supabase.storage.createBucket(bucketName, { public: true }).catch(() => {});
-    } catch {}
+    }
 
     // Upload to Supabase Storage bucket 'powerbases' with public access
     const { error: uploadError } = await supabase.storage
@@ -55,8 +70,9 @@ export async function persistBannerImage(imageUrl, pbId) {
       .from(bucketName)
       .getPublicUrl(filePath);
 
-    console.log(`[persistBannerImage] Successfully uploaded banner: ${publicUrlData?.publicUrl}`);
-    return publicUrlData?.publicUrl || imageUrl;
+    const finalUrl = publicUrlData?.publicUrl || imageUrl;
+    console.log(`[persistBannerImage] Uploaded banner: ${finalUrl}`);
+    return finalUrl;
   } catch (err) {
     console.error("[persistBannerImage] Error persisting banner image:", err);
     return imageUrl;

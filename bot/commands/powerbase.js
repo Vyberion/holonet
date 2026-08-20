@@ -2,7 +2,7 @@ import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSel
 import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./shift.js";
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2, buttonRow, button, mediaGalleryV2 } from "../services/discord-ui.js";
-import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseCapacity, getPowerbaseForUser, isHigherRank, logPowerbaseAction, slugifyPowerbase, syncPowerbaseRosterMessage, updatePowerbase } from "../services/powerbase-api.js";
+import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseCapacity, getPowerbaseForUser, isHigherRank, logPowerbaseAction, slugifyPowerbase, syncPowerbaseRosterMessage, syncStoredPowerbaseRosters, updatePowerbase } from "../services/powerbase-api.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { hasPermission } from "../../modules/auth/permissions.js";
 import { postActivityLog, postPowerbaseLog, HIGH_COMMAND_ROLE_ID } from "../services/activity-log.js";
@@ -39,6 +39,11 @@ export const commands = [
         .setName("info")
         .setDescription("View info for a specific Powerbase")
     )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("sync")
+        .setDescription("Sync and refresh all Powerbase roster embeds in Discord")
+    )
 ];
 
 export async function handleCommand(interaction) {
@@ -50,6 +55,21 @@ export async function handleCommand(interaction) {
     const verified = await getVerifiedProfile(interaction.user.id);
     if (!verified) {
       await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You must be verified to use Powerbase commands.")])])));
+      return true;
+    }
+
+    if (subcommand === "sync") {
+      const canManageAll = hasPermission(verified.profile, "powerbase:manage:all");
+      if (!canManageAll) {
+        await interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have permission to force sync Powerbases.")])])));
+        return true;
+      }
+      await interaction.deferReply({ ephemeral: true });
+      const result = await syncStoredPowerbaseRosters(interaction.client);
+      await interaction.editReply(ephemeral(componentsV2Message([containerV2([
+        textDisplayV2("### Powerbase Sync Completed"),
+        textDisplayV2(`Successfully checked and synced **${result.synced}** active Powerbase(s) in the roster channel.`)
+      ])])));
       return true;
     }
 

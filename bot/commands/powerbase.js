@@ -604,8 +604,11 @@ async function handleEditMembers(interaction) {
   const pbId = interaction.customId.split(":")[1];
   const selectedMemberIds = interaction.values || [];
 
+  // Defer update immediately to acknowledge interaction before 3s Discord timeout
+  await interaction.deferUpdate();
+
   const pb = await getPowerbase(pbId);
-  if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+  if (!pb) return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
 
   try {
     const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
@@ -639,9 +642,9 @@ async function handleEditMembers(interaction) {
         textDisplayV2(`Apprentices for Powerbase **${pb.name}** have been updated.\n\n**Current Apprentices:** ${memberMentions}`)
       ])
     ]);
-    return interaction.update(ephemeral(v2Payload));
+    return interaction.editReply(ephemeral(v2Payload));
   } catch (err) {
-    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ${err.message}`)])])));
+    return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ${err.message}`)])])));
   }
 }
 
@@ -714,8 +717,10 @@ async function handleChangeLeaderSelect(interaction) {
   const pbId = interaction.customId.split(":")[1];
   const newLeaderId = interaction.values[0];
 
+  await interaction.deferUpdate();
+
   const pb = await getPowerbase(pbId);
-  if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+  if (!pb) return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
 
   try {
     const verified = await getVerifiedProfile(newLeaderId);
@@ -754,9 +759,9 @@ async function handleChangeLeaderSelect(interaction) {
         textDisplayV2(`Leadership of Powerbase **${pb.name}** has been transferred to <@${newLeaderId}>.`)
       ])
     ]);
-    return interaction.update(ephemeral(v2Payload));
+    return interaction.editReply(ephemeral(v2Payload));
   } catch (err) {
-    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ${err.message}`)])])));
+    return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`❌ **Error:** ${err.message}`)])])));
   }
 }
 

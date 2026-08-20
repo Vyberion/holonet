@@ -87,11 +87,11 @@ async function syncRosterViaRest(powerbaseId, forceDelete = false, cachedPb = nu
         components.push({ type: 14, divider: true, spacing: 1 });
       }
 
-      components.push({ type: 10, content: `### Roster\n**Leader:** ${pb.leader_id ? `<@${pb.leader_id}>` : "*Vacant*"}` });
+      components.push({ type: 10, content: `### Roster\n**Leader:**\n${pb.leader_id ? `<@${pb.leader_id}>` : "*Vacant*"}` });
 
       if (memberIds.length > 0) {
         components.push({ type: 14, divider: true, spacing: 1 });
-        const appLines = memberIds.map(id => `**Apprentice:** <@${id}>`).join("\n");
+        const appLines = memberIds.map(id => `**Apprentice:**\n<@${id}>`).join("\n");
         components.push({ type: 10, content: appLines });
       }
 

@@ -206,23 +206,23 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
 
       // Roster section: Leadership
       const leaderLines = [];
-      leaderLines.push(`**Leader:**\n${emperorId ? `<@${emperorId}>` : "*Vacant*"}`);
-      if (voiceId) leaderLines.push(`**Emperor's Voice:**\n<@${voiceId}>`);
-      if (wrathId) leaderLines.push(`**Emperor's Wrath:**\n<@${wrathId}>`);
+      leaderLines.push(`**Leader:** ${emperorId ? `<@${emperorId}>` : "*Vacant*"}`);
+      if (voiceId) leaderLines.push(`**Emperor's Voice:** <@${voiceId}>`);
+      if (wrathId) leaderLines.push(`**Emperor's Wrath:** <@${wrathId}>`);
 
-      components.push(textDisplayV2(`### Roster\n${leaderLines.join("\n\n")}`));
+      components.push(textDisplayV2(`### Roster\n${leaderLines.join("\n")}`));
 
       // Shadow Guards section (only if any exist)
       if (shadowGuardIds.length > 0) {
         components.push(separatorV2());
-        const sgLines = shadowGuardIds.map(id => `**Shadow Guard:**\n<@${id}>`).join("\n\n");
+        const sgLines = shadowGuardIds.map(id => `**Shadow Guard:** <@${id}>`).join("\n");
         components.push(textDisplayV2(sgLines));
       }
 
       // Apprentices section (only if any exist)
       if (memberIds.length > 0) {
         components.push(separatorV2());
-        const appLines = memberIds.map(id => `**Apprentice:**\n<@${id}>`).join("\n\n");
+        const appLines = memberIds.map(id => `**Apprentice:** <@${id}>`).join("\n");
         components.push(textDisplayV2(appLines));
       }
 

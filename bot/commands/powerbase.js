@@ -366,19 +366,25 @@ export async function handleModal(interaction) {
 }
 
 async function handleEditMembers(interaction) {
-  await interaction.deferUpdate();
-
   const selectedMembers = interaction.values || [];
   const pbId = interaction.customId.includes(":")
     ? interaction.customId.split(":")[1]
     : globalThis.__pbEditMembersCache?.get(interaction.user.id)?.pbId;
 
   if (!pbId) {
-    return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Your edit session expired. Please try again.")])])));
+    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Your edit session expired. Please try again.")])])));
   }
 
   const pb = await getPowerbase(pbId);
-  if (!pb) return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase no longer exists.")])])));
+  if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase no longer exists.")])])));
+
+  // Immediately show updating transition state
+  await interaction.update(ephemeral(componentsV2Message([
+    containerV2([
+      textDisplayV2(`### Updating Roster`),
+      textDisplayV2(`Verifying apprentices and updating roster for **${pb.name}**...`)
+    ])
+  ])));
 
   const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
   const maxCapacity = isImperial ? 3 : getPowerbaseCapacity(pb.tier);
@@ -975,17 +981,23 @@ async function handleBanner(interaction, verified) {
 }
 
 async function handleBannerSelect(interaction) {
-  await interaction.deferUpdate();
-
   const pbId = interaction.values[0];
   const imageUrl = globalThis.__pbBannerCache?.get(interaction.user.id);
 
   if (!imageUrl) {
-    return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Upload session expired. Please run `/powerbase banner` again.")])])));
+    return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Upload session expired. Please run `/powerbase banner` again.")])])));
   }
 
   const pb = await getPowerbase(pbId);
-  if (!pb) return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+  if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+
+  // Immediately transition from "Select Powerbase" to "Uploading banner image..."
+  await interaction.update(ephemeral(componentsV2Message([
+    containerV2([
+      textDisplayV2("### Uploading Banner Image"),
+      textDisplayV2(`Uploading and persisting banner image for **${pb.name}** to Holonet storage...`)
+    ])
+  ])));
 
   const permanentUrl = await persistBannerImage(imageUrl, pbId);
   await updatePowerbase(pbId, { image_url: permanentUrl });

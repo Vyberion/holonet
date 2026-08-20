@@ -242,33 +242,38 @@ export async function syncStoredPowerbaseRosters(client) {
       const msg2Id = secondPb?.roster_message_id || null;
 
       // 1. Create Imperial PB with msg1Id
+      const insertPayload = {
+        name: "Imperial Powerbase",
+        description: "The supreme seat of authority within the Sith Empire, governed directly by the Lord Emperor and the Dark Council figureheads.",
+        leader_id: oldestPb?.leader_id || "0",
+        tier: 10,
+        prestige: 0,
+        status: "ACTIVE",
+        roster_message_id: msg1Id
+      };
+
       const { data: createdRows, error: createErr } = await supabase
         .from("powerbases")
-        .insert([{
-          name: "Imperial Powerbase",
-          description: "The supreme seat of authority within the Sith Empire, governed directly by the Lord Emperor and the Dark Council figureheads.",
-          leader_id: "0",
-          tier: 10,
-          prestige: 0,
-          status: "ACTIVE",
-          is_imperial: true,
-          roster_message_id: msg1Id
-        }])
+        .insert([insertPayload])
         .select();
 
-      if (!createErr && createdRows && createdRows.length > 0) {
+      if (createErr) {
+        console.error("[syncStoredPowerbaseRosters] Failed to insert Imperial Powerbase:", createErr);
+      } else if (createdRows && createdRows.length > 0) {
         imperialPb = createdRows[0];
         console.log(`[syncStoredPowerbaseRosters] Created Imperial Powerbase record (ID: ${imperialPb.id}) with message slot: ${msg1Id}`);
 
         // 2. Rotate oldest PB to msg2Id
         if (oldestPb) {
-          await supabase.from("powerbases").update({ roster_message_id: msg2Id }).eq("id", oldestPb.id);
+          const { error: updErr1 } = await supabase.from("powerbases").update({ roster_message_id: msg2Id }).eq("id", oldestPb.id);
+          if (updErr1) console.error(`[syncStoredPowerbaseRosters] Failed to rotate oldest PB ${oldestPb.id}:`, updErr1);
           oldestPb.roster_message_id = msg2Id;
         }
 
         // 3. Set second PB to null so it sends Msg 3
         if (secondPb) {
-          await supabase.from("powerbases").update({ roster_message_id: null }).eq("id", secondPb.id);
+          const { error: updErr2 } = await supabase.from("powerbases").update({ roster_message_id: null }).eq("id", secondPb.id);
+          if (updErr2) console.error(`[syncStoredPowerbaseRosters] Failed to clear second PB ${secondPb.id}:`, updErr2);
           secondPb.roster_message_id = null;
         }
 

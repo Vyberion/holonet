@@ -47,10 +47,11 @@ export async function persistBannerImage(imageUrl, pbId) {
     const filePath = `banners/${pbId || "banner"}_${Date.now()}.${extension}`;
 
     // Ensure bucket exists with public access
-    const { data: buckets } = await supabase.storage.listBuckets().catch(() => ({ data: [] }));
+    const { data: buckets, error: listErr } = await supabase.storage.listBuckets();
     const exists = (buckets || []).some(b => b.name === bucketName);
     if (!exists) {
-      await supabase.storage.createBucket(bucketName, { public: true }).catch(() => {});
+      const { error: createErr } = await supabase.storage.createBucket(bucketName, { public: true });
+      if (createErr) console.warn("[persistBannerImage] Could not create bucket automatically:", createErr);
     }
 
     // Upload to Supabase Storage bucket 'powerbases' with public access

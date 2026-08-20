@@ -406,13 +406,15 @@ async function handleEditMembers(interaction) {
       .map(m => String(m.user_id || m.discord_user_id || ""))
       .filter(Boolean);
 
-    await updatePowerbase(pb.id, {}, finalMemberIds);
+    const normFinalMemberIds = finalMemberIds.map(String);
+
+    await updatePowerbase(pb.id, {}, normFinalMemberIds);
     if (globalThis.__pbEditMembersCache) globalThis.__pbEditMembersCache.delete(interaction.user.id);
 
     await syncPowerbaseRosterMessage(interaction.client, pb.id);
 
-    const addedIds = finalMemberIds.filter(id => !oldMemberIds.includes(id));
-    const removedIds = oldMemberIds.filter(id => !finalMemberIds.includes(id));
+    const addedIds = normFinalMemberIds.filter(id => !oldMemberIds.includes(id));
+    const removedIds = oldMemberIds.filter(id => !normFinalMemberIds.includes(id));
 
     if (addedIds.length > 0 || removedIds.length > 0) {
       const addedText = addedIds.length > 0 ? addedIds.map(id => `<@${id}>`).join("\n") : "*None*";
@@ -428,7 +430,7 @@ async function handleEditMembers(interaction) {
           { name: "Apprentices Removed", value: removedText, inline: false }
         ],
         color: 0xc90705
-      });
+      }).catch(err => console.error("Failed to post powerbase log:", err));
     }
 
     const memberMentions = finalMemberIds.length > 0

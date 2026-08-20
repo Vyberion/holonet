@@ -226,22 +226,71 @@ export async function syncStoredPowerbaseRosters(client) {
     const powerbases = await fetchPowerbases();
     let activePbs = (powerbases || []).filter(pb => pb.status === "ACTIVE");
 
-    // Check if Imperial Powerbase exists in DB
-    let imperialPb = activePbs.find(pb => pb.is_imperial || pb.name?.toLowerCase().includes("imperial powerbase"));
+    // Fetch roster channel messages to inspect actual Discord message order
+    let channelMessages = [];
+    if (client) {
+      try {
+        const channel = await client.channels.fetch(ROSTER_CHANNEL_ID).catch(() => null);
+        if (channel && channel.isTextBased()) {
+          const msgs = await channel.messages.fetch({ limit: 20 }).catch(() => null);
+          if (msgs) {
+            // Sort ascending by created timestamp (oldest first)
+            channelMessages = Array.from(msgs.values()).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+          }
+        }
+      } catch (err) {
+        console.warn("[syncStoredPowerbaseRosters] Could not fetch channel messages:", err);
+      }
+    }
 
-    if (!imperialPb) {
-      // Find oldest active PB
-      const sortedNonImp = activePbs
-        .filter(pb => !pb.is_imperial && !pb.name?.toLowerCase().includes("imperial powerbase"))
-        .sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+    const imperialPb = activePbs.find(pb => pb.is_imperial || pb.name?.toLowerCase().includes("imperial powerbase"));
+    const nonImperialPbs = activePbs
+      .filter(pb => !pb.is_imperial && !pb.name?.toLowerCase().includes("imperial powerbase"))
+      .sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
 
-      const oldestPb = sortedNonImp[0];
-      const secondPb = sortedNonImp[1];
+    // If we have at least 2 Discord messages in the channel:
+    // Slot 1 (Oldest Discord message) MUST be Imperial PB
+    // Slot 2 (2nd oldest Discord message) MUST be Oldest non-Imperial PB
+    // Slot 3 (3rd message) MUST be 2nd non-Imperial PB
+    if (channelMessages.length >= 2 && imperialPb) {
+      const msg1Id = channelMessages[0].id;
+      const msg2Id = channelMessages[1].id;
+      const msg3Id = channelMessages[2]?.id || null;
 
-      const msg1Id = oldestPb?.roster_message_id || null;
-      const msg2Id = secondPb?.roster_message_id || null;
+      // Assign Imperial to msg1Id
+      if (imperialPb.roster_message_id !== msg1Id) {
+        console.log(`[syncStoredPowerbaseRosters] Aligning Imperial PB to oldest message: ${msg1Id}`);
+        await supabase.from("powerbases").update({ roster_message_id: msg1Id }).eq("id", imperialPb.id);
+        imperialPb.roster_message_id = msg1Id;
+      }
 
-      // 1. Create Imperial PB with msg1Id
+      // Assign oldest non-imperial to msg2Id
+      if (nonImperialPbs[0] && nonImperialPbs[0].roster_message_id !== msg2Id) {
+        console.log(`[syncStoredPowerbaseRosters] Aligning ${nonImperialPbs[0].name} to 2nd message: ${msg2Id}`);
+        await supabase.from("powerbases").update({ roster_message_id: msg2Id }).eq("id", nonImperialPbs[0].id);
+        nonImperialPbs[0].roster_message_id = msg2Id;
+      }
+
+      // Assign 2nd non-imperial to msg3Id (or null so it sends a new 3rd message)
+      if (nonImperialPbs[1]) {
+        if (msg3Id && nonImperialPbs[1].roster_message_id !== msg3Id) {
+          console.log(`[syncStoredPowerbaseRosters] Aligning ${nonImperialPbs[1].name} to 3rd message: ${msg3Id}`);
+          await supabase.from("powerbases").update({ roster_message_id: msg3Id }).eq("id", nonImperialPbs[1].id);
+          nonImperialPbs[1].roster_message_id = msg3Id;
+        } else if (!msg3Id && (nonImperialPbs[1].roster_message_id === msg1Id || nonImperialPbs[1].roster_message_id === msg2Id)) {
+          console.log(`[syncStoredPowerbaseRosters] Clearing ${nonImperialPbs[1].name} message ID so it sends fresh 3rd message`);
+          await supabase.from("powerbases").update({ roster_message_id: null }).eq("id", nonImperialPbs[1].id);
+          nonImperialPbs[1].roster_message_id = null;
+        }
+      }
+    } else if (!imperialPb) {
+      // Create Imperial PB if completely missing
+      const oldestPb = nonImperialPbs[0];
+      const secondPb = nonImperialPbs[1];
+
+      const msg1Id = channelMessages[0]?.id || oldestPb?.roster_message_id || null;
+      const msg2Id = channelMessages[1]?.id || secondPb?.roster_message_id || null;
+
       const insertPayload = {
         name: "Imperial Powerbase",
         description: "The supreme seat of authority within the Sith Empire, governed directly by the Lord Emperor and the Dark Council figureheads.",
@@ -252,38 +301,23 @@ export async function syncStoredPowerbaseRosters(client) {
         roster_message_id: msg1Id
       };
 
-      const { data: createdRows, error: createErr } = await supabase
-        .from("powerbases")
-        .insert([insertPayload])
-        .select();
-
-      if (createErr) {
-        console.error("[syncStoredPowerbaseRosters] Failed to insert Imperial Powerbase:", createErr);
-      } else if (createdRows && createdRows.length > 0) {
-        imperialPb = createdRows[0];
-        console.log(`[syncStoredPowerbaseRosters] Created Imperial Powerbase record (ID: ${imperialPb.id}) with message slot: ${msg1Id}`);
-
-        // 2. Rotate oldest PB to msg2Id
+      const { data: createdRows } = await supabase.from("powerbases").insert([insertPayload]).select();
+      if (createdRows && createdRows.length > 0) {
         if (oldestPb) {
-          const { error: updErr1 } = await supabase.from("powerbases").update({ roster_message_id: msg2Id }).eq("id", oldestPb.id);
-          if (updErr1) console.error(`[syncStoredPowerbaseRosters] Failed to rotate oldest PB ${oldestPb.id}:`, updErr1);
+          await supabase.from("powerbases").update({ roster_message_id: msg2Id }).eq("id", oldestPb.id);
           oldestPb.roster_message_id = msg2Id;
         }
-
-        // 3. Set second PB to null so it sends Msg 3
         if (secondPb) {
-          const { error: updErr2 } = await supabase.from("powerbases").update({ roster_message_id: null }).eq("id", secondPb.id);
-          if (updErr2) console.error(`[syncStoredPowerbaseRosters] Failed to clear second PB ${secondPb.id}:`, updErr2);
+          await supabase.from("powerbases").update({ roster_message_id: null }).eq("id", secondPb.id);
           secondPb.roster_message_id = null;
         }
-
-        // Refetch active list
-        const refreshed = await fetchPowerbases();
-        activePbs = (refreshed || []).filter(pb => pb.status === "ACTIVE");
       }
     }
 
-    // Sort order: Imperial first, then by tier desc, prestige desc
+    // Refresh and sort: Imperial first, then by tier desc, prestige desc
+    const refreshed = await fetchPowerbases();
+    activePbs = (refreshed || []).filter(pb => pb.status === "ACTIVE");
+
     activePbs.sort((a, b) => {
       const isImpA = a.is_imperial || a.name?.toLowerCase().includes("imperial powerbase") ? 1 : 0;
       const isImpB = b.is_imperial || b.name?.toLowerCase().includes("imperial powerbase") ? 1 : 0;

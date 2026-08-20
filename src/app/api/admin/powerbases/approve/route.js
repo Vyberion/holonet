@@ -91,8 +91,8 @@ async function syncRosterViaRest(powerbaseId, forceDelete = false, cachedPb = nu
 
       if (memberIds.length > 0) {
         components.push({ type: 14, divider: true, spacing: 1 });
-        const appLines = memberIds.map(id => `**Apprentice:**\n<@${id}>`).join("\n");
-        components.push({ type: 10, content: appLines });
+        const appLines = memberIds.map(id => `<@${id}>`).join("\n");
+        components.push({ type: 10, content: `**Apprentices:**\n${appLines}` });
       }
 
       if (pb.image_url) {

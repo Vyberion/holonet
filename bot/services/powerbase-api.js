@@ -33,6 +33,11 @@ export async function persistBannerImage(imageUrl, pbId) {
     const bucketName = "powerbases";
     const filePath = `banners/${pbId || "banner"}_${Date.now()}.${extension}`;
 
+    // Ensure bucket exists (or create if missing with public: true)
+    try {
+      await supabase.storage.createBucket(bucketName, { public: true }).catch(() => {});
+    } catch {}
+
     // Upload to Supabase Storage bucket 'powerbases' with public access
     const { error: uploadError } = await supabase.storage
       .from(bucketName)
@@ -42,7 +47,7 @@ export async function persistBannerImage(imageUrl, pbId) {
       });
 
     if (uploadError) {
-      console.warn("[persistBannerImage] Supabase storage upload failed, using original url:", uploadError);
+      console.error("[persistBannerImage] Supabase storage upload error:", uploadError);
       return imageUrl;
     }
 
@@ -50,6 +55,7 @@ export async function persistBannerImage(imageUrl, pbId) {
       .from(bucketName)
       .getPublicUrl(filePath);
 
+    console.log(`[persistBannerImage] Successfully uploaded banner: ${publicUrlData?.publicUrl}`);
     return publicUrlData?.publicUrl || imageUrl;
   } catch (err) {
     console.error("[persistBannerImage] Error persisting banner image:", err);
@@ -219,15 +225,15 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
       // Shadow Guards section (only if any exist)
       if (shadowGuardIds.length > 0) {
         components.push(separatorV2());
-        const sgLines = shadowGuardIds.map(id => `**Shadow Guard:**\n<@${id}>`).join("\n");
-        components.push(textDisplayV2(sgLines));
+        const sgLines = shadowGuardIds.map(id => `<@${id}>`).join("\n");
+        components.push(textDisplayV2(`**Shadow Guards:**\n${sgLines}`));
       }
 
       // Apprentices section (only if any exist)
       if (memberIds.length > 0) {
         components.push(separatorV2());
-        const appLines = memberIds.map(id => `**Apprentice:**\n<@${id}>`).join("\n");
-        components.push(textDisplayV2(appLines));
+        const appLines = memberIds.map(id => `<@${id}>`).join("\n");
+        components.push(textDisplayV2(`**Apprentices:**\n${appLines}`));
       }
 
       if (pb.image_url) {

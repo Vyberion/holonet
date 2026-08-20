@@ -2,7 +2,7 @@ import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSel
 import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./shift.js";
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2, buttonRow, button, mediaGalleryV2 } from "../services/discord-ui.js";
-import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseCapacity, getPowerbaseForUser, isHigherRank, logPowerbaseAction, slugifyPowerbase, syncPowerbaseRosterMessage, syncStoredPowerbaseRosters, updatePowerbase } from "../services/powerbase-api.js";
+import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseCapacity, getPowerbaseForUser, isHigherRank, logPowerbaseAction, persistBannerImage, slugifyPowerbase, syncPowerbaseRosterMessage, syncStoredPowerbaseRosters, updatePowerbase } from "../services/powerbase-api.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { hasPermission } from "../../modules/auth/permissions.js";
 import { postActivityLog, postPowerbaseLog, HIGH_COMMAND_ROLE_ID } from "../services/activity-log.js";
@@ -282,16 +282,19 @@ export async function handleModal(interaction) {
 
   if (interaction.customId.startsWith("pb_img_url_modal:")) {
     const pbId = interaction.customId.split(":")[1];
-    const imageUrl = interaction.fields.getTextInputValue("imageUrl");
+    const rawImageUrl = interaction.fields.getTextInputValue("imageUrl");
 
     const pb = await getPowerbase(pbId);
-    if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
+    if (!pb) return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
 
-    await updatePowerbase(pbId, { image_url: imageUrl || null });
+    await interaction.deferReply({ ephemeral: true });
+    const imageUrl = rawImageUrl ? await persistBannerImage(rawImageUrl, pbId) : null;
+
+    await updatePowerbase(pbId, { image_url: imageUrl });
     await syncPowerbaseRosterMessage(interaction.client, pbId);
 
     const msg = imageUrl ? `Banner image for **${pb.name}** updated successfully!` : `Banner image for **${pb.name}** removed.`;
-    await interaction.reply(ephemeral(componentsV2Message([
+    await interaction.editReply(ephemeral(componentsV2Message([
       containerV2([
         textDisplayV2("### Image Details Updated"),
         textDisplayV2(msg)
@@ -918,9 +921,11 @@ async function handleBanner(interaction, verified) {
 
   if (manageablePbs.length === 1) {
     const pb = manageablePbs[0];
-    await updatePowerbase(pb.id, { image_url: attachment.url });
+    await interaction.deferReply({ ephemeral: true });
+    const permanentUrl = await persistBannerImage(attachment.url, pb.id);
+    await updatePowerbase(pb.id, { image_url: permanentUrl });
     await syncPowerbaseRosterMessage(interaction.client, pb.id);
-    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`Banner image uploaded and set for **${pb.name}**!`)])])));
+    return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`Banner image uploaded and set for **${pb.name}**!`)])])));
   }
 
   const options = manageablePbs.slice(0, 25).map(pb => ({
@@ -957,11 +962,13 @@ async function handleBannerSelect(interaction) {
   const pb = await getPowerbase(pbId);
   if (!pb) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Powerbase not found.")])])));
 
-  await updatePowerbase(pbId, { image_url: imageUrl });
+  await interaction.deferUpdate();
+  const permanentUrl = await persistBannerImage(imageUrl, pbId);
+  await updatePowerbase(pbId, { image_url: permanentUrl });
   await syncPowerbaseRosterMessage(interaction.client, pbId);
   globalThis.__pbBannerCache.delete(interaction.user.id);
 
-  return interaction.update(ephemeral(componentsV2Message([
+  return interaction.editReply(ephemeral(componentsV2Message([
     containerV2([
       textDisplayV2("### Image Uploaded"),
       textDisplayV2(`Banner image uploaded and set for **${pb.name}** successfully!`)

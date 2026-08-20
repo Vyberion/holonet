@@ -6,6 +6,57 @@ import { getVerifiedProfile } from "./roles.js";
 
 export const ROSTER_CHANNEL_ID = "1046537270150299720";
 
+/**
+ * Downloads an image (e.g. from Discord CDN) and stores it permanently in Supabase Storage.
+ * Discord CDN URLs expire after a short time; storing them in Supabase gives a permanent URL.
+ */
+export async function persistBannerImage(imageUrl, pbId) {
+  if (!imageUrl || typeof imageUrl !== "string") return null;
+  
+  // If it's already hosted on Supabase Storage, no need to re-upload
+  if (imageUrl.includes("supabase.co/storage/v1/object/public/")) {
+    return imageUrl;
+  }
+
+  try {
+    const res = await fetch(imageUrl);
+    if (!res.ok) {
+      console.warn(`[persistBannerImage] Failed to fetch source image: ${res.status} ${res.statusText}`);
+      return imageUrl;
+    }
+
+    const contentType = res.headers.get("content-type") || "image/png";
+    const extension = contentType.includes("gif") ? "gif" : contentType.includes("jpeg") || contentType.includes("jpg") ? "jpg" : "png";
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const bucketName = "archives";
+    const filePath = `powerbases/${pbId || "banner"}_${Date.now()}.${extension}`;
+
+    // Upload to Supabase Storage bucket 'archives' with public access
+    const { error: uploadError } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, buffer, {
+        contentType,
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.warn("[persistBannerImage] Supabase storage upload failed, using original url:", uploadError);
+      return imageUrl;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
+
+    return publicUrlData?.publicUrl || imageUrl;
+  } catch (err) {
+    console.error("[persistBannerImage] Error persisting banner image:", err);
+    return imageUrl;
+  }
+}
+
 function romanize(num) {
   if (num === 10 || num === "X" || String(num).toUpperCase() === "X") return "X";
   return ["I", "II", "III", "IV"][num - 1] || "I";
@@ -292,7 +343,7 @@ export async function syncStoredPowerbaseRosters(client) {
       const msg2Id = channelMessages[1]?.id || secondPb?.roster_message_id || null;
 
       const insertPayload = {
-        name: "Imperial Powerbase",
+        name: "The Imperial Powerbase",
         description: "The supreme Powerbase of the Sith Empire, lead directly by the Dark Lord of the Sith and formed from the High Command, their chosen Shadow Guards and Apprentices.",
         leader_id: oldestPb?.leader_id || "0",
         tier: 10,

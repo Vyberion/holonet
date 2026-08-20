@@ -199,6 +199,15 @@ const handler = async (req, res) => {
             // Delete roster message from Discord BEFORE deleting row from database
             await syncRosterViaRest(id, true, pb);
 
+            // Clean up storage banner image if present
+            if (pb.image_url && pb.image_url.includes("/storage/v1/object/public/archives/")) {
+              const marker = "/storage/v1/object/public/archives/";
+              const storagePath = pb.image_url.substring(pb.image_url.indexOf(marker) + marker.length);
+              if (storagePath) {
+                await supabaseRest(`storage/v1/object/archives/${encodeURIComponent(decodeURIComponent(storagePath))}`, { method: "DELETE" }).catch(() => null);
+              }
+            }
+
             // Delete members & powerbase completely from database
             await supabaseRest(`powerbase_members?powerbase_id=eq.${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => null);
             await supabaseRest(`powerbases?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });

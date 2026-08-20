@@ -57,6 +57,26 @@ export async function persistBannerImage(imageUrl, pbId) {
   }
 }
 
+/**
+ * Deletes a stored banner image from Supabase storage if it was stored in the archives bucket.
+ */
+export async function removePersistedBannerImage(imageUrl) {
+  if (!imageUrl || typeof imageUrl !== "string") return;
+  try {
+    const bucketName = "archives";
+    const marker = `/storage/v1/object/public/${bucketName}/`;
+    if (imageUrl.includes(marker)) {
+      const storagePath = imageUrl.substring(imageUrl.indexOf(marker) + marker.length);
+      if (storagePath) {
+        const { error } = await supabase.storage.from(bucketName).remove([decodeURIComponent(storagePath)]);
+        if (error) console.warn("[removePersistedBannerImage] Error removing storage object:", error);
+      }
+    }
+  } catch (err) {
+    console.warn("[removePersistedBannerImage] Exception while deleting old banner:", err);
+  }
+}
+
 function romanize(num) {
   if (num === 10 || num === "X" || String(num).toUpperCase() === "X") return "X";
   return ["I", "II", "III", "IV"][num - 1] || "I";
@@ -523,6 +543,14 @@ export async function updatePowerbase(id, payload, newMembers = null) {
   let data = null;
 
   if (payload && Object.keys(payload).length > 0) {
+    // If updating image_url, wipe the old stored banner image if it differs
+    if (Object.prototype.hasOwnProperty.call(payload, "image_url")) {
+      const existing = await getPowerbase(id);
+      if (existing?.image_url && existing.image_url !== payload.image_url) {
+        removePersistedBannerImage(existing.image_url).catch(() => {});
+      }
+    }
+
     const { data: rows, error } = await supabase
       .from("powerbases")
       .update(payload)
@@ -768,6 +796,9 @@ export async function deletePowerbase(id) {
   const pb = await getPowerbase(id);
   if (pb && (pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"))) {
     throw new Error("The Imperial Powerbase cannot be deleted or dissolved.");
+  }
+  if (pb?.image_url) {
+    removePersistedBannerImage(pb.image_url).catch(() => {});
   }
   await supabase.from("powerbase_members").delete().eq("powerbase_id", id);
   const { error } = await supabase.from("powerbases").delete().eq("id", id);

@@ -443,11 +443,16 @@ async function handleEditMembers(interaction) {
 async function showManageOptions(interaction, pb, canManageAll) {
   const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
 
-  const options = [
-    { label: "Edit Details (Name / Description / Group ID)", value: "edit" },
+  const options = [];
+
+  if (!isImperial) {
+    options.push({ label: "Edit Details (Name / Description / Group ID)", value: "edit" });
+  }
+
+  options.push(
     { label: "Set / Change Banner Image", value: "image" },
     { label: "Manage Roster (Add / Remove Apprentices)", value: "members" }
-  ];
+  );
 
   if (canManageAll && !isImperial) {
     options.push({ label: "Transfer Leadership", value: "leader" });
@@ -537,6 +542,10 @@ async function handleManageActionSelect(interaction) {
   }
 
   if (action === "edit") {
+    const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
+    if (isImperial) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("The Imperial Powerbase details cannot be edited.")])])));
+    }
     const modal = new ModalBuilder()
       .setCustomId(`pb_edit_modal:${pbId}`)
       .setTitle(`Edit ${pb.name.substring(0, 30)}`);

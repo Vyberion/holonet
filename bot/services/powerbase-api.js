@@ -89,7 +89,7 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
     if (pb.status === "DISSOLVED" || pb.status === "DELETED") {
       if (pb.roster_message_id) {
         const existingMsg = await channel.messages.fetch(pb.roster_message_id).catch(() => null);
-        if (existingMsg) await existingMsg.delete().catch(() => {});
+        if (existingMsg) await existingMsg.delete().catch(() => { });
       }
       return;
     }
@@ -293,7 +293,7 @@ export async function syncStoredPowerbaseRosters(client) {
 
       const insertPayload = {
         name: "Imperial Powerbase",
-        description: "The supreme seat of authority within the Sith Empire, governed directly by the Lord Emperor and the Dark Council figureheads.",
+        description: "The supreme Powerbase of the Sith Empire, lead directly by the Dark Lord of the Sith and formed from the High Command, their chosen Shadow Guards and Apprentices.",
         leader_id: oldestPb?.leader_id || "0",
         tier: 10,
         prestige: 0,
@@ -344,7 +344,7 @@ export async function fetchPowerbases() {
   const { data, error } = await supabase
     .from("powerbases")
     .select("*, powerbase_members(*)");
-  
+
   if (error) throw error;
   return data;
 }
@@ -366,7 +366,7 @@ export async function getPowerbaseByName(name) {
     .from("powerbases")
     .select("*, powerbase_members(*)")
     .neq("status", "DISSOLVED");
-    
+
   if (error) throw error;
   return (data || []).find(pb => slugifyPowerbase(pb.name) === targetSlug) || null;
 }
@@ -379,7 +379,7 @@ export async function getPowerbase(id) {
     .from("powerbases")
     .select("*, powerbase_members(*)")
     .eq("id", id);
-    
+
   if (error) throw error;
   return (data && data.length > 0) ? data[0] : null;
 }
@@ -397,7 +397,7 @@ export async function getPowerbaseForUser(discordId) {
     .select("*")
     .eq("leader_id", String(discordId))
     .neq("status", "DISSOLVED");
-    
+
   if (leaderError) throw leaderError;
   if (leaderData && leaderData.length > 0) return leaderData[0];
 
@@ -448,7 +448,7 @@ export async function createPowerbase(payload, members = []) {
       status: "PENDING_APPROVAL"
     }])
     .select();
-    
+
   if (error) throw error;
   const data = rows && rows.length > 0 ? rows[0] : null;
   const powerbaseId = data.id;
@@ -503,7 +503,7 @@ export async function updatePowerbase(id, payload, newMembers = null) {
 
     // Delete old members
     await supabase.from("powerbase_members").delete().eq("powerbase_id", id);
-    
+
     // Insert new members
     if (validMembers.length > 0) {
       const membersPayload = validMembers.map(userId => ({
@@ -529,7 +529,7 @@ export async function logPowerbaseAction(userId, action, powerbaseId = null, det
       action: action,
       details: details
     }]);
-    
+
   if (error) console.error("Failed to log powerbase action:", error);
 }
 
@@ -663,11 +663,11 @@ export async function adjustPrestige(powerbaseId, amount, client = null) {
   if (pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase")) {
     return pb;
   }
-  
+
   const currentPrestige = pb.prestige || 0;
   const currentTier = pb.tier || 1;
   const newPrestige = Math.min(20, Math.max(0, currentPrestige + amount));
-  
+
   let newTier = currentTier;
   let isSuddenDeath = !!pb.is_sudden_death;
 
@@ -688,7 +688,7 @@ export async function adjustPrestige(powerbaseId, amount, client = null) {
     .eq("id", powerbaseId)
     .select()
     .single();
-    
+
   if (error) throw error;
   if (client) {
     await syncPowerbaseRosterMessage(client, powerbaseId);
@@ -703,7 +703,7 @@ export async function adjustPrestige(powerbaseId, amount, client = null) {
 export function isHigherRank(profileA, profileB) {
   const ranksA = rawRanksFromProfile(profileA);
   const ranksB = rawRanksFromProfile(profileB);
-  
+
   if (ranksA.darkCouncil !== ranksB.darkCouncil) {
     return ranksA.darkCouncil > ranksB.darkCouncil;
   }

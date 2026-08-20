@@ -1,4 +1,4 @@
-import { ActivityType, Client, GatewayIntentBits, MessageFlags, Partials } from "discord.js";
+import { ActivityType, Client, Events, GatewayIntentBits, MessageFlags, Partials } from "discord.js";
 import { config, requireEnv } from "./config/index.js";
 import { routeInteraction } from "./commands/index.js";
 import { botErrorPayload } from "./services/bot-errors.js";
@@ -134,8 +134,6 @@ async function syncPowerbaseRostersOnStartup() {
     console.error("Powerbase roster sync failed", error);
   }
 }
-
-import { Events } from "discord.js";
 
 client.once(Events.ClientReady, () => {
   console.log(`Holonet bot online as ${client.user.tag}`);

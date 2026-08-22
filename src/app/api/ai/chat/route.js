@@ -282,8 +282,8 @@ const OVERSEER_TOOLS = [
           },
           timeframe: {
             type: "string",
-            enum: ["week", "month", "all"],
-            description: "Timeframe for shift logs. Use 'week' when queried about this week, weekly leaderboards, or recent time."
+            enum: ["today", "day", "daily", "yesterday", "24h", "week", "month", "all"],
+            description: "Timeframe for shift logs. Use 'today' or 'day' when queried about today's hours, daily totals, or today's leaderboard. Use 'yesterday' for yesterday's shift totals. Use 'week' for weekly leaderboards, or 'month' for monthly."
           }
         }
       }
@@ -790,7 +790,21 @@ async function executeToolCall(toolName, args, auth) {
       if (scope !== "all") {
         query += `&scope=eq.${encodeURIComponent(scope)}`;
       }
-      if (timeframe === "week") {
+      if (timeframe === "today" || timeframe === "day" || timeframe === "daily") {
+        const startOfToday = new Date();
+        startOfToday.setUTCHours(0, 0, 0, 0);
+        query += `&started_at=gte.${encodeURIComponent(startOfToday.toISOString())}`;
+      } else if (timeframe === "24h") {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        query += `&started_at=gte.${encodeURIComponent(twentyFourHoursAgo)}`;
+      } else if (timeframe === "yesterday") {
+        const startOfYesterday = new Date();
+        startOfYesterday.setUTCDate(startOfYesterday.getUTCDate() - 1);
+        startOfYesterday.setUTCHours(0, 0, 0, 0);
+        const endOfYesterday = new Date(startOfYesterday);
+        endOfYesterday.setUTCHours(23, 59, 59, 999);
+        query += `&started_at=gte.${encodeURIComponent(startOfYesterday.toISOString())}&started_at=lte.${encodeURIComponent(endOfYesterday.toISOString())}`;
+      } else if (timeframe === "week") {
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
         query += `&started_at=gte.${encodeURIComponent(sevenDaysAgo)}`;
       } else if (timeframe === "month") {

@@ -275,8 +275,8 @@ const OVERSEER_TOOLS = [
           },
           timeframe: {
             type: "string",
-            enum: ["week", "month", "all"],
-            description: "Timeframe for shift logs. Use 'week' when queried about this week, weekly leaderboards, or recent time."
+            enum: ["today", "day", "daily", "yesterday", "24h", "week", "month", "all"],
+            description: "Timeframe for shift logs. Use 'today' or 'day' when queried about today's hours, daily totals, or today's leaderboard. Use 'yesterday' for yesterday's shift totals. Use 'week' for weekly leaderboards, or 'month' for monthly."
           }
         }
       }
@@ -923,7 +923,21 @@ async function executeBotToolCall(toolName, args) {
       let query = supabase.from("clock_shifts").select("discord_user_id,discord_username,roblox_user_id,roblox_username,duration_seconds,adjustment_seconds,status,scope,started_at,ended_at");
       if (scope !== "all") query = query.eq("scope", scope);
 
-      if (timeframe === "week") {
+      if (timeframe === "today" || timeframe === "day" || timeframe === "daily") {
+        const startOfToday = new Date();
+        startOfToday.setUTCHours(0, 0, 0, 0);
+        query = query.gte("started_at", startOfToday.toISOString());
+      } else if (timeframe === "24h") {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        query = query.gte("started_at", twentyFourHoursAgo);
+      } else if (timeframe === "yesterday") {
+        const startOfYesterday = new Date();
+        startOfYesterday.setUTCDate(startOfYesterday.getUTCDate() - 1);
+        startOfYesterday.setUTCHours(0, 0, 0, 0);
+        const endOfYesterday = new Date(startOfYesterday);
+        endOfYesterday.setUTCHours(23, 59, 59, 999);
+        query = query.gte("started_at", startOfYesterday.toISOString()).lte("started_at", endOfYesterday.toISOString());
+      } else if (timeframe === "week") {
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
         query = query.gte("started_at", sevenDaysAgo);
       } else if (timeframe === "month") {

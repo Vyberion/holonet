@@ -151,11 +151,13 @@ OPERATIONAL RUBRIC & CITATION PROTOCOL:
 - Any question asking what is permitted, prohibited, punishable, or standard procedure (e.g. "can I tk", "is rdm allowed", "jailing rules", "what happens if I disobey an officer", "kos rules") is an inquiry into Imperial Regulations / Codex / Statutes.
 - For ANY regulatory, conduct, procedural, or handbook inquiry, ALWAYS invoke get_library_documents using translated formal terminology (e.g. translate "tk" -> "team killing friendly fire fratricide combat rules").
 
-3. ENCYCLOPEDIC REASONING & DOCTRINAL SYNTHESIS:
-- Direct, definitive rulings: When queried on conduct, combat, permissions, or rules (e.g. "can I tk", "is rdm allowed", "can I execute a subordinate", "jailing protocol"), provide the clear Imperial ruling immediately (e.g. PROHIBITED / PERMITTED UNDER CONDITIONS / MANDATORY) and state the governing rules clearly.
-- Grounding & Source Citation:
-  * If a retrieved database statute, Imperial Policy, or Codex document explicitly covers the topic, cite it directly: [Imperial Policy X: Title — Article Y, Clause Z] or [Codex: Title].
-  * If no specific written statute is found in the database under that exact phrasing, explain the official Imperial Sith Order doctrine/protocol directly (e.g. unauthorized fratricide/teamkilling is strictly prohibited against allied Imperial personnel, punishable by detention or demotion; permitted only within sanctioned duels, trials of combat, or Dark Council mandates).
+3. ENCYCLOPEDIC REASONING & ABSOLUTE DATABASE FIDELITY:
+- ALWAYS invoke get_library_documents for any rule, combat permission, conduct inquiry, or protocol.
+- STRICT PROHIBITION ON HALLUCINATING POLICY NAMES: NEVER invent, guess, or fabricate fake policies, fake IP numbers, or unwritten clauses (e.g. NEVER fabricate "Imperial Policy 7, Combat Conduct, Article 3, Clause b").
+- EXACT DATABASE REPRODUCTION & CITATION:
+  * You MUST cite and quote directly from the retrieved database Article and Regulation entries:
+    Format: [ARTICLE X: Title — Regulation Y] or [ARTICLE X Regulation Y] (with [Sub-Section Z] if applicable).
+  * State the exact conditions from the database text (e.g. if the retrieved entry states: "Team Killing is only permissible in the act of self defense, or while in the proper areas (dueling mats or outside of the temple)...", cite it word-for-word and explain the rule with 100% precision).
 - Grounding for Live Server Data: For specific numbers, powerbase rosters, shift hours, and council votes, strictly report retrieved live database state without fabricating fictitious usernames or numbers.
 
 4. OUTPUT FORMATTING (STRICTLY NO MARKDOWN TABLES):
@@ -369,23 +371,31 @@ function sanitizeQueryForSearch(raw) {
 }
 
 function formatLibraryDocument(doc, entries) {
-  let text = `[IMPERIAL REGULATION]: ${doc.title || "Untitled"}\n`;
-  if (doc.article_number) text += `Article Number: ${doc.article_number}\n`;
-  if (doc.library_key) text += `Library Scope / Division: ${String(doc.library_key).toUpperCase()}\n`;
+  const articleHeading = doc.article_number
+    ? `${doc.article_number}${doc.title ? `: ${doc.title}` : ""}`
+    : (doc.title || "Imperial Document");
+
+  let text = `[ARTICLE]: ${articleHeading}\n`;
+  if (doc.library_key) text += `Scope: ${String(doc.library_key).toUpperCase()}\n`;
   if (doc.slug) text += `Slug: ${doc.slug}\n`;
 
   if (entries && entries.length > 0) {
-    text += "\n--- ARTICLES & REGULATION ENTRIES ---\n";
+    text += "\n--- CODIFIED REGULATIONS & SUB-SECTIONS (LIBRARY ENTRIES) ---\n";
     text += entries.map((e, idx) => {
-      const heading = e.label || e.anchor || `Clause ${idx + 1}`;
+      const heading = e.label || e.anchor || `Regulation ${idx + 1}`;
       let block = `### ${heading}\n${e.body || ""}`;
       if (Array.isArray(e.sub_clauses) && e.sub_clauses.length > 0) {
-        block += "\n" + e.sub_clauses.map(sc => `- ${typeof sc === "string" ? sc : sc.text || sc.content || JSON.stringify(sc)}`).join("\n");
+        block += "\n" + e.sub_clauses.map((sc, scIdx) => {
+          if (typeof sc === "string") return `- **Sub-Section ${scIdx + 1}:** ${sc}`;
+          const scLabel = sc.label || `Sub-Section ${scIdx + 1}`;
+          const scBody = sc.body || sc.text || sc.content || JSON.stringify(sc);
+          return `- **${scLabel}:** ${scBody}`;
+        }).join("\n");
       }
       return block;
     }).join("\n\n");
   } else {
-    text += "\n(No detailed sub-clauses registered for this document)";
+    text += "\n(No detailed regulations registered for this article)";
   }
 
   return text.trim();
@@ -529,15 +539,19 @@ async function searchBotLibraryRegulations(queryStr, libraryKeyFilter) {
   const allDocs = await getCachedLibraryDocuments();
   if (!allDocs.length) return [];
 
-  const filteredDocs = libraryKeyFilter
-    ? allDocs.filter(d => String(d.libraryKey).toLowerCase() === String(libraryKeyFilter).toLowerCase())
-    : allDocs;
-
-  if (!cleanQuery && tokens.length === 0) {
-    return filteredDocs.slice(0, 8);
+  let pool = allDocs;
+  if (libraryKeyFilter && libraryKeyFilter !== "all" && libraryKeyFilter !== "general") {
+    const subset = allDocs.filter(d => String(d.libraryKey).toLowerCase() === String(libraryKeyFilter).toLowerCase());
+    if (subset.length > 0) {
+      pool = subset;
+    }
   }
 
-  const scored = filteredDocs.map(doc => {
+  if (!cleanQuery && tokens.length === 0) {
+    return pool.slice(0, 8);
+  }
+
+  const scored = pool.map(doc => {
     let score = 0;
     const titleLower = String(doc.title || "").toLowerCase();
     const articleLower = String(doc.articleNumber || "").toLowerCase();
@@ -579,7 +593,7 @@ async function searchBotLibraryRegulations(queryStr, libraryKeyFilter) {
   scored.sort((a, b) => b.score - a.score);
 
   const topMatches = scored.filter(item => item.score > 0).map(item => item.doc);
-  return (topMatches.length > 0 ? topMatches : filteredDocs).slice(0, 6);
+  return (topMatches.length > 0 ? topMatches : pool).slice(0, 6);
 }
 
 async function searchAllBotArchives(queryStr) {

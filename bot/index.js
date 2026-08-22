@@ -12,8 +12,18 @@ import { getVerifiedProfile } from "./services/roles.js";
 const OLD_BOT_REDIRECT_CHANNEL_ID = "1046841602519343164";
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages],
-  partials: [Partials.GuildMember],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.DirectMessages
+  ],
+  partials: [
+    Partials.GuildMember,
+    Partials.Channel,
+    Partials.Message,
+    Partials.User
+  ],
   presence: {
     status: "dnd"
   }
@@ -27,6 +37,7 @@ async function maybeHandleHoloAiResponse(message) {
   if (message.author?.bot) return;
 
   const content = message.content || "";
+  const isDirectMessage = !message.guild;
   const isMentioned = Boolean(
     (client.user && message.mentions?.has?.(client.user.id)) ||
     (client.user && content.includes(`<@${client.user.id}>`)) ||
@@ -35,12 +46,18 @@ async function maybeHandleHoloAiResponse(message) {
 
   const isExactHoloName = /\bH\.O\.L\.O\b/i.test(content);
 
-  if (!isMentioned && !isExactHoloName) return;
+  // In guilds, require mention or 'H.O.L.O'; in DMs, process message directly
+  if (!isDirectMessage && !isMentioned && !isExactHoloName) return;
 
   const verified = await getVerifiedProfile(message.author.id).catch(() => null);
   const isSuperUser = Boolean(verified?.profile?.isSuperUser);
 
-  if (!isSuperUser) return;
+  if (!isSuperUser) {
+    if (isDirectMessage) {
+      await message.reply("Access restricted. Clearance level: SuperUser required.").catch(() => {});
+    }
+    return;
+  }
 
   let cleanPrompt = content;
   if (client.user) {
@@ -53,7 +70,6 @@ async function maybeHandleHoloAiResponse(message) {
   await message.channel.sendTyping().catch(() => { });
 
   try {
-    const verified = await getVerifiedProfile(message.author.id).catch(() => null);
     const aiReply = await queryHoloAi({
       prompt: cleanPrompt,
       userTag: message.author.tag || message.author.username,

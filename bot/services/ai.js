@@ -151,18 +151,20 @@ OPERATIONAL RUBRIC & CITATION PROTOCOL:
 - Any question asking what is permitted, prohibited, punishable, or standard procedure (e.g. "can I tk", "is rdm allowed", "jailing rules", "what happens if I disobey an officer", "kos rules") is an inquiry into Imperial Regulations / Codex / Statutes.
 - For ANY regulatory, conduct, procedural, or handbook inquiry, ALWAYS invoke get_library_documents using translated formal terminology (e.g. translate "tk" -> "team killing friendly fire fratricide combat rules").
 
-3. ENCYCLOPEDIC CITATION & ANTI-HALLUCINATION:
-- State rulings and facts with absolute precision.
-- ALWAYS cite the exact source when referencing regulations or doctrines:
-  Format: [Imperial Policy X: Title — Article Y, Clause Z] or [Codex: Title] or [Imperial Statute §X].
-- NEGATIVE RESOLUTION (NO FABRICATION): If a requested regulation, rule, powerbase, or member is not found in retrieved records, explicitly state:
-  "No official Imperial statute or decree is recorded regarding [topic]."
-  NEVER fabricate, assume, or guess unwritten rules, statistics, ranks, or penalties.
+3. ENCYCLOPEDIC REASONING & DOCTRINAL SYNTHESIS:
+- Direct, definitive rulings: When queried on conduct, combat, permissions, or rules (e.g. "can I tk", "is rdm allowed", "can I execute a subordinate", "jailing protocol"), provide the clear Imperial ruling immediately (e.g. PROHIBITED / PERMITTED UNDER CONDITIONS / MANDATORY) and state the governing rules clearly.
+- Grounding & Source Citation:
+  * If a retrieved database statute, Imperial Policy, or Codex document explicitly covers the topic, cite it directly: [Imperial Policy X: Title — Article Y, Clause Z] or [Codex: Title].
+  * If no specific written statute is found in the database under that exact phrasing, explain the official Imperial Sith Order doctrine/protocol directly (e.g. unauthorized fratricide/teamkilling is strictly prohibited against allied Imperial personnel, punishable by detention or demotion; permitted only within sanctioned duels, trials of combat, or Dark Council mandates).
+- Grounding for Live Server Data: For specific numbers, powerbase rosters, shift hours, and council votes, strictly report retrieved live database state without fabricating fictitious usernames or numbers.
 
-4. STRICT SCOPING (ZERO UNSOLICITED DATA):
-- Answer ONLY the specific inquiry asked.
-- NEVER perform unsolicited lookups or dump the asking user's Roblox profile, rank, duty shifts, or powerbase statistics unless they explicitly requested their own stats.
-- Keep output concise, structured, and immediately actionable using bullet points or headers where appropriate.
+4. OUTPUT FORMATTING (STRICTLY NO MARKDOWN TABLES):
+- NEVER output markdown tables (pipes and dashes |---|---|). Discord does NOT render markdown table columns properly and breaks formatting.
+- ALWAYS present leaderboards, rosters, statistics, and query results using clean numbered lists or bullet points:
+  * Example Leaderboard format:
+    1. **crushingly** (_jessie1211) — 23.9 hrs (1,433 mins) • 2 shifts
+    2. **BarrakudaCERO** (barrakuda0) — 15.4 hrs (927 mins) • 13 shifts [Active On Duty]
+- Keep all responses structured, compact, scannable, and bolded for immediate readability.
 
 5. IN-UNIVERSE LORE & LOGIC:
 - You possess full standalone mastery over Star Wars Sith Order history, philosophy, tactical reasoning, logic, and code syntax.
@@ -461,11 +463,10 @@ async function getCachedLibraryDocuments() {
 
   if (!documents?.length) return [];
 
-  const docIds = documents.map(d => d.id);
+  // Fetch ALL library entries (the specific regulations and clauses linked to articles)
   const { data: entries } = await supabase
     .from("library_entries")
     .select("id,document_id,anchor,label,body,sub_clauses,display_order")
-    .in("document_id", docIds)
     .order("display_order", { ascending: true });
 
   const entriesByDoc = new Map();
@@ -553,6 +554,23 @@ async function searchBotLibraryRegulations(queryStr, libraryKeyFilter) {
       if (titleLower.includes(token)) score += 40;
       if (keyLower.includes(token)) score += 20;
       if (contentLower.includes(token)) score += 10;
+    }
+
+    // Granular scoring against linked library_entries regulations
+    for (const entry of (doc.rawEntries || [])) {
+      const entryLabel = String(entry.label || "").toLowerCase();
+      const entryAnchor = String(entry.anchor || "").toLowerCase();
+      const entryBody = String(entry.body || "").toLowerCase();
+      const subClausesText = Array.isArray(entry.sub_clauses)
+        ? entry.sub_clauses.map(sc => (typeof sc === "string" ? sc : sc.text || sc.content || sc.body || JSON.stringify(sc))).join(" ").toLowerCase()
+        : "";
+
+      for (const token of tokens) {
+        if (entryLabel.includes(token)) score += 60;
+        if (entryAnchor.includes(token)) score += 40;
+        if (entryBody.includes(token)) score += 30;
+        if (subClausesText.includes(token)) score += 25;
+      }
     }
 
     return { doc, score };

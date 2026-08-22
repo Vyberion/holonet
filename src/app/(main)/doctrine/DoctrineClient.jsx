@@ -821,6 +821,169 @@ export default function DoctrineClient() {
           box-shadow: 0 0 20px var(--red-glow), 0 0 4px rgba(0,200,255,0.1);
           text-shadow: none;
         }
+
+        /* Discord Markdown Component Styles */
+        :global(.discord-markdown-container) {
+          line-height: 1.6;
+          color: var(--text-bright);
+        }
+
+        :global(.discord-markdown-container .dm-h1) {
+          font-family: 'Cinzel', serif;
+          font-size: 1.35rem;
+          font-weight: 700;
+          color: var(--red-bright);
+          margin: 1.2rem 0 0.5rem;
+          letter-spacing: 0.08em;
+          border-bottom: 1px solid var(--border-hot);
+          padding-bottom: 0.3rem;
+          text-shadow: 0 0 8px var(--red-glow);
+        }
+
+        :global(.discord-markdown-container .dm-h2) {
+          font-family: 'Cinzel', serif;
+          font-size: 1.15rem;
+          font-weight: 700;
+          color: var(--red-bright);
+          margin: 1rem 0 0.4rem;
+          letter-spacing: 0.06em;
+          text-shadow: 0 0 6px var(--red-glow);
+        }
+
+        :global(.discord-markdown-container .dm-h3) {
+          font-family: 'Orbitron', monospace;
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: var(--red-bright);
+          margin: 0.8rem 0 0.3rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          text-shadow: 0 0 4px var(--red-glow);
+        }
+
+        :global(.discord-markdown-container .dm-h4) {
+          font-family: 'Orbitron', monospace;
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: var(--red-bright);
+          margin: 0.7rem 0 0.25rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        :global(.discord-markdown-container .dm-p) {
+          margin: 0 0 0.5rem;
+          line-height: 1.6;
+        }
+
+        :global(.discord-markdown-container .dm-spacer) {
+          height: 0.6rem;
+        }
+
+        :global(.discord-markdown-container .dm-quote) {
+          margin: 0.6rem 0;
+          padding: 0.5rem 0.8rem 0.5rem 1rem;
+          background: rgba(192, 0, 26, 0.08);
+          border-left: 3px solid var(--red-bright);
+          color: var(--text);
+          font-style: italic;
+        }
+
+        :global(.discord-markdown-container .dm-ul),
+        :global(.discord-markdown-container .dm-ol) {
+          margin: 0.3rem 0 0.6rem 1.4rem;
+          padding: 0;
+        }
+
+        :global(.discord-markdown-container .dm-ul li) {
+          list-style-type: disc;
+          margin-bottom: 0.25rem;
+          color: var(--text-bright);
+        }
+
+        :global(.discord-markdown-container .dm-ol li) {
+          list-style-type: decimal;
+          margin-bottom: 0.25rem;
+          color: var(--text-bright);
+        }
+
+        :global(.discord-markdown-container .dm-divider) {
+          border: none;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--red-dim), var(--red-bright), var(--red-dim), transparent);
+          margin: 1.2rem 0;
+        }
+
+        :global(.discord-markdown-container .discord-inline-code) {
+          background: rgba(0, 0, 0, 0.6);
+          border: 1px solid var(--border-hot);
+          color: var(--red-bright);
+          padding: 0.15rem 0.35rem;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.85em;
+        }
+
+        :global(.discord-markdown-container .dm-codeblock-wrapper) {
+          position: relative;
+          margin: 0.8rem 0;
+          background: rgba(0, 0, 0, 0.7);
+          border: 1px solid var(--border-hot);
+          overflow: hidden;
+        }
+
+        :global(.discord-markdown-container .dm-codeblock-lang) {
+          position: absolute;
+          top: 4px;
+          right: 8px;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.65rem;
+          color: var(--text-dim);
+          text-transform: uppercase;
+        }
+
+        :global(.discord-markdown-container .dm-codeblock) {
+          padding: 0.8rem 1rem;
+          margin: 0;
+          overflow-x: auto;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.88rem;
+          line-height: 1.5;
+          color: #eee;
+        }
+
+        :global(.discord-markdown-container .discord-spoiler) {
+          background: #202225;
+          color: transparent;
+          cursor: pointer;
+          border-radius: 3px;
+          padding: 0 0.3rem;
+          user-select: none;
+          transition: all 0.2s;
+        }
+
+        :global(.discord-markdown-container .discord-spoiler.revealed) {
+          background: rgba(255, 255, 255, 0.1);
+          color: inherit;
+          user-select: text;
+        }
+
+        :global(.discord-markdown-container .discord-link) {
+          color: var(--red-bright);
+          text-decoration: underline;
+          text-underline-offset: 3px;
+          transition: opacity 0.2s;
+        }
+
+        :global(.discord-markdown-container .discord-mention-channel),
+        :global(.discord-markdown-container .discord-mention-user) {
+          background: rgba(192, 0, 26, 0.18);
+          color: var(--red-bright);
+          padding: 0.1rem 0.4rem;
+          border-radius: 3px;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.85em;
+          border: 1px solid rgba(255, 59, 79, 0.3);
+        }
       `}</style>
     </HolonetFrame>
   );

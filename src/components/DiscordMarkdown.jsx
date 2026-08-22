@@ -1,65 +1,91 @@
 import React, { useState } from "react";
 
-function parseInlineTokens(text) {
-  if (!text) return [];
+function parseInline(text) {
+  if (!text) return null;
 
-  // Match: code, bold-italic, bold, underline, italic, strikethrough, spoiler, link
-  const tokenRegex = /(```[\s\S]*?```|`[^`]+`|\|\|[\s\S]*?\|\||\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|\*[^*]+\*|_[^_]+_|\[[^\]]+\]\([^)]+\))/g;
+  // Replace Discord mentions: <#123>, <@123>, <@&123>
+  const processed = String(text);
 
-  const parts = [];
+  // Token pattern matching in order of priority:
+  // 1. Code: `code`
+  // 2. Spoiler: ||spoiler||
+  // 3. Bold Italic: ***text***
+  // 4. Bold: **text**
+  // 5. Underline: __text__
+  // 6. Strikethrough: ~~text~~
+  // 7. Italic: *text* or (isolated) _text_
+  // 8. Link: [text](url)
+  // 9. Channel/User mention: <#id> or <@id>
+  const regex = /(`[^`]+`|\|\|[\s\S]*?\|\||\*\*\*(?:(?!\*\*\*).)+\*\*\*|\*\*(?:(?!\*\*).)+\*\*|__(?:(?!__).)+__|~~(?:(?!~~).)+~~|\*(?:(?!\*).)+\*|(?<=\s|^)_(?:(?!_).)+_(?=\s|$|[.,!?;:])|\[[^\]]+\]\([^)]+\)|<#[0-9]+>|<@!?[0-9]+>|<@&[0-9]+>)/g;
+
+  const elements = [];
   let lastIndex = 0;
   let match;
 
-  while ((match = tokenRegex.exec(text)) !== null) {
+  while ((match = regex.exec(processed)) !== null) {
     if (match.index > lastIndex) {
-      parts.push({ type: "text", content: text.substring(lastIndex, match.index) });
+      elements.push(processed.substring(lastIndex, match.index));
     }
 
     const raw = match[0];
+    const key = `el-${match.index}`;
 
-    if (raw.startsWith("```") && raw.endsWith("```")) {
-      const inner = raw.slice(3, -3);
-      const firstLineEnd = inner.indexOf("\n");
-      let code = inner;
-      let lang = "";
-      if (firstLineEnd !== -1 && /^[a-zA-Z0-9_-]+$/.test(inner.substring(0, firstLineEnd).trim())) {
-        lang = inner.substring(0, firstLineEnd).trim();
-        code = inner.substring(firstLineEnd + 1);
-      }
-      parts.push({ type: "codeblock", content: code, lang });
-    } else if (raw.startsWith("`") && raw.endsWith("`")) {
-      parts.push({ type: "inline_code", content: raw.slice(1, -1) });
+    if (raw.startsWith("`") && raw.endsWith("`")) {
+      elements.push(<code key={key} className="discord-inline-code">{raw.slice(1, -1)}</code>);
     } else if (raw.startsWith("||") && raw.endsWith("||")) {
-      parts.push({ type: "spoiler", content: raw.slice(2, -2) });
+      elements.push(<SpoilerItem key={key} content={raw.slice(2, -2)} />);
     } else if (raw.startsWith("***") && raw.endsWith("***")) {
-      parts.push({ type: "bold_italic", content: raw.slice(3, -3) });
+      elements.push(<strong key={key}><em>{parseInline(raw.slice(3, -3))}</em></strong>);
     } else if (raw.startsWith("**") && raw.endsWith("**")) {
-      parts.push({ type: "bold", content: raw.slice(2, -2) });
+      elements.push(<strong key={key}>{parseInline(raw.slice(2, -2))}</strong>);
     } else if (raw.startsWith("__") && raw.endsWith("__")) {
-      parts.push({ type: "underline", content: raw.slice(2, -2) });
+      elements.push(<u key={key}>{parseInline(raw.slice(2, -2))}</u>);
     } else if (raw.startsWith("~~") && raw.endsWith("~~")) {
-      parts.push({ type: "strikethrough", content: raw.slice(2, -2) });
+      elements.push(<del key={key}>{parseInline(raw.slice(2, -2))}</del>);
     } else if (raw.startsWith("*") && raw.endsWith("*")) {
-      parts.push({ type: "italic", content: raw.slice(1, -1) });
+      elements.push(<em key={key}>{parseInline(raw.slice(1, -1))}</em>);
     } else if (raw.startsWith("_") && raw.endsWith("_")) {
-      parts.push({ type: "italic", content: raw.slice(1, -1) });
+      elements.push(<em key={key}>{parseInline(raw.slice(1, -1))}</em>);
     } else if (raw.startsWith("[") && raw.includes("](") && raw.endsWith(")")) {
       const splitIndex = raw.indexOf("](");
       const linkText = raw.substring(1, splitIndex);
       const linkUrl = raw.substring(splitIndex + 2, raw.length - 1);
-      parts.push({ type: "link", text: linkText, url: linkUrl });
+      elements.push(
+        <a
+          key={key}
+          href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="discord-link"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {linkText}
+        </a>
+      );
+    } else if (raw.startsWith("<#") && raw.endsWith(">")) {
+      elements.push(
+        <span key={key} className="discord-mention-channel">
+          #channel
+        </span>
+      );
+    } else if (raw.startsWith("<@") && raw.endsWith(">")) {
+      elements.push(
+        <span key={key} className="discord-mention-user">
+          @mention
+        </span>
+      );
     } else {
-      parts.push({ type: "text", content: raw });
+      elements.push(raw);
     }
 
-    lastIndex = tokenRegex.lastIndex;
+    lastIndex = regex.lastIndex;
   }
 
-  if (lastIndex < text.length) {
-    parts.push({ type: "text", content: text.substring(lastIndex) });
+  if (lastIndex < processed.length) {
+    elements.push(processed.substring(lastIndex));
   }
 
-  return parts;
+  return elements;
 }
 
 function SpoilerItem({ content }) {
@@ -78,50 +104,6 @@ function SpoilerItem({ content }) {
   );
 }
 
-function parseInline(text) {
-  const tokens = parseInlineTokens(text);
-  return tokens.map((token, idx) => {
-    switch (token.type) {
-      case "bold":
-        return <strong key={idx}>{parseInline(token.content)}</strong>;
-      case "italic":
-        return <em key={idx}>{parseInline(token.content)}</em>;
-      case "bold_italic":
-        return <strong key={idx}><em>{parseInline(token.content)}</em></strong>;
-      case "underline":
-        return <u key={idx}>{parseInline(token.content)}</u>;
-      case "strikethrough":
-        return <del key={idx}>{parseInline(token.content)}</del>;
-      case "inline_code":
-        return <code key={idx} className="discord-inline-code">{token.content}</code>;
-      case "spoiler":
-        return <SpoilerItem key={idx} content={token.content} />;
-      case "link":
-        return (
-          <a
-            key={idx}
-            href={token.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="discord-link"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {token.text}
-          </a>
-        );
-      case "codeblock":
-        return (
-          <pre key={idx} className="discord-codeblock">
-            <code>{token.content}</code>
-          </pre>
-        );
-      case "text":
-      default:
-        return token.content;
-    }
-  });
-}
-
 export function DiscordMarkdown({ content, className = "" }) {
   if (!content) return null;
 
@@ -137,7 +119,7 @@ export function DiscordMarkdown({ content, className = "" }) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Multiline Codeblock Handling
+    // Multiline Codeblock
     if (line.trim().startsWith("```")) {
       if (inCodeBlock) {
         blocks.push({
@@ -171,12 +153,20 @@ export function DiscordMarkdown({ content, className = "" }) {
       continue;
     }
 
-    // Headers
-    const h1Match = line.match(/^#\s+(.*)$/);
-    if (h1Match) {
+    // Headers (check from 4 to 1)
+    const h4Match = line.match(/^####\s+(.*)$/);
+    if (h4Match) {
       if (currentList) { blocks.push(currentList); currentList = null; }
       if (currentQuote) { blocks.push(currentQuote); currentQuote = null; }
-      blocks.push({ type: "h1", text: h1Match[1] });
+      blocks.push({ type: "h4", text: h4Match[1] });
+      continue;
+    }
+
+    const h3Match = line.match(/^###\s+(.*)$/);
+    if (h3Match) {
+      if (currentList) { blocks.push(currentList); currentList = null; }
+      if (currentQuote) { blocks.push(currentQuote); currentQuote = null; }
+      blocks.push({ type: "h3", text: h3Match[1] });
       continue;
     }
 
@@ -188,11 +178,11 @@ export function DiscordMarkdown({ content, className = "" }) {
       continue;
     }
 
-    const h3Match = line.match(/^###\s+(.*)$/);
-    if (h3Match) {
+    const h1Match = line.match(/^#\s+(.*)$/);
+    if (h1Match) {
       if (currentList) { blocks.push(currentList); currentList = null; }
       if (currentQuote) { blocks.push(currentQuote); currentQuote = null; }
-      blocks.push({ type: "h3", text: h3Match[1] });
+      blocks.push({ type: "h1", text: h1Match[1] });
       continue;
     }
 
@@ -239,7 +229,7 @@ export function DiscordMarkdown({ content, className = "" }) {
       continue;
     }
 
-    // Normal Paragraph / Text
+    // Normal Paragraph
     blocks.push({ type: "p", text: line });
   }
 
@@ -250,7 +240,7 @@ export function DiscordMarkdown({ content, className = "" }) {
   if (currentQuote) blocks.push(currentQuote);
 
   return (
-    <div className={`discord-markdown-root ${className}`}>
+    <div className={`discord-markdown-container ${className}`}>
       {blocks.map((block, idx) => {
         switch (block.type) {
           case "h1":
@@ -259,6 +249,8 @@ export function DiscordMarkdown({ content, className = "" }) {
             return <h2 key={idx} className="dm-h2">{parseInline(block.text)}</h2>;
           case "h3":
             return <h3 key={idx} className="dm-h3">{parseInline(block.text)}</h3>;
+          case "h4":
+            return <h4 key={idx} className="dm-h4">{parseInline(block.text)}</h4>;
           case "quote":
             return (
               <blockquote key={idx} className="dm-quote">
@@ -306,152 +298,6 @@ export function DiscordMarkdown({ content, className = "" }) {
             return <p key={idx} className="dm-p">{parseInline(block.text)}</p>;
         }
       })}
-
-      <style jsx global>{`
-        .discord-markdown-root {
-          font-family: inherit;
-          line-height: 1.6;
-          color: var(--text-bright, #fff);
-          word-break: break-word;
-        }
-
-        .discord-markdown-root .dm-h1 {
-          font-family: 'Cinzel', serif;
-          font-size: 1.35rem;
-          color: var(--red-bright, #ff3b4f);
-          margin: 1.2rem 0 0.6rem;
-          letter-spacing: 0.08em;
-          border-bottom: 1px solid var(--border, rgba(255,255,255,0.1));
-          padding-bottom: 0.3rem;
-          text-shadow: 0 0 8px var(--red-glow, rgba(255,59,79,0.3));
-        }
-
-        .discord-markdown-root .dm-h2 {
-          font-family: 'Cinzel', serif;
-          font-size: 1.15rem;
-          color: var(--red-bright, #ff3b4f);
-          margin: 1rem 0 0.5rem;
-          letter-spacing: 0.06em;
-          text-shadow: 0 0 6px var(--red-glow, rgba(255,59,79,0.25));
-        }
-
-        .discord-markdown-root .dm-h3 {
-          font-family: 'Orbitron', monospace;
-          font-size: 0.95rem;
-          color: var(--red-bright, #ff3b4f);
-          margin: 0.8rem 0 0.4rem;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-        }
-
-        .discord-markdown-root .dm-p {
-          margin: 0 0 0.5rem;
-          line-height: 1.65;
-        }
-
-        .discord-markdown-root .dm-spacer {
-          height: 0.6rem;
-        }
-
-        .discord-markdown-root .dm-quote {
-          margin: 0.6rem 0;
-          padding: 0.5rem 0.8rem 0.5rem 1rem;
-          background: rgba(192, 0, 26, 0.08);
-          border-left: 3px solid var(--red-bright, #ff3b4f);
-          color: var(--text, #ddd);
-          font-style: italic;
-          border-radius: 0 4px 4px 0;
-        }
-
-        .discord-markdown-root .dm-ul,
-        .discord-markdown-root .dm-ol {
-          margin: 0.4rem 0 0.8rem 1.4rem;
-          padding: 0;
-        }
-
-        .discord-markdown-root .dm-ul li {
-          list-style-type: disc;
-          margin-bottom: 0.25rem;
-        }
-
-        .discord-markdown-root .dm-ol li {
-          list-style-type: decimal;
-          margin-bottom: 0.25rem;
-        }
-
-        .discord-markdown-root .dm-divider {
-          border: none;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, var(--red-dim, rgba(255,59,79,0.3)), transparent);
-          margin: 1.2rem 0;
-        }
-
-        .discord-markdown-root .discord-inline-code {
-          background: rgba(0, 0, 0, 0.6);
-          border: 1px solid rgba(255, 59, 79, 0.25);
-          color: var(--red-bright, #ff3b4f);
-          padding: 0.15rem 0.35rem;
-          border-radius: 3px;
-          font-family: 'Share Tech Mono', monospace;
-          font-size: 0.85em;
-        }
-
-        .discord-markdown-root .dm-codeblock-wrapper {
-          position: relative;
-          margin: 0.8rem 0;
-          background: rgba(0, 0, 0, 0.7);
-          border: 1px solid var(--border-hot, rgba(255,59,79,0.35));
-          border-radius: 4px;
-          overflow: hidden;
-        }
-
-        .discord-markdown-root .dm-codeblock-lang {
-          position: absolute;
-          top: 4px;
-          right: 8px;
-          font-family: 'Share Tech Mono', monospace;
-          font-size: 0.65rem;
-          color: var(--text-dim, #888);
-          text-transform: uppercase;
-        }
-
-        .discord-markdown-root .dm-codeblock {
-          padding: 0.8rem 1rem;
-          margin: 0;
-          overflow-x: auto;
-          font-family: 'Share Tech Mono', monospace;
-          font-size: 0.88rem;
-          line-height: 1.5;
-          color: #eee;
-        }
-
-        .discord-markdown-root .discord-spoiler {
-          background: #202225;
-          color: transparent;
-          cursor: pointer;
-          border-radius: 3px;
-          padding: 0 0.3rem;
-          user-select: none;
-          transition: all 0.2s;
-        }
-
-        .discord-markdown-root .discord-spoiler.revealed {
-          background: rgba(255, 255, 255, 0.1);
-          color: inherit;
-          user-select: text;
-        }
-
-        .discord-markdown-root .discord-link {
-          color: var(--red-bright, #ff3b4f);
-          text-decoration: underline;
-          text-underline-offset: 3px;
-          transition: opacity 0.2s;
-        }
-        .discord-markdown-root .discord-link:hover {
-          opacity: 0.8;
-          text-shadow: 0 0 6px var(--red-glow, rgba(255,59,79,0.4));
-        }
-      `}</style>
     </div>
   );
 }

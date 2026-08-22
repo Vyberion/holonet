@@ -6,11 +6,29 @@ import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../../components/PageScripts.jsx";
 
 const SECTIONS = [
-  "SECTION I: IDENTITY & AUTHENTICATION",
-  "SECTION II: ASCENSION & TRIAL PROTOCOLS",
-  "SECTION III: DOMINION & COMBAT DECREES",
-  "SECTION IV: HOLONET INFRASTRUCTURE"
+  "HOLONET",
+  "DOMINION",
+  "OPERATIONS",
+  "LOCATIONS"
 ];
+
+function normalizeSection(raw) {
+  if (!raw) return SECTIONS[0];
+  const s = String(raw).toUpperCase().trim();
+  if (s.includes("HOLONET") || s.includes("IDENTITY") || s.includes("AUTHENTICATION") || s === "HOLONET") {
+    return "HOLONET";
+  }
+  if (s.includes("DOMINION") || s.includes("POWERBASE") || s.includes("KAGGATH") || s === "DOMINION") {
+    return "DOMINION";
+  }
+  if (s.includes("OPERATION") || s.includes("DEPLOYMENT") || s.includes("ASCENSION") || s.includes("TRIAL") || s.includes("COMBAT") || s === "OPERATIONS") {
+    return "OPERATIONS";
+  }
+  if (s.includes("LOCATION") || s.includes("TERRITORY") || s.includes("STRONGHOLD") || s.includes("SECTOR") || s === "LOCATIONS") {
+    return "LOCATIONS";
+  }
+  return SECTIONS.includes(raw) ? raw : SECTIONS[0];
+}
 
 const TAGS = [
   "AUTHENTICATION",
@@ -226,7 +244,7 @@ export default function DoctrineClient() {
         ) : (
           <div className="trello-board-grid">
             {SECTIONS.map((sectionTitle, sIndex) => {
-              const sectionItems = filteredDirectives.filter(d => (d.section || SECTIONS[0]) === sectionTitle);
+              const sectionItems = filteredDirectives.filter(d => normalizeSection(d.section) === sectionTitle);
 
               return (
                 <div key={sectionTitle} className="trello-column">
@@ -286,7 +304,7 @@ export default function DoctrineClient() {
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
                   <span className="trello-card-tag">{currentDirective.tag || "GENERAL"}</span>
                   <h2 style={{ fontFamily: "Cinzel, serif", fontSize: "1.4rem", color: "var(--red-bright)", margin: 0, textShadow: "0 0 6px rgba(255,0,34,0.55), 0 0 20px rgba(255,0,34,0.35)" }}>{currentDirective.title}</h2>
-                  <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)" }}>{currentDirective.section}</span>
+                  <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)" }}>{normalizeSection(currentDirective.section)}</span>
                 </div>
                 <button type="button" className="codex-modal-close" onClick={() => setActiveModal(null)}>&times;</button>
               </div>

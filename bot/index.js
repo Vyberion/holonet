@@ -55,7 +55,19 @@ async function maybeHandleHoloAiResponse(message) {
   }
   cleanPrompt = cleanPrompt.replace(/\bH\.O\.L\.O\b/gi, "").trim();
 
-  if (!cleanPrompt) cleanPrompt = "Awaiting query.";
+  // If empty or trivial, say nothing
+  if (!cleanPrompt || cleanPrompt.length < 2) return;
+
+  // Reject non-English character sets (Cyrillic, Arabic, CJK, Hebrew, etc.)
+  const NON_ENGLISH_REGEX = /[\u0400-\u04FF\u0600-\u06FF\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF\u0900-\u097F\u0590-\u05FF\u0E00-\u0E7F]/;
+  if (NON_ENGLISH_REGEX.test(cleanPrompt)) return;
+
+  // Reject translation requests and foreign language phrases
+  const TRANSLATE_REGEX = /\b(translate|translation|traduzir|traducir|traduire|переведи|перевод|in\s+(spanish|french|german|russian|chinese|japanese|italian|portuguese|arabic))\b/i;
+  if (TRANSLATE_REGEX.test(cleanPrompt)) return;
+
+  // Reject trivial noise / greetings
+  if (/^(hi|hey|hello|yo|test|testing|sup|gm|gn|lol|xd|ok|okay|\?+|\.+)$/i.test(cleanPrompt)) return;
 
   await message.channel.sendTyping().catch(() => { });
 
@@ -72,6 +84,10 @@ async function maybeHandleHoloAiResponse(message) {
       channelId: message.channel.id
     });
 
+    if (!aiReply || aiReply.includes("[NO_RESPONSE]") || !aiReply.trim()) {
+      return;
+    }
+
     await message.reply(aiReply);
   } catch (error) {
     console.error("H.O.L.O AI response failed:", error);
@@ -80,8 +96,6 @@ async function maybeHandleHoloAiResponse(message) {
       const secondsMatch = errText.match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
       const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
       await message.reply(`Holonet transmission rate limit reached. Try again in ${timeStr}.`).catch(() => { });
-    } else {
-      await message.reply("Holonet archive connection unavailable.").catch(() => { });
     }
   }
 }

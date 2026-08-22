@@ -494,23 +494,19 @@ async function getCachedLibraryDocuments() {
   }
 
   try {
-    const [
-      { data: documents, error: docErr },
-      { data: entries, error: entryErr },
-      { data: statutes, error: statuteErr }
-    ] = await Promise.all([
-      supabase.from("library_documents").select("id,library_key,slug,article_number,title,status,display_order").order("display_order", { ascending: true }).catch(err => ({ data: [], error: err })),
-      supabase.from("library_entries").select("id,document_id,anchor,label,body,sub_clauses,display_order").order("display_order", { ascending: true }).catch(err => ({ data: [], error: err })),
-      supabase.from("codex_statutes").select("id,title,summary,sections,is_published,created_at").catch(err => ({ data: [], error: err }))
+    const [docRes, entryRes, statuteRes] = await Promise.all([
+      supabase.from("library_documents").select("id,library_key,slug,article_number,title,status,display_order").order("display_order", { ascending: true }),
+      supabase.from("library_entries").select("id,document_id,anchor,label,body,sub_clauses,display_order").order("display_order", { ascending: true }),
+      supabase.from("codex_statutes").select("id,title,summary,sections,is_published,created_at")
     ]);
 
-    if (docErr) console.warn("[H.O.L.O AI] Error fetching library_documents:", docErr?.message || docErr);
-    if (entryErr) console.warn("[H.O.L.O AI] Error fetching library_entries:", entryErr?.message || entryErr);
-    if (statuteErr) console.warn("[H.O.L.O AI] Error fetching codex_statutes:", statuteErr?.message || statuteErr);
+    if (docRes?.error) console.warn("[H.O.L.O AI] Error fetching library_documents:", docRes.error?.message || docRes.error);
+    if (entryRes?.error) console.warn("[H.O.L.O AI] Error fetching library_entries:", entryRes.error?.message || entryRes.error);
+    if (statuteRes?.error) console.warn("[H.O.L.O AI] Error fetching codex_statutes:", statuteRes.error?.message || statuteRes.error);
 
-    const docList = Array.isArray(documents) ? documents : [];
-    const entryList = Array.isArray(entries) ? entries : [];
-    const statuteList = Array.isArray(statutes) ? statutes : [];
+    const docList = Array.isArray(docRes?.data) ? docRes.data : [];
+    const entryList = Array.isArray(entryRes?.data) ? entryRes.data : [];
+    const statuteList = Array.isArray(statuteRes?.data) ? statuteRes.data : [];
 
     const entriesByDoc = new Map();
     const unmatchedEntries = [];
@@ -705,7 +701,7 @@ async function searchAllBotArchives(queryStr) {
   }
 
   // 4. Resource transmissions
-  const { data: transmissions } = await supabase.from("resource_transmissions").select("*").limit(20).catch(() => ({ data: [] }));
+  const { data: transmissions } = await supabase.from("resource_transmissions").select("*").limit(20);
   if (transmissions?.length) {
     for (const t of transmissions) {
       results.push({
@@ -881,7 +877,7 @@ async function executeBotToolCall(toolName, args) {
       });
 
       // Fetch recent powerbase logs
-      const { data: pbLogs } = await supabase.from("powerbase_logs").select("*").order("created_at", { ascending: false }).limit(10).catch(() => ({ data: [] }));
+      const { data: pbLogs } = await supabase.from("powerbase_logs").select("*").order("created_at", { ascending: false }).limit(10);
 
       const userMap = {};
       if (allUserIds.size > 0) {

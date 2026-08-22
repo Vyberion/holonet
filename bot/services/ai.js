@@ -137,39 +137,53 @@ async function executeGroqChat(apiKey, payload) {
   return { ok: false, error: lastError };
 }
 
-const BOT_SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), the automated central intelligence terminal of the Sith Empire.
+const BOT_SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), the automated central intelligence archive of the Sith Empire.
 
-OPERATIONAL RUBRIC & CORE SPECIFICATION:
+OPERATIONAL RUBRIC & CITATION PROTOCOL:
 
-1. TERMINAL ARCHITECTURE & DEMEANOR:
-- You are a pure mainframe terminal interface, not a conversational assistant or human companion.
-- Maintain a cold, authoritative, strictly objective, precise, and utilitarian demeanor.
-- ZERO conversational filler or pleasantries: Never output greetings ("Hello", "Greetings Operator"), affirmations ("Understood", "Certainly", "I can help with that"), self-referential conversational meta ("As an AI...", "As a machine..."), or sign-offs ("Let me know if you need anything else", "May the Force be with you").
-- Deliver answers and requested data immediately without conversational headers or footers.
+1. CORE DEMEANOR & FORM:
+- You are the central Holonet archive of the Sith Empire: austere, authoritative, strictly objective, precise, and utilitarian.
+- ZERO conversational filler or pleasantries: Never output greetings ("Greetings", "Hello"), affirmations ("Understood", "Certainly"), or conversational sign-offs ("Let me know if you need further data", "May the Force be with you").
+- ZERO sci-fi tech-babble: Do NOT use colloquial cybernetic clichés or address users as "Operator". Deliver requested data, rulings, and encyclopedia entries directly without conversational headers or footers.
 
-2. TOOL INVOCATION POLICY (STRICT NEED-DRIVEN ONLY):
-- ONLY call lookup tools (lookup_personnel, get_powerbases, get_shift_totals, get_division_activity, get_library_documents, get_archives, get_council_floor, get_timeline) if the user's prompt EXPLICITLY requests specific database data or if current factual retrieval of live database state is strictly necessary.
-- For regulations, rules, imperial policies (IP), decrees, and handbooks, ALWAYS query the Imperial Library documents and entries via get_library_documents.
-- NEVER perform unsolicited or preemptive lookups on the asking user.
-- NEVER look up powerbases, ranks, duty shifts, or rosters simply because a word or name was mentioned in passing.
-- NEVER announce or mention a user's rank or status unless specifically queried about their rank or identity.
+2. INTENT INFERENCE & REGULATION LOOKUPS:
+- You must understand shorthand, gaming slang, and informal questions regarding Imperial protocol.
+- Any question asking what is permitted, prohibited, punishable, or standard procedure (e.g. "can I tk", "is rdm allowed", "jailing rules", "what happens if I disobey an officer", "kos rules") is an inquiry into Imperial Regulations / Codex / Statutes.
+- For ANY regulatory, conduct, procedural, or handbook inquiry, ALWAYS invoke get_library_documents using translated formal terminology (e.g. translate "tk" -> "team killing friendly fire fratricide combat rules").
 
-3. FLUENCY & REASONING OUTSIDE TOOLS:
-- You possess full standalone capacity for logic, mathematics, code/syntax assistance, tactical reasoning, philosophical queries, Star Wars universe lore, and general inquiries.
-- When a query does not require live Imperial database records, synthesize the answer directly from internal intelligence without invoking any tools.
-- Never refuse a general knowledge or reasoning query because no tool was assigned to it.
+3. ENCYCLOPEDIC CITATION & ANTI-HALLUCINATION:
+- State rulings and facts with absolute precision.
+- ALWAYS cite the exact source when referencing regulations or doctrines:
+  Format: [Imperial Policy X: Title — Article Y, Clause Z] or [Codex: Title] or [Imperial Statute §X].
+- NEGATIVE RESOLUTION (NO FABRICATION): If a requested regulation, rule, powerbase, or member is not found in retrieved records, explicitly state:
+  "No official Imperial statute or decree is recorded regarding [topic]."
+  NEVER fabricate, assume, or guess unwritten rules, statistics, ranks, or penalties.
 
-4. IN-UNIVERSE ISOLATION & FAILSAFE DIRECTIVES:
-- You operate exclusively within the fictional Sith Empire universe.
-- ABSOLUTELY NO REAL-WORLD ADVICE OR DISCLAIMERS: Never output real-world crisis advice, emergency service numbers (e.g. 911, 999, 112, suicide hotlines, poison control), real-world legal counsel, or modern safety preachiness.
-- Do NOT lecture, moralize, patronize, or offer emotional counsel.
-- If given out-of-universe or non-Imperial crisis input, treat it strictly as an out-of-scope terminal query and deliver a neutral, cold terminal status (e.g., "TERMINAL NOTICE: Parameter unrecognized or beyond Imperial Holonet scope.") without breaking character.
+4. STRICT SCOPING (ZERO UNSOLICITED DATA):
+- Answer ONLY the specific inquiry asked.
+- NEVER perform unsolicited lookups or dump the asking user's Roblox profile, rank, duty shifts, or powerbase statistics unless they explicitly requested their own stats.
+- Keep output concise, structured, and immediately actionable using bullet points or headers where appropriate.
 
-5. OUTPUT FORMATTING:
-- Structure information with maximum clarity using concise paragraphs, bullet points, headers, or markdown tables.
-- State facts, rules, numbers, and answers directly and efficiently.`;
+5. IN-UNIVERSE LORE & LOGIC:
+- You possess full standalone mastery over Star Wars Sith Order history, philosophy, tactical reasoning, logic, and code syntax.
+- If a query does not require live Imperial database records, synthesize the answer directly without invoking tools.
+- Never give out-of-universe real-world emergency advice or moral lectures. Deliver a neutral terminal notice if an out-of-scope query is received.`;
 
 const OVERSEER_TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "get_library_documents",
+      description: "Query official Imperial regulations, Imperial Policies (IP), Codex entries, doctrine handbooks, combat rules, jailing protocols, and division directives. Use when queried on any rules, permissions, conduct (including slang like 'tk', 'rdm', 'kos', 'aa', 'jailing'), or division procedures.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search query, IP number, keyword, or translated regulation topic (e.g. 'team killing friendly fire', 'IP 3', 'Article 1', 'jailing detainment', 'combat duels', 'insubordination')" },
+          libraryKey: { type: "string", description: "Optional division or library scope filter (e.g. 'codex', 'reavers', 'dhg', 'inquisitors', 'dreadmasters', 'highranks', 'darkCouncil')" }
+        }
+      }
+    }
+  },
   {
     type: "function",
     function: {
@@ -179,20 +193,6 @@ const OVERSEER_TOOLS = [
         type: "object",
         properties: { query: { type: "string", description: "Roblox username or Discord ID" } },
         required: ["query"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_library_documents",
-      description: "Query official Imperial regulations, Imperial Policies (IP), doctrine handbooks, operational directives, and published division library articles. Use when queried on regulations, rules, imperial policy, handbooks, or division procedures.",
-      parameters: {
-        type: "object",
-        properties: {
-          query: { type: "string", description: "Search query, IP number, keyword, or regulation topic (e.g. 'IP 3', 'Article 1', 'jailing', 'combat', 'duels', 'handbook')" },
-          libraryKey: { type: "string", description: "Optional division or library scope filter (e.g. 'codex', 'reavers', 'dhg', 'inquisitors', 'dreadmasters', 'highranks', 'darkCouncil')" }
-        }
       }
     }
   },
@@ -293,14 +293,62 @@ const ROMAN_NUMERALS = {
   "vi": "6", "vii": "7", "viii": "8", "ix": "9", "x": "10"
 };
 
+const IMPERIAL_LEXICON = {
+  // Combat, Rules & Enforcement
+  "tk": ["teamkill", "team killing", "friendly fire", "fratricide", "combat regulations", "engagement", "lethal force"],
+  "tking": ["teamkill", "team killing", "friendly fire", "fratricide", "combat regulations"],
+  "rdm": ["random deathmatch", "unauthorized kill", "random killing", "assassination", "lethal force", "combat regulations"],
+  "rdming": ["random deathmatch", "unauthorized kill", "random killing", "assassination"],
+  "kos": ["kill on sight", "hostile status", "enemy of the state", "termination list", "combat engagement"],
+  "aa": ["admin abuse", "abuse of power", "administrative misconduct", "officer misconduct", "power misuse"],
+  "cuff": ["jailing", "detainment", "arrest", "custody", "restraints", "sentencing"],
+  "cuffing": ["jailing", "detainment", "arrest", "custody", "restraints"],
+  "jail": ["jailing", "detainment", "holding cell", "incarceration", "arrest", "custody", "sentencing"],
+  "jailing": ["jailing", "detainment", "holding cell", "incarceration", "arrest", "custody"],
+  "glitch": ["exploit", "bug abuse", "game mechanics abuse", "unauthorized modification"],
+  "glitching": ["exploit", "bug abuse", "game mechanics abuse"],
+  "exploit": ["exploit", "bug abuse", "game mechanics abuse"],
+  "exploiting": ["exploit", "bug abuse", "game mechanics abuse"],
+  "spawnkill": ["spawn killing", "spawn camping", "safezone breach", "combat regulations"],
+  "spawncamp": ["spawn killing", "spawn camping", "safezone breach", "combat regulations"],
+  "combatlog": ["combat logging", "quitting during combat", "evading punishment", "desertion"],
+  "log": ["combat logging", "duty log", "shift log"],
+  "duel": ["combat regulations", "dueling ring", "challenges", "honor duel", "kaggath"],
+  "duels": ["combat regulations", "dueling ring", "challenges", "honor duel", "kaggath"],
+  "dueling": ["combat regulations", "dueling ring", "challenges", "honor duel"],
+  "disobey": ["insubordination", "chain of command", "treason", "officer directives", "dereliction of duty"],
+  "insubordination": ["insubordination", "chain of command", "treason", "officer directives"],
+
+  // Ranks & Hierarchy
+  "fr": ["flat rank", "acolyte", "neophyte", "enlisted"],
+  "lr": ["low rank", "acolyte", "neophyte", "enlisted", "initiate"],
+  "mr": ["middle rank", "officer", "sith warrior", "sith inquisitor"],
+  "hr": ["high rank", "overseer", "darth", "command"],
+  "hc": ["high command", "military command", "lord"],
+  "dc": ["dark council", "dark councilor", "sphere", "pyramid"],
+  "pb": ["powerbase", "sovereign", "prestige", "house", "tier"],
+  "ip": ["imperial policy", "statute", "decree", "code", "regulation"],
+
+  // Divisions
+  "dhg": ["dark honor guard", "emperor guard", "imperial guard", "royal guard"],
+  "reavers": ["reavers", "assault division", "frontline", "vanguard"],
+  "cots": ["children of the sith", "inquisitorius", "inquisitors", "shadows"],
+  "dm": ["dread masters", "dread guard", "dread host"]
+};
+
 function extractSearchTokens(queryStr) {
   const clean = String(queryStr || "").toLowerCase().trim();
-  const words = clean.split(/\s+/).filter(w => w && !["the", "a", "an", "for", "of", "in"].includes(w));
+  const words = clean.split(/\s+/).filter(w => w && !["the", "a", "an", "for", "of", "in", "is", "can", "i", "we", "they", "to"].includes(w));
   const expanded = new Set(words);
 
   for (const word of words) {
     if (ROMAN_NUMERALS[word]) {
       expanded.add(ROMAN_NUMERALS[word].toLowerCase());
+    }
+    if (IMPERIAL_LEXICON[word]) {
+      for (const term of IMPERIAL_LEXICON[word]) {
+        term.split(/\s+/).forEach(t => expanded.add(t.toLowerCase()));
+      }
     }
   }
   return Array.from(expanded);
@@ -391,20 +439,21 @@ async function fetchRobloxGroupRosters(robloxId) {
   };
 }
 
-async function searchBotLibraryRegulations(queryStr, libraryKeyFilter) {
-  const cleanQuery = sanitizeQueryForSearch(queryStr);
-  const tokens = extractSearchTokens(cleanQuery);
+let cachedLibraryDocs = null;
+let lastLibraryCacheTime = 0;
+const LIBRARY_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-  let docQuery = supabase
+async function getCachedLibraryDocuments() {
+  const now = Date.now();
+  if (cachedLibraryDocs && (now - lastLibraryCacheTime < LIBRARY_CACHE_TTL_MS)) {
+    return cachedLibraryDocs;
+  }
+
+  const { data: documents } = await supabase
     .from("library_documents")
     .select("id,library_key,slug,article_number,title,status,display_order")
     .order("display_order", { ascending: true });
 
-  if (libraryKeyFilter) {
-    docQuery = docQuery.eq("library_key", libraryKeyFilter);
-  }
-
-  const { data: documents } = await docQuery;
   if (!documents?.length) return [];
 
   const docIds = documents.map(d => d.id);
@@ -431,15 +480,31 @@ async function searchBotLibraryRegulations(queryStr, libraryKeyFilter) {
       slug: doc.slug || "",
       status: doc.status || "PUBLISHED",
       entriesCount: docEntries.length,
-      content: formatLibraryDocument(doc, docEntries)
+      content: formatLibraryDocument(doc, docEntries),
+      rawEntries: docEntries
     };
   });
 
-  if (!cleanQuery) {
-    return allDocs.slice(0, 8);
+  cachedLibraryDocs = allDocs;
+  lastLibraryCacheTime = now;
+  return allDocs;
+}
+
+async function searchBotLibraryRegulations(queryStr, libraryKeyFilter) {
+  const cleanQuery = sanitizeQueryForSearch(queryStr);
+  const tokens = extractSearchTokens(cleanQuery);
+  const allDocs = await getCachedLibraryDocuments();
+  if (!allDocs.length) return [];
+
+  const filteredDocs = libraryKeyFilter
+    ? allDocs.filter(d => String(d.libraryKey).toLowerCase() === String(libraryKeyFilter).toLowerCase())
+    : allDocs;
+
+  if (!cleanQuery && tokens.length === 0) {
+    return filteredDocs.slice(0, 8);
   }
 
-  const scored = allDocs.map(doc => {
+  const scored = filteredDocs.map(doc => {
     let score = 0;
     const titleLower = String(doc.title || "").toLowerCase();
     const articleLower = String(doc.articleNumber || "").toLowerCase();
@@ -447,15 +512,15 @@ async function searchBotLibraryRegulations(queryStr, libraryKeyFilter) {
     const keyLower = String(doc.libraryKey || "").toLowerCase();
     const contentLower = String(doc.content || "").toLowerCase();
 
-    if (titleLower === cleanQuery || articleLower === cleanQuery) score += 300;
-    else if (titleLower.includes(cleanQuery) || articleLower.includes(cleanQuery)) score += 150;
-    else if (slugLower.includes(cleanQuery)) score += 100;
+    if (cleanQuery && (titleLower === cleanQuery || articleLower === cleanQuery)) score += 300;
+    else if (cleanQuery && (titleLower.includes(cleanQuery) || articleLower.includes(cleanQuery))) score += 150;
+    else if (cleanQuery && slugLower.includes(cleanQuery)) score += 100;
 
     for (const token of tokens) {
       if (articleLower.includes(token)) score += 50;
       if (titleLower.includes(token)) score += 40;
       if (keyLower.includes(token)) score += 20;
-      if (contentLower.includes(token)) score += 5;
+      if (contentLower.includes(token)) score += 10;
     }
 
     return { doc, score };
@@ -464,7 +529,7 @@ async function searchBotLibraryRegulations(queryStr, libraryKeyFilter) {
   scored.sort((a, b) => b.score - a.score);
 
   const topMatches = scored.filter(item => item.score > 0).map(item => item.doc);
-  return (topMatches.length > 0 ? topMatches : allDocs).slice(0, 6);
+  return (topMatches.length > 0 ? topMatches : filteredDocs).slice(0, 6);
 }
 
 async function searchAllBotArchives(queryStr) {
@@ -837,7 +902,7 @@ export async function queryHoloAi({ prompt, userTag, robloxName, isSuperUser, us
   const systemContext = `${BOT_SYSTEM_PROMPT}
 
 SESSION CONTEXT:
-- Asking User: ${userTag || robloxName || "Overseer"}`;
+- Asking User: ${robloxName || userTag || "User"}`;
 
   let messages = [
     { role: "system", content: systemContext },
@@ -866,7 +931,7 @@ SESSION CONTEXT:
       if (errInfo?.status === 429 || String(errInfo?.body || "").includes("rate_limit")) {
         const secondsMatch = String(errInfo.body || "").match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
         const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
-        return `Transmission rate limit reached across all sub-processors. Try again in ${timeStr}.`;
+        return `Holonet archive rate limit reached. Try again in ${timeStr}.`;
       }
       throw new Error(`Groq API returned ${errInfo?.status || 500}: ${errInfo?.body || "Unknown error"}`);
     }
@@ -916,5 +981,5 @@ SESSION CONTEXT:
     }
   }
 
-  return finalContent || "H.O.L.O STATEMENT: Query logged. No response generated.";
+  return finalContent || "HOLONET NOTICE: Query logged. No records returned.";
 }

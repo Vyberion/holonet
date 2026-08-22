@@ -48,7 +48,7 @@ async function maybeHandleHoloAiResponse(message) {
   }
   cleanPrompt = cleanPrompt.replace(/\bH\.O\.L\.O\b/gi, "").trim();
 
-  if (!cleanPrompt) cleanPrompt = "Awaiting command, Overseer.";
+  if (!cleanPrompt) cleanPrompt = "Awaiting query.";
 
   await message.channel.sendTyping().catch(() => { });
 
@@ -70,9 +70,9 @@ async function maybeHandleHoloAiResponse(message) {
     if (errText.includes("429") || errText.includes("rate_limit")) {
       const secondsMatch = errText.match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
       const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
-      await message.reply(`Transmission rate limit reached. Try again in ${timeStr}.`).catch(() => { });
+      await message.reply(`Holonet transmission rate limit reached. Try again in ${timeStr}.`).catch(() => { });
     } else {
-      await message.reply("Holonet sub-processor offline or unavailable.").catch(() => { });
+      await message.reply("Holonet archive connection unavailable.").catch(() => { });
     }
   }
 }

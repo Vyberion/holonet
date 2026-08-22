@@ -4,17 +4,96 @@ import { emperorArchiveItems, hierarchyItems } from "../../modules/data/hierarch
 import { fetchDivisionRoster } from "../../src/lib/api-helpers.js";
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-const CANDIDATE_MODELS = [
+const GROQ_MODELS_ENDPOINT = "https://api.groq.com/openai/v1/models";
+
+const DEFAULT_FALLBACK_MODELS = [
   "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant"
+  "llama-3.1-70b-versatile",
+  "llama-3.1-8b-instant",
+  "llama3-70b-8192",
+  "llama3-8b-8192",
+  "deepseek-r1-distill-llama-70b",
+  "qwen-2.5-32b",
+  "mistral-saba-24b"
 ];
+
+let cachedModels = null;
+let lastModelFetchTime = 0;
+const CACHE_TTL_MS = 10 * 60 * 1000;
+
+async function getAvailableGroqModels(apiKey) {
+  const now = Date.now();
+  if (cachedModels && (now - lastModelFetchTime < CACHE_TTL_MS)) {
+    return cachedModels;
+  }
+
+  const primaryKey = String(apiKey || "").split(",")[0]?.trim();
+  if (!primaryKey) return DEFAULT_FALLBACK_MODELS;
+
+  try {
+    const res = await fetch(GROQ_MODELS_ENDPOINT, {
+      headers: { "Authorization": `Bearer ${primaryKey}` }
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const rawList = Array.isArray(json?.data) ? json.data : [];
+      
+      const filtered = rawList.filter(m => {
+        const id = String(m.id || "").toLowerCase();
+        if (m.active === false) return false;
+        if (id.includes("whisper") || id.includes("guard") || id.includes("embed") || id.includes("vision")) return false;
+        return true;
+      });
+
+      filtered.sort((a, b) => {
+        const aId = String(a.id || "").toLowerCase();
+        const bId = String(b.id || "").toLowerCase();
+        const aCtx = Number(a.context_window || 0);
+        const bCtx = Number(b.context_window || 0);
+
+        // 1. Llama 3.3 first
+        const aL33 = aId.includes("llama-3.3");
+        const bL33 = bId.includes("llama-3.3");
+        if (aL33 && !bL33) return -1;
+        if (!aL33 && bL33) return 1;
+
+        // 2. Llama 3.1 next
+        const aL31 = aId.includes("llama-3.1");
+        const bL31 = bId.includes("llama-3.1");
+        if (aL31 && !bL31) return -1;
+        if (!aL31 && bL31) return 1;
+
+        // 3. Other Llama models
+        const aL = aId.includes("llama");
+        const bL = bId.includes("llama");
+        if (aL && !bL) return -1;
+        if (!aL && bL) return 1;
+
+        // 4. Highest context window first
+        return bCtx - aCtx;
+      });
+
+      const modelIds = filtered.map(m => m.id);
+      if (modelIds.length > 0) {
+        cachedModels = modelIds;
+        lastModelFetchTime = now;
+        return modelIds;
+      }
+    }
+  } catch (err) {
+    console.warn("[H.O.L.O Groq] Dynamic model resolution error, falling back to static list:", err?.message);
+  }
+
+  return DEFAULT_FALLBACK_MODELS;
+}
 
 async function executeGroqChat(apiKey, payload) {
   const keys = String(apiKey || "").split(",").map(k => k.trim()).filter(Boolean);
   let lastError = null;
+  const candidateModels = await getAvailableGroqModels(keys[0]);
 
   for (const currentKey of keys) {
-    for (const model of CANDIDATE_MODELS) {
+    for (const model of candidateModels) {
       try {
         const response = await fetch(GROQ_ENDPOINT, {
           method: "POST",

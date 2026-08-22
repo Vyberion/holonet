@@ -15,18 +15,37 @@ const GROQ_MODELS_ENDPOINT = "https://api.groq.com/openai/v1/models";
 
 const DEFAULT_FALLBACK_MODELS = [
   "llama-3.3-70b-versatile",
-  "llama-3.1-70b-versatile",
   "llama-3.1-8b-instant",
+  "llama-3.1-70b-versatile",
   "llama3-70b-8192",
-  "llama3-8b-8192",
-  "deepseek-r1-distill-llama-70b",
-  "qwen-2.5-32b",
-  "mistral-saba-24b"
+  "llama3-8b-8192"
 ];
 
 let cachedModels = null;
 let lastModelFetchTime = 0;
+let lastSuccessfulModel = "llama-3.3-70b-versatile";
 const CACHE_TTL_MS = 10 * 60 * 1000;
+
+function getModelPriorityScore(modelId, contextWindow = 0) {
+  const id = String(modelId || "").toLowerCase();
+  
+  // Flagship Llama 3.3
+  if (id.includes("llama-3.3-70b-versatile") || id === "llama-3.3-70b") return 1000;
+  if (id.includes("llama-3.3")) return 900;
+  
+  // Fast Llama 3.1
+  if (id.includes("llama-3.1-8b-instant") || id === "llama-3.1-8b") return 800;
+  if (id.includes("llama-3.1-70b")) return 750;
+  if (id.includes("llama-3.1")) return 700;
+  
+  // Standard Llama 3
+  if (id.includes("llama3-70b")) return 600;
+  if (id.includes("llama3-8b")) return 500;
+  if (id.includes("llama")) return 400;
+  
+  // Other models ranked by context window
+  return Math.min(300, Math.floor(contextWindow / 1000));
+}
 
 async function getAvailableGroqModels(apiKey) {
   const now = Date.now();
@@ -48,36 +67,14 @@ async function getAvailableGroqModels(apiKey) {
       const filtered = rawList.filter(m => {
         const id = String(m.id || "").toLowerCase();
         if (m.active === false) return false;
-        if (id.includes("whisper") || id.includes("guard") || id.includes("embed") || id.includes("vision")) return false;
+        if (id.includes("whisper") || id.includes("guard") || id.includes("embed") || id.includes("vision") || id.includes("preview") || id.includes("distill")) return false;
         return true;
       });
 
       filtered.sort((a, b) => {
-        const aId = String(a.id || "").toLowerCase();
-        const bId = String(b.id || "").toLowerCase();
-        const aCtx = Number(a.context_window || 0);
-        const bCtx = Number(b.context_window || 0);
-
-        // 1. Llama 3.3 first
-        const aL33 = aId.includes("llama-3.3");
-        const bL33 = bId.includes("llama-3.3");
-        if (aL33 && !bL33) return -1;
-        if (!aL33 && bL33) return 1;
-
-        // 2. Llama 3.1 next
-        const aL31 = aId.includes("llama-3.1");
-        const bL31 = bId.includes("llama-3.1");
-        if (aL31 && !bL31) return -1;
-        if (!aL31 && bL31) return 1;
-
-        // 3. Other Llama models
-        const aL = aId.includes("llama");
-        const bL = bId.includes("llama");
-        if (aL && !bL) return -1;
-        if (!aL && bL) return 1;
-
-        // 4. Highest context window first
-        return bCtx - aCtx;
+        const scoreA = getModelPriorityScore(a.id, a.context_window);
+        const scoreB = getModelPriorityScore(b.id, b.context_window);
+        return scoreB - scoreA;
       });
 
       const modelIds = filtered.map(m => m.id);
@@ -115,7 +112,16 @@ async function executeGroqChat(apiKey, payload) {
   let lastError = null;
   const rawCandidateModels = await getAvailableGroqModels(keys[0]);
   const activeModels = rawCandidateModels.filter(m => !isModelRateLimited(m));
-  const candidateModels = activeModels.length > 0 ? activeModels : rawCandidateModels;
+  const candidateModels = activeModels.length > 0 ? [...activeModels] : [...rawCandidateModels];
+
+  // If we have a known working model that isn't on cooldown, prioritize it to avoid cycling
+  if (lastSuccessfulModel && !isModelRateLimited(lastSuccessfulModel)) {
+    const idx = candidateModels.indexOf(lastSuccessfulModel);
+    if (idx > -1) {
+      candidateModels.splice(idx, 1);
+    }
+    candidateModels.unshift(lastSuccessfulModel);
+  }
 
   for (const currentKey of keys) {
     for (const model of candidateModels) {
@@ -135,6 +141,7 @@ async function executeGroqChat(apiKey, payload) {
 
         if (response.ok) {
           const data = await response.json();
+          lastSuccessfulModel = model; // Pin the successful model!
           return { ok: true, data, model };
         }
 
@@ -438,39 +445,65 @@ async function getCachedLibraryDocuments() {
     return cachedLibraryDocs;
   }
 
-  const query = "library_documents?select=id,library_key,slug,article_number,title,status,display_order&order=display_order.asc,created_at.asc";
-  const documents = await supabaseRest(query).catch(() => []);
-  if (!documents?.length) return [];
+  try {
+    const [documents, entries, statutes] = await Promise.all([
+      supabaseRest("library_documents?select=id,library_key,slug,article_number,title,status,display_order&order=display_order.asc,created_at.asc").catch(() => []),
+      supabaseRest("library_entries?select=id,document_id,anchor,label,body,sub_clauses,display_order&order=display_order.asc,created_at.asc").catch(() => []),
+      supabaseRest("codex_statutes?is_published=eq.true&select=*").catch(() => [])
+    ]);
 
-  // Fetch ALL library entries (the specific regulations and clauses linked to articles)
-  const entries = await supabaseRest("library_entries?select=id,document_id,anchor,label,body,sub_clauses,display_order&order=display_order.asc,created_at.asc").catch(() => []);
+    const docList = Array.isArray(documents) ? documents : [];
+    const entryList = Array.isArray(entries) ? entries : [];
+    const statuteList = Array.isArray(statutes) ? statutes : [];
 
-  const entriesByDoc = new Map();
-  for (const entry of (entries || [])) {
-    const list = entriesByDoc.get(entry.document_id) || [];
-    list.push(entry);
-    entriesByDoc.set(entry.document_id, list);
-  }
+    const entriesByDoc = new Map();
+    const unmatchedEntries = [];
 
-  const allDocs = documents.map(doc => {
-    const docEntries = entriesByDoc.get(doc.id) || [];
-    return {
-      id: doc.id,
-      title: doc.title || "Untitled Regulation",
-      libraryKey: doc.library_key || "General",
-      articleNumber: doc.article_number || "",
-      slug: doc.slug || "",
-      status: doc.status || "PUBLISHED",
-      entriesCount: docEntries.length,
-      content: formatLibraryDocument(doc, docEntries),
-      rawEntries: docEntries
-    };
-  });
+    for (const entry of entryList) {
+      if (entry.document_id) {
+        const list = entriesByDoc.get(entry.document_id) || [];
+        list.push(entry);
+        entriesByDoc.set(entry.document_id, list);
+      } else {
+        unmatchedEntries.push(entry);
+      }
+    }
 
-  // Also query codex_statutes
-  const statutes = await supabaseRest("codex_statutes?is_published=eq.true&select=*").catch(() => []);
-  if (statutes?.length) {
-    for (const st of statutes) {
+    const allDocs = [];
+
+    // 1. Process library_documents with mapped entries
+    for (const doc of docList) {
+      const docEntries = entriesByDoc.get(doc.id) || [];
+      allDocs.push({
+        id: doc.id,
+        title: doc.title || "Imperial Document",
+        libraryKey: doc.library_key || "General",
+        articleNumber: doc.article_number || "",
+        slug: doc.slug || "",
+        status: doc.status || "PUBLISHED",
+        entriesCount: docEntries.length,
+        content: formatLibraryDocument(doc, docEntries),
+        rawEntries: docEntries
+      });
+    }
+
+    // 2. Process any standalone entries that didn't match a document ID
+    for (const entry of unmatchedEntries) {
+      allDocs.push({
+        id: entry.id,
+        title: entry.label || "Imperial Regulation",
+        libraryKey: "general",
+        articleNumber: "",
+        slug: entry.anchor || entry.id,
+        status: "PUBLISHED",
+        entriesCount: 1,
+        content: `[REGULATION]: ${entry.label || "Regulation"}\n${entry.body || ""}\n${Array.isArray(entry.sub_clauses) ? entry.sub_clauses.map(s => `- ${typeof s === "string" ? s : s.label ? `${s.label}: ${s.body}` : JSON.stringify(s)}`).join("\n") : ""}`.trim(),
+        rawEntries: [entry]
+      });
+    }
+
+    // 3. Process codex_statutes
+    for (const st of statuteList) {
       let sectionsText = "";
       if (Array.isArray(st.sections)) {
         sectionsText = st.sections.map((s, i) => `### Section ${i + 1}: ${s.title || ""}\n${s.content || s.body || ""}`).join("\n\n");
@@ -487,11 +520,17 @@ async function getCachedLibraryDocuments() {
         rawEntries: []
       });
     }
-  }
 
-  cachedLibraryDocs = allDocs;
-  lastLibraryCacheTime = now;
-  return allDocs;
+    if (allDocs.length > 0) {
+      cachedLibraryDocs = allDocs;
+      lastLibraryCacheTime = now;
+    }
+
+    return allDocs;
+  } catch (error) {
+    console.error("[H.O.L.O AI API] Fatal getCachedLibraryDocuments error:", error);
+    return cachedLibraryDocs || [];
+  }
 }
 
 async function searchLibraryRegulations(queryStr, libraryKeyFilter) {
@@ -554,7 +593,13 @@ async function searchLibraryRegulations(queryStr, libraryKeyFilter) {
   scored.sort((a, b) => b.score - a.score);
 
   const topMatches = scored.filter(item => item.score > 0).map(item => item.doc);
-  return (topMatches.length > 0 ? topMatches : pool).slice(0, 6);
+  const selected = (topMatches.length > 0 ? topMatches : pool).slice(0, 3);
+  
+  return selected.map(d => ({
+    article: d.articleNumber ? `${d.articleNumber}: ${d.title}` : d.title,
+    scope: d.libraryKey,
+    regulations: d.content
+  }));
 }
 
 async function searchAllArchives(queryStr) {
@@ -640,7 +685,12 @@ async function searchAllArchives(queryStr) {
     return true;
   });
 
-  return uniqueDocs.slice(0, 4);
+  return uniqueDocs.slice(0, 3).map(r => ({
+    title: r.title,
+    category: r.category,
+    summary: r.summary,
+    content: r.content
+  }));
 }
 
 async function executeToolCall(toolName, args, auth) {
@@ -698,9 +748,6 @@ async function executeToolCall(toolName, args, auth) {
         });
       });
 
-      // Fetch recent powerbase logs
-      const pbLogs = await supabaseRest("powerbase_logs?select=*&order=created_at.desc&limit=10").catch(() => []);
-
       const userMap = {};
       if (allUserIds.size > 0) {
         const idList = Array.from(allUserIds);
@@ -714,25 +761,17 @@ async function executeToolCall(toolName, args, auth) {
 
       return {
         totalPowerbases: sortedPbs.length,
-        powerbases: sortedPbs.map((pb, idx) => ({
+        powerbases: sortedPbs.slice(0, 8).map((pb, idx) => ({
           rank: idx + 1,
-          id: pb.id,
           name: pb.name,
           description: pb.description || "No description.",
           tier: pb.tier,
           prestige: pb.prestige,
-          leaderId: pb.leader_id,
           leaderName: userMap[pb.leader_id] || `Discord:<@${pb.leader_id}>`,
           status: pb.status || "ACTIVE",
-          isSuddenDeath: Boolean(pb.is_sudden_death),
           memberCount: (pb.powerbase_members?.length || 0) + 1,
-          members: (pb.powerbase_members || []).map(m => ({
-            userId: m.user_id,
-            name: userMap[m.user_id] || `Discord:<@${m.user_id}>`,
-            role: m.role || "Apprentice"
-          }))
-        })),
-        recentPowerbaseLogs: (pbLogs || []).slice(0, 5)
+          members: (pb.powerbase_members || []).slice(0, 5).map(m => userMap[m.user_id] || m.user_id)
+        }))
       };
     }
 

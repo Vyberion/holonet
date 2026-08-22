@@ -233,7 +233,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_shift_totals",
-      description: "Retrieve logged duty shift hours and status for a specific user or division scope. Execute ONLY when shift time, hours, or leaderboards are explicitly requested.",
+      description: "Retrieve logged duty shift hours, leaderboards, top active personnel, and duty statistics for a specific user, division scope, or entire Sith Order. Use when queried on shift time, hours, leaderboards, 'who has the most time', active duty, or weekly quotas.",
       parameters: {
         type: "object",
         properties: {
@@ -241,7 +241,12 @@ const OVERSEER_TOOLS = [
           scope: {
             type: "string",
             enum: ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil", "all"],
-            description: "Division scope to query shift totals for."
+            description: "Division scope to query shift totals for. Defaults to 'all'."
+          },
+          timeframe: {
+            type: "string",
+            enum: ["week", "month", "all"],
+            description: "Timeframe for shift logs. Use 'week' when queried about this week, weekly leaderboards, or recent time."
           }
         }
       }
@@ -251,7 +256,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_division_activity",
-      description: "Fetch division activity records, current rosters, weekly reports, or inspection records. Execute ONLY when division activity, rosters, or inspection reports are specifically requested.",
+      description: "Fetch division activity records, current rosters, weekly reports, or inspection records. Execute when division activity, rosters, quotas, or inspection reports are queried.",
       parameters: {
         type: "object",
         properties: {
@@ -269,7 +274,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_council_floor",
-      description: "Retrieve legislative floor proposals, bills, and vote tallies from the Dark Council floor. Use when council proposals or floor legislation are queried.",
+      description: "Retrieve legislative floor proposals, bills, and vote tallies from the Dark Council floor. Use when council proposals, laws, or floor legislation are queried.",
       parameters: {
         type: "object",
         properties: {
@@ -435,6 +440,28 @@ async function getCachedLibraryDocuments() {
     };
   });
 
+  // Also query codex_statutes
+  const statutes = await supabaseRest("codex_statutes?is_published=eq.true&select=*").catch(() => []);
+  if (statutes?.length) {
+    for (const st of statutes) {
+      let sectionsText = "";
+      if (Array.isArray(st.sections)) {
+        sectionsText = st.sections.map((s, i) => `### Section ${i + 1}: ${s.title || ""}\n${s.content || s.body || ""}`).join("\n\n");
+      }
+      allDocs.push({
+        id: st.id,
+        title: st.title || "Imperial Statute",
+        libraryKey: "codex",
+        articleNumber: "",
+        slug: st.id,
+        status: "PUBLISHED",
+        entriesCount: Array.isArray(st.sections) ? st.sections.length : 1,
+        content: `[IMPERIAL STATUTE / CODEX]: ${st.title}\nSummary: ${st.summary || ""}\n\n${sectionsText}`.trim(),
+        rawEntries: []
+      });
+    }
+  }
+
   cachedLibraryDocs = allDocs;
   lastLibraryCacheTime = now;
   return allDocs;
@@ -526,6 +553,19 @@ async function searchAllArchives(queryStr) {
     });
   }
 
+  // 4. Resource transmissions
+  const transmissions = await supabaseRest("resource_transmissions?select=*&limit=20").catch(() => []);
+  for (const t of transmissions) {
+    results.push({
+      id: t.id,
+      title: t.title || t.subject || "Imperial Transmission",
+      category: "Imperial Transmissions",
+      summary: t.summary || "",
+      content: `Transmission: ${t.title || ""}\n${t.content || t.body || ""}`,
+      slug: t.id
+    });
+  }
+
   if (cleanQuery) {
     let filtered = results.filter(doc => {
       const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category}`.toLowerCase();
@@ -610,6 +650,9 @@ async function executeToolCall(toolName, args, auth) {
         });
       });
 
+      // Fetch recent powerbase logs
+      const pbLogs = await supabaseRest("powerbase_logs?select=*&order=created_at.desc&limit=10").catch(() => []);
+
       const userMap = {};
       if (allUserIds.size > 0) {
         const idList = Array.from(allUserIds);
@@ -619,48 +662,117 @@ async function executeToolCall(toolName, args, auth) {
         });
       }
 
-      return (powerbases || []).map(pb => ({
-        id: pb.id,
-        name: pb.name,
-        description: pb.description || "No description.",
-        tier: pb.tier,
-        prestige: pb.prestige,
-        leaderId: pb.leader_id,
-        leaderName: userMap[pb.leader_id] || `Discord:<@${pb.leader_id}>`,
-        status: pb.status || "ACTIVE",
-        isSuddenDeath: Boolean(pb.is_sudden_death),
-        memberCount: (pb.powerbase_members?.length || 0) + 1,
-        members: (pb.powerbase_members || []).map(m => ({
-          userId: m.user_id,
-          name: userMap[m.user_id] || `Discord:<@${m.user_id}>`,
-          role: m.role || "Apprentice"
-        }))
-      }));
+      const sortedPbs = (powerbases || []).sort((a, b) => (b.prestige || 0) - (a.prestige || 0));
+
+      return {
+        totalPowerbases: sortedPbs.length,
+        powerbases: sortedPbs.map((pb, idx) => ({
+          rank: idx + 1,
+          id: pb.id,
+          name: pb.name,
+          description: pb.description || "No description.",
+          tier: pb.tier,
+          prestige: pb.prestige,
+          leaderId: pb.leader_id,
+          leaderName: userMap[pb.leader_id] || `Discord:<@${pb.leader_id}>`,
+          status: pb.status || "ACTIVE",
+          isSuddenDeath: Boolean(pb.is_sudden_death),
+          memberCount: (pb.powerbase_members?.length || 0) + 1,
+          members: (pb.powerbase_members || []).map(m => ({
+            userId: m.user_id,
+            name: userMap[m.user_id] || `Discord:<@${m.user_id}>`,
+            role: m.role || "Apprentice"
+          }))
+        })),
+        recentPowerbaseLogs: (pbLogs || []).slice(0, 5)
+      };
     }
 
     if (toolName === "get_shift_totals") {
       const scope = args.scope || "all";
       const targetUser = String(args.user || args.username || "").trim();
+      const timeframe = String(args.timeframe || "").toLowerCase().trim();
 
-      let query = "clock_shifts?select=discord_user_id,discord_username,roblox_username,duration_seconds,status,scope";
+      let query = "clock_shifts?select=discord_user_id,discord_username,roblox_user_id,roblox_username,duration_seconds,adjustment_seconds,status,scope,started_at,ended_at";
       if (scope !== "all") {
         query += `&scope=eq.${encodeURIComponent(scope)}`;
       }
+      if (timeframe === "week") {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        query += `&started_at=gte.${encodeURIComponent(sevenDaysAgo)}`;
+      } else if (timeframe === "month") {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        query += `&started_at=gte.${encodeURIComponent(thirtyDaysAgo)}`;
+      }
       if (targetUser) {
         const encoded = encodeURIComponent(targetUser);
-        query += `&or=(discord_user_id.eq.${encoded},roblox_username.ilike.*${encoded}*,discord_username.ilike.*${encoded}*)`;
+        query += `&or=(discord_user_id.eq.${encoded},roblox_username.ilike.*${encoded}*,discord_username.ilike.*${encoded}*,roblox_user_id.eq.${encoded})`;
       }
 
       const shifts = await supabaseRest(query).catch(() => []);
-      const totalSeconds = shifts.reduce((acc, s) => acc + (s.duration_seconds || 0), 0);
+      const now = Date.now();
+
+      const userAggregates = new Map();
+      let totalCombinedSeconds = 0;
+      let activeCount = 0;
+
+      for (const s of (shifts || [])) {
+        const isActive = s.status === "active";
+        if (isActive) activeCount++;
+
+        const baseSeconds = isActive
+          ? Math.max(0, Math.floor((now - new Date(s.started_at).getTime()) / 1000))
+          : Number(s.duration_seconds || 0);
+        const shiftSecs = Math.max(0, baseSeconds + Number(s.adjustment_seconds || 0));
+
+        totalCombinedSeconds += shiftSecs;
+
+        const userKey = s.discord_user_id || s.roblox_user_id || s.roblox_username || s.discord_username || "Unknown";
+        const displayName = s.roblox_username || s.discord_username || s.discord_user_id || s.roblox_user_id || "Unknown";
+
+        const existing = userAggregates.get(userKey) || {
+          userId: userKey,
+          name: displayName,
+          discordUsername: s.discord_username || "",
+          robloxUsername: s.roblox_username || "",
+          totalSeconds: 0,
+          shiftCount: 0,
+          isActiveNow: false
+        };
+
+        existing.totalSeconds += shiftSecs;
+        existing.shiftCount += 1;
+        if (isActive) existing.isActiveNow = true;
+        if (s.roblox_username && existing.name === "Unknown") existing.name = s.roblox_username;
+
+        userAggregates.set(userKey, existing);
+      }
+
+      const rankedUsers = Array.from(userAggregates.values())
+        .filter(u => u.totalSeconds > 0)
+        .sort((a, b) => b.totalSeconds - a.totalSeconds)
+        .map((u, index) => ({
+          rank: index + 1,
+          name: u.name,
+          robloxUsername: u.robloxUsername || u.name,
+          discordUsername: u.discordUsername || "",
+          totalHours: Math.round((u.totalSeconds / 3600) * 10) / 10,
+          totalMinutes: Math.round(u.totalSeconds / 60),
+          shiftCount: u.shiftCount,
+          onDutyNow: u.isActiveNow
+        }));
+
+      const topUser = rankedUsers[0] || null;
 
       return {
-        userQuery: targetUser || "All Users",
         scope,
-        totalShiftsLogged: shifts.length,
-        totalHoursLogged: Math.round((totalSeconds / 3600) * 10) / 10,
-        totalMinutesLogged: Math.round(totalSeconds / 60),
-        activeShiftsCount: shifts.filter(s => s.status === "active").length
+        timeframe: timeframe || (targetUser ? "all-time" : "all-logged"),
+        totalShiftsLogged: (shifts || []).length,
+        totalHoursLogged: Math.round((totalCombinedSeconds / 3600) * 10) / 10,
+        activeShiftsCount: activeCount,
+        topUserThisTimeframe: topUser ? { rank: 1, name: topUser.name, hours: topUser.totalHours, minutes: topUser.totalMinutes } : null,
+        leaderboardTop10: rankedUsers.slice(0, 10),
+        userQuery: targetUser ? (rankedUsers.find(u => u.name.toLowerCase().includes(targetUser.toLowerCase()) || u.userId === targetUser) || { query: targetUser, message: "No recorded shifts found for specified user." }) : null
       };
     }
 
@@ -668,24 +780,54 @@ async function executeToolCall(toolName, args, auth) {
       const div = String(args.division || "").toLowerCase().trim();
       const [roster, reports, inspections] = await Promise.all([
         fetchDivisionRoster(div).catch(() => []),
-        supabaseRest(`weekly_reports?division=eq.${encodeURIComponent(div)}&order=created_at.desc&limit=3`).catch(() => []),
-        supabaseRest(`inspections?division=eq.${encodeURIComponent(div)}&order=created_at.desc&limit=3`).catch(() => [])
+        supabaseRest(`division_weekly_reports?division_key=eq.${encodeURIComponent(div)}&select=*,division_weekly_report_members(*)&order=created_at.desc&limit=3`).catch(() => []),
+        supabaseRest(`division_inspections?division_key=eq.${encodeURIComponent(div)}&select=*,division_inspection_sections(*)&order=created_at.desc&limit=3`).catch(() => [])
       ]);
 
       return {
         division: div,
         rosterCount: roster.length,
-        roster: roster.slice(0, 15),
-        recentWeeklyReports: reports,
-        recentInspections: inspections
+        roster: roster.slice(0, 20),
+        recentWeeklyReports: (reports || []).map(r => ({
+          id: r.id,
+          weekStart: r.week_start,
+          authorName: r.author_name,
+          status: r.status,
+          memberReportsCount: r.division_weekly_report_members?.length || 0,
+          members: (r.division_weekly_report_members || []).slice(0, 10)
+        })),
+        recentInspections: (inspections || []).map(i => ({
+          id: i.id,
+          heldOn: i.held_on,
+          authorName: i.author_name,
+          overallScore: i.overall_score,
+          bonusPercentage: i.bonus_percentage,
+          notes: i.notes
+        }))
       };
     }
 
     if (toolName === "get_council_floor") {
-      const proposals = await supabaseRest("council_proposals?select=*,council_proposal_votes(*)&order=created_at.desc&limit=5").catch(() => []);
+      const proposals = await supabaseRest("council_proposals?select=*,council_votes(*)&order=created_at.desc&limit=5").catch(() => []);
       return {
-        totalProposals: proposals.length,
-        proposals
+        totalProposals: (proposals || []).length,
+        proposals: (proposals || []).map(p => ({
+          id: p.id,
+          title: p.title,
+          description: p.description,
+          proposalType: p.proposal_type,
+          status: p.status,
+          authorName: p.author_name || p.author_roblox_username || "Unknown",
+          createdAt: p.created_at,
+          votesCount: p.council_votes?.length || 0,
+          votesSummary: (p.council_votes || []).reduce((acc, v) => {
+            const vote = String(v.vote || "").toLowerCase();
+            if (vote === "yes" || vote === "aye") acc.yes = (acc.yes || 0) + 1;
+            else if (vote === "no" || vote === "nay") acc.no = (acc.no || 0) + 1;
+            else acc.abstain = (acc.abstain || 0) + 1;
+            return acc;
+          }, { yes: 0, no: 0, abstain: 0 })
+        }))
       };
     }
 

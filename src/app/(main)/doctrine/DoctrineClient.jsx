@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../../components/PageScripts.jsx";
+import { DiscordMarkdown } from "../../../components/DiscordMarkdown.jsx";
 
 const SECTIONS = [
   "HOLONET",
@@ -281,7 +282,9 @@ export default function DoctrineClient() {
                           </div>
                           <h3 className="trello-card-title">{directive.title}</h3>
                           {directive.summary && (
-                            <p className="trello-card-summary">{directive.summary}</p>
+                            <div className="trello-card-summary">
+                              <DiscordMarkdown content={directive.summary} />
+                            </div>
                           )}
                           <div className="trello-card-footer">
                             <span>VIEW DIRECTIVE &rarr;</span>
@@ -312,11 +315,11 @@ export default function DoctrineClient() {
               <div className="codex-modal-body" style={{ padding: "1.5rem", color: "var(--text-bright)", lineHeight: "1.7" }}>
                 {currentDirective.summary && (
                   <div style={{ background: "rgba(192,0,26,0.08)", borderLeft: "3px solid var(--red-bright)", padding: "1rem", marginBottom: "1.5rem", fontStyle: "italic", boxShadow: "inset 0 0 12px rgba(192,0,26,0.03)" }}>
-                    {currentDirective.summary}
+                    <DiscordMarkdown content={currentDirective.summary} />
                   </div>
                 )}
-                <div style={{ whiteSpace: "pre-wrap", fontFamily: "'Share Tech Mono', monospace", fontSize: "0.95rem", lineHeight: "1.6" }}>
-                  {currentDirective.content}
+                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "0.95rem", lineHeight: "1.6" }}>
+                  <DiscordMarkdown content={currentDirective.content} />
                 </div>
               </div>
 

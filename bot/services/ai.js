@@ -87,10 +87,28 @@ async function getAvailableGroqModels(apiKey) {
   return DEFAULT_FALLBACK_MODELS;
 }
 
+const modelCooldowns = new Map();
+
+function isModelRateLimited(modelId) {
+  const expiry = modelCooldowns.get(modelId);
+  if (!expiry) return false;
+  if (Date.now() > expiry) {
+    modelCooldowns.delete(modelId);
+    return false;
+  }
+  return true;
+}
+
+function markModelRateLimited(modelId, durationMs = 60000) {
+  modelCooldowns.set(modelId, Date.now() + durationMs);
+}
+
 async function executeGroqChat(apiKey, payload) {
   const keys = String(apiKey || "").split(",").map(k => k.trim()).filter(Boolean);
   let lastError = null;
-  const candidateModels = await getAvailableGroqModels(keys[0]);
+  const rawCandidateModels = await getAvailableGroqModels(keys[0]);
+  const activeModels = rawCandidateModels.filter(m => !isModelRateLimited(m));
+  const candidateModels = activeModels.length > 0 ? activeModels : rawCandidateModels;
 
   for (const currentKey of keys) {
     for (const model of candidateModels) {
@@ -117,11 +135,13 @@ async function executeGroqChat(apiKey, payload) {
         lastError = { status: response.status, body: errText, model };
 
         if (response.status === 429 || errText.includes("rate_limit")) {
-          console.warn(`[H.O.L.O Groq Failover] Model ${model} rate limited. Trying next candidate model...`);
+          markModelRateLimited(model, 60000);
+          console.warn(`[H.O.L.O Groq Failover] Model ${model} rate limited (cooling down 60s). Trying next candidate model...`);
           continue;
         }
 
         if (response.status === 400 || response.status === 404 || response.status === 503) {
+          markModelRateLimited(model, 300000); // 5 min cooldown for broken/missing models
           console.warn(`[H.O.L.O Groq Failover] Model ${model} returned ${response.status}. Trying next candidate model...`);
           continue;
         }

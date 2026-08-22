@@ -44,20 +44,10 @@ async function maybeHandleHoloAiResponse(message) {
     (client.user && content.includes(`<@!${client.user.id}>`))
   );
 
-  const isExactHoloName = /\bH\.O\.L\.O\b/i.test(content);
+  const isExactHoloName = /\bH\.O\.L\.O\b/.test(content);
 
-  // In guilds, require mention or 'H.O.L.O'; in DMs, process message directly
+  // In guilds, require @mention or exact 'H.O.L.O'; in DMs, respond to any message
   if (!isDirectMessage && !isMentioned && !isExactHoloName) return;
-
-  const verified = await getVerifiedProfile(message.author.id).catch(() => null);
-  const isSuperUser = Boolean(verified?.profile?.isSuperUser);
-
-  if (!isSuperUser) {
-    if (isDirectMessage) {
-      await message.reply("Access restricted. Clearance level: SuperUser required.").catch(() => {});
-    }
-    return;
-  }
 
   let cleanPrompt = content;
   if (client.user) {
@@ -69,12 +59,15 @@ async function maybeHandleHoloAiResponse(message) {
 
   await message.channel.sendTyping().catch(() => { });
 
+  // Fetch verified profile for context (non-blocking, not a gate)
+  const verified = await getVerifiedProfile(message.author.id).catch(() => null);
+
   try {
     const aiReply = await queryHoloAi({
       prompt: cleanPrompt,
       userTag: message.author.tag || message.author.username,
       robloxName: verified?.profile?.name || "",
-      isSuperUser: true,
+      isSuperUser: Boolean(verified?.profile?.isSuperUser),
       userId: message.author.id,
       channelId: message.channel.id
     });

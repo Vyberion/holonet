@@ -659,7 +659,7 @@ function processMatchPrestigeAndTier(pb, prestigeChange, isWinner) {
   const currentTier = pb.tier || 1;
   const wasSuddenDeath = !!pb.is_sudden_death;
 
-  const newPrestige = Math.min(20, Math.max(0, currentPrestige + prestigeChange));
+  const newPrestige = Math.min(30, Math.max(0, currentPrestige + prestigeChange));
   let newTier = currentTier;
   let isSuddenDeath = wasSuddenDeath;
   let suddenDeathStatus = null; // 'ENTERED', 'CLEARED', 'RELEGATED', or null
@@ -773,7 +773,7 @@ export async function adjustPrestige(powerbaseId, amount, client = null) {
 
   const currentPrestige = pb.prestige || 0;
   const currentTier = pb.tier || 1;
-  const newPrestige = Math.min(20, Math.max(0, currentPrestige + amount));
+  const newPrestige = Math.min(30, Math.max(0, currentPrestige + amount));
 
   let newTier = currentTier;
   let isSuddenDeath = !!pb.is_sudden_death;

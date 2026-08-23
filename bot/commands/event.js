@@ -723,9 +723,9 @@ export async function handleModal(interaction) {
         separatorV2(),
         textDisplayV2(`**Score:**\n${challScore} - ${defScore}\n**Winner:** ${winnerName}`),
         separatorV2(),
-        textDisplayV2(`**${challenger.name}**\nTier: ${romanize(newChallenger.tier)}\nPrestige: ${challenger.prestige} ➔ ${newChallenger.prestige} (${challGain >= 0 ? "+" : ""}${challGain})${challNote}`),
+        textDisplayV2(`**${challenger.name}**\nTier: ${romanize(newChallenger.tier)}\n${formatPrestigeLine(challenger.prestige, newChallenger.prestige)}${challNote}`),
         separatorV2(),
-        textDisplayV2(`**${defender.name}**\nTier: ${romanize(newDefender.tier)}\nPrestige: ${defender.prestige} ➔ ${newDefender.prestige} (${defGain >= 0 ? "+" : ""}${defGain})${defNote}`)
+        textDisplayV2(`**${defender.name}**\nTier: ${romanize(newDefender.tier)}\n${formatPrestigeLine(defender.prestige, newDefender.prestige)}${defNote}`)
       ], 0xc90705)
     ]);
 
@@ -761,6 +761,16 @@ export async function handleModal(interaction) {
 
 function romanize(num) {
   return ["I", "II", "III", "IV"][num - 1] || "I";
+}
+
+function formatPrestigeLine(oldPrestige, newPrestige) {
+  const oldVal = Number(oldPrestige || 0);
+  const newVal = Number(newPrestige || 0);
+  if (oldVal === newVal) {
+    return `Prestige: ${newVal}`;
+  }
+  const diff = newVal - oldVal;
+  return `Prestige: ${oldVal} ➔ ${newVal} (${diff >= 0 ? "+" : ""}${diff})`;
 }
 
 function formatSuddenDeathNote(status) {

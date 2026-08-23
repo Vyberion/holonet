@@ -1,13 +1,88 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, ChannelType, ModalBuilder, RoleSelectMenuBuilder, SlashCommandBuilder, StringSelectMenuBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, ChannelType, ModalBuilder, RoleSelectMenuBuilder, SlashCommandBuilder, StringSelectMenuBuilder, TextInputBuilder, TextInputStyle, UserSelectMenuBuilder } from "discord.js";
 import { getVerifiedProfile } from "../services/roles.js";
 import { config } from "../config/index.js";
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2, mediaGalleryV2 } from "../services/discord-ui.js";
-import { fetchPowerbases, getPowerbase, recordKaggathResult } from "../services/powerbase-api.js";
+import { fetchPowerbases, getPowerbase, recordKaggathResult, syncImperialPowerbaseData } from "../services/powerbase-api.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./shift.js";
 import { postActivityLog } from "../services/activity-log.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 
 const LOG_CHANNEL_ID = "1534165352756285450";
+
+export async function getPowerbaseMemberDetails(pb) {
+  if (!pb) return { totalCount: 0, defaultUserIds: [] };
+
+  const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
+  const memberIds = (pb.powerbase_members || [])
+    .map(m => String(m.user_id || m.discord_user_id || ""))
+    .filter(Boolean);
+
+  if (isImperial) {
+    const { emperorId, voiceId, wrathId, shadowGuardIds } = await syncImperialPowerbaseData(pb);
+    const imperialIds = [emperorId || pb.leader_id, voiceId, wrathId, ...(shadowGuardIds || [])].filter(Boolean);
+    const allIds = Array.from(new Set([...imperialIds, ...memberIds].map(id => String(id))));
+    return {
+      isImperial: true,
+      totalCount: allIds.length,
+      defaultUserIds: allIds
+    };
+  }
+
+  const allIds = Array.from(new Set([pb.leader_id, ...memberIds].filter(Boolean).map(id => String(id))));
+  return {
+    isImperial: false,
+    totalCount: allIds.length,
+    defaultUserIds: allIds
+  };
+}
+
+function renderKaggathParticipantSelection(cached, challenger, defender) {
+  const challUsers = (cached.challengerParticipants || []).map(id => `<@${id}>`);
+  const defUsers = (cached.defenderParticipants || []).map(id => `<@${id}>`);
+
+  const challDisplay = challUsers.length > 0 ? challUsers.join(", ") : "*None selected*";
+  const defDisplay = defUsers.length > 0 ? defUsers.join(", ") : "*None selected*";
+
+  const challSelect = new UserSelectMenuBuilder()
+    .setCustomId("kaggath_dom_chall_parts")
+    .setPlaceholder(`Select Challenger Participants (${challenger.name})`)
+    .setMinValues(1)
+    .setMaxValues(25);
+
+  if (typeof challSelect.setDefaultUsers === "function" && cached.challengerParticipants?.length > 0) {
+    challSelect.setDefaultUsers(cached.challengerParticipants.slice(0, 25));
+  }
+
+  const defSelect = new UserSelectMenuBuilder()
+    .setCustomId("kaggath_dom_def_parts")
+    .setPlaceholder(`Select Defender Participants (${defender.name})`)
+    .setMinValues(1)
+    .setMaxValues(25);
+
+  if (typeof defSelect.setDefaultUsers === "function" && cached.defenderParticipants?.length > 0) {
+    defSelect.setDefaultUsers(cached.defenderParticipants.slice(0, 25));
+  }
+
+  const saveBtn = new ButtonBuilder()
+    .setCustomId("kaggath_dom_parts_save")
+    .setLabel("Save Participants & Set Score")
+    .setStyle(ButtonStyle.Success);
+
+  const container = containerV2([
+    textDisplayV2(`### Kaggath of Domination: Select Participants`),
+    textDisplayV2(`**Challenger:** ${challenger.name}\n**Defender:** ${defender.name}`),
+    separatorV2(),
+    textDisplayV2(`**Challenger Participants:**\n${challDisplay}`),
+    separatorV2(),
+    textDisplayV2(`**Defender Participants:**\n${defDisplay}`),
+    separatorV2(),
+    new ActionRowBuilder().addComponents(challSelect),
+    new ActionRowBuilder().addComponents(defSelect),
+    new ActionRowBuilder().addComponents(saveBtn)
+  ], 0xc90705);
+
+  return ephemeral(componentsV2Message([container]));
+}
 const VERIFY_INSTRUCTIONS = "You are not linked yet. Go to <#1046452180074381403> and click the verify button, or use `/verify`.";
 
 export const commands = [
@@ -373,6 +448,37 @@ export async function handleButton(interaction) {
     return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2(`Deployment event successfully posted to <#${channelId}>!`)])])));
   }
 
+  if (interaction.customId === "kaggath_dom_parts_save") {
+    const cached = globalThis.__kaggathCache?.get(interaction.user.id);
+    if (!cached || !cached.challengerId || !cached.defenderId) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("Session expired.")])])));
+    }
+
+    const modal = new ModalBuilder()
+      .setCustomId("kaggath_dom_score_modal")
+      .setTitle("Enter Kaggath Score");
+
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId("challenger_score")
+          .setLabel("Challenger Score")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId("defender_score")
+          .setLabel("Defender Score")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+      )
+    );
+
+    await interaction.showModal(modal);
+    return true;
+  }
+
   return false;
 }
 
@@ -443,29 +549,54 @@ export async function handleSelectMenu(interaction) {
     if (!cached || !cached.challengerId) return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Session expired.")])])));
     cached.defenderId = defenderId;
 
-    const modal = new ModalBuilder()
-      .setCustomId("kaggath_dom_score_modal")
-      .setTitle("Enter Kaggath Score");
+    const [challenger, defender] = await Promise.all([
+      getPowerbase(cached.challengerId),
+      getPowerbase(cached.defenderId)
+    ]);
 
-    modal.addComponents(
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId("challenger_score")
-          .setLabel("Challenger Score")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-      ),
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId("defender_score")
-          .setLabel("Defender Score")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-      )
-    );
+    if (!challenger || !defender) {
+      return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("One or both Powerbases no longer exist.")])])));
+    }
 
-    await interaction.showModal(modal);
-    return true;
+    const [challDetails, defDetails] = await Promise.all([
+      getPowerbaseMemberDetails(challenger),
+      getPowerbaseMemberDetails(defender)
+    ]);
+
+    cached.challengerParticipants = challDetails.defaultUserIds;
+    cached.defenderParticipants = defDetails.defaultUserIds;
+
+    return interaction.update(renderKaggathParticipantSelection(cached, challenger, defender));
+  }
+
+  if (interaction.customId === "kaggath_dom_chall_parts") {
+    const cached = globalThis.__kaggathCache?.get(interaction.user.id);
+    if (!cached || !cached.challengerId || !cached.defenderId) {
+      return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Session expired.")])])));
+    }
+    cached.challengerParticipants = interaction.values || [];
+
+    const [challenger, defender] = await Promise.all([
+      getPowerbase(cached.challengerId),
+      getPowerbase(cached.defenderId)
+    ]);
+
+    return interaction.update(renderKaggathParticipantSelection(cached, challenger, defender));
+  }
+
+  if (interaction.customId === "kaggath_dom_def_parts") {
+    const cached = globalThis.__kaggathCache?.get(interaction.user.id);
+    if (!cached || !cached.challengerId || !cached.defenderId) {
+      return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("Session expired.")])])));
+    }
+    cached.defenderParticipants = interaction.values || [];
+
+    const [challenger, defender] = await Promise.all([
+      getPowerbase(cached.challengerId),
+      getPowerbase(cached.defenderId)
+    ]);
+
+    return interaction.update(renderKaggathParticipantSelection(cached, challenger, defender));
   }
 
   if (interaction.customId.startsWith("we_channel:")) {
@@ -533,38 +664,50 @@ export async function handleModal(interaction) {
       return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("One or both Powerbases no longer exist.")])])));
     }
 
-    const challSize = (challenger.powerbase_members?.length || 0) + 1;
-    const defSize = (defender.powerbase_members?.length || 0) + 1;
-    const diff = challSize - defSize;
+    const [challDetails, defDetails] = await Promise.all([
+      getPowerbaseMemberDetails(challenger),
+      getPowerbaseMemberDetails(defender)
+    ]);
 
-    let relativeToChallenger;
-    if (diff > 1) relativeToChallenger = "LARGER";
-    else if (diff < -1) relativeToChallenger = "SMALLER";
-    else relativeToChallenger = "EQUAL";
+    const challSize = challDetails.totalCount;
+    const defSize = defDetails.totalCount;
 
-    let challGain = 0, defGain = 0;
+    const winnerSize = winner === "challenger" ? challSize : defSize;
+    const loserSize = winner === "challenger" ? defSize : challSize;
 
-    if (winner === "challenger") {
-      if (relativeToChallenger === "LARGER") { challGain = +2; defGain = -2; }
-      else if (relativeToChallenger === "EQUAL") { challGain = +3; defGain = -3; }
-      else if (relativeToChallenger === "SMALLER") { challGain = +4; defGain = -4; }
+    let winnerGain = 0;
+    let loserGain = 0;
+
+    if (winnerSize < loserSize) {
+      // Victory against a LARGER Powerbase (+4), Defeat against a SMALLER Powerbase (-4)
+      winnerGain = +4;
+      loserGain = -4;
+    } else if (winnerSize > loserSize) {
+      // Victory against a SMALLER Powerbase (+2), Defeat against a LARGER Powerbase (-2)
+      winnerGain = +2;
+      loserGain = -2;
     } else {
-      if (relativeToChallenger === "LARGER") { defGain = +4; challGain = -4; }
-      else if (relativeToChallenger === "EQUAL") { defGain = +3; challGain = -3; }
-      else if (relativeToChallenger === "SMALLER") { defGain = +2; challGain = -2; }
+      // Victory against an EQUAL Powerbase (+3), Defeat against an EQUAL Powerbase (-3)
+      winnerGain = +3;
+      loserGain = -3;
     }
+
+    const challGain = winner === "challenger" ? winnerGain : loserGain;
+    const defGain = winner === "challenger" ? loserGain : winnerGain;
 
     const winnerId = winner === "challenger" ? challenger.id : defender.id;
     const loserId = winner === "challenger" ? defender.id : challenger.id;
-    const winnerGain = winner === "challenger" ? challGain : defGain;
-    const loserGain = winner === "challenger" ? defGain : challGain;
 
     const res = await recordKaggathResult(winnerId, loserId, winnerGain, loserGain, interaction.client);
     const newChallenger = winner === "challenger" ? res?.winner : res?.loser;
     const newDefender = winner === "challenger" ? res?.loser : res?.winner;
 
-    const challParticipants = [`<@${challenger.leader_id}>`, ...(challenger.powerbase_members || []).map(m => `<@${m.discord_user_id}>`)].join(", ");
-    const defParticipants = [`<@${defender.leader_id}>`, ...(defender.powerbase_members || []).map(m => `<@${m.discord_user_id}>`)].join(", ");
+    const challParticipants = (cached.challengerParticipants && cached.challengerParticipants.length > 0)
+      ? cached.challengerParticipants.map(id => `<@${id}>`).join(", ")
+      : `<@${challenger.leader_id}>`;
+    const defParticipants = (cached.defenderParticipants && cached.defenderParticipants.length > 0)
+      ? cached.defenderParticipants.map(id => `<@${id}>`).join(", ")
+      : `<@${defender.leader_id}>`;
 
     const winnerName = winner === "challenger" ? challenger.name : defender.name;
 

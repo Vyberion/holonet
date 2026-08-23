@@ -204,7 +204,7 @@ function renderInspectionTable(inspection, divisionId) {
       </thead>
       <tbody>
         ${sections.map(section => {
-          const sectionName = section.name === "Attendance" ? "Activity" : section.name;
+          const sectionName = section.name;
           const percentage = section.outOf && section.weightedPercentage
             ? ((Number(section.achievedScore || 0) / Number(section.outOf || 1)) * Number(section.weightedPercentage || 0)).toFixed(2)
             : "0.00";
@@ -362,7 +362,7 @@ function openInspectionEditor(division, afterSave, entry = null) {
     </div>
     <div class="inspection-editor-grid">
       ${sections.map((section, index) => {
-        const name = section.name === "Attendance" ? "Activity" : section.name;
+        const name = section.name;
         return `
           <div class="inspection-editor-row" data-inspection-section="${index}">
             <strong>${escapeHtml(name)} <span style="color:var(--text-faint); font-weight:normal; font-size:0.8em; margin-left:0.3rem;">(${escapeHtml(section.weightedPercentage)}%)</span></strong>

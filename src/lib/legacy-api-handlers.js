@@ -1684,15 +1684,10 @@ function inspectionSectionsFor(division, sections = []) {
   ];
 
   const defaultMap = new Map(defaults.map(d => [d.name, d]));
-  const defaultAttendanceMap = new Map([
-    ["Attendance", "Activity"],
-    ["attendance", "Activity"]
-  ]);
-
   const incoming = Array.isArray(sections) && sections.length ? sections : defaults;
   return incoming.map(section => {
     let name = requireString(section.name);
-    if (defaultAttendanceMap.has(name)) name = "Activity";
+    if (name.toLowerCase() === "attendance") name = "Activity";
     const def = defaultMap.get(name) || {};
     return {
       name,
@@ -1712,8 +1707,12 @@ function calculateInspectionOverall(sections, bonusPercentage = 0) {
 }
 
 function normalizeInspectionSection(row, index = 0) {
+  let name = String(row.name || "").trim();
+  if (name.toLowerCase() === "attendance") {
+    name = "Activity";
+  }
   return {
-    name: row.name || "",
+    name,
     outOf: Number(row.out_of) || 0,
     weightedPercentage: Number(row.weighted_percentage) || 0,
     achievedScore: Number(row.achieved_score) || 0,

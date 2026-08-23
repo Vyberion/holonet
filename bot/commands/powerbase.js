@@ -140,6 +140,16 @@ export async function handleButton(interaction) {
 
     await updatePowerbase(pbId, { image_url: null });
     await syncPowerbaseRosterMessage(interaction.client, pbId);
+    await postPowerbaseLog(interaction.client, {
+      title: "Powerbase Banner Updated",
+      description: `Banner image for Powerbase **${pb.name}** has been removed.`,
+      fields: [
+        { name: "Powerbase Name", value: pb.name, inline: true },
+        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+        { name: "Banner Image", value: "Removed", inline: false }
+      ],
+      color: 0xc90705
+    }).catch(() => {});
 
     return interaction.update(ephemeral(componentsV2Message([
       containerV2([
@@ -255,15 +265,21 @@ export async function handleModal(interaction) {
       groupLinkValue = `[Group Link](${cleanUrl})`;
     }
 
+    const creationFields = [
+      { name: "Powerbase Name", value: name, inline: true },
+      { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+      { name: "Leader", value: `${leaderUsername} (<@${interaction.user.id}>)`, inline: false },
+      { name: "Roblox Group", value: groupLinkValue || "None", inline: false }
+    ];
+    if (description?.trim()) {
+      creationFields.push({ name: "Description", value: description.trim(), inline: false });
+    }
+
     await postPowerbaseLog(interaction.client, {
       title: "Powerbase Creation Requested",
       description: `A new Powerbase creation request has been submitted for approval by High Command.`,
       content: `<@&${HIGH_COMMAND_ROLE_ID}>`,
-      fields: [
-        { name: "Powerbase Name", value: name, inline: true },
-        { name: "Leader", value: `${leaderUsername} (<@${interaction.user.id}>)`, inline: true },
-        { name: "Roblox Group", value: groupLinkValue, inline: true }
-      ],
+      fields: creationFields,
       color: 0xc90705,
       allowedRoleIds: [HIGH_COMMAND_ROLE_ID]
     });
@@ -292,6 +308,16 @@ export async function handleModal(interaction) {
 
     await updatePowerbase(pbId, { image_url: imageUrl });
     await syncPowerbaseRosterMessage(interaction.client, pbId);
+    await postPowerbaseLog(interaction.client, {
+      title: "Powerbase Banner Updated",
+      description: `Banner image for Powerbase **${pb.name}** has been updated.`,
+      fields: [
+        { name: "Powerbase Name", value: pb.name, inline: true },
+        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+        { name: "Banner Image", value: imageUrl ? `[Image Link](${imageUrl})` : "Removed", inline: false }
+      ],
+      color: 0xc90705
+    }).catch(() => {});
 
     const msg = imageUrl ? `Banner image for **${pb.name}** updated successfully!` : `Banner image for **${pb.name}** removed.`;
     await interaction.editReply(ephemeral(componentsV2Message([
@@ -327,15 +353,20 @@ export async function handleModal(interaction) {
       editGroupLink = `[Group Link](${cleanUrl})`;
     }
 
+    const editFields = [
+      { name: "Powerbase Name", value: pb.name, inline: true },
+      { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+      { name: "Leader", value: `<@${pb.leader_id}>`, inline: false },
+      { name: "Roblox Group", value: editGroupLink || "None", inline: false }
+    ];
+    if (pb.description?.trim()) {
+      editFields.push({ name: "Description", value: pb.description.trim(), inline: false });
+    }
+
     await postPowerbaseLog(interaction.client, {
       title: "Powerbase Details Updated",
       description: `Powerbase details for **${pb.name}** have been updated.`,
-      fields: [
-        { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
-        { name: "Roblox Group", value: editGroupLink, inline: true },
-        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true }
-      ],
+      fields: editFields,
       color: 0xc90705
     });
     const currentMemberIds = (pb?.powerbase_members || [])
@@ -429,8 +460,9 @@ async function handleEditMembers(interaction) {
         title: "Powerbase Roster Updated",
         description: `Roster for Powerbase **${pb.name}** has been updated.`,
         fields: [
-          { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+          { name: "Powerbase Name", value: pb.name, inline: true },
           { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+          { name: "Leader", value: `<@${pb.leader_id}>`, inline: false },
           { name: "Apprentices Added", value: addedText, inline: false },
           { name: "Apprentices Removed", value: removedText, inline: false }
         ],
@@ -673,8 +705,9 @@ async function handleManageActionSelect(interaction) {
       content: `<@&${HIGH_COMMAND_ROLE_ID}>`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
-        { name: "Roblox Group", value: dissolveGroupLink, inline: true }
+        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+        { name: "Leader", value: `<@${pb.leader_id}>`, inline: false },
+        { name: "Roblox Group", value: dissolveGroupLink || "None", inline: false }
       ],
       color: 0xc90705,
       allowedRoleIds: [HIGH_COMMAND_ROLE_ID]
@@ -725,9 +758,9 @@ async function handleChangeLeaderSelect(interaction) {
       description: `Leadership of Powerbase **${pb.name}** has been transferred.`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Old Leader", value: `<@${pb.leader_id}>`, inline: true },
-        { name: "New Leader", value: `<@${newLeaderId}>`, inline: true },
-        { name: "Transferred By", value: `<@${interaction.user.id}>`, inline: true }
+        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+        { name: "Old Leader", value: `<@${pb.leader_id}>`, inline: false },
+        { name: "New Leader", value: `<@${newLeaderId}>`, inline: false }
       ],
       color: 0xc90705
     });
@@ -954,6 +987,16 @@ async function handleBanner(interaction, verified) {
     const permanentUrl = await persistBannerImage(attachment.url, pb.id);
     await updatePowerbase(pb.id, { image_url: permanentUrl });
     await syncPowerbaseRosterMessage(interaction.client, pb.id);
+    await postPowerbaseLog(interaction.client, {
+      title: "Powerbase Banner Updated",
+      description: `Banner image for Powerbase **${pb.name}** has been updated.`,
+      fields: [
+        { name: "Powerbase Name", value: pb.name, inline: true },
+        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+        { name: "Banner Image", value: permanentUrl ? `[Image Link](${permanentUrl})` : "Removed", inline: false }
+      ],
+      color: 0xc90705
+    }).catch(() => {});
     return interaction.editReply(ephemeral(componentsV2Message([containerV2([textDisplayV2(`Banner image uploaded and set for **${pb.name}**!`)])])));
   }
 
@@ -1002,6 +1045,16 @@ async function handleBannerSelect(interaction) {
   const permanentUrl = await persistBannerImage(imageUrl, pbId);
   await updatePowerbase(pbId, { image_url: permanentUrl });
   await syncPowerbaseRosterMessage(interaction.client, pbId);
+  await postPowerbaseLog(interaction.client, {
+    title: "Powerbase Banner Updated",
+    description: `Banner image for Powerbase **${pb.name}** has been updated.`,
+    fields: [
+      { name: "Powerbase Name", value: pb.name, inline: true },
+      { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+      { name: "Banner Image", value: permanentUrl ? `[Image Link](${permanentUrl})` : "Removed", inline: false }
+    ],
+    color: 0xc90705
+  }).catch(() => {});
   globalThis.__pbBannerCache.delete(interaction.user.id);
 
   return interaction.editReply(ephemeral(componentsV2Message([

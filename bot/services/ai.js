@@ -210,15 +210,15 @@ OPERATIONAL RUBRIC & CITATION PROTOCOL:
 - Never give out-of-universe real-world emergency advice or moral lectures.
 
 7. TIME LOGGING & HISTORICAL WEEKLY REPORT RELATIONS:
-- CURRENT WEEK vs HISTORICAL TIME LOGGED:
+- CURRENT WEEK vs HISTORICAL TIME LOGGED & RECORDS:
   * Live duty shift logging for THIS current week is stored in clock_shifts.
-  * ALL time logged BEYOND THIS WEEK is archived and compiled into weekly reports across multiple relational tables:
-    1. division_weekly_reports (Parent report header: id, division_key, week_start, author_id, author_name, status, created_at, updated_at)
-    2. division_weekly_report_members (Child member performance lines: report_id, roblox_id, username, display_name, rank, role, hours, minutes, events_hosted, events_attended, display_order)
-    3. verification_links (Correlates Roblox user IDs roblox_user_id / roblox_id with Discord User IDs discord_user_id and Discord/Roblox usernames)
-    4. clock_shifts (Contains active/current week shifts: discord_user_id, roblox_user_id, duration_seconds, started_at, scope)
-- FOR QUERIES BEYOND THIS WEEK / PAST WEEKS / HISTORICAL REPORTS:
-  * When queried about weekly reports, past week activity, events hosted/attended in reports, or time logged beyond this week, ALWAYS invoke get_weekly_reports or get_shift_totals.
+  * Time logged BEYOND THIS WEEK is archived in weekly reports across division_weekly_reports and division_weekly_report_members.
+  * SINGLE-WEEK RECORDS ("most time in 1 week", "highest week", "best week", "weekly record"): Pass timeframe: "single_week_record" or "1 week" to get_shift_totals.
+  * ALL-TIME TOTALS ("most time ever", "all-time"): Pass timeframe: "all_time" or "ever".
+  * LAST WEEK ("time logged last week"): Pass timeframe: "last_week".
+  * THIS WEEK ("time logged this week"): Pass timeframe: "this_week".
+- FOR QUERIES BEYOND THIS WEEK / PAST WEEKS / HISTORICAL RECORDS:
+  * Always invoke get_shift_totals or get_weekly_reports to retrieve weekly report entries and personnel totals.
   * Synthesize and explain the relations between report members (division_weekly_report_members), parent reports (division_weekly_reports), and personnel identity (verification_links).`;
 
 const OVERSEER_TOOLS = [
@@ -278,7 +278,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_shift_totals",
-      description: "Retrieve logged duty shift hours, leaderboards, top active personnel, and duty statistics for a specific user, division scope, or entire Sith Order across current shifts and compiled weekly reports. Supports current week, last week (past week reports), monthly totals, and all-time total hours logged across live shifts and compiled weekly reports. Use when queried on shift time, hours, leaderboards, 'who has the most time', 'last week', 'ever', active duty, or weekly quotas.",
+      description: "Retrieve logged duty shift hours, leaderboards, top active personnel, and duty statistics for a specific user, division scope, or entire Sith Order across current shifts and compiled weekly reports. Accepts any timeframe combination: 'single_week_record' / '1 week' (highest time logged in any single weekly report), 'last_week' (last week's published report), 'all_time' / 'ever' (total cumulative time logged across all history), 'this_week' (current live shifts), 'month', 'today', 'yesterday'. Use when queried on shift time, hours, leaderboards, 'who has the most time in 1 week', 'last week', 'ever', active duty, or weekly quotas.",
       parameters: {
         type: "object",
         properties: {
@@ -290,8 +290,7 @@ const OVERSEER_TOOLS = [
           },
           timeframe: {
             type: "string",
-            enum: ["today", "day", "daily", "yesterday", "24h", "this_week", "week", "last_week", "past_week", "month", "all", "ever", "all_time"],
-            description: "Timeframe for shift logs. Use 'this_week' or 'today' for current week/today hours. Use 'last_week' or 'past_week' when asked about last week / previous week's logged time (retrieves published weekly reports). Use 'all', 'ever', or 'all_time' when asked about all-time total time logged."
+            description: "Timeframe or record type to query. Examples: 'single_week_record' or '1 week' (most time logged in a single weekly report), 'last_week' or 'past_week' (last week's report), 'all_time' or 'ever' (all-time cumulative total), 'this_week' (current week active shifts), 'month', 'today', 'yesterday'."
           }
         }
       }
@@ -1058,11 +1057,99 @@ async function executeBotToolCall(toolName, args) {
       const rawTimeframe = String(args.timeframe || "").toLowerCase().trim();
       const cleanTf = rawTimeframe.replace(/[\s_-]+/g, "");
 
-      const isLastWeek = cleanTf.includes("last") || cleanTf.includes("past") || cleanTf.includes("prev");
-      const isTodayOnly = cleanTf === "today" || cleanTf === "day" || cleanTf === "daily" || cleanTf === "24h";
-      const isYesterdayOnly = cleanTf === "yesterday";
-      const isThisWeekOnly = cleanTf === "thisweek" || cleanTf === "currentweek";
+      const isSingleWeekRecord = /\b(1week|oneweek|singleweek|single|record|bestweek|mostinaweek|highestweek|in1week|inoneweek)\b/i.test(cleanTf) || cleanTf === "1week" || cleanTf === "singleweek";
+      const isLastWeek = !isSingleWeekRecord && (cleanTf.includes("last") || cleanTf.includes("past") || cleanTf.includes("prev"));
+      const isTodayOnly = !isSingleWeekRecord && (cleanTf === "today" || cleanTf === "day" || cleanTf === "daily" || cleanTf === "24h");
+      const isYesterdayOnly = !isSingleWeekRecord && (cleanTf === "yesterday");
+      const isThisWeekOnly = !isSingleWeekRecord && (cleanTf === "thisweek" || cleanTf === "currentweek" || cleanTf === "now" || cleanTf === "active");
 
+      // Handle Single-Week Record Mode ("most time logged in 1 week", "single week record", etc.)
+      if (isSingleWeekRecord) {
+        let reportQuery = supabase
+          .from("division_weekly_reports")
+          .select("*, division_weekly_report_members(*)")
+          .eq("status", "published")
+          .order("week_start", { ascending: false });
+
+        if (scope !== "all" && scope !== "*") reportQuery = reportQuery.eq("division_key", scope);
+
+        const { data: pastReports } = await reportQuery;
+
+        const singleWeekRecords = [];
+        const userBestWeek = new Map();
+
+        for (const r of (pastReports || [])) {
+          for (const m of (r.division_weekly_report_members || [])) {
+            const minutes = (Number(m.hours) || 0) * 60 + (Number(m.minutes) || 0);
+            if (minutes <= 0) continue;
+
+            const totalHours = Math.round((minutes / 60) * 10) / 10;
+            const record = {
+              name: m.display_name || m.username || m.roblox_id || "Unknown",
+              robloxUsername: m.username || m.display_name || "Unknown",
+              robloxId: String(m.roblox_id || ""),
+              divisionKey: r.division_key,
+              weekStart: r.week_start,
+              totalHours,
+              totalMinutes: minutes,
+              eventsHosted: Number(m.events_hosted) || 0,
+              eventsAttended: Number(m.events_attended) || 0
+            };
+
+            singleWeekRecords.push(record);
+
+            const userKey = m.roblox_id || m.username?.toLowerCase() || "Unknown";
+            const existingBest = userBestWeek.get(userKey);
+            if (!existingBest || minutes > existingBest.totalMinutes) {
+              userBestWeek.set(userKey, record);
+            }
+          }
+        }
+
+        singleWeekRecords.sort((a, b) => b.totalMinutes - a.totalMinutes);
+
+        const topUniqueUserBestWeeks = Array.from(userBestWeek.values())
+          .sort((a, b) => b.totalMinutes - a.totalMinutes)
+          .map((rec, idx) => ({
+            rank: idx + 1,
+            name: rec.name,
+            robloxUsername: rec.robloxUsername,
+            divisionKey: rec.divisionKey,
+            weekStart: rec.weekStart,
+            totalHours: rec.totalHours,
+            totalMinutes: rec.totalMinutes,
+            eventsHosted: rec.eventsHosted,
+            eventsAttended: rec.eventsAttended
+          }));
+
+        const topUser = topUniqueUserBestWeeks[0] || null;
+
+        return {
+          recordType: "single-week-record",
+          scope,
+          timeframe: "1-week-single-record",
+          totalWeeklyEntriesAnalyzed: singleWeekRecords.length,
+          topSingleWeekRecordHolder: topUser ? {
+            rank: 1,
+            name: topUser.name,
+            hours: topUser.totalHours,
+            minutes: topUser.totalMinutes,
+            weekStart: topUser.weekStart,
+            division: topUser.divisionKey
+          } : null,
+          leaderboardTop10: topUniqueUserBestWeeks.slice(0, 10),
+          allTimeTopPerformances: singleWeekRecords.slice(0, 10).map((rec, idx) => ({
+            rank: idx + 1,
+            name: rec.name,
+            hours: rec.totalHours,
+            minutes: rec.totalMinutes,
+            weekStart: rec.weekStart,
+            division: rec.divisionKey
+          }))
+        };
+      }
+
+      // Handle Cumulative / Aggregated Timeframe Modes
       const userAggregates = new Map();
       let totalCombinedSeconds = 0;
       let activeCount = 0;

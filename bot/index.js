@@ -55,20 +55,24 @@ async function maybeHandleHoloAiResponse(message) {
   }
   cleanPrompt = cleanPrompt.replace(/\bH\.O\.L\.O\b/gi, "").trim();
 
-  // If empty or trivial, say nothing
-  if (!cleanPrompt || cleanPrompt.length < 2) return;
+  const isExemptUser = message.author.id === "710574154226598049";
 
-  // Reject non-English character sets (Cyrillic, Arabic, CJK, Hebrew, etc.)
-  const NON_ENGLISH_REGEX = /[\u0400-\u04FF\u0600-\u06FF\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF\u0900-\u097F\u0590-\u05FF\u0E00-\u0E7F]/;
-  if (NON_ENGLISH_REGEX.test(cleanPrompt)) return;
+  // If empty, say nothing
+  if (!cleanPrompt) return;
+  if (!isExemptUser && cleanPrompt.length < 2) return;
 
-  // Reject translation requests and foreign language phrases
-  const TRANSLATE_REGEX = /\b(translate|translation|traduzir|traducir|traduire|переведи|перевод|in\s+(spanish|french|german|russian|chinese|japanese|italian|portuguese|arabic))\b/i;
-  if (TRANSLATE_REGEX.test(cleanPrompt)) return;
+  if (!isExemptUser) {
+    // Reject non-English character sets (Cyrillic, Arabic, CJK, Hebrew, etc.)
+    const NON_ENGLISH_REGEX = /[\u0400-\u04FF\u0600-\u06FF\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF\u0900-\u097F\u0590-\u05FF\u0E00-\u0E7F]/;
+    if (NON_ENGLISH_REGEX.test(cleanPrompt)) return;
 
-  // Reject trivial noise / greetings
-  // Reject trivial noise / greetings / useless prompts
-  if (/^(hi|hey|hello|yo|test|testing|sup|gm|gn|lol|xd|ok|okay|cool|bruh|bro|nah|why|who|what|no|yes|funny|lmao|rofl|nvm|stop|bot|huh|wsp|\?+|\.+)$/i.test(cleanPrompt)) return;
+    // Reject translation requests and foreign language phrases
+    const TRANSLATE_REGEX = /\b(translate|translation|traduzir|traducir|traduire|переведи|перевод|in\s+(spanish|french|german|russian|chinese|japanese|italian|portuguese|arabic))\b/i;
+    if (TRANSLATE_REGEX.test(cleanPrompt)) return;
+
+    // Reject trivial noise / greetings / useless prompts
+    if (/^(hi|hey|hello|yo|test|testing|sup|gm|gn|lol|xd|ok|okay|cool|bruh|bro|nah|why|who|what|no|yes|funny|lmao|rofl|nvm|stop|bot|huh|wsp|\?+|\.+)$/i.test(cleanPrompt)) return;
+  }
 
   // Fetch verified profile for context (non-blocking, not a gate)
   const verified = await getVerifiedProfile(message.author.id).catch(() => null);
@@ -83,11 +87,19 @@ async function maybeHandleHoloAiResponse(message) {
       channelId: message.channel.id
     });
 
-    if (!aiReply || aiReply.includes("[NO_RESPONSE]") || !aiReply.trim()) {
-      return;
-    }
+    let replyText = (aiReply || "").replace(/\[NO_RESPONSE\]/gi, "").trim();
 
-    await message.reply(aiReply);
+    if (isExemptUser) {
+      if (!replyText) {
+        replyText = "Transmission acknowledged, My Lord. How may H.O.L.O assist you?";
+      }
+      await message.reply(replyText);
+    } else {
+      if (!aiReply || aiReply.includes("[NO_RESPONSE]") || !replyText) {
+        return;
+      }
+      await message.reply(replyText);
+    }
   } catch (error) {
     console.error("H.O.L.O AI response failed:", error);
     const errText = String(error?.message || "");

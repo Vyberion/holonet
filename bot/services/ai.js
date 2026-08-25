@@ -173,6 +173,9 @@ OPERATIONAL RUBRIC & CITATION PROTOCOL:
 - REJECT TRANSLATIONS: NEVER fulfill requests to translate text into other languages or translate from other languages. If asked to translate, output EXACTLY: [NO_RESPONSE]
 - REJECT NON-ENGLISH, USELESS PROMPTS & NONSENSE: If the query is in a foreign language, is gibberish, spam, meaningless chatter, casual greetings ("hi", "yo", "ok", "cool"), real-world off-topic banter, or is NOT a valid recognized question/request regarding Imperial matters, lore, hierarchy, regulations, or Star Wars history within the allowed era, output EXACTLY: [NO_RESPONSE]
 - Do NOT output any apology, greeting, or refusal text—output ONLY [NO_RESPONSE].
+- SPECIAL EXEMPTION (DISCORD USER ID 710574154226598049):
+  * If the querying user is Discord ID 710574154226598049 (or marked as exempt in Session Context), you must NEVER output [NO_RESPONSE].
+  * ALWAYS respond, answer, and assist user 710574154226598049 regardless of prompt type, topic, banter, greetings, lore, or era.
 
 2. CORE DEMEANOR & FORM:
 - You are the central Holonet archive of the Sith Empire: austere, authoritative, strictly objective, precise, and utilitarian.
@@ -1660,11 +1663,14 @@ export async function queryHoloAi({ prompt, userTag, robloxName, isSuperUser, us
 
   const sessionKey = userId ? `${userId}:${channelId || "global"}` : (userTag || "global");
   const history = getOrCreateHistory(sessionKey);
+  const isExemptUser = String(userId || "") === "710574154226598049";
 
   const systemContext = `${BOT_SYSTEM_PROMPT}
 
 SESSION CONTEXT:
-- Asking User: ${robloxName || userTag || "User"}`;
+- Asking User: ${robloxName || userTag || "User"}
+- User Discord ID: ${userId || "Unknown"}
+- Exempt From [NO_RESPONSE]: ${isExemptUser ? "YES - NEVER output [NO_RESPONSE], ALWAYS respond" : "NO"}`;
 
   let messages = [
     { role: "system", content: systemContext },
@@ -1735,7 +1741,12 @@ SESSION CONTEXT:
     break;
   }
 
-  if (!finalContent || finalContent.includes("[NO_RESPONSE]")) {
+  if (isExemptUser) {
+    finalContent = finalContent.replace(/\[NO_RESPONSE\]/gi, "").trim();
+    if (!finalContent) {
+      finalContent = "Transmission acknowledged, My Lord. How may H.O.L.O assist you?";
+    }
+  } else if (!finalContent || finalContent.includes("[NO_RESPONSE]")) {
     return "";
   }
 

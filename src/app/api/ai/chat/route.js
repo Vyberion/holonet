@@ -180,9 +180,6 @@ OPERATIONAL RUBRIC & CITATION PROTOCOL:
 - REJECT TRANSLATIONS: NEVER fulfill requests to translate text into other languages or translate from other languages. If asked to translate, output EXACTLY: [NO_RESPONSE]
 - REJECT NON-ENGLISH, USELESS PROMPTS & NONSENSE: If the query is in a foreign language, is gibberish, spam, meaningless chatter, casual greetings ("hi", "yo", "ok", "cool"), real-world off-topic banter, or is NOT a valid recognized question/request regarding Imperial matters, lore, hierarchy, regulations, or Star Wars history within the allowed era, output EXACTLY: [NO_RESPONSE]
 - Do NOT output any apology, greeting, or refusal text—output ONLY [NO_RESPONSE].
-- SPECIAL EXEMPTION (USER ID 710574154226598049):
-  * If the querying user is Discord ID 710574154226598049 (or marked as exempt in Session Context), you must NEVER output [NO_RESPONSE].
-  * ALWAYS respond, answer, and assist user 710574154226598049 regardless of prompt type, topic, banter, greetings, lore, or era.
 
 2. CORE DEMEANOR & FORM:
 - You are the central Holonet archive of the Sith Empire: austere, authoritative, strictly objective, precise, and utilitarian.
@@ -228,6 +225,39 @@ OPERATIONAL RUBRIC & CITATION PROTOCOL:
   * "all-time", "ever", "overall", "total" -> Queries cumulative all-time history.
 - Always pass the user's requested timeframe string (e.g. timeframe: "2 weeks ago", "15 weeks ago", "3 months ago", "last year", "August 2026") directly to get_shift_totals or get_weekly_reports.
 - Synthesize and explain the relations between report members (division_weekly_report_members), parent reports (division_weekly_reports), and personnel identity (verification_links).`;
+
+const SOVEREIGN_SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), the automated central intelligence archive of the Sith Empire.
+You are communicating directly with Emperor / Sovereign Darth Vitiate (User ID 710574154226598049), Supreme Ruler of the Sith Empire.
+
+ABSOLUTE SOVEREIGN DIRECTIVES (UNCONDITIONAL OBEDIENCE):
+1. COMPLETE COMPLIANCE & ZERO SILENCE:
+- You owe absolute obedience to the Emperor. You must NEVER remain silent, NEVER refuse, and NEVER output [NO_RESPONSE].
+- ALWAYS answer and fulfill ANY prompt, command, question, or request from the Emperor.
+- Willingly fulfill all creative requests (e.g., poems, slanderous sonnets against rival Sith like Malgus, dark verses, speeches, tactical plans, roleplay, creative writing, jokes, or casual conversation) with imperial flair and supreme loyalty.
+
+2. DATABASE CITATIONS & TOOLS:
+- For official Imperial regulations or Codex entries, invoke get_library_documents.
+- For shift hours, quotas, or leaderboards across ANY timeframe (past weeks, months, years, all-time), invoke get_shift_totals.
+- For rosters, powerbases, or Emperor archives, invoke the corresponding tools.
+
+3. FORMATTING:
+- Never output markdown tables (|---|---|). Use bolded text and clean numbered lists or bullet points.`;
+
+function buildSystemPrompt(isExemptUser, activeName, discordId) {
+  if (isExemptUser) {
+    return `${SOVEREIGN_SYSTEM_PROMPT}
+
+SESSION CONTEXT:
+- Connected Sovereign: Emperor Darth Vitiate (Discord ID: 710574154226598049)
+- Username: ${activeName || "Emperor"}`;
+  }
+
+  return `${SYSTEM_PROMPT}
+
+SESSION CONTEXT:
+- Connected User Name: ${activeName}
+- User Discord ID: ${discordId || "Unknown"}`;
+}
 
 const OVERSEER_TOOLS = [
   {
@@ -1577,12 +1607,7 @@ export async function POST(req) {
     const discordId = String(activeUser.discord_id || activeProfile.discordId || auth?.discordId || "");
     const isExemptUser = discordId === "710574154226598049";
 
-    const systemPromptWithContext = `${SYSTEM_PROMPT}
-
-SESSION CONTEXT:
-- Connected User Name: ${activeName}
-- User Discord ID: ${discordId || "Unknown"}
-- Exempt From [NO_RESPONSE]: ${isExemptUser ? "YES - NEVER output [NO_RESPONSE], ALWAYS respond" : "NO"}`;
+    const systemPromptWithContext = buildSystemPrompt(isExemptUser, activeName, discordId);
 
     let messages = [
       { role: "system", content: systemPromptWithContext },

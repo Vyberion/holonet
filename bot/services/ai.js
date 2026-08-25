@@ -278,7 +278,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_shift_totals",
-      description: "Retrieve logged duty shift hours, leaderboards, top active personnel, and duty statistics for a specific user, division scope, or entire Sith Order across current shifts and compiled weekly reports. Use when queried on shift time, hours, leaderboards, 'who has the most time', active duty, or weekly quotas.",
+      description: "Retrieve logged duty shift hours, leaderboards, top active personnel, and duty statistics for a specific user, division scope, or entire Sith Order across current shifts and compiled weekly reports. Supports current week, last week (past week reports), monthly totals, and all-time total hours logged across live shifts and compiled weekly reports. Use when queried on shift time, hours, leaderboards, 'who has the most time', 'last week', 'ever', active duty, or weekly quotas.",
       parameters: {
         type: "object",
         properties: {
@@ -290,8 +290,8 @@ const OVERSEER_TOOLS = [
           },
           timeframe: {
             type: "string",
-            enum: ["today", "day", "daily", "yesterday", "24h", "week", "month", "all"],
-            description: "Timeframe for shift logs. Use 'today' or 'day' when queried about today's hours, daily totals, or today's leaderboard. Use 'yesterday' for yesterday's shift totals. Use 'week' for weekly leaderboards, or 'month' for monthly."
+            enum: ["today", "day", "daily", "yesterday", "24h", "this_week", "week", "last_week", "past_week", "month", "all", "ever", "all_time"],
+            description: "Timeframe for shift logs. Use 'this_week' or 'today' for current week/today hours. Use 'last_week' or 'past_week' when asked about last week / previous week's logged time (retrieves published weekly reports). Use 'all', 'ever', or 'all_time' when asked about all-time total time logged."
           }
         }
       }
@@ -1055,101 +1055,136 @@ async function executeBotToolCall(toolName, args) {
     if (toolName === "get_shift_totals") {
       const scope = args.scope || "all";
       const targetUser = String(args.user || args.username || "").trim();
-      const timeframe = String(args.timeframe || "").toLowerCase().trim();
+      const rawTimeframe = String(args.timeframe || "").toLowerCase().trim();
+      const cleanTf = rawTimeframe.replace(/[\s_-]+/g, "");
 
-      let query = supabase.from("clock_shifts").select("discord_user_id,discord_username,roblox_user_id,roblox_username,duration_seconds,adjustment_seconds,status,scope,started_at,ended_at");
-      if (scope !== "all") query = query.eq("scope", scope);
-
-      if (timeframe === "today" || timeframe === "day" || timeframe === "daily") {
-        const startOfToday = new Date();
-        startOfToday.setUTCHours(0, 0, 0, 0);
-        query = query.gte("started_at", startOfToday.toISOString());
-      } else if (timeframe === "24h") {
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        query = query.gte("started_at", twentyFourHoursAgo);
-      } else if (timeframe === "yesterday") {
-        const startOfYesterday = new Date();
-        startOfYesterday.setUTCDate(startOfYesterday.getUTCDate() - 1);
-        startOfYesterday.setUTCHours(0, 0, 0, 0);
-        const endOfYesterday = new Date(startOfYesterday);
-        endOfYesterday.setUTCHours(23, 59, 59, 999);
-        query = query.gte("started_at", startOfYesterday.toISOString()).lte("started_at", endOfYesterday.toISOString());
-      } else if (timeframe === "week") {
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        query = query.gte("started_at", sevenDaysAgo);
-      } else if (timeframe === "month") {
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-        query = query.gte("started_at", thirtyDaysAgo);
-      }
-
-      if (targetUser) {
-        query = query.or(`discord_user_id.eq.${targetUser},roblox_username.ilike.%${targetUser}%,discord_username.ilike.%${targetUser}%,roblox_user_id.eq.${targetUser}`);
-      }
-
-      const { data: shifts } = await query;
-      const now = Date.now();
+      const isLastWeek = cleanTf.includes("last") || cleanTf.includes("past") || cleanTf.includes("prev");
+      const isTodayOnly = cleanTf === "today" || cleanTf === "day" || cleanTf === "daily" || cleanTf === "24h";
+      const isYesterdayOnly = cleanTf === "yesterday";
+      const isThisWeekOnly = cleanTf === "thisweek" || cleanTf === "currentweek";
 
       const userAggregates = new Map();
       let totalCombinedSeconds = 0;
       let activeCount = 0;
+      const now = Date.now();
 
-      for (const s of (shifts || [])) {
-        const isActive = s.status === "active";
-        if (isActive) activeCount++;
+      // 1. Query clock_shifts (live shifts) unless querying exclusively past week reports
+      if (!isLastWeek) {
+        let shiftQuery = supabase
+          .from("clock_shifts")
+          .select("discord_user_id,discord_username,roblox_user_id,roblox_username,duration_seconds,adjustment_seconds,status,scope,started_at,ended_at");
 
-        const baseSeconds = isActive
-          ? Math.max(0, Math.floor((now - new Date(s.started_at).getTime()) / 1000))
-          : Number(s.duration_seconds || 0);
-        const shiftSecs = Math.max(0, baseSeconds + Number(s.adjustment_seconds || 0));
+        if (scope !== "all" && scope !== "*") shiftQuery = shiftQuery.eq("scope", scope);
 
-        totalCombinedSeconds += shiftSecs;
+        if (isTodayOnly) {
+          const startOfToday = new Date();
+          startOfToday.setUTCHours(0, 0, 0, 0);
+          shiftQuery = shiftQuery.gte("started_at", startOfToday.toISOString());
+        } else if (cleanTf === "24h") {
+          const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          shiftQuery = shiftQuery.gte("started_at", twentyFourHoursAgo);
+        } else if (isYesterdayOnly) {
+          const startOfYesterday = new Date();
+          startOfYesterday.setUTCDate(startOfYesterday.getUTCDate() - 1);
+          startOfYesterday.setUTCHours(0, 0, 0, 0);
+          const endOfYesterday = new Date(startOfYesterday);
+          endOfYesterday.setUTCHours(23, 59, 59, 999);
+          shiftQuery = shiftQuery.gte("started_at", startOfYesterday.toISOString()).lte("started_at", endOfYesterday.toISOString());
+        } else if (isThisWeekOnly) {
+          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          shiftQuery = shiftQuery.gte("started_at", sevenDaysAgo);
+        }
 
-        const userKey = s.discord_user_id || s.roblox_user_id || s.roblox_username || s.discord_username || "Unknown";
-        const displayName = s.roblox_username || s.discord_username || s.discord_user_id || s.roblox_user_id || "Unknown";
+        if (targetUser) {
+          shiftQuery = shiftQuery.or(`discord_user_id.eq.${targetUser},roblox_username.ilike.%${targetUser}%,discord_username.ilike.%${targetUser}%,roblox_user_id.eq.${targetUser}`);
+        }
 
-        const existing = userAggregates.get(userKey) || {
-          userId: userKey,
-          name: displayName,
-          discordUsername: s.discord_username || "",
-          robloxUsername: s.roblox_username || "",
-          totalSeconds: 0,
-          shiftCount: 0,
-          reportLoggedSeconds: 0,
-          isActiveNow: false
-        };
+        const { data: shifts } = await shiftQuery;
 
-        existing.totalSeconds += shiftSecs;
-        existing.shiftCount += 1;
-        if (isActive) existing.isActiveNow = true;
-        if (s.roblox_username && existing.name === "Unknown") existing.name = s.roblox_username;
+        for (const s of (shifts || [])) {
+          const isActive = s.status === "active";
+          if (isActive) activeCount++;
 
-        userAggregates.set(userKey, existing);
+          const baseSeconds = isActive
+            ? Math.max(0, Math.floor((now - new Date(s.started_at).getTime()) / 1000))
+            : Number(s.duration_seconds || 0);
+          const shiftSecs = Math.max(0, baseSeconds + Number(s.adjustment_seconds || 0));
+
+          totalCombinedSeconds += shiftSecs;
+
+          const userKey = s.discord_user_id || s.roblox_user_id || s.roblox_username || s.discord_username || "Unknown";
+          const displayName = s.roblox_username || s.discord_username || s.discord_user_id || s.roblox_user_id || "Unknown";
+
+          const existing = userAggregates.get(userKey) || {
+            userId: userKey,
+            name: displayName,
+            discordUsername: s.discord_username || "",
+            robloxUsername: s.roblox_username || "",
+            totalSeconds: 0,
+            shiftCount: 0,
+            reportLoggedSeconds: 0,
+            isActiveNow: false
+          };
+
+          existing.totalSeconds += shiftSecs;
+          existing.shiftCount += 1;
+          if (isActive) existing.isActiveNow = true;
+          if (s.roblox_username && existing.name === "Unknown") existing.name = s.roblox_username;
+
+          userAggregates.set(userKey, existing);
+        }
       }
 
-      // If timeframe is all, month, or querying past logged time beyond current week, include published weekly report entries
-      const includeHistoricalReports = timeframe === "all" || timeframe === "month" || !timeframe || targetUser !== "";
+      // 2. Query division_weekly_reports + division_weekly_report_members for past/all-time/last_week queries
+      const includeHistoricalReports = !isTodayOnly && !isYesterdayOnly && !isThisWeekOnly;
       if (includeHistoricalReports) {
         let reportQuery = supabase
           .from("division_weekly_reports")
           .select("*, division_weekly_report_members(*)")
-          .eq("status", "published");
+          .eq("status", "published")
+          .order("week_start", { ascending: false });
 
-        if (scope !== "all") reportQuery = reportQuery.eq("division_key", scope);
-        if (timeframe === "month") {
+        if (scope !== "all" && scope !== "*") reportQuery = reportQuery.eq("division_key", scope);
+
+        if (isLastWeek) {
+          const todayDate = new Date();
+          const dayOfWeek = todayDate.getUTCDay() || 7;
+          const currentMonday = new Date(todayDate);
+          currentMonday.setUTCDate(todayDate.getUTCDate() - dayOfWeek + 1);
+          currentMonday.setUTCHours(0, 0, 0, 0);
+
+          const lastMonday = new Date(currentMonday);
+          lastMonday.setUTCDate(currentMonday.getUTCDate() - 7);
+          const lastMondayStr = lastMonday.toISOString().slice(0, 10);
+          const currentMondayStr = currentMonday.toISOString().slice(0, 10);
+
+          reportQuery = reportQuery.gte("week_start", lastMondayStr).lt("week_start", currentMondayStr);
+        } else if (cleanTf === "month") {
           const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
           reportQuery = reportQuery.gte("week_start", thirtyDaysAgo);
         }
 
-        const { data: pastReports } = await reportQuery;
+        let { data: pastReports } = await reportQuery;
+
+        // Fallback for last_week if exact week_start not matched: fetch latest published weekly reports prior to current week
+        if (isLastWeek && (!pastReports || pastReports.length === 0)) {
+          const { data: latestReports } = await supabase
+            .from("division_weekly_reports")
+            .select("*, division_weekly_report_members(*)")
+            .eq("status", "published")
+            .order("week_start", { ascending: false })
+            .limit(scope === "all" ? 6 : 1);
+          pastReports = latestReports || [];
+        }
+
         for (const r of (pastReports || [])) {
           for (const m of (r.division_weekly_report_members || [])) {
             const memberSecs = Math.max(0, ((Number(m.hours) || 0) * 60 + (Number(m.minutes) || 0)) * 60);
-            if (memberSecs <= 0) continue;
+            if (memberSecs <= 0 && !targetUser) continue;
 
             const userKey = m.roblox_id || m.username || "Unknown";
             const displayName = m.display_name || m.username || m.roblox_id || "Unknown";
 
-            // Try matching targetUser or existing userKey in userAggregates
             let matchedExistingKey = null;
             for (const [key, val] of userAggregates.entries()) {
               if (
@@ -1195,6 +1230,7 @@ async function executeBotToolCall(toolName, args) {
           totalHours: Math.round((u.totalSeconds / 3600) * 10) / 10,
           totalMinutes: Math.round(u.totalSeconds / 60),
           shiftCount: u.shiftCount,
+          reportLoggedHours: Math.round(((u.reportLoggedSeconds || 0) / 3600) * 10) / 10,
           onDutyNow: u.isActiveNow
         }));
 
@@ -1202,13 +1238,13 @@ async function executeBotToolCall(toolName, args) {
 
       return {
         scope,
-        timeframe: timeframe || (targetUser ? "all-time" : "all-logged"),
-        totalShiftsLogged: (shifts || []).length,
+        timeframe: isLastWeek ? "last-week" : (cleanTf || "all-time-logged"),
+        totalUsersFound: userAggregates.size,
         totalHoursLogged: Math.round((totalCombinedSeconds / 3600) * 10) / 10,
         activeShiftsCount: activeCount,
         topUserThisTimeframe: topUser ? { rank: 1, name: topUser.name, hours: topUser.totalHours, minutes: topUser.totalMinutes } : null,
         leaderboardTop10: rankedUsers.slice(0, 10),
-        userQuery: targetUser ? (rankedUsers.find(u => u.name.toLowerCase().includes(targetUser.toLowerCase()) || u.userId === targetUser) || { query: targetUser, message: "No recorded shifts found for specified user." }) : null
+        userQuery: targetUser ? (rankedUsers.find(u => u.name.toLowerCase().includes(targetUser.toLowerCase()) || u.userId === targetUser) || { query: targetUser, message: "No recorded shift or report logs found for specified user." }) : null
       };
     }
 

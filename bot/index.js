@@ -67,9 +67,8 @@ async function maybeHandleHoloAiResponse(message) {
   if (TRANSLATE_REGEX.test(cleanPrompt)) return;
 
   // Reject trivial noise / greetings
-  if (/^(hi|hey|hello|yo|test|testing|sup|gm|gn|lol|xd|ok|okay|\?+|\.+)$/i.test(cleanPrompt)) return;
-
-  await message.channel.sendTyping().catch(() => { });
+  // Reject trivial noise / greetings / useless prompts
+  if (/^(hi|hey|hello|yo|test|testing|sup|gm|gn|lol|xd|ok|okay|cool|bruh|bro|nah|why|who|what|no|yes|funny|lmao|rofl|nvm|stop|bot|huh|wsp|\?+|\.+)$/i.test(cleanPrompt)) return;
 
   // Fetch verified profile for context (non-blocking, not a gate)
   const verified = await getVerifiedProfile(message.author.id).catch(() => null);

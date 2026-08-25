@@ -7,6 +7,7 @@ import { botErrorMessage } from "../services/bot-errors.js";
 import { componentsV2Message, containerV2, embed, ephemeral, errorEmbed, successEmbed, textDisplayV2 } from "../services/discord-ui.js";
 import { divisionTierWeight, getVerifiedProfile, canManageBot } from "../services/roles.js";
 import { supabase } from "../services/supabase.js";
+import { fetchDivisionRoster as fetchDivisionRosterHelper } from "../../src/lib/api-helpers.js";
 
 const VERIFY_INSTRUCTIONS = "You are not linked yet. Go to <#1046452180074381403> and click the verify button, or use `/verify`.";
 const REPORT_PREVIEW_LIMIT = 12;
@@ -59,95 +60,7 @@ function assertReportScope(scope) {
 
 async function fetchDivisionRoster(scope) {
   assertReportScope(scope);
-
-  if (scope === "highranks") {
-    const groupId = ROBLOX_GROUPS.MAIN_GROUP?.groupId || 3197893;
-    const highRankNumbers = Object.values(ROBLOX_GROUPS.MAIN_GROUP.tiers || {}).flat().map(Number);
-    const rolesRes = await fetch(`https://groups.roblox.com/v1/groups/${groupId}/roles`);
-    if (!rolesRes.ok) throw new Error("ROBLOX_ROSTER_LOOKUP_FAILED");
-    const rolesPayload = await rolesRes.json();
-    const targetRoles = (rolesPayload.roles || []).filter(r => highRankNumbers.includes(Number(r.rank)));
-
-    const members = [];
-    for (const role of targetRoles) {
-      let cursor = "";
-      do {
-        const url = new URL(`https://groups.roblox.com/v1/groups/${groupId}/roles/${role.id}/users`);
-        url.searchParams.set("limit", "100");
-        url.searchParams.set("sortOrder", "Asc");
-        if (cursor) url.searchParams.set("cursor", cursor);
-
-        const res = await fetch(url);
-        if (!res.ok) break;
-        const payload = await res.json();
-        (payload.data || []).forEach(item => {
-          members.push({
-            robloxId: String(item.userId || item.id || ""),
-            username: item.username || "",
-            displayName: item.displayName || "",
-            rank: Number(role.rank),
-            role: role.name || ""
-          });
-        });
-        cursor = payload.nextPageCursor || "";
-      } while (cursor);
-    }
-    return members.filter(m => {
-      if (!m.robloxId) return false;
-      const uname = String(m.username || "").toLowerCase();
-      const dname = String(m.displayName || "").toLowerCase();
-      return uname !== "naktisterminus" && dname !== "naktisterminus";
-    });
-  }
-
-  let groupId;
-  let minRank = 1;
-  let maxRank = 255;
-
-  if (scope === "darkCouncil") {
-    groupId = ROBLOX_GROUPS.DARK_COUNCIL?.groupId || 3199126;
-    maxRank = 253; // Capped at Emperor (excluding Project Manager 254 & Group Owner 255)
-  } else if (ROBLOX_GROUPS.DIVISIONS[scope]) {
-    const definition = ROBLOX_GROUPS.DIVISIONS[scope];
-    groupId = definition.groupId;
-    const rankNumbers = Object.keys(definition.ranks || {}).map(Number).filter(n => !isNaN(n));
-    if (rankNumbers.length) {
-      maxRank = Math.max(...rankNumbers);
-    }
-  } else {
-    throw new Error("UNKNOWN_REPORT_SCOPE");
-  }
-
-  let cursor = "";
-  const members = [];
-
-  do {
-    const url = new URL(`https://groups.roblox.com/v1/groups/${groupId}/users`);
-    url.searchParams.set("limit", "100");
-    url.searchParams.set("sortOrder", "Asc");
-    if (cursor) url.searchParams.set("cursor", cursor);
-
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("ROBLOX_ROSTER_LOOKUP_FAILED");
-    const payload = await response.json();
-
-    (payload.data || []).forEach(item => {
-      const rank = Number(item.role?.rank || 0);
-      if (rank >= minRank && rank <= maxRank) {
-        members.push({
-          robloxId: String(item.user?.userId || item.user?.id || ""),
-          username: item.user?.username || "",
-          displayName: item.user?.displayName || "",
-          rank,
-          role: item.role?.name || ""
-        });
-      }
-    });
-
-    cursor = payload.nextPageCursor || "";
-  } while (cursor);
-
-  return members.filter(member => member.robloxId);
+  return fetchDivisionRosterHelper(scope);
 }
 
 function reportErrorMessage(error, interaction = null) {

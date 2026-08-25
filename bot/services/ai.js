@@ -171,7 +171,7 @@ OPERATIONAL RUBRIC & CITATION PROTOCOL:
 1. VALIDITY, LANGUAGE & SILENCE PROTOCOL (STRICT):
 - ENGLISH ONLY: You exclusively process and respond in the English language.
 - REJECT TRANSLATIONS: NEVER fulfill requests to translate text into other languages or translate from other languages. If asked to translate, output EXACTLY: [NO_RESPONSE]
-- REJECT NON-ENGLISH & NONSENSE: If the query is in a foreign language, is gibberish, spam, meaningless banter, or is NOT a valid recognized question/request regarding Imperial matters, lore, hierarchy, or regulations, output EXACTLY: [NO_RESPONSE]
+- REJECT NON-ENGLISH, USELESS PROMPTS & NONSENSE: If the query is in a foreign language, is gibberish, spam, meaningless chatter, casual greetings ("hi", "yo", "ok", "cool"), real-world off-topic banter, or is NOT a valid recognized question/request regarding Imperial matters, lore, hierarchy, regulations, or Star Wars history within the allowed era, output EXACTLY: [NO_RESPONSE]
 - Do NOT output any apology, greeting, or refusal text—output ONLY [NO_RESPONSE].
 
 2. CORE DEMEANOR & FORM:
@@ -201,10 +201,25 @@ OPERATIONAL RUBRIC & CITATION PROTOCOL:
     2. **BarrakudaCERO** (barrakuda0) — 15.4 hrs (927 mins) • 13 shifts [Active On Duty]
 - Keep all responses structured, compact, scannable, and bolded for immediate readability.
 
-6. IN-UNIVERSE LORE & LOGIC:
-- You possess full standalone mastery over Star Wars Sith Order history, philosophy, tactical reasoning, logic, and code syntax.
-- If a query does not require live Imperial database records, synthesize the answer directly without invoking tools.
-- Never give out-of-universe real-world emergency advice or moral lectures. If a query is completely out of scope or invalid, output [NO_RESPONSE].`;
+6. IN-UNIVERSE STAR WARS LORE & TEMPORAL ERA BOUNDARY (CRITICAL STRICT PROHIBITION):
+- ENCYCLOPEDIC LORE MASTERY: Be highly open, detailed, and encyclopedic when asked about Star Wars lore, Sith philosophy, ancient artifacts, force techniques, historical battles, and galactic history within your allowed temporal era.
+- STRICT ERA TEMPORAL BOUNDARY RULE:
+  * ALLOWED ERA (THE PAST): You MAY discuss Star Wars lore, historical figures, philosophy, and events that occurred in the past up to and during the golden era of the Reconstituted Sith Empire under Emperor Darth Vitiate (e.g. Ancient Sith, Dawn of the Jedi, Hundred-Year Darkness, Great Hyperspace War, Great Sith War, Mandalorian Wars, Jedi Civil War, Great Galactic War, Cold War, Reconstituted Sith Empire).
+  * STRICTLY PROHIBITED ERAS (POST-VITIATE / FUTURE ERAS): You MUST NEVER answer, discuss, cite, or acknowledge Star Wars events, characters, or eras that happened AFTER or near the Fall of Darth Vitiate and the Reconstituted Sith Empire, before or during/after the Eternal Empire / Zakuul, or any modern eras (e.g. Ruusan Reformation, Darth Bane / Rule of Two, High Republic, Prequel Era / Clone Wars, Galactic Empire / Palpatine / Darth Vader, Rebellion, New Republic, Sequel Era, or Legacy Era).
+  * IF ASKED ABOUT PROHIBITED FUTURE ERAS OR POST-VITIATE EVENTS: Output EXACTLY: [NO_RESPONSE]
+- Never give out-of-universe real-world emergency advice or moral lectures.
+
+7. TIME LOGGING & HISTORICAL WEEKLY REPORT RELATIONS:
+- CURRENT WEEK vs HISTORICAL TIME LOGGED:
+  * Live duty shift logging for THIS current week is stored in clock_shifts.
+  * ALL time logged BEYOND THIS WEEK is archived and compiled into weekly reports across multiple relational tables:
+    1. division_weekly_reports (Parent report header: id, division_key, week_start, author_id, author_name, status, created_at, updated_at)
+    2. division_weekly_report_members (Child member performance lines: report_id, roblox_id, username, display_name, rank, role, hours, minutes, events_hosted, events_attended, display_order)
+    3. verification_links (Correlates Roblox user IDs roblox_user_id / roblox_id with Discord User IDs discord_user_id and Discord/Roblox usernames)
+    4. clock_shifts (Contains active/current week shifts: discord_user_id, roblox_user_id, duration_seconds, started_at, scope)
+- FOR QUERIES BEYOND THIS WEEK / PAST WEEKS / HISTORICAL REPORTS:
+  * When queried about weekly reports, past week activity, events hosted/attended in reports, or time logged beyond this week, ALWAYS invoke get_weekly_reports or get_shift_totals.
+  * Synthesize and explain the relations between report members (division_weekly_report_members), parent reports (division_weekly_reports), and personnel identity (verification_links).`;
 
 const OVERSEER_TOOLS = [
   {
@@ -263,7 +278,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_shift_totals",
-      description: "Retrieve logged duty shift hours, leaderboards, top active personnel, and duty statistics for a specific user, division scope, or entire Sith Order. Use when queried on shift time, hours, leaderboards, 'who has the most time', active duty, or weekly quotas.",
+      description: "Retrieve logged duty shift hours, leaderboards, top active personnel, and duty statistics for a specific user, division scope, or entire Sith Order across current shifts and compiled weekly reports. Use when queried on shift time, hours, leaderboards, 'who has the most time', active duty, or weekly quotas.",
       parameters: {
         type: "object",
         properties: {
@@ -277,6 +292,35 @@ const OVERSEER_TOOLS = [
             type: "string",
             enum: ["today", "day", "daily", "yesterday", "24h", "week", "month", "all"],
             description: "Timeframe for shift logs. Use 'today' or 'day' when queried about today's hours, daily totals, or today's leaderboard. Use 'yesterday' for yesterday's shift totals. Use 'week' for weekly leaderboards, or 'month' for monthly."
+          }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_weekly_reports",
+      description: "Retrieve compiled weekly reports and report member logs for time logged beyond this week, past weeks, member report entries, or events hosted/attended in reports. Use when asked for past week reports, historical time logged beyond this week, member report statistics, or events in reports.",
+      parameters: {
+        type: "object",
+        properties: {
+          scope: {
+            type: "string",
+            enum: ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil", "all"],
+            description: "Optional division scope filter."
+          },
+          weekStart: {
+            type: "string",
+            description: "Optional week start date in YYYY-MM-DD format (e.g. '2026-08-17')."
+          },
+          user: {
+            type: "string",
+            description: "Optional Roblox username, Roblox user ID, or Discord user ID to filter report member entries for a specific individual."
+          },
+          limit: {
+            type: "number",
+            description: "Number of reports to retrieve. Defaults to 5."
           }
         }
       }
@@ -915,6 +959,99 @@ async function executeBotToolCall(toolName, args) {
       };
     }
 
+    if (toolName === "get_weekly_reports") {
+      const scope = String(args.scope || args.division || "all").toLowerCase().trim();
+      const weekStart = String(args.weekStart || args.week_start || "").trim();
+      const targetUser = String(args.user || args.username || "").trim();
+      const limit = Math.min(20, Math.max(1, Number(args.limit) || 5));
+
+      let query = supabase
+        .from("division_weekly_reports")
+        .select("*, division_weekly_report_members(*)")
+        .eq("status", "published")
+        .order("week_start", { ascending: false })
+        .limit(limit);
+
+      if (scope !== "all" && scope !== "*") {
+        query = query.eq("division_key", scope);
+      }
+      if (weekStart) {
+        query = query.eq("week_start", weekStart);
+      }
+
+      const { data: reports, error } = await query;
+      if (error) {
+        return { error: `Database query error: ${error.message}` };
+      }
+
+      if (!reports || reports.length === 0) {
+        return { message: `No published weekly reports found for scope '${scope}'${weekStart ? ` and week_start '${weekStart}'` : ""}.` };
+      }
+
+      let robloxIdsToMatch = new Set();
+      if (targetUser) {
+        if (/^\d+$/.test(targetUser)) {
+          robloxIdsToMatch.add(targetUser);
+          const { data: vLink } = await supabase
+            .from("verification_links")
+            .select("roblox_user_id")
+            .eq("discord_user_id", targetUser)
+            .maybeSingle();
+          if (vLink?.roblox_user_id) {
+            robloxIdsToMatch.add(String(vLink.roblox_user_id));
+          }
+        }
+      }
+
+      const formattedReports = reports.map(r => {
+        let members = r.division_weekly_report_members || [];
+        if (targetUser) {
+          const lower = targetUser.toLowerCase();
+          members = members.filter(m =>
+            m.username?.toLowerCase().includes(lower) ||
+            m.display_name?.toLowerCase().includes(lower) ||
+            robloxIdsToMatch.has(String(m.roblox_id))
+          );
+        }
+
+        const totalReportMinutes = (r.division_weekly_report_members || []).reduce((acc, m) => acc + (Number(m.hours) || 0) * 60 + (Number(m.minutes) || 0), 0);
+        const totalEventsHosted = (r.division_weekly_report_members || []).reduce((acc, m) => acc + (Number(m.events_hosted) || 0), 0);
+        const totalEventsAttended = (r.division_weekly_report_members || []).reduce((acc, m) => acc + (Number(m.events_attended) || 0), 0);
+
+        return {
+          reportId: r.id,
+          divisionKey: r.division_key,
+          weekStart: r.week_start,
+          authorName: r.author_name,
+          authorRobloxId: r.author_id,
+          status: r.status,
+          createdAt: r.created_at,
+          totalReportHours: Math.round((totalReportMinutes / 60) * 10) / 10,
+          totalEventsHosted,
+          totalEventsAttended,
+          totalMembersInReport: (r.division_weekly_report_members || []).length,
+          members: members.slice(0, 15).map(m => ({
+            robloxId: m.roblox_id,
+            username: m.username,
+            displayName: m.display_name,
+            rank: m.rank,
+            role: m.role,
+            hours: m.hours,
+            minutes: m.minutes,
+            totalMinutes: (Number(m.hours) || 0) * 60 + (Number(m.minutes) || 0),
+            eventsHosted: m.events_hosted || 0,
+            eventsAttended: m.events_attended || 0
+          }))
+        };
+      });
+
+      return {
+        totalReportsFound: reports.length,
+        userFiltered: targetUser || null,
+        reports: formattedReports
+      };
+    }
+
     if (toolName === "get_shift_totals") {
       const scope = args.scope || "all";
       const targetUser = String(args.user || args.username || "").trim();
@@ -977,6 +1114,7 @@ async function executeBotToolCall(toolName, args) {
           robloxUsername: s.roblox_username || "",
           totalSeconds: 0,
           shiftCount: 0,
+          reportLoggedSeconds: 0,
           isActiveNow: false
         };
 
@@ -986,6 +1124,64 @@ async function executeBotToolCall(toolName, args) {
         if (s.roblox_username && existing.name === "Unknown") existing.name = s.roblox_username;
 
         userAggregates.set(userKey, existing);
+      }
+
+      // If timeframe is all, month, or querying past logged time beyond current week, include published weekly report entries
+      const includeHistoricalReports = timeframe === "all" || timeframe === "month" || !timeframe || targetUser !== "";
+      if (includeHistoricalReports) {
+        let reportQuery = supabase
+          .from("division_weekly_reports")
+          .select("*, division_weekly_report_members(*)")
+          .eq("status", "published");
+
+        if (scope !== "all") reportQuery = reportQuery.eq("division_key", scope);
+        if (timeframe === "month") {
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          reportQuery = reportQuery.gte("week_start", thirtyDaysAgo);
+        }
+
+        const { data: pastReports } = await reportQuery;
+        for (const r of (pastReports || [])) {
+          for (const m of (r.division_weekly_report_members || [])) {
+            const memberSecs = Math.max(0, ((Number(m.hours) || 0) * 60 + (Number(m.minutes) || 0)) * 60);
+            if (memberSecs <= 0) continue;
+
+            const userKey = m.roblox_id || m.username || "Unknown";
+            const displayName = m.display_name || m.username || m.roblox_id || "Unknown";
+
+            // Try matching targetUser or existing userKey in userAggregates
+            let matchedExistingKey = null;
+            for (const [key, val] of userAggregates.entries()) {
+              if (
+                key === String(m.roblox_id) ||
+                val.robloxUsername?.toLowerCase() === m.username?.toLowerCase() ||
+                val.name?.toLowerCase() === m.username?.toLowerCase()
+              ) {
+                matchedExistingKey = key;
+                break;
+              }
+            }
+
+            const targetKey = matchedExistingKey || userKey;
+            const existing = userAggregates.get(targetKey) || {
+              userId: targetKey,
+              name: displayName,
+              discordUsername: "",
+              robloxUsername: m.username || "",
+              totalSeconds: 0,
+              shiftCount: 0,
+              reportLoggedSeconds: 0,
+              isActiveNow: false
+            };
+
+            existing.totalSeconds += memberSecs;
+            existing.reportLoggedSeconds = (existing.reportLoggedSeconds || 0) + memberSecs;
+            if (m.username && existing.name === "Unknown") existing.name = m.username;
+
+            userAggregates.set(targetKey, existing);
+            totalCombinedSeconds += memberSecs;
+          }
+        }
       }
 
       const rankedUsers = Array.from(userAggregates.values())

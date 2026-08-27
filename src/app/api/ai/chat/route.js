@@ -13,12 +13,17 @@ import { emperorArchiveItems, hierarchyItems } from "../../../../../modules/data
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODELS_ENDPOINT = "https://api.groq.com/openai/v1/models";
 
+const CHAT_MODEL_ALLOWLIST_REGEX = /^(llama-3|llama3|mixtral|gemma-2|gemma2|qwen|deepseek)/i;
+const NON_CHAT_BLOCKLIST_REGEX = /(orpheus|canopy|playdialog|whisper|tts|stt|audio|speech|guard|embed|vision|preview|rerank|distill)/i;
+
 const DEFAULT_FALLBACK_MODELS = [
   "llama-3.3-70b-versatile",
   "llama-3.1-8b-instant",
   "llama-3.1-70b-versatile",
   "llama3-70b-8192",
-  "llama3-8b-8192"
+  "llama3-8b-8192",
+  "mixtral-8x7b-32768",
+  "gemma2-9b-it"
 ];
 
 let cachedModels = null;
@@ -28,6 +33,7 @@ const CACHE_TTL_MS = 10 * 60 * 1000;
 
 function getModelPriorityScore(modelId, contextWindow = 0) {
   const id = String(modelId || "").toLowerCase();
+  if (NON_CHAT_BLOCKLIST_REGEX.test(id) || !CHAT_MODEL_ALLOWLIST_REGEX.test(id)) return -1;
   
   // Flagship Llama 3.3
   if (id.includes("llama-3.3-70b-versatile") || id === "llama-3.3-70b") return 1000;
@@ -38,13 +44,14 @@ function getModelPriorityScore(modelId, contextWindow = 0) {
   if (id.includes("llama-3.1-70b")) return 750;
   if (id.includes("llama-3.1")) return 700;
   
-  // Standard Llama 3
+  // Standard Llama 3 & open architectures
   if (id.includes("llama3-70b")) return 600;
   if (id.includes("llama3-8b")) return 500;
-  if (id.includes("llama")) return 400;
+  if (id.includes("mixtral-8x7b")) return 400;
+  if (id.includes("gemma2-9b") || id.includes("gemma-2-9b")) return 300;
+  if (id.includes("llama")) return 200;
   
-  // Other models ranked by context window
-  return Math.min(300, Math.floor(contextWindow / 1000));
+  return Math.min(150, Math.floor(contextWindow / 1000));
 }
 
 async function getAvailableGroqModels(apiKey) {
@@ -58,7 +65,8 @@ async function getAvailableGroqModels(apiKey) {
 
   try {
     const res = await fetch(GROQ_MODELS_ENDPOINT, {
-      headers: { "Authorization": `Bearer ${primaryKey}` }
+      headers: { "Authorization": `Bearer ${primaryKey}` },
+      signal: AbortSignal.timeout(6000)
     });
     if (res.ok) {
       const json = await res.json();
@@ -67,7 +75,8 @@ async function getAvailableGroqModels(apiKey) {
       const filtered = rawList.filter(m => {
         const id = String(m.id || "").toLowerCase();
         if (m.active === false) return false;
-        if (id.includes("whisper") || id.includes("guard") || id.includes("embed") || id.includes("vision") || id.includes("preview") || id.includes("distill")) return false;
+        if (NON_CHAT_BLOCKLIST_REGEX.test(id)) return false;
+        if (!CHAT_MODEL_ALLOWLIST_REGEX.test(id)) return false;
         return true;
       });
 
@@ -111,11 +120,11 @@ async function executeGroqChat(apiKey, payload) {
   const keys = String(apiKey || "").split(",").map(k => k.trim()).filter(Boolean);
   let lastError = null;
   const rawCandidateModels = await getAvailableGroqModels(keys[0]);
-  const activeModels = rawCandidateModels.filter(m => !isModelRateLimited(m));
-  const candidateModels = activeModels.length > 0 ? [...activeModels] : [...rawCandidateModels];
+  const activeModels = rawCandidateModels.filter(m => !isModelRateLimited(m) && CHAT_MODEL_ALLOWLIST_REGEX.test(m) && !NON_CHAT_BLOCKLIST_REGEX.test(m));
+  const candidateModels = activeModels.length > 0 ? [...activeModels] : DEFAULT_FALLBACK_MODELS;
 
   // If we have a known working model that isn't on cooldown, prioritize it to avoid cycling
-  if (lastSuccessfulModel && !isModelRateLimited(lastSuccessfulModel)) {
+  if (lastSuccessfulModel && !isModelRateLimited(lastSuccessfulModel) && candidateModels.includes(lastSuccessfulModel)) {
     const idx = candidateModels.indexOf(lastSuccessfulModel);
     if (idx > -1) {
       candidateModels.splice(idx, 1);
@@ -123,8 +132,11 @@ async function executeGroqChat(apiKey, payload) {
     candidateModels.unshift(lastSuccessfulModel);
   }
 
+  // Allow trying up to 5 valid chat models across keys
+  const modelsToTry = candidateModels.slice(0, 5);
+
   for (const currentKey of keys) {
-    for (const model of candidateModels) {
+    for (const model of modelsToTry) {
       try {
         const response = await fetch(GROQ_ENDPOINT, {
           method: "POST",
@@ -136,7 +148,8 @@ async function executeGroqChat(apiKey, payload) {
             ...payload,
             model,
             temperature: 0.2
-          })
+          }),
+          signal: AbortSignal.timeout(10000)
         });
 
         if (response.ok) {
@@ -160,7 +173,7 @@ async function executeGroqChat(apiKey, payload) {
           continue;
         }
 
-        break;
+        continue;
       } catch (err) {
         lastError = { status: 0, body: err?.message, model };
         continue;

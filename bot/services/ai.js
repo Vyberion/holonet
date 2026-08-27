@@ -116,8 +116,11 @@ async function executeGroqChat(apiKey, payload) {
     candidateModels.unshift(lastSuccessfulModel);
   }
 
+  // Cap candidate models to at most 3 to prevent long hanging retry loops
+  const modelsToTry = candidateModels.slice(0, 3);
+
   for (const currentKey of keys) {
-    for (const model of candidateModels) {
+    for (const model of modelsToTry) {
       try {
         const response = await fetch(GROQ_ENDPOINT, {
           method: "POST",
@@ -129,7 +132,8 @@ async function executeGroqChat(apiKey, payload) {
             ...payload,
             model,
             temperature: 0.2
-          })
+          }),
+          signal: AbortSignal.timeout(10000)
         });
 
         if (response.ok) {
@@ -819,8 +823,8 @@ function parseEmperorQuery(queryStr = "") {
     "forty-first": 41, "forty first": 41, "41st": 41
   };
 
-  const ROMAN_MAP = {
-    i: 1, ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8, ix: 9, x: 10,
+  const MULTI_ROMAN_MAP = {
+    ii: 2, iii: 3, iv: 4, vi: 6, vii: 7, viii: 8, ix: 9,
     xi: 11, xii: 12, xiii: 13, xiv: 14, xv: 15, xvi: 16, xvii: 17, xviii: 18, xix: 19, xx: 20,
     xxi: 21, xxii: 22, xxiii: 23, xxiv: 24, xxv: 25, xxvi: 26, xxvii: 27, xxviii: 28, xxix: 29, xxx: 30,
     xxxi: 31, xxxii: 32, xxxiii: 33, xxxiv: 34, xxxv: 35, xxxvi: 36, xxxvii: 37, xxxviii: 38, xxxix: 39, xl: 40, xli: 41
@@ -842,9 +846,17 @@ function parseEmperorQuery(queryStr = "") {
 
   const tokens = clean.split(/[\s,.-]+/);
   for (const token of tokens) {
-    if (ROMAN_MAP[token]) {
-      reigns.add(ROMAN_MAP[token]);
+    if (MULTI_ROMAN_MAP[token]) {
+      reigns.add(MULTI_ROMAN_MAP[token]);
     }
+  }
+
+  // Single-letter Roman numeral ONLY if explicitly preceded by indicator word (e.g. "reign i", "emperor x")
+  const singleMatch = clean.match(/\b(?:reign|emperor|#|sovereign|the)\s+(i|v|x)\b/i);
+  if (singleMatch) {
+    const singleMap = { i: 1, v: 5, x: 10 };
+    const num = singleMap[singleMatch[1].toLowerCase()];
+    if (num) reigns.add(num);
   }
 
   return { reigns: Array.from(reigns), isCurrent };
@@ -868,14 +880,10 @@ async function searchAllBotArchives(queryStr) {
     const pathName = emp.path || `The ${ordSuffix}`;
 
     const docContent = [
-      `Sith Emperor Archive - Reign #${index} (${emp.name})`,
-      `Category: ${categoryName}`,
-      `Reign Title / Path: ${pathName}`,
-      `Slug: ${emp.slug}`,
-      `Roman Numeral: ${roman}`,
+      `Sith Emperor Archive - Reign #${index} (${emp.name}) [Roman: ${roman}]`,
+      `Title/Category: ${categoryName} (${pathName})`,
       `Status: ${isCurrent ? "CURRENT EMPEROR OF THE SITH EMPIRE (41st Sovereign)" : "Former Sovereign"}`,
-      `Biography & Imperial Record:`,
-      emp.body || "Biography pending archival upload."
+      `Record: ${emp.body || "Biography pending archival upload."}`
     ].join("\n");
 
     results.push({
@@ -883,7 +891,7 @@ async function searchAllBotArchives(queryStr) {
       title: emp.name,
       reignIndex: index,
       category: categoryName,
-      summary: emp.body ? emp.body.slice(0, 140) + "..." : `Imperial archive record for Reign #${index}: ${emp.name}`,
+      summary: `${emp.name} — Reign #${index} (${categoryName})`,
       content: docContent,
       slug: emp.slug,
       isEmperorDoc: true,
@@ -899,13 +907,13 @@ async function searchAllBotArchives(queryStr) {
       title: item.name,
       category: item.groupTitle || "Imperial Hierarchy",
       summary: item.summary || "",
-      content: `${item.name} (${item.groupTitle || ""})\n${item.body || ""}`,
+      content: `${item.name} (${item.groupTitle || ""}): ${item.body || ""}`,
       slug: item.slug
     });
   }
 
   // 3. Database archive articles
-  const { data: dbArticles } = await supabase.from("archive_articles").select("*").limit(30);
+  const { data: dbArticles } = await supabase.from("archive_articles").select("*").limit(20);
   if (dbArticles?.length) {
     for (const d of dbArticles) {
       results.push({
@@ -920,7 +928,7 @@ async function searchAllBotArchives(queryStr) {
   }
 
   // 4. Resource transmissions
-  const { data: transmissions } = await supabase.from("resource_transmissions").select("*").limit(20);
+  const { data: transmissions } = await supabase.from("resource_transmissions").select("*").limit(10);
   if (transmissions?.length) {
     for (const t of transmissions) {
       results.push({
@@ -975,7 +983,7 @@ async function searchAllBotArchives(queryStr) {
     return true;
   });
 
-  return uniqueDocs.slice(0, 15).map(r => ({
+  return uniqueDocs.slice(0, 4).map(r => ({
     title: r.title,
     category: r.category,
     summary: r.summary,

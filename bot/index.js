@@ -77,7 +77,7 @@ async function maybeHandleHoloAiResponse(message) {
   // Fetch verified profile for context (non-blocking, not a gate)
   const verified = await getVerifiedProfile(message.author.id).catch(() => null);
 
-  // Send typing status to channel and maintain heartbeat interval while generating response
+  // Send typing status to channel and maintain heartbeat interval with safety ceiling
   let typingInterval = null;
   const triggerTyping = async () => {
     try {
@@ -87,6 +87,12 @@ async function maybeHandleHoloAiResponse(message) {
 
   await triggerTyping();
   typingInterval = setInterval(triggerTyping, 6000);
+  const typingSafetyTimeout = setTimeout(() => {
+    if (typingInterval) {
+      clearInterval(typingInterval);
+      typingInterval = null;
+    }
+  }, 20000); // 20 second max typing duration
 
   try {
     const aiReply = await queryHoloAi({
@@ -118,10 +124,14 @@ async function maybeHandleHoloAiResponse(message) {
       const secondsMatch = errText.match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
       const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
       await message.reply(`Holonet transmission rate limit reached. Try again in ${timeStr}.`).catch(() => { });
+    } else if (isExemptUser) {
+      await message.reply(`Holonet intelligence query encountered an anomaly: ${errText.slice(0, 100)}`).catch(() => { });
     }
   } finally {
+    clearTimeout(typingSafetyTimeout);
     if (typingInterval) {
       clearInterval(typingInterval);
+      typingInterval = null;
     }
   }
 }

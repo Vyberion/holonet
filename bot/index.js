@@ -77,6 +77,17 @@ async function maybeHandleHoloAiResponse(message) {
   // Fetch verified profile for context (non-blocking, not a gate)
   const verified = await getVerifiedProfile(message.author.id).catch(() => null);
 
+  // Send typing status to channel and maintain heartbeat interval while generating response
+  let typingInterval = null;
+  const triggerTyping = async () => {
+    try {
+      await message.channel?.sendTyping?.();
+    } catch (_) { }
+  };
+
+  await triggerTyping();
+  typingInterval = setInterval(triggerTyping, 6000);
+
   try {
     const aiReply = await queryHoloAi({
       prompt: cleanPrompt,
@@ -107,6 +118,10 @@ async function maybeHandleHoloAiResponse(message) {
       const secondsMatch = errText.match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
       const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
       await message.reply(`Holonet transmission rate limit reached. Try again in ${timeStr}.`).catch(() => { });
+    }
+  } finally {
+    if (typingInterval) {
+      clearInterval(typingInterval);
     }
   }
 }

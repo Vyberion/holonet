@@ -105,6 +105,72 @@ function romanize(num) {
   return ["I", "II", "III", "IV"][num - 1] || "I";
 }
 
+export async function getPowerbaseUserLabel(discordUserId, client = null) {
+  if (!discordUserId || discordUserId === "0") return "*Vacant*";
+
+  try {
+    const { data: link } = await supabase
+      .from("verification_links")
+      .select("roblox_username, discord_username")
+      .eq("discord_user_id", String(discordUserId))
+      .maybeSingle();
+
+    if (link?.roblox_username) {
+      return link.roblox_username;
+    }
+    if (link?.discord_username) {
+      return `@${link.discord_username}`;
+    }
+    if (client?.users) {
+      const u = await client.users.fetch(String(discordUserId)).catch(() => null);
+      if (u) {
+        return u.displayName || u.globalName || `@${u.username}`;
+      }
+    }
+  } catch (_) { }
+
+  return `User ${discordUserId}`;
+}
+
+export async function getPowerbaseUserLabels(discordUserIds = [], client = null) {
+  const ids = Array.from(new Set(discordUserIds.map(id => String(id || "")).filter(Boolean)));
+  const map = {};
+  if (!ids.length) return map;
+
+  try {
+    const { data: links } = await supabase
+      .from("verification_links")
+      .select("discord_user_id, roblox_username, discord_username")
+      .in("discord_user_id", ids);
+
+    (links || []).forEach(l => {
+      if (l.roblox_username) {
+        map[l.discord_user_id] = l.roblox_username;
+      } else if (l.discord_username) {
+        map[l.discord_user_id] = `@${l.discord_username}`;
+      }
+    });
+
+    const missing = ids.filter(id => !map[id]);
+    if (missing.length && client?.users) {
+      await Promise.all(missing.map(async (id) => {
+        try {
+          const u = await client.users.fetch(id).catch(() => null);
+          if (u) {
+            map[id] = u.displayName || u.globalName || `@${u.username}`;
+          }
+        } catch (_) { }
+      }));
+    }
+
+    ids.forEach(id => {
+      if (!map[id]) map[id] = `User ${id}`;
+    });
+  } catch (_) { }
+
+  return map;
+}
+
 export function getPowerbaseCapacity(tier, isImperial = false) {
   if (isImperial || tier === 10 || tier === "X") return 3;
   const cap = { 1: 4, 2: 6, 3: 8, 4: 10 };
@@ -213,6 +279,9 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
       const { emperorId, voiceId, wrathId, shadowGuardIds } = await syncImperialPowerbaseData(pb);
       const totalMemberCount = (emperorId ? 1 : 0) + (voiceId ? 1 : 0) + (wrathId ? 1 : 0) + shadowGuardIds.length + memberIds.length;
 
+      const allIds = [emperorId || pb.leader_id, voiceId, wrathId, ...shadowGuardIds, ...memberIds].filter(Boolean);
+      const userNames = await getPowerbaseUserLabels(allIds, client);
+
       components.push(textDisplayV2(`# [${pb.name}](${pbUrl})`));
       components.push(textDisplayV2(`**Tier:** X\n**Members:** ${totalMemberCount}`));
       components.push(separatorV2());
@@ -228,12 +297,13 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
       }
 
       // Roster section: Leader (Emperor)
-      components.push(textDisplayV2(`### Roster\n**Leader:**\n${emperorId ? `<@${emperorId}>` : "*Vacant*"}`));
+      const empLeaderName = userNames[emperorId || pb.leader_id] || "*Vacant*";
+      components.push(textDisplayV2(`### Roster\n**Leader:**\n${empLeaderName}`));
 
       // Emperor's Voice and Wrath section
       const secondaries = [];
-      if (voiceId) secondaries.push(`**Emperor's Voice:**\n<@${voiceId}>`);
-      if (wrathId) secondaries.push(`**Emperor's Wrath:**\n<@${wrathId}>`);
+      if (voiceId) secondaries.push(`**Emperor's Voice:**\n${userNames[voiceId] || `User ${voiceId}`}`);
+      if (wrathId) secondaries.push(`**Emperor's Wrath:**\n${userNames[wrathId] || `User ${wrathId}`}`);
 
       if (secondaries.length > 0) {
         components.push(separatorV2());
@@ -243,14 +313,14 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
       // Shadow Guards section (only if any exist)
       if (shadowGuardIds.length > 0) {
         components.push(separatorV2());
-        const sgLines = shadowGuardIds.map(id => `<@${id}>`).join("\n");
+        const sgLines = shadowGuardIds.map(id => userNames[id] || `User ${id}`).join("\n");
         components.push(textDisplayV2(`**Shadow Guards:**\n${sgLines}`));
       }
 
       // Apprentices section (only if any exist)
       if (memberIds.length > 0) {
         components.push(separatorV2());
-        const appLines = memberIds.map(id => `<@${id}>`).join("\n");
+        const appLines = memberIds.map(id => userNames[id] || `User ${id}`).join("\n");
         components.push(textDisplayV2(`**Apprentices:**\n${appLines}`));
       }
 
@@ -261,8 +331,12 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
 
     } else {
       // Standard Powerbase Embed Formatting
+      const allIds = [pb.leader_id, ...memberIds].filter(Boolean);
+      const userNames = await getPowerbaseUserLabels(allIds, client);
+
+      const leaderName = userNames[pb.leader_id] || (pb.leader_id ? `User ${pb.leader_id}` : "*Vacant*");
       const apprenticeText = memberIds.length > 0
-        ? memberIds.map(id => `<@${id}>`).join("\n")
+        ? memberIds.map(id => userNames[id] || `User ${id}`).join("\n")
         : "*None*";
 
       const sdBadge = pb.is_sudden_death ? " **[SUDDEN DEATH]**" : "";
@@ -281,7 +355,7 @@ export async function syncPowerbaseRosterMessage(client, powerbaseId) {
         components.push(separatorV2());
       }
 
-      components.push(textDisplayV2(`### Roster\n**Leader:**\n<@${pb.leader_id}>\n\n**Apprentices:**\n${apprenticeText}`));
+      components.push(textDisplayV2(`### Roster\n**Leader:**\n${leaderName}\n\n**Apprentices:**\n${apprenticeText}`));
 
       if (pb.image_url) {
         components.push(separatorV2());

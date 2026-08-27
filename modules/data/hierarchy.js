@@ -628,7 +628,7 @@ export const EMPEROR_ARCHIVE_GROUP = {
   id: "emperor-archive",
   title: "Emperor Archive",
   section: "EMPERORS",
-  items: Array.from({ length: 40 }, (_, index) => emperorArchiveRecord(index + 1))
+  items: Array.from({ length: EMPEROR_ARCHIVE_DATA.length }, (_, index) => emperorArchiveRecord(index + 1))
 };
 
 function isActiveItem(item) {

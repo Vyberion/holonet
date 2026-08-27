@@ -2,7 +2,7 @@ import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSel
 import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./shift.js";
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2, buttonRow, button, mediaGalleryV2 } from "../services/discord-ui.js";
-import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseCapacity, getPowerbaseForUser, isHigherRank, logPowerbaseAction, persistBannerImage, slugifyPowerbase, syncPowerbaseRosterMessage, syncStoredPowerbaseRosters, updatePowerbase } from "../services/powerbase-api.js";
+import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseCapacity, getPowerbaseForUser, getPowerbaseUserLabel, getPowerbaseUserLabels, isHigherRank, logPowerbaseAction, persistBannerImage, slugifyPowerbase, syncPowerbaseRosterMessage, syncStoredPowerbaseRosters, updatePowerbase } from "../services/powerbase-api.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { hasPermission } from "../../modules/auth/permissions.js";
 import { postActivityLog, postPowerbaseLog, HIGH_COMMAND_ROLE_ID } from "../services/activity-log.js";
@@ -145,7 +145,7 @@ export async function handleButton(interaction) {
       description: `Banner image for Powerbase **${pb.name}** has been removed.`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+        { name: "Leader", value: await getPowerbaseUserLabel(pb.leader_id, interaction.client), inline: true },
         { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
         { name: "Banner Image", value: "Removed", inline: false }
       ],
@@ -314,7 +314,7 @@ export async function handleModal(interaction) {
       description: `Banner image for Powerbase **${pb.name}** has been updated.`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+        { name: "Leader", value: await getPowerbaseUserLabel(pb.leader_id, interaction.client), inline: true },
         { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
         { name: "Banner Image", value: imageUrl ? `[Image Link](${imageUrl})` : "Removed", inline: false }
       ],
@@ -355,9 +355,10 @@ export async function handleModal(interaction) {
       editGroupLink = `[Group Link](${cleanUrl})`;
     }
 
+    const editLeaderLabel = await getPowerbaseUserLabel(pb.leader_id, interaction.client);
     const editFields = [
       { name: "Powerbase Name", value: pb.name, inline: true },
-      { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+      { name: "Leader", value: editLeaderLabel, inline: true },
       { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
       { name: "Roblox Group", value: editGroupLink || "None", inline: false }
     ];
@@ -455,15 +456,18 @@ async function handleEditMembers(interaction) {
     const removedIds = oldMemberIds.filter(id => !normFinalMemberIds.includes(id));
 
     if (addedIds.length > 0 || removedIds.length > 0) {
-      const addedText = addedIds.length > 0 ? addedIds.map(id => `<@${id}>`).join("\n") : "*None*";
-      const removedText = removedIds.length > 0 ? removedIds.map(id => `<@${id}>`).join("\n") : "*None*";
+      const addedNames = await Promise.all(addedIds.map(id => getPowerbaseUserLabel(id, interaction.client)));
+      const removedNames = await Promise.all(removedIds.map(id => getPowerbaseUserLabel(id, interaction.client)));
+      const addedText = addedNames.length > 0 ? addedNames.join("\n") : "*None*";
+      const removedText = removedNames.length > 0 ? removedNames.join("\n") : "*None*";
+      const rosterLeaderLabel = await getPowerbaseUserLabel(pb.leader_id, interaction.client);
 
       await postPowerbaseLog(interaction.client, {
         title: "Powerbase Roster Updated",
         description: `Roster for Powerbase **${pb.name}** has been updated.`,
         fields: [
           { name: "Powerbase Name", value: pb.name, inline: true },
-          { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+          { name: "Leader", value: rosterLeaderLabel, inline: true },
           { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
           { name: "Apprentices Added", value: addedText, inline: false },
           { name: "Apprentices Removed", value: removedText, inline: false }
@@ -472,8 +476,11 @@ async function handleEditMembers(interaction) {
       }).catch(err => console.error("Failed to post powerbase log:", err));
     }
 
-    const memberMentions = finalMemberIds.length > 0
-      ? finalMemberIds.map(id => `<@${id}>`).join(", ")
+    const memberNames = finalMemberIds.length > 0
+      ? await Promise.all(finalMemberIds.map(id => getPowerbaseUserLabel(id, interaction.client)))
+      : [];
+    const memberMentions = memberNames.length > 0
+      ? memberNames.join(", ")
       : "*None*";
 
     const v2Payload = componentsV2Message([
@@ -666,10 +673,11 @@ async function handleManageActionSelect(interaction) {
       .setCustomId(`pb_change_leader:${pbId}`)
       .setPlaceholder("Select a new Leader for this Powerbase");
 
+    const currentLeaderLabel = await getPowerbaseUserLabel(pb.leader_id, interaction.client);
     await interaction.update(ephemeral(componentsV2Message([
       containerV2([
         textDisplayV2(`### Manage Leadership: ${pb.name}`),
-        textDisplayV2(`**Current Leader:** <@${pb.leader_id}>\n\nSelect a verified user to transfer leadership of this Powerbase:`),
+        textDisplayV2(`**Current Leader:** ${currentLeaderLabel}\n\nSelect a verified user to transfer leadership of this Powerbase:`),
         new ActionRowBuilder().addComponents(userSelect)
       ])
     ])));
@@ -701,13 +709,14 @@ async function handleManageActionSelect(interaction) {
       dissolveGroupLink = `[Group Link](${cleanUrl})`;
     }
 
+    const dissolveLeaderLabel = await getPowerbaseUserLabel(pb.leader_id, interaction.client);
     await postPowerbaseLog(interaction.client, {
       title: "Powerbase Dissolution Requested",
       description: `A dissolution request for Powerbase **${pb.name}** has been submitted for approval by High Command.`,
       content: `<@&${HIGH_COMMAND_ROLE_ID}>`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+        { name: "Leader", value: dissolveLeaderLabel, inline: true },
         { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
         { name: "Roblox Group", value: dissolveGroupLink || "None", inline: false }
       ],
@@ -749,9 +758,12 @@ async function handleChangeLeaderSelect(interaction) {
       .map(m => String(m.user_id || m.discord_user_id || ""))
       .filter(id => id && id !== newLeaderId);
 
+    const newLeaderName = await getPowerbaseUserLabel(newLeaderId, interaction.client);
+    const oldLeaderName = await getPowerbaseUserLabel(pb.leader_id, interaction.client);
+
     await updatePowerbase(pbId, { leader_id: newLeaderId }, currentMemberIds);
 
-    await logPowerbaseAction(interaction.user.id, "LEADER_CHANGED", pbId, `Leadership transferred to <@${newLeaderId}>`);
+    await logPowerbaseAction(interaction.user.id, "LEADER_CHANGED", pbId, `Leadership transferred to ${newLeaderName}`);
 
     await syncPowerbaseRosterMessage(interaction.client, pbId);
 
@@ -760,9 +772,9 @@ async function handleChangeLeaderSelect(interaction) {
       description: `Leadership of Powerbase **${pb.name}** has been transferred.`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "New Leader", value: `<@${newLeaderId}>`, inline: true },
+        { name: "New Leader", value: newLeaderName, inline: true },
         { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
-        { name: "Old Leader", value: `<@${pb.leader_id}>`, inline: false }
+        { name: "Old Leader", value: oldLeaderName, inline: false }
       ],
       color: 0xc90705
     });
@@ -770,7 +782,7 @@ async function handleChangeLeaderSelect(interaction) {
     const v2Payload = componentsV2Message([
       containerV2([
         textDisplayV2(`### Leadership Transferred`),
-        textDisplayV2(`Leadership of Powerbase **${pb.name}** has been transferred to <@${newLeaderId}>.`)
+        textDisplayV2(`Leadership of Powerbase **${pb.name}** has been transferred to ${newLeaderName}.`)
       ])
     ]);
     return interaction.editReply(ephemeral(v2Payload));
@@ -953,7 +965,8 @@ async function handleInfoSelect(interaction) {
     components.push(separatorV2());
   }
 
-  components.push(textDisplayV2(`### Roster\n**Leader:**\n<@${pb.leader_id}>\n\n**Apprentices:**\n${apprenticeText}`));
+  const infoLeaderLabel = await getPowerbaseUserLabel(pb.leader_id, interaction.client);
+  components.push(textDisplayV2(`### Roster\n**Leader:**\n${infoLeaderLabel}\n\n**Apprentices:**\n${apprenticeText}`));
 
   if (pb.image_url) {
     components.push(separatorV2());
@@ -989,12 +1002,13 @@ async function handleBanner(interaction, verified) {
     const permanentUrl = await persistBannerImage(attachment.url, pb.id);
     await updatePowerbase(pb.id, { image_url: permanentUrl });
     await syncPowerbaseRosterMessage(interaction.client, pb.id);
+    const bannerLeaderLabel = await getPowerbaseUserLabel(pb.leader_id, interaction.client);
     await postPowerbaseLog(interaction.client, {
       title: "Powerbase Banner Updated",
       description: `Banner image for Powerbase **${pb.name}** has been updated.`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+        { name: "Leader", value: bannerLeaderLabel, inline: true },
         { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
         { name: "Banner Image", value: permanentUrl ? `[Image Link](${permanentUrl})` : "Removed", inline: false }
       ],
@@ -1048,12 +1062,13 @@ async function handleBannerSelect(interaction) {
   const permanentUrl = await persistBannerImage(imageUrl, pbId);
   await updatePowerbase(pbId, { image_url: permanentUrl });
   await syncPowerbaseRosterMessage(interaction.client, pbId);
+  const bannerSelectLeaderLabel = await getPowerbaseUserLabel(pb.leader_id, interaction.client);
   await postPowerbaseLog(interaction.client, {
     title: "Powerbase Banner Updated",
     description: `Banner image for Powerbase **${pb.name}** has been updated.`,
     fields: [
       { name: "Powerbase Name", value: pb.name, inline: true },
-      { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+      { name: "Leader", value: bannerSelectLeaderLabel, inline: true },
       { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
       { name: "Banner Image", value: permanentUrl ? `[Image Link](${permanentUrl})` : "Removed", inline: false }
     ],

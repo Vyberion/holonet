@@ -293,11 +293,11 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_archives",
-      description: "Retrieve historical Imperial archives, Emperor biographies and reigns, past events, and historical Sith Order records. Use when the user asks about Emperor history, past eras, or historical lore.",
+      description: "Retrieve historical Imperial archives, Emperor biographies and reigns (supports ANY reign number 1st-41st, current emperor, ordinals, Roman numerals, or reign names), past events, and historical Sith Order records. Use when the user asks about Emperor history, specific reigns, past eras, or historical lore.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query or Emperor name/number (e.g. 'Emperor Gurt', 'Odin', 'Kaggath', 'first emperor')" }
+          query: { type: "string", description: "Search query, reign number, ordinal, Roman numeral, or Emperor name (e.g. '9th emperor', '12th', 'current emperor', 'Emperor Gurt', 'IX', 'twelfth', 'first 3')" }
         }
       }
     }
@@ -744,21 +744,150 @@ async function searchBotLibraryRegulations(queryStr, libraryKeyFilter) {
   }));
 }
 
+function toRomanNumeral(val) {
+  const numerals = [[50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+  let remaining = Number(val) || 0;
+  let result = "";
+  for (const [amount, numeral] of numerals) {
+    while (remaining >= amount) {
+      result += numeral;
+      remaining -= amount;
+    }
+  }
+  return result || String(val);
+}
+
+function toOrdinalSuffix(val) {
+  const value = Number(val) || 0;
+  const tens = value % 100;
+  if (tens >= 11 && tens <= 13) return `${value}th`;
+  return `${value}${{ 1: "st", 2: "nd", 3: "rd" }[value % 10] || "th"}`;
+}
+
+function parseEmperorQuery(queryStr = "") {
+  const clean = String(queryStr).toLowerCase().trim();
+  if (!clean) return { reigns: [], isCurrent: false };
+
+  const isCurrent = /\b(current|present|now|active|latest|who\s*is\s*(?:the\s*)?emperor|present\s*emperor)\b/i.test(clean);
+
+  const reigns = new Set();
+  if (isCurrent) {
+    reigns.add(41);
+  }
+
+  const ORDINAL_MAP = {
+    first: 1, "1st": 1,
+    second: 2, "2nd": 2,
+    third: 3, "3rd": 3,
+    fourth: 4, "4th": 4,
+    fifth: 5, "5th": 5,
+    sixth: 6, "6th": 6,
+    seventh: 7, "7th": 7,
+    eighth: 8, "8th": 8,
+    ninth: 9, "9th": 9,
+    tenth: 10, "10th": 10,
+    eleventh: 11, "11th": 11,
+    twelfth: 12, "12th": 12,
+    thirteenth: 13, "13th": 13,
+    fourteenth: 14, "14th": 14,
+    fifteenth: 15, "15th": 15,
+    sixteenth: 16, "16th": 16,
+    seventeenth: 17, "17th": 17,
+    eighteenth: 18, "18th": 18,
+    nineteenth: 19, "19th": 19,
+    twentieth: 20, "20th": 20,
+    "twenty-first": 21, "twenty first": 21, "21st": 21,
+    "twenty-second": 22, "twenty second": 22, "22nd": 22,
+    "twenty-third": 23, "twenty third": 23, "23rd": 23,
+    "twenty-fourth": 24, "twenty fourth": 24, "24th": 24,
+    "twenty-fifth": 25, "twenty fifth": 25, "25th": 25,
+    "twenty-sixth": 26, "twenty sixth": 26, "26th": 26,
+    "twenty-seventh": 27, "twenty seventh": 27, "27th": 27,
+    "twenty-eighth": 28, "twenty eighth": 28, "28th": 28,
+    "twenty-ninth": 29, "twenty ninth": 29, "29th": 29,
+    thirtieth: 30, "30th": 30,
+    "thirty-first": 31, "thirty first": 31, "31st": 31,
+    "thirty-second": 32, "thirty second": 32, "32nd": 32,
+    "thirty-third": 33, "thirty third": 33, "33rd": 33,
+    "thirty-fourth": 34, "thirty fourth": 34, "34th": 34,
+    "thirty-fifth": 35, "thirty fifth": 35, "35th": 35,
+    "thirty-sixth": 36, "thirty sixth": 36, "36th": 36,
+    "thirty-seventh": 37, "thirty seventh": 37, "37th": 37,
+    "thirty-eighth": 38, "thirty eighth": 38, "38th": 38,
+    "thirty-ninth": 39, "thirty ninth": 39, "39th": 39,
+    fortieth: 40, "40th": 40,
+    "forty-first": 41, "forty first": 41, "41st": 41
+  };
+
+  const ROMAN_MAP = {
+    i: 1, ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8, ix: 9, x: 10,
+    xi: 11, xii: 12, xiii: 13, xiv: 14, xv: 15, xvi: 16, xvii: 17, xviii: 18, xix: 19, xx: 20,
+    xxi: 21, xxii: 22, xxiii: 23, xxiv: 24, xxv: 25, xxvi: 26, xxvii: 27, xxviii: 28, xxix: 29, xxx: 30,
+    xxxi: 31, xxxii: 32, xxxiii: 33, xxxiv: 34, xxxv: 35, xxxvi: 36, xxxvii: 37, xxxviii: 38, xxxix: 39, xl: 40, xli: 41
+  };
+
+  for (const [key, num] of Object.entries(ORDINAL_MAP)) {
+    if (new RegExp(`\\b${key}\\b`, "i").test(clean)) {
+      reigns.add(num);
+    }
+  }
+
+  const digitMatches = clean.matchAll(/\b(?:reign|emperor|number|#)?\s*(\d{1,2})(?:st|nd|rd|th)?\b/gi);
+  for (const match of digitMatches) {
+    const val = Number(match[1]);
+    if (val >= 1 && val <= 41) {
+      reigns.add(val);
+    }
+  }
+
+  const tokens = clean.split(/[\s,.-]+/);
+  for (const token of tokens) {
+    if (ROMAN_MAP[token]) {
+      reigns.add(ROMAN_MAP[token]);
+    }
+  }
+
+  return { reigns: Array.from(reigns), isCurrent };
+}
+
 async function searchAllBotArchives(queryStr) {
   const cleanQuery = sanitizeQueryForSearch(queryStr);
   const tokens = extractSearchTokens(cleanQuery);
+  const parsedEmperor = parseEmperorQuery(cleanQuery);
   let results = [];
 
   // 1. Static Emperor Archive profiles from hierarchy.js
   const emperorItems = emperorArchiveItems();
-  for (const emp of emperorItems) {
+  for (let i = 0; i < emperorItems.length; i++) {
+    const emp = emperorItems[i];
+    const index = i + 1;
+    const roman = toRomanNumeral(index);
+    const ordSuffix = toOrdinalSuffix(index);
+    const isCurrent = Boolean(emp.current || emp.slug === "41st");
+    const categoryName = emp.category || `The ${ordSuffix} Sith Emperor`;
+    const pathName = emp.path || `The ${ordSuffix}`;
+
+    const docContent = [
+      `Sith Emperor Archive - Reign #${index} (${emp.name})`,
+      `Category: ${categoryName}`,
+      `Reign Title / Path: ${pathName}`,
+      `Slug: ${emp.slug}`,
+      `Roman Numeral: ${roman}`,
+      `Status: ${isCurrent ? "CURRENT EMPEROR OF THE SITH EMPIRE (41st Sovereign)" : "Former Sovereign"}`,
+      `Biography & Imperial Record:`,
+      emp.body || "Biography pending archival upload."
+    ].join("\n");
+
     results.push({
       id: emp.slug,
       title: emp.name,
-      category: "Emperor Biography",
-      summary: emp.summary || "",
-      content: `${emp.name} (${emp.title || ""})\nReign: ${emp.reign || ""}\n${emp.body || ""}`,
-      slug: emp.slug
+      reignIndex: index,
+      category: categoryName,
+      summary: emp.body ? emp.body.slice(0, 140) + "..." : `Imperial archive record for Reign #${index}: ${emp.name}`,
+      content: docContent,
+      slug: emp.slug,
+      isEmperorDoc: true,
+      isCurrent
     });
   }
 
@@ -806,20 +935,35 @@ async function searchAllBotArchives(queryStr) {
   }
 
   if (cleanQuery) {
-    let filtered = results.filter(doc => {
-      const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category}`.toLowerCase();
-      return fullText.includes(cleanQuery);
+    const targetReigns = new Set(parsedEmperor.reigns || []);
+
+    const scored = results.map(doc => {
+      let score = 0;
+      const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category} ${doc.slug}`.toLowerCase();
+
+      if (doc.isEmperorDoc && targetReigns.has(doc.reignIndex)) {
+        score += 1000;
+      }
+      if (doc.isEmperorDoc && parsedEmperor.isCurrent && doc.isCurrent) {
+        score += 1000;
+      }
+      if (doc.title.toLowerCase().includes(cleanQuery)) {
+        score += 500;
+      }
+      if (fullText.includes(cleanQuery)) {
+        score += 100;
+      }
+      if (tokens.length > 0) {
+        const tokenHits = tokens.filter(t => fullText.includes(t)).length;
+        score += tokenHits * 20;
+      }
+      return { doc, score };
     });
 
-    if (!filtered.length && tokens.length > 0) {
-      filtered = results.filter(doc => {
-        const fullText = `${doc.title} ${doc.summary} ${doc.content} ${doc.category}`.toLowerCase();
-        return tokens.some(t => fullText.includes(t));
-      });
-    }
-
-    if (filtered.length) {
-      results = filtered;
+    const matched = scored.filter(s => s.score > 0);
+    if (matched.length > 0) {
+      matched.sort((a, b) => b.score - a.score);
+      results = matched.map(m => m.doc);
     }
   }
 
@@ -831,7 +975,7 @@ async function searchAllBotArchives(queryStr) {
     return true;
   });
 
-  return uniqueDocs.slice(0, 3).map(r => ({
+  return uniqueDocs.slice(0, 15).map(r => ({
     title: r.title,
     category: r.category,
     summary: r.summary,

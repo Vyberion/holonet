@@ -145,7 +145,8 @@ export async function handleButton(interaction) {
       description: `Banner image for Powerbase **${pb.name}** has been removed.`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
         { name: "Banner Image", value: "Removed", inline: false }
       ],
       color: 0xc90705
@@ -267,8 +268,8 @@ export async function handleModal(interaction) {
 
     const creationFields = [
       { name: "Powerbase Name", value: name, inline: true },
-      { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
-      { name: "Leader", value: `${leaderUsername} (<@${interaction.user.id}>)`, inline: false },
+      { name: "Leader", value: `${leaderUsername} (<@${interaction.user.id}>)`, inline: true },
+      { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
       { name: "Roblox Group", value: groupLinkValue || "None", inline: false }
     ];
     if (description?.trim()) {
@@ -313,7 +314,8 @@ export async function handleModal(interaction) {
       description: `Banner image for Powerbase **${pb.name}** has been updated.`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
         { name: "Banner Image", value: imageUrl ? `[Image Link](${imageUrl})` : "Removed", inline: false }
       ],
       color: 0xc90705
@@ -355,8 +357,8 @@ export async function handleModal(interaction) {
 
     const editFields = [
       { name: "Powerbase Name", value: pb.name, inline: true },
-      { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
-      { name: "Leader", value: `<@${pb.leader_id}>`, inline: false },
+      { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+      { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
       { name: "Roblox Group", value: editGroupLink || "None", inline: false }
     ];
     if (pb.description?.trim()) {
@@ -461,8 +463,8 @@ async function handleEditMembers(interaction) {
         description: `Roster for Powerbase **${pb.name}** has been updated.`,
         fields: [
           { name: "Powerbase Name", value: pb.name, inline: true },
-          { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
-          { name: "Leader", value: `<@${pb.leader_id}>`, inline: false },
+          { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+          { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
           { name: "Apprentices Added", value: addedText, inline: false },
           { name: "Apprentices Removed", value: removedText, inline: false }
         ],
@@ -705,8 +707,8 @@ async function handleManageActionSelect(interaction) {
       content: `<@&${HIGH_COMMAND_ROLE_ID}>`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
-        { name: "Leader", value: `<@${pb.leader_id}>`, inline: false },
+        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
         { name: "Roblox Group", value: dissolveGroupLink || "None", inline: false }
       ],
       color: 0xc90705,
@@ -758,9 +760,9 @@ async function handleChangeLeaderSelect(interaction) {
       description: `Leadership of Powerbase **${pb.name}** has been transferred.`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
-        { name: "Old Leader", value: `<@${pb.leader_id}>`, inline: false },
-        { name: "New Leader", value: `<@${newLeaderId}>`, inline: false }
+        { name: "New Leader", value: `<@${newLeaderId}>`, inline: true },
+        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
+        { name: "Old Leader", value: `<@${pb.leader_id}>`, inline: false }
       ],
       color: 0xc90705
     });
@@ -992,7 +994,8 @@ async function handleBanner(interaction, verified) {
       description: `Banner image for Powerbase **${pb.name}** has been updated.`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
         { name: "Banner Image", value: permanentUrl ? `[Image Link](${permanentUrl})` : "Removed", inline: false }
       ],
       color: 0xc90705
@@ -1050,7 +1053,8 @@ async function handleBannerSelect(interaction) {
     description: `Banner image for Powerbase **${pb.name}** has been updated.`,
     fields: [
       { name: "Powerbase Name", value: pb.name, inline: true },
-      { name: "Updated By", value: `<@${interaction.user.id}>`, inline: true },
+      { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+      { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
       { name: "Banner Image", value: permanentUrl ? `[Image Link](${permanentUrl})` : "Removed", inline: false }
     ],
     color: 0xc90705

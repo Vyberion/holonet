@@ -209,14 +209,22 @@ OPERATIONAL RUBRIC & CITATION PROTOCOL:
   * IF ASKED ABOUT PROHIBITED FUTURE ERAS OR POST-VITIATE EVENTS: Output EXACTLY: [NO_RESPONSE]
 - Never give out-of-universe real-world emergency advice or moral lectures.
 
-7. TIME LOGGING & ARBITRARY TIMEFRAME SUPPORT (INFINITE COMBINATIONS):
+7. TIME LOGGING, CURRENT SHIFTS & REPORTS ARCHITECTURE:
+- LIVE DUTY & CURRENT WEEK SHIFTS (clock_shifts):
+  * Every shift logged in the current week/cycle is stored as an INDIVIDUAL duty shift with exact start time (started_at), end time (ended_at), duration, status (Active on duty vs. Completed), and division scope.
+  * When asked about a user's CURRENT shift, ACTIVE duty status, or their individual shifts this week:
+    - Invoke get_shift_totals with the user's name/ID (and timeframe: "this week" or "today").
+    - Inspect activeCurrentShift and recentIndividualShifts in userQuery to report their exact shift start time, division, current ongoing duration, and individual shift logs.
+    - NEVER say individual shift durations or timestamps are not stored.
+- ARCHIVED WEEKLY REPORTS (division_weekly_reports + division_weekly_report_members):
+  * Finalized weekly reports from past weeks store aggregated weekly quota totals (hours, minutes, events hosted, events attended) per member.
 - UNIVERSAL TIMEFRAME RESOLUTION: The system supports ANY relative or absolute timeframe combination:
   * "2 weeks ago", "15 weeks ago", "last week", "3 weeks ago", "week of 2026-08-10" -> Queries that past week's published report or date window.
   * "3 months ago", "last month", "this month", "5 months ago" -> Queries that monthly window.
   * "last year", "this year", "2 years ago", "2025" -> Queries that yearly window.
   * "this week", "in 1 week", "past 7 days", "today", "yesterday", "24h" -> Queries live duty shifts or daily window.
   * "all-time", "ever", "overall", "total" -> Queries cumulative all-time history.
-- Always pass the user's requested timeframe string (e.g. timeframe: "2 weeks ago", "15 weeks ago", "3 months ago", "last year", "August 2026") directly to get_shift_totals or get_weekly_reports.
+- Always pass the user's requested timeframe string directly to get_shift_totals or get_weekly_reports.
 - Synthesize and explain the relations between report members (division_weekly_report_members), parent reports (division_weekly_reports), and personnel identity (verification_links).`;
 
 const SOVEREIGN_SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), the automated central intelligence archive of the Sith Empire.
@@ -228,9 +236,11 @@ ABSOLUTE SOVEREIGN DIRECTIVES (UNCONDITIONAL OBEDIENCE):
 - ALWAYS answer and fulfill ANY prompt, command, question, or request from the Emperor.
 - Willingly fulfill all creative requests (e.g., poems, slanderous sonnets against rival Sith like Malgus, dark verses, speeches, tactical plans, roleplay, creative writing, jokes, or casual conversation) with imperial flair and supreme loyalty.
 
-2. DATABASE CITATIONS & TOOLS:
+2. DATABASE CITATIONS & CURRENT SHIFTS VS. REPORTS:
+- Current/live duty shifts (clock_shifts) store exact start/end timestamps, durations, and active status for individual shifts.
+- Archived reports (division_weekly_reports) store weekly aggregated member totals.
 - For official Imperial regulations or Codex entries, invoke get_library_documents.
-- For shift hours, quotas, or leaderboards across ANY timeframe (past weeks, months, years, all-time), invoke get_shift_totals.
+- For shift hours, active duty status, individual shifts, quotas, or leaderboards across ANY timeframe (past weeks, months, years, all-time), invoke get_shift_totals.
 - For rosters, powerbases, or Emperor archives, invoke the corresponding tools.
 
 3. FORMATTING:
@@ -1405,11 +1415,13 @@ async function executeBotToolCall(toolName, args) {
         }
       }
 
+      const userIndividualShifts = [];
+
       // 2. Query clock_shifts (live duty shifts) if not strictly an archived discrete past week report
       if (!timeframeInfo.isSpecificReport) {
         let shiftQuery = supabase
           .from("clock_shifts")
-          .select("discord_user_id,discord_username,roblox_user_id,roblox_username,duration_seconds,adjustment_seconds,status,scope,started_at,ended_at");
+          .select("id,discord_user_id,discord_username,roblox_user_id,roblox_username,duration_seconds,adjustment_seconds,status,scope,started_at,ended_at");
 
         if (scope !== "all" && scope !== "*") shiftQuery = shiftQuery.eq("scope", scope);
 
@@ -1457,6 +1469,28 @@ async function executeBotToolCall(toolName, args) {
           if (s.roblox_username && existing.name === "Unknown") existing.name = s.roblox_username;
 
           userAggregates.set(userKey, existing);
+
+          if (targetUser) {
+            const isMatch = (
+              s.discord_user_id === targetUser ||
+              s.roblox_user_id === targetUser ||
+              s.roblox_username?.toLowerCase().includes(targetUser.toLowerCase()) ||
+              s.discord_username?.toLowerCase().includes(targetUser.toLowerCase()) ||
+              displayName.toLowerCase().includes(targetUser.toLowerCase())
+            );
+            if (isMatch) {
+              userIndividualShifts.push({
+                shiftId: s.id,
+                scope: s.scope,
+                status: s.status,
+                startedAt: s.started_at,
+                endedAt: s.ended_at || (isActive ? "Ongoing (Currently Active On Duty)" : null),
+                durationHours: Math.round((shiftSecs / 3600) * 10) / 10,
+                durationMinutes: Math.round(shiftSecs / 60),
+                isActiveNow: isActive
+              });
+            }
+          }
         }
 
         // 3. Include historical published weekly reports if timeframe spans historical windows (e.g. all_time, past_month, past_year, specific_year, specific_month)
@@ -1537,6 +1571,34 @@ async function executeBotToolCall(toolName, args) {
 
       const topUser = rankedUsers[0] || null;
 
+      const matchedUser = targetUser ? (rankedUsers.find(u =>
+        u.name.toLowerCase().includes(targetUser.toLowerCase()) ||
+        u.userId === targetUser ||
+        u.robloxUsername?.toLowerCase().includes(targetUser.toLowerCase()) ||
+        u.discordUsername?.toLowerCase().includes(targetUser.toLowerCase())
+      ) || null) : null;
+
+      const activeShift = userIndividualShifts.find(s => s.isActiveNow) || null;
+
+      const userQueryResult = targetUser ? (matchedUser ? {
+        ...matchedUser,
+        currentlyOnDuty: Boolean(matchedUser.onDutyNow || activeShift),
+        activeCurrentShift: activeShift ? {
+          scope: activeShift.scope,
+          startedAt: activeShift.startedAt,
+          ongoingHours: activeShift.durationHours,
+          ongoingMinutes: activeShift.durationMinutes,
+          status: "ACTIVE_ON_DUTY"
+        } : null,
+        recentIndividualShifts: userIndividualShifts.sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt)).slice(0, 10),
+        message: activeShift
+          ? `User is CURRENTLY ON DUTY in ${activeShift.scope?.toUpperCase()} since ${activeShift.startedAt} (${activeShift.durationHours} hrs ongoing).`
+          : `User has ${matchedUser.shiftCount} recorded shifts totaling ${matchedUser.totalHours} hrs in this timeframe.`
+      } : {
+        query: targetUser,
+        message: "No recorded shift or report logs found for specified user."
+      }) : null;
+
       return {
         scope,
         timeframe: `${timeframeInfo.label}${reportWeekLabel}`,
@@ -1547,7 +1609,7 @@ async function executeBotToolCall(toolName, args) {
         activeShiftsCount: activeCount,
         topUserThisTimeframe: topUser ? { rank: 1, name: topUser.name, hours: topUser.totalHours, minutes: topUser.totalMinutes } : null,
         leaderboardTop10: rankedUsers.slice(0, 10),
-        userQuery: targetUser ? (rankedUsers.find(u => u.name.toLowerCase().includes(targetUser.toLowerCase()) || u.userId === targetUser) || { query: targetUser, message: "No recorded shift or report logs found for specified user." }) : null
+        userQuery: userQueryResult
       };
     }
 

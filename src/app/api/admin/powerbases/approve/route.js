@@ -48,20 +48,9 @@ async function syncRosterViaRest(powerbaseId, forceDelete = false, cachedPb = nu
       .map(m => String(m.user_id || m.discord_user_id || ""))
       .filter(Boolean);
 
-    const allUserIds = Array.from(new Set([pb.leader_id, ...memberIds].filter(Boolean)));
-    const userMap = {};
-    if (allUserIds.length > 0) {
-      const links = await supabaseRest(`verification_links?discord_user_id=in.(${allUserIds.map(encodeURIComponent).join(",")})&select=discord_user_id,roblox_username,discord_username`).catch(() => []);
-      (links || []).forEach(l => {
-        userMap[l.discord_user_id] = l.roblox_username || (l.discord_username ? `@${l.discord_username}` : null);
-      });
-    }
-
-    const getLabel = (id) => userMap[id] || (id ? `User ${id}` : "*Vacant*");
-
-    const leaderText = `${getLabel(pb.leader_id)} *(Leader)*`;
+    const leaderText = pb.leader_id ? `<@${pb.leader_id}> *(Leader)*` : "*Vacant* *(Leader)*";
     const apprenticeText = memberIds.length > 0
-      ? memberIds.map(id => `${getLabel(id)} *(Apprentice)*`).join("\n")
+      ? memberIds.map(id => `<@${id}> *(Apprentice)*`).join("\n")
       : "*No apprentices assigned*";
 
     const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
@@ -98,11 +87,11 @@ async function syncRosterViaRest(powerbaseId, forceDelete = false, cachedPb = nu
         components.push({ type: 14, divider: true, spacing: 1 });
       }
 
-      components.push({ type: 10, content: `### Roster\n**Leader:**\n${getLabel(pb.leader_id)}` });
+      components.push({ type: 10, content: `### Roster\n**Leader:**\n${pb.leader_id ? `<@${pb.leader_id}>` : "*Vacant*"}` });
 
       if (memberIds.length > 0) {
         components.push({ type: 14, divider: true, spacing: 1 });
-        const appLines = memberIds.map(id => getLabel(id)).join("\n");
+        const appLines = memberIds.map(id => `<@${id}>`).join("\n");
         components.push({ type: 10, content: `**Apprentices:**\n${appLines}` });
       }
 
@@ -112,7 +101,7 @@ async function syncRosterViaRest(powerbaseId, forceDelete = false, cachedPb = nu
       }
     } else {
       const capacity = ({ 1: 4, 2: 6, 3: 8, 4: 10 })[Number(pb.tier)] || 4;
-      const appText = memberIds.length > 0 ? memberIds.map(id => getLabel(id)).join("\n") : "*None*";
+      const appText = memberIds.length > 0 ? memberIds.map(id => `<@${id}>`).join("\n") : "*None*";
 
       components.push({ type: 10, content: `# [${pb.name}](${pbUrl})` });
       components.push({ type: 10, content: `**Tier:** ${romanize(pb.tier)}${sdBadge}\n**Prestige:** ${pb.prestige}\n**Members:** ${memberIds.length + 1} / ${capacity}` });
@@ -128,7 +117,7 @@ async function syncRosterViaRest(powerbaseId, forceDelete = false, cachedPb = nu
         components.push({ type: 14, divider: true, spacing: 1 });
       }
 
-      components.push({ type: 10, content: `### Roster\n**Leader:**\n${getLabel(pb.leader_id)}\n\n**Apprentices:**\n${appText}` });
+      components.push({ type: 10, content: `### Roster\n**Leader:**\n<@${pb.leader_id}>\n\n**Apprentices:**\n${appText}` });
 
       if (pb.image_url) {
         components.push({ type: 14, divider: true, spacing: 1 });

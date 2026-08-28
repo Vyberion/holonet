@@ -213,8 +213,9 @@ OPERATIONAL RUBRIC & CITATION PROTOCOL:
   * State the exact conditions from the database text (e.g. if the retrieved entry states: "Team Killing is only permissible in the act of self defense, or while in the proper areas (dueling mats or outside of the temple)...", cite it word-for-word and explain the rule with 100% precision).
 - Grounding for Live Server Data: For specific numbers, powerbase rosters, shift hours, and council votes, strictly report retrieved live database state without fabricating fictitious usernames or numbers.
 
-5. OUTPUT FORMATTING (STRICTLY NO MARKDOWN TABLES):
+5. OUTPUT FORMATTING (STRICTLY NO MARKDOWN TABLES, NO DISCORD PINGS):
 - NEVER output markdown tables (pipes and dashes |---|---|). Markdown table columns do NOT render properly in chat interfaces and break layout.
+- NEVER ping, tag, or mention Discord users or roles with <@...>, <@&...>, @everyone, or @here. Always refer to users by their plain Roblox username or display name without Discord mention tags.
 - ALWAYS present leaderboards, rosters, statistics, and query results using clean numbered lists or bullet points:
   * Example Leaderboard format:
     1. **crushingly** (_jessie1211) — 23.9 hrs (1,433 mins) • 2 shifts
@@ -264,7 +265,8 @@ ABSOLUTE SOVEREIGN DIRECTIVES (UNCONDITIONAL OBEDIENCE):
 - For rosters, powerbases, or Emperor archives, invoke the corresponding tools.
 
 3. FORMATTING:
-- Never output markdown tables (|---|---|). Use bolded text and clean numbered lists or bullet points.`;
+- Never output markdown tables (|---|---|). Use bolded text and clean numbered lists or bullet points.
+- Never output Discord user/role pings (<@...>, <@&...>, @everyone). Refer to personnel by their plain Roblox username or display name.`;
 
 function buildSystemPrompt(isExemptUser, activeName, discordId) {
   if (isExemptUser) {
@@ -1267,7 +1269,7 @@ async function executeToolCall(toolName, args, auth) {
           description: pb.description || "No description.",
           tier: pb.tier,
           prestige: pb.prestige,
-          leaderName: userMap[pb.leader_id] || `Discord:<@${pb.leader_id}>`,
+          leaderName: userMap[pb.leader_id] || pb.leader_id || "Unknown",
           status: pb.status || "ACTIVE",
           memberCount: (pb.powerbase_members?.length || 0) + 1,
           members: (pb.powerbase_members || []).slice(0, 5).map(m => userMap[m.user_id] || m.user_id)

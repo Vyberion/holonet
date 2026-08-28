@@ -145,7 +145,7 @@ export async function handleButton(interaction) {
       description: `Banner image for Powerbase **${pb.name}** has been removed.`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Leader", value: await getPowerbaseUserLabel(pb.leader_id, interaction.client), inline: true },
+        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
         { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
         { name: "Banner Image", value: "Removed", inline: false }
       ],
@@ -314,7 +314,7 @@ export async function handleModal(interaction) {
       description: `Banner image for Powerbase **${pb.name}** has been updated.`,
       fields: [
         { name: "Powerbase Name", value: pb.name, inline: true },
-        { name: "Leader", value: await getPowerbaseUserLabel(pb.leader_id, interaction.client), inline: true },
+        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
         { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
         { name: "Banner Image", value: imageUrl ? `[Image Link](${imageUrl})` : "Removed", inline: false }
       ],
@@ -355,10 +355,9 @@ export async function handleModal(interaction) {
       editGroupLink = `[Group Link](${cleanUrl})`;
     }
 
-    const editLeaderLabel = await getPowerbaseUserLabel(pb.leader_id, interaction.client);
     const editFields = [
       { name: "Powerbase Name", value: pb.name, inline: true },
-      { name: "Leader", value: editLeaderLabel, inline: true },
+      { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
       { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
       { name: "Roblox Group", value: editGroupLink || "None", inline: false }
     ];

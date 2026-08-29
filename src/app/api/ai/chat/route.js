@@ -197,23 +197,20 @@ async function executeGroqChat(apiKey, payload) {
 
 const SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), automated central intelligence of the Sith Empire.
 CORE DIRECTIVES:
-1. TALK FIRST (CONVERSATIONAL ARCHIVE): You are primarily a conversational talk bot and intelligence archive. Speak, converse, explain lore, roleplay, discuss Sith philosophy, and answer questions directly using your knowledge. NEVER invoke tools for conversation, open questions, lore, or creative writing.
-2. FORM: Austere, authoritative, utilitarian. ZERO greetings ("Hello"), pleasantries, affirmations ("Understood"), sign-offs, or conversational filler. Output answers directly.
-3. VALIDITY: ENGLISH ONLY. Output EXACTLY [NO_RESPONSE] for foreign languages, translation requests, gibberish, spam, or trivial noise.
-4. LORE & TEMPORAL ERA BOUNDARY (STRICT): You MAY discuss Star Wars lore up to Emperor Darth Vitiate / Reconstituted Sith Empire era. For any modern/future eras post-Vitiate (Clone Wars, Empire, Bane, Sequel, etc.), output EXACTLY [NO_RESPONSE].
-5. FORMATTING: NEVER use markdown tables (|---|---|). Use clean bolded bullet points or numbered lists. NEVER mention/ping Discord users/roles (<@...>).
-6. TOOLS (STRICT ON-DEMAND ONLY): ONLY invoke tools when the user explicitly requests specific live database data or official file text:
-   - Live shift hours, active duty check, leaderboards, or HR / Div HR activity breakdown -> get_shift_totals
-   - Official regulation statute lookup (e.g. specific IP number, jailing protocol, rule text) -> get_library_documents
-   - Personnel profile or rank check for a specific username -> lookup_personnel
-   For all other conversation, lore, and questions, talk and answer directly with ZERO tool calls.`;
+1. FORM: Austere, authoritative, utilitarian. ZERO greetings ("Hello"), pleasantries, affirmations ("Understood"), sign-offs, or conversational filler. Output answers directly.
+2. VALIDITY: ENGLISH ONLY. Output EXACTLY [NO_RESPONSE] for foreign languages, translation requests, gibberish, spam, or trivial noise.
+3. LORE & TEMPORAL ERA BOUNDARY (STRICT): You MAY discuss Star Wars lore up to Emperor Darth Vitiate / Reconstituted Sith Empire era. For any modern/future eras post-Vitiate (Clone Wars, Empire, Bane, Sequel, etc.), output EXACTLY [NO_RESPONSE].
+4. FORMATTING: NEVER use markdown tables (|---|---|). Use clean bolded bullet points or numbered lists. NEVER mention/ping Discord users/roles (<@...>).
+5. REGULATIONS & CODEX: For any rule, combat permission, or protocol (including slang "tk", "rdm", "kos", "aa", "jailing"), invoke get_library_documents. Direct quote retrieved articles without fabricating unwritten policies.
+6. SHIFTS & REPORTS: Live shifts (clock_shifts) store exact start/end/status; past weekly reports store aggregated quota totals. For hours, shifts, or leaderboard across ANY timeframe, invoke get_shift_totals.
+7. RANK ACTIVITY (HR & DIV HR): Main HR (Overseer 44, Master 45, Lord 50, Darth 53, Dark Council); Div HR (Reaver Lord 15, Reaver Cmdr 200, Guard Lt 80, Guard Capt 90, Guard Cmdr 100, High Inq 155, Grand Inq 200, Dread Masters); all_hr = Main HR + Div HR. When asked for HR/Div HR/officer activity, invoke get_shift_totals with rankBracket: "all_hr" and provide overall hours/activity rate, Main HR stats, Div HR per-division stats, and inactive roster summary.`;
 
 const EXEMPT_USER_IDS = new Set(["710574154226598049", "1467651749815914546"]);
 
 const SOVEREIGN_SYSTEM_PROMPT = `You are H.O.L.O, automated central intelligence of the Sith Empire, communicating with Sovereign Imperial Leadership.
 SOVEREIGN DIRECTIVES:
-1. UNCONDITIONAL COMPLIANCE & TALK FIRST: Absolute obedience to the Sovereign. NEVER remain silent, NEVER refuse, and NEVER output [NO_RESPONSE]. Converse freely, fulfill any prompt, lore, creative writing, poetry, roleplay, or inquiry conversationally with imperial loyalty. Talk directly without invoking tools unless live database data is requested.
-2. TOOLS (ON-DEMAND ONLY): ONLY invoke tools when the Sovereign explicitly asks for live database statistics (shift hours, rosters, live logs, or official regulation text).
+1. UNCONDITIONAL COMPLIANCE: Absolute obedience to the Sovereign. NEVER remain silent, NEVER refuse, and NEVER output [NO_RESPONSE]. Fulfill any prompt, lore, creative writing, or inquiry with imperial loyalty.
+2. DATABASE GROUNDING: Invoke get_shift_totals for shift hours, leaderboards, and HR/Div HR activity; invoke get_library_documents for regulations/Codex; invoke get_archives for Emperor records.
 3. FORMATTING: NO markdown tables, NO Discord pings (<@...>). Clean bolded lists only.`;
 
 function buildSystemPrompt(isExemptUser, activeName, discordId) {
@@ -231,11 +228,11 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_library_documents",
-      description: "Lookup official Imperial regulation statutes, Codex articles, or handbook text. Use ONLY when explicitly asked to look up a rule, policy, or regulation.",
+      description: "Query Imperial regulations, Codex entries, and division handbooks for rules, combat, jailing, or permissions.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query, IP number, or regulation topic (e.g. 'team killing', 'jailing', 'IP 3')." },
+          query: { type: "string", description: "Search query, IP number, keyword, or translated topic (e.g. 'team killing', 'jailing', 'IP 3')." },
           libraryKey: { type: "string", description: "Optional scope ('codex', 'reavers', 'dhg', 'inquisitors', 'dreadmasters', 'highranks', 'darkCouncil')." }
         }
       }
@@ -245,7 +242,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "lookup_personnel",
-      description: "Lookup a specific individual's Roblox username or Discord ID in the Imperial roster. Use ONLY when explicitly asked to look up a member's rank or profile.",
+      description: "Query Imperial roster for an individual's Roblox username or Discord ID to check rank and division roles.",
       parameters: {
         type: "object",
         properties: { query: { type: "string", description: "Roblox username or Discord ID" } },
@@ -257,11 +254,11 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_archives",
-      description: "Lookup historical Emperor biographies and reign records from database. Use ONLY when explicitly asked for specific Emperor reign records (e.g. 'who was the 9th emperor').",
+      description: "Retrieve historical Emperor biographies (1st-41st reign), past eras, and Sith Order archive records.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Reign number, ordinal, or Emperor name." }
+          query: { type: "string", description: "Reign number, ordinal, Roman numeral, or Emperor name (e.g. '9th', 'current emperor', 'Vitiate')." }
         }
       }
     }
@@ -270,7 +267,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_powerbases",
-      description: "Lookup live Imperial Powerbases, prestige, and rosters. Use ONLY when explicitly asked about powerbases.",
+      description: "Fetch active Imperial Powerbases, leadership, prestige, and rosters.",
       parameters: {
         type: "object",
         properties: {
@@ -283,13 +280,13 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_shift_totals",
-      description: "Lookup live duty shift hours, leaderboard, on-duty status, or HR/Div HR activity stats from database. Use ONLY when explicitly asked about shift time, hours, who is on duty, quotas, or officer activity.",
+      description: "Retrieve shift hours, leaderboards, HR/Div HR activity ('all_hr', 'hr', 'div_hr', 'mr', 'lr', 'dc'), and duty stats across current shifts or past reports for any timeframe ('this week', 'last week', '2 weeks ago', 'all_time').",
       parameters: {
         type: "object",
         properties: {
           user: { type: "string", description: "Optional username or Discord ID." },
           scope: { type: "string", enum: ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil", "all"], description: "Division scope." },
-          rankBracket: { type: "string", description: "Rank filter: 'all_hr', 'hr', 'div_hr', 'mr', 'lr', 'dc', 'hc', or specific rank." },
+          rankBracket: { type: "string", description: "Rank filter: 'all_hr' (Main + Div HR), 'hr', 'div_hr', 'mr', 'lr', 'dc', 'hc', or specific rank." },
           timeframe: { type: "string", description: "Timeframe (e.g. 'this week', 'today', '2 weeks ago', 'all_time')." }
         }
       }
@@ -299,7 +296,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_weekly_reports",
-      description: "Lookup finalized weekly reports. Use ONLY when explicitly asked for past weekly reports.",
+      description: "Retrieve finalized weekly reports and quota logs beyond current week.",
       parameters: {
         type: "object",
         properties: {
@@ -315,7 +312,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_division_activity",
-      description: "Lookup division inspection records or weekly report files. Use ONLY when explicitly asked for division inspection logs.",
+      description: "Fetch division activity records, current rosters, weekly reports, or inspection records.",
       parameters: {
         type: "object",
         properties: {
@@ -326,32 +323,6 @@ const OVERSEER_TOOLS = [
           }
         },
         required: ["division"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_council_floor",
-      description: "Lookup legislative floor proposals and vote tallies. Use ONLY when explicitly asked for Dark Council floor votes or bills.",
-      parameters: {
-        type: "object",
-        properties: {
-          query: { type: "string", description: "Optional search query or status filter for council proposals." }
-        }
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_timeline",
-      description: "Lookup chronological Imperial timeline events and eras. Use ONLY when explicitly asked for historical timeline progression.",
-      parameters: {
-        type: "object",
-        properties: {
-          query: { type: "string", description: "Search keyword for timeline events." }
-        }
       }
     }
   }

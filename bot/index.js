@@ -111,6 +111,9 @@ async function maybeHandleHoloAiResponse(message) {
     });
 
     let replyText = (aiReply || "").replace(/\[NO_RESPONSE\]/gi, "").trim();
+    if (replyText.length > 500) {
+      replyText = replyText.slice(0, 500).trim();
+    }
 
     if (isExemptUser) {
       if (!replyText) {

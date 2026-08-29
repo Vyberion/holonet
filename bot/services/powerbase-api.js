@@ -715,16 +715,16 @@ export async function logPowerbaseAction(userId, action, powerbaseId = null, det
 }
 
 export function getMinPrestigeForTier(tier) {
-  if (tier >= 4) return 12;
-  if (tier >= 3) return 8;
-  if (tier >= 2) return 4;
+  if (tier >= 4) return 15;
+  if (tier >= 3) return 10;
+  if (tier >= 2) return 5;
   return 0;
 }
 
 export function calculateTierFromPrestige(prestige) {
-  if (prestige >= 12) return 4;
-  if (prestige >= 8) return 3;
-  if (prestige >= 4) return 2;
+  if (prestige >= 15) return 4;
+  if (prestige >= 10) return 3;
+  if (prestige >= 5) return 2;
   return 1;
 }
 
@@ -733,7 +733,7 @@ function processMatchPrestigeAndTier(pb, prestigeChange, isWinner) {
   const currentTier = pb.tier || 1;
   const wasSuddenDeath = !!pb.is_sudden_death;
 
-  const newPrestige = Math.min(30, Math.max(0, currentPrestige + prestigeChange));
+  const newPrestige = Math.min(25, Math.max(0, currentPrestige + prestigeChange));
   let newTier = currentTier;
   let isSuddenDeath = wasSuddenDeath;
   let suddenDeathStatus = null; // 'ENTERED', 'CLEARED', 'RELEGATED', or null
@@ -847,7 +847,7 @@ export async function adjustPrestige(powerbaseId, amount, client = null) {
 
   const currentPrestige = pb.prestige || 0;
   const currentTier = pb.tier || 1;
-  const newPrestige = Math.min(30, Math.max(0, currentPrestige + amount));
+  const newPrestige = Math.min(25, Math.max(0, currentPrestige + amount));
 
   let newTier = currentTier;
   let isSuddenDeath = !!pb.is_sudden_death;

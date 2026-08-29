@@ -110,12 +110,18 @@ async function maybeHandleHoloAiResponse(message) {
       if (!replyText) {
         replyText = "Transmission acknowledged, My Lord. How may H.O.L.O assist you?";
       }
-      await message.reply(replyText);
+      await message.reply({
+        content: replyText,
+        allowedMentions: { repliedUser: false, parse: [] }
+      });
     } else {
       if (!aiReply || aiReply.includes("[NO_RESPONSE]") || !replyText) {
         return;
       }
-      await message.reply(replyText);
+      await message.reply({
+        content: replyText,
+        allowedMentions: { repliedUser: false, parse: [] }
+      });
     }
   } catch (error) {
     console.error("H.O.L.O AI response failed:", error);
@@ -123,9 +129,15 @@ async function maybeHandleHoloAiResponse(message) {
     if (errText.includes("429") || errText.includes("rate_limit")) {
       const secondsMatch = errText.match(/try again in ([\d\.]+\s*s(?:econds)?|[\d\.]+\s*m(?:inutes)?)/i);
       const timeStr = secondsMatch ? secondsMatch[1] : "a few seconds";
-      await message.reply(`Holonet transmission rate limit reached. Try again in ${timeStr}.`).catch(() => { });
+      await message.reply({
+        content: `Holonet transmission rate limit reached. Try again in ${timeStr}.`,
+        allowedMentions: { repliedUser: false, parse: [] }
+      }).catch(() => { });
     } else if (isExemptUser) {
-      await message.reply(`Holonet intelligence query encountered an anomaly: ${errText.slice(0, 100)}`).catch(() => { });
+      await message.reply({
+        content: `Holonet intelligence query encountered an anomaly: ${errText.slice(0, 100)}`,
+        allowedMentions: { repliedUser: false, parse: [] }
+      }).catch(() => { });
     }
   } finally {
     clearTimeout(typingSafetyTimeout);

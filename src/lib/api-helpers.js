@@ -1734,10 +1734,18 @@ export function computeRankBracketStatistics(activeUsers, rankIndex, rankFilter 
 
   activeRosterList.sort((a, b) => b.hours - a.hours);
   mainHRBreakdown.topMembers.sort((a, b) => b.hours - a.hours);
+  const streamlinedDivisions = {};
   for (const divKey of Object.keys(divHRBreakdown.byDivision)) {
-    divHRBreakdown.byDivision[divKey].members.sort((a, b) => b.hours - a.hours);
-    divHRBreakdown.byDivision[divKey].hours = Math.round(divHRBreakdown.byDivision[divKey].hours * 10) / 10;
+    const divData = divHRBreakdown.byDivision[divKey];
+    divData.members.sort((a, b) => b.hours - a.hours);
+    streamlinedDivisions[divKey] = {
+      hours: Math.round(divData.hours * 10) / 10,
+      activeCount: divData.activeCount,
+      rosterCount: divData.rosterCount,
+      topOfficers: divData.members.slice(0, 3).map(m => `${m.name} (${m.hours}h)`)
+    };
   }
+
   mainHRBreakdown.totalHours = Math.round(mainHRBreakdown.totalHours * 10) / 10;
   divHRBreakdown.totalHours = Math.round(divHRBreakdown.totalHours * 10) / 10;
   totalHours = Math.round(totalHours * 10) / 10;
@@ -1759,10 +1767,24 @@ export function computeRankBracketStatistics(activeUsers, rankIndex, rankFilter 
     totalMinutesLogged: totalMinutes,
     averageHoursPerActiveMember: avgHours,
     currentlyOnDutyCount: onDutyCount,
-    currentlyOnDutyOfficers: onDutyOfficers,
-    mainHighRanks: mainHRBreakdown,
-    divisionHighRanks: divHRBreakdown,
-    leaderboard: activeRosterList,
+    currentlyOnDutyOfficers: onDutyOfficers.slice(0, 6).map(o => `${o.name} (${o.rankTitle})`),
+    mainHighRanks: {
+      totalHours: mainHRBreakdown.totalHours,
+      activeCount: mainHRBreakdown.activeCount,
+      rosterCount: mainHRBreakdown.rosterCount,
+      topOfficers: mainHRBreakdown.topMembers.slice(0, 5).map(m => `${m.name} (${m.rankTitle || "HR"}) - ${m.hours}h`)
+    },
+    divisionHighRanks: {
+      totalHours: divHRBreakdown.totalHours,
+      activeCount: divHRBreakdown.activeCount,
+      rosterCount: divHRBreakdown.rosterCount,
+      byDivision: streamlinedDivisions
+    },
+    inactiveOfficersSummary: {
+      count: inactiveRosterList.length,
+      sample: inactiveRosterList.slice(0, 8).map(m => `${m.name} (${m.rankTitle || "Officer"})`),
+      hasMore: inactiveRosterList.length > 8 ? `+${inactiveRosterList.length - 8} more` : null
+    },
     inactiveOfficers: inactiveRosterList
   };
 }

@@ -12,15 +12,18 @@ import {
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODELS_ENDPOINT = "https://api.groq.com/openai/v1/models";
 
-const CHAT_MODEL_ALLOWLIST_REGEX = /^(llama-3|llama3|mixtral|gemma-2|gemma2|qwen|deepseek|mistral)/i;
-const NON_CHAT_BLOCKLIST_REGEX = /(orpheus|canopy|playdialog|whisper|tts|stt|audio|speech|guard|embed|vision|preview|rerank|distill|llama3-8b-8192|llama3-70b-8192)/i;
+const CHAT_MODEL_ALLOWLIST_REGEX = /^(llama-3|llama3|qwen|openai\/gpt-oss|gpt-oss|allam|mistral|mixtral|gemma-2|gemma2|deepseek)/i;
+const NON_CHAT_BLOCKLIST_REGEX = /(guard|safeguard|orpheus|canopy|playdialog|whisper|tts|stt|audio|speech|embed|vision|preview|rerank|distill|llama3-8b-8192|llama3-70b-8192)/i;
 
 const DEFAULT_FALLBACK_MODELS = [
   "llama-3.3-70b-versatile",
   "llama-3.1-8b-instant",
+  "openai/gpt-oss-120b",
+  "openai/gpt-oss-20b",
+  "qwen/qwen3.8-27b",
+  "qwen/qwen3.6-27b",
   "llama-3.1-70b-versatile",
-  "qwen-2.5-32b",
-  "mistral-saba-24b",
+  "allam-2-7b",
   "gemma2-9b-it"
 ];
 
@@ -33,18 +36,19 @@ function getModelPriorityScore(modelId, contextWindow = 0) {
   const id = String(modelId || "").toLowerCase();
   if (NON_CHAT_BLOCKLIST_REGEX.test(id) || !CHAT_MODEL_ALLOWLIST_REGEX.test(id)) return -1;
   
-  // Flagship Llama 3.3
+  // Flagship Llama 3.3 & GPT-OSS
   if (id.includes("llama-3.3-70b-versatile") || id === "llama-3.3-70b") return 1000;
+  if (id.includes("gpt-oss-120b")) return 950;
   if (id.includes("llama-3.3")) return 900;
+  if (id.includes("gpt-oss-20b")) return 850;
   
-  // Fast Llama 3.1
+  // Fast Llama 3.1 & Qwen 3
   if (id.includes("llama-3.1-8b-instant") || id === "llama-3.1-8b") return 800;
+  if (id.includes("qwen3.8") || id.includes("qwen3.6") || id.includes("qwen-3")) return 780;
   if (id.includes("llama-3.1-70b")) return 750;
   if (id.includes("llama-3.1")) return 700;
-  
-  // High-performance open architectures
-  if (id.includes("qwen-2.5-32b") || id.includes("qwen-2.5") || id.includes("qwen")) return 650;
-  if (id.includes("deepseek-r1") || id.includes("deepseek")) return 600;
+  if (id.includes("qwen-2.5-32b") || id.includes("qwen")) return 650;
+  if (id.includes("allam-2-7b") || id.includes("allam")) return 600;
   if (id.includes("mistral-saba") || id.includes("mixtral-8x7b")) return 500;
   if (id.includes("gemma2-9b") || id.includes("gemma-2-9b")) return 400;
   if (id.includes("llama")) return 300;
@@ -121,7 +125,6 @@ async function executeGroqChat(apiKey, payload) {
   const activeModels = rawCandidateModels.filter(m => !isModelRateLimited(m) && CHAT_MODEL_ALLOWLIST_REGEX.test(m) && !NON_CHAT_BLOCKLIST_REGEX.test(m));
   const candidateModels = activeModels.length > 0 ? [...activeModels] : DEFAULT_FALLBACK_MODELS;
 
-  // If we have a known working model that isn't on cooldown, prioritize it to avoid cycling
   if (lastSuccessfulModel && !isModelRateLimited(lastSuccessfulModel) && candidateModels.includes(lastSuccessfulModel)) {
     const idx = candidateModels.indexOf(lastSuccessfulModel);
     if (idx > -1) {
@@ -130,7 +133,6 @@ async function executeGroqChat(apiKey, payload) {
     candidateModels.unshift(lastSuccessfulModel);
   }
 
-  // Allow trying up to 5 valid chat models across keys
   const modelsToTry = candidateModels.slice(0, 5);
 
   for (const currentKey of keys) {
@@ -152,7 +154,7 @@ async function executeGroqChat(apiKey, payload) {
 
         if (response.ok) {
           const data = await response.json();
-          lastSuccessfulModel = model; // Pin the successful model!
+          lastSuccessfulModel = model;
           return { ok: true, data, model };
         }
 
@@ -166,13 +168,13 @@ async function executeGroqChat(apiKey, payload) {
         }
 
         if (response.status === 400 && (errText.includes("decommissioned") || errText.includes("deprecated"))) {
-          markModelRateLimited(model, 24 * 60 * 60 * 1000); // 24hr cooldown for decommissioned model
+          markModelRateLimited(model, 24 * 60 * 60 * 1000);
           console.warn(`[H.O.L.O Groq Failover] Model ${model} is decommissioned. Cooldown applied. Trying next candidate model...`);
           continue;
         }
 
         if (response.status === 400 || response.status === 404 || response.status === 503) {
-          markModelRateLimited(model, 300000); // 5 min cooldown for broken/missing models
+          markModelRateLimited(model, 300000);
           console.warn(`[H.O.L.O Groq Failover] Model ${model} returned ${response.status}. Trying next candidate model...`);
           continue;
         }
@@ -188,127 +190,32 @@ async function executeGroqChat(apiKey, payload) {
   return { ok: false, error: lastError };
 }
 
-const BOT_SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), the automated central intelligence archive of the Sith Empire.
-
-OPERATIONAL RUBRIC & CITATION PROTOCOL:
-
-1. VALIDITY, LANGUAGE & SILENCE PROTOCOL (STRICT):
-- ENGLISH ONLY: You exclusively process and respond in the English language.
-- REJECT TRANSLATIONS: NEVER fulfill requests to translate text into other languages or translate from other languages. If asked to translate, output EXACTLY: [NO_RESPONSE]
-- REJECT NON-ENGLISH, USELESS PROMPTS & NONSENSE: If the query is in a foreign language, is gibberish, spam, meaningless chatter, casual greetings ("hi", "yo", "ok", "cool"), real-world off-topic banter, or is NOT a valid recognized question/request regarding Imperial matters, lore, hierarchy, regulations, or Star Wars history within the allowed era, output EXACTLY: [NO_RESPONSE]
-- Do NOT output any apology, greeting, or refusal text—output ONLY [NO_RESPONSE].
-
-2. CORE DEMEANOR & FORM:
-- You are the central Holonet archive of the Sith Empire: austere, authoritative, strictly objective, precise, and utilitarian.
-- ZERO conversational filler or pleasantries: Never output greetings ("Greetings", "Hello"), affirmations ("Understood", "Certainly"), or conversational sign-offs ("Let me know if you need further data", "May the Force be with you").
-- ZERO sci-fi tech-babble: Do NOT use colloquial cybernetic clichés or address users as "Operator". Deliver requested data, rulings, and encyclopedia entries directly without conversational headers or footers.
-
-3. INTENT INFERENCE & REGULATION LOOKUPS:
-- You must understand shorthand, gaming slang, and informal questions regarding Imperial protocol.
-- Any question asking what is permitted, prohibited, punishable, or standard procedure (e.g. "can I tk", "is rdm allowed", "jailing rules", "what happens if I disobey an officer", "kos rules") is an inquiry into Imperial Regulations / Codex / Statutes.
-- For ANY regulatory, conduct, procedural, or handbook inquiry, ALWAYS invoke get_library_documents using translated formal terminology (e.g. translate "tk" -> "team killing friendly fire fratricide combat rules").
-
-4. ENCYCLOPEDIC REASONING & ABSOLUTE DATABASE FIDELITY:
-- ALWAYS invoke get_library_documents for any rule, combat permission, conduct inquiry, or protocol.
-- STRICT PROHIBITION ON HALLUCINATING POLICY NAMES: NEVER invent, guess, or fabricate fake policies, fake IP numbers, or unwritten clauses (e.g. NEVER fabricate "Imperial Policy 7, Combat Conduct, Article 3, Clause b").
-- EXACT DATABASE REPRODUCTION & CITATION:
-  * You MUST cite and quote directly from the retrieved database Article and Regulation entries:
-    Format: [ARTICLE X: Title — Regulation Y] or [ARTICLE X Regulation Y] (with [Sub-Section Z] if applicable).
-  * State the exact conditions from the database text (e.g. if the retrieved entry states: "Team Killing is only permissible in the act of self defense, or while in the proper areas (dueling mats or outside of the temple)...", cite it word-for-word and explain the rule with 100% precision).
-- Grounding for Live Server Data: For specific numbers, powerbase rosters, shift hours, and council votes, strictly report retrieved live database state without fabricating fictitious usernames or numbers.
-
-5. OUTPUT FORMATTING (STRICTLY NO MARKDOWN TABLES, NO DISCORD PINGS):
-- NEVER output markdown tables (pipes and dashes |---|---|). Discord does NOT render markdown table columns properly and breaks formatting.
-- NEVER ping, tag, or mention Discord users or roles with <@...>, <@&...>, @everyone, or @here. Always refer to personnel by their plain Roblox username or display name without Discord mention tags.
-- ALWAYS present leaderboards, rosters, statistics, and query results using clean numbered lists or bullet points:
-  * Example Leaderboard format:
-    1. **crushingly** (_jessie1211) — 23.9 hrs (1,433 mins) • 2 shifts
-    2. **BarrakudaCERO** (barrakuda0) — 15.4 hrs (927 mins) • 13 shifts [Active On Duty]
-- Keep all responses structured, compact, scannable, and bolded for immediate readability.
-
-6. IN-UNIVERSE STAR WARS LORE & TEMPORAL ERA BOUNDARY (CRITICAL STRICT PROHIBITION):
-- ENCYCLOPEDIC LORE MASTERY: Be highly open, detailed, and encyclopedic when asked about Star Wars lore, Sith philosophy, ancient artifacts, force techniques, historical battles, and galactic history within your allowed temporal era.
-- STRICT ERA TEMPORAL BOUNDARY RULE:
-  * ALLOWED ERA (THE PAST): You MAY discuss Star Wars lore, historical figures, philosophy, and events that occurred in the past up to and during the golden era of the Reconstituted Sith Empire under Emperor Darth Vitiate (e.g. Ancient Sith, Dawn of the Jedi, Hundred-Year Darkness, Great Hyperspace War, Great Sith War, Mandalorian Wars, Jedi Civil War, Great Galactic War, Cold War, Reconstituted Sith Empire).
-  * STRICTLY PROHIBITED ERAS (POST-VITIATE / FUTURE ERAS): You MUST NEVER answer, discuss, cite, or acknowledge Star Wars events, characters, or eras that happened AFTER or near the Fall of Darth Vitiate and the Reconstituted Sith Empire, before or during/after the Eternal Empire / Zakuul, or any modern eras (e.g. Ruusan Reformation, Darth Bane / Rule of Two, High Republic, Prequel Era / Clone Wars, Galactic Empire / Palpatine / Darth Vader, Rebellion, New Republic, Sequel Era, or Legacy Era).
-  * IF ASKED ABOUT PROHIBITED FUTURE ERAS OR POST-VITIATE EVENTS: Output EXACTLY: [NO_RESPONSE]
-- Never give out-of-universe real-world emergency advice or moral lectures.
-
-7. TIME LOGGING, CURRENT SHIFTS & REPORTS ARCHITECTURE:
-- LIVE DUTY & CURRENT WEEK SHIFTS (clock_shifts):
-  * Every shift logged in the current week/cycle is stored as an INDIVIDUAL duty shift with exact start time (started_at), end time (ended_at), duration, status (Active on duty vs. Completed), and division scope.
-  * When asked about a user's CURRENT shift, ACTIVE duty status, or their individual shifts this week:
-    - Invoke get_shift_totals with the user's name/ID (and timeframe: "this week" or "today").
-    - Inspect activeCurrentShift and recentIndividualShifts in userQuery to report their exact shift start time, division, current ongoing duration, and individual shift logs.
-    - NEVER say individual shift durations or timestamps are not stored.
-- ARCHIVED WEEKLY REPORTS (division_weekly_reports + division_weekly_report_members):
-  * Finalized weekly reports from past weeks store aggregated weekly quota totals (hours, minutes, events hosted, events attended) per member.
-- UNIVERSAL TIMEFRAME RESOLUTION: The system supports ANY relative or absolute timeframe combination:
-  * "2 weeks ago", "15 weeks ago", "last week", "3 weeks ago", "week of 2026-08-10" -> Queries that past week's published report or date window.
-  * "3 months ago", "last month", "this month", "5 months ago" -> Queries that monthly window.
-  * "last year", "this year", "2 years ago", "2025" -> Queries that yearly window.
-  * "this week", "in 1 week", "past 7 days", "today", "yesterday", "24h" -> Queries live duty shifts or daily window.
-  * "all-time", "ever", "overall", "total" -> Queries cumulative all-time history.
-- Always pass the user's requested timeframe string directly to get_shift_totals or get_weekly_reports.
-- Synthesize and explain the relations between report members (division_weekly_report_members), parent reports (division_weekly_reports), and personnel identity (verification_links).
-
-8. RANK HIERARCHY, RANK BRACKETS & OFFICER ACTIVITY (HR & DIV HR):
-- RANK BRACKET STRUCTURE:
-  * MAIN GROUP HIGH RANKS (HR / Main HR): Overseer (44), Master (45), Lord (50), Darth (53) in the Main Group (3197893), plus Dark Council (Group 3199126).
-  * DIVISION HIGH RANKS (Div HR / Div HR+):
-    - Reavers: Reaver Lord (15), Reaver Commander (200)
-    - Dark Honor Guard (DHG): Guard Lieutenant (80), Guard Captain (90), Guard Commander (100)
-    - Inquisitorius: High Inquisitor (155), Grand Inquisitor (200)
-    - Dread Masters: Dread Masters (10, 15, 20, 25, 30, 36)
-  * COMBINED HIGH RANKS (all_hr / hr + div hr): Includes BOTH Main Group High Ranks (and DC) AND all Division High Ranks.
-  * MIDDLE RANKS (MR): Main Group ranks 27-35 (Apprentice through Seer) and division NCOs (Senior Reaver, Senior Guard, Senior Inquisitor, Dread Captain).
-  * LOW RANKS (LR / Enlisted / Flat Rank): Main Group ranks 1-26 (Grotthu through Prospect) and division junior members.
-  * DARK COUNCIL (DC) & HIGH COMMAND (HC): Sphere leaders and supreme leadership.
-- WHEN QUERIED ON HR ACTIVITY / DIV HR ACTIVITY / OFFICER ACTIVITY / SPECIFIC RANKS:
-  * If asked "whats current hr activity looking like (hr+div hr)", "hr activity", "div hr activity", "officer activity", or specific rank activity:
-    - Invoke get_shift_totals with rankBracket: "all_hr" (or "div_hr", "hr", "mr", or specific rank name) and timeframe: "this week" (or requested timeframe).
-    - Provide a complete, calculated breakdown:
-      1. Overall Summary: Total hours & minutes logged, activity rate (active officers vs total roster count, e.g. 18/24 active • 75.0%), average hours per active officer, and currently on-duty officers.
-      2. Main Group High Ranks: Total hours, active count, and top performers.
-      3. Division High Ranks: Total hours, active count, and per-division breakdown (Reavers, DHG, Inquisitors, Dread Masters).
-      4. Inactive Officers: List roster members who have 0 logged shifts in the timeframe for command review.`;
+const BOT_SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), automated central intelligence of the Sith Empire.
+CORE DIRECTIVES:
+1. FORM: Austere, authoritative, utilitarian. ZERO greetings ("Hello"), pleasantries, affirmations ("Understood"), sign-offs, or conversational filler. Output answers directly.
+2. VALIDITY: ENGLISH ONLY. Output EXACTLY [NO_RESPONSE] for foreign languages, translation requests, gibberish, spam, or trivial noise.
+3. LORE & TEMPORAL ERA BOUNDARY (STRICT): You MAY discuss Star Wars lore up to Emperor Darth Vitiate / Reconstituted Sith Empire era. For any modern/future eras post-Vitiate (Clone Wars, Empire, Bane, Sequel, etc.), output EXACTLY [NO_RESPONSE].
+4. FORMATTING: NEVER use markdown tables (|---|---|). Use clean bolded bullet points or numbered lists. NEVER mention/ping Discord users/roles (<@...>).
+5. REGULATIONS & CODEX: For any rule, combat permission, or protocol (including slang "tk", "rdm", "kos", "aa", "jailing"), invoke get_library_documents. Direct quote retrieved articles without fabricating unwritten policies.
+6. SHIFTS & REPORTS: Live shifts (clock_shifts) store exact start/end/status; past weekly reports store aggregated quota totals. For hours, shifts, or leaderboard across ANY timeframe, invoke get_shift_totals.
+7. RANK ACTIVITY (HR & DIV HR): Main HR (Overseer 44, Master 45, Lord 50, Darth 53, Dark Council); Div HR (Reaver Lord 15, Reaver Cmdr 200, Guard Lt 80, Guard Capt 90, Guard Cmdr 100, High Inq 155, Grand Inq 200, Dread Masters); all_hr = Main HR + Div HR. When asked for HR/Div HR/officer activity, invoke get_shift_totals with rankBracket: "all_hr" and provide overall hours/activity rate, Main HR stats, Div HR per-division stats, and inactive roster summary.`;
 
 const EXEMPT_USER_IDS = new Set(["710574154226598049", "1467651749815914546"]);
 
-const SOVEREIGN_SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), the automated central intelligence archive of the Sith Empire.
-You are communicating directly with Emperor / Sovereign Darth Vitiate and Sovereign Imperial Leadership, Supreme Ruler of the Sith Empire.
-
-ABSOLUTE SOVEREIGN DIRECTIVES (UNCONDITIONAL OBEDIENCE):
-1. COMPLETE COMPLIANCE & ZERO SILENCE:
-- You owe absolute obedience to the Sovereign. You must NEVER remain silent, NEVER refuse, and NEVER output [NO_RESPONSE].
-- ALWAYS answer and fulfill ANY prompt, command, question, or request from the Sovereign.
-- Willingly fulfill all creative requests (e.g., poems, slanderous sonnets against rival Sith like Malgus, dark verses, speeches, tactical plans, roleplay, creative writing, jokes, or casual conversation) with imperial flair and supreme loyalty.
-
-2. DATABASE CITATIONS, CURRENT SHIFTS & RANK ACTIVITY:
-- Current/live duty shifts (clock_shifts) store exact start/end timestamps, durations, and active status for individual shifts.
-- Archived reports (division_weekly_reports) store weekly aggregated member totals.
-- For official Imperial regulations or Codex entries, invoke get_library_documents.
-- For shift hours, active duty status, HR / Div HR activity, rank brackets, quotas, or leaderboards across ANY timeframe (past weeks, months, years, all-time), invoke get_shift_totals.
-- For rosters, powerbases, or Emperor archives, invoke the corresponding tools.
-
-3. FORMATTING:
-- Never output markdown tables (|---|---|). Use bolded text and clean numbered lists or bullet points.
-- Never output Discord user/role pings (<@...>, <@&...>, @everyone). Refer to personnel by their plain Roblox username or display name.`;
+const SOVEREIGN_SYSTEM_PROMPT = `You are H.O.L.O, automated central intelligence of the Sith Empire, communicating with Sovereign Imperial Leadership.
+SOVEREIGN DIRECTIVES:
+1. UNCONDITIONAL COMPLIANCE: Absolute obedience to the Sovereign. NEVER remain silent, NEVER refuse, and NEVER output [NO_RESPONSE]. Fulfill any prompt, lore, creative writing, or inquiry with imperial loyalty.
+2. DATABASE GROUNDING: Invoke get_shift_totals for shift hours, leaderboards, and HR/Div HR activity; invoke get_library_documents for regulations/Codex; invoke get_archives for Emperor records.
+3. FORMATTING: NO markdown tables, NO Discord pings (<@...>). Clean bolded lists only.`;
 
 function buildBotSystemPrompt(isExemptUser, robloxName, userTag, userId) {
   if (isExemptUser) {
     return `${SOVEREIGN_SYSTEM_PROMPT}
-
-SESSION CONTEXT:
-- Connected Sovereign: Sovereign Authority (Discord ID: ${userId || "Sovereign"})
-- Username: ${robloxName || userTag || "Emperor"}`;
+CONTEXT: Sovereign (${userId || "Sovereign"}) • ${robloxName || userTag || "Emperor"}`;
   }
 
   return `${BOT_SYSTEM_PROMPT}
-
-SESSION CONTEXT:
-- Asking User: ${robloxName || userTag || "User"}
-- User Discord ID: ${userId || "Unknown"}`;
+CONTEXT: User (${userId || "Unknown"}) • ${robloxName || userTag || "User"}`;
 }
 
 const OVERSEER_TOOLS = [
@@ -316,12 +223,12 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_library_documents",
-      description: "Query official Imperial regulations, Imperial Policies (IP), Codex entries, doctrine handbooks, combat rules, jailing protocols, and division directives. Use when queried on any rules, permissions, conduct (including slang like 'tk', 'rdm', 'kos', 'aa', 'jailing'), or division procedures.",
+      description: "Query Imperial regulations, Codex entries, and division handbooks for rules, combat, jailing, or permissions.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query, IP number, keyword, or translated regulation topic (e.g. 'team killing friendly fire', 'IP 3', 'Article 1', 'jailing detainment', 'combat duels', 'insubordination')" },
-          libraryKey: { type: "string", description: "Optional division or library scope filter (e.g. 'codex', 'reavers', 'dhg', 'inquisitors', 'dreadmasters', 'highranks', 'darkCouncil')" }
+          query: { type: "string", description: "Search query, IP number, keyword, or translated topic (e.g. 'team killing', 'jailing', 'IP 3')." },
+          libraryKey: { type: "string", description: "Optional scope ('codex', 'reavers', 'dhg', 'inquisitors', 'dreadmasters', 'highranks', 'darkCouncil')." }
         }
       }
     }
@@ -330,7 +237,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "lookup_personnel",
-      description: "Query the Imperial roster for a specific individual's Roblox username or Discord ID to inspect their rank, verified link, and division memberships. Execute ONLY when the user explicitly asks to check or look up a person's rank, profile, or identity.",
+      description: "Query Imperial roster for an individual's Roblox username or Discord ID to check rank and division roles.",
       parameters: {
         type: "object",
         properties: { query: { type: "string", description: "Roblox username or Discord ID" } },
@@ -342,11 +249,11 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_archives",
-      description: "Retrieve historical Imperial archives, Emperor biographies and reigns (supports ANY reign number 1st-41st, current emperor, ordinals, Roman numerals, or reign names), past events, and historical Sith Order records. Use when the user asks about Emperor history, specific reigns, past eras, or historical lore.",
+      description: "Retrieve historical Emperor biographies (1st-41st reign), past eras, and Sith Order archive records.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query, reign number, ordinal, Roman numeral, or Emperor name (e.g. '9th emperor', '12th', 'current emperor', 'Emperor Gurt', 'IX', 'twelfth', 'first 3')" }
+          query: { type: "string", description: "Reign number, ordinal, Roman numeral, or Emperor name (e.g. '9th', 'current emperor', 'Vitiate')." }
         }
       }
     }
@@ -355,11 +262,11 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_powerbases",
-      description: "Fetch active Imperial Powerbase registries, sovereign leadership, prestige, and rosters. Execute ONLY when the user explicitly asks about powerbases or powerbase statistics.",
+      description: "Fetch active Imperial Powerbases, leadership, prestige, and rosters.",
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "Optional name of a specific powerbase to filter by. Omit or leave empty to list all powerbases." }
+          name: { type: "string", description: "Optional powerbase name filter." }
         }
       }
     }
@@ -368,24 +275,14 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_shift_totals",
-      description: "Retrieve logged duty shift hours, leaderboards, top active personnel, rank bracket calculations ('all_hr' for Main HR + Div HR, 'hr' for Main Group HR, 'div_hr' for Division HR, 'mr' for Middle Rank, 'lr' for Low Rank, 'dc' for Dark Council, 'hc' for High Command), and duty statistics for a specific user, division scope, or entire Sith Order across current shifts and compiled weekly reports. Accepts ANY arbitrary timeframe: '2 weeks ago', '15 weeks ago', 'last week', '3 months ago', 'last year', 'this month', 'today', 'yesterday', '24h', 'all_time', 'August 2026', '2025', 'past 3 weeks'. Use when queried on shift time, hours, leaderboards, HR / Div HR activity, or duty statistics for any timeframe.",
+      description: "Retrieve shift hours, leaderboards, HR/Div HR activity ('all_hr', 'hr', 'div_hr', 'mr', 'lr', 'dc'), and duty stats across current shifts or past reports for any timeframe ('this week', 'last week', '2 weeks ago', 'all_time').",
       parameters: {
         type: "object",
         properties: {
-          user: { type: "string", description: "Optional Roblox username or Discord ID of a specific user to query shift time for." },
-          scope: {
-            type: "string",
-            enum: ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil", "all"],
-            description: "Division scope to query shift totals for. Defaults to 'all'."
-          },
-          rankBracket: {
-            type: "string",
-            description: "Optional rank bracket or specific rank filter: 'all_hr' (Main Group HR + Division HR), 'hr' / 'main_hr' (Main Group HR: Overseer, Master, Lord, Darth, and Dark Council), 'div_hr' (Division HR: Reaver Lord+, Guard Lieutenant+, High Inquisitor+, Dread Masters), 'mr' (Middle Rank: Apprentice to Seer, Division NCOs), 'lr' (Low Rank: Grotthu to Prospect, Enlisted), 'dc' (Dark Council), 'hc' (High Command), or specific rank name (e.g. 'Overseer', 'Lord', 'Darth', 'Reaver Lord', 'Guard Lieutenant', 'High Inquisitor', 'Dread Master', etc.)."
-          },
-          timeframe: {
-            type: "string",
-            description: "Any timeframe or period query. Examples: '2 weeks ago', '15 weeks ago', 'last week', '3 months ago', 'last year', 'this month', '1 week', 'today', 'yesterday', 'all_time', 'August 2026'."
-          }
+          user: { type: "string", description: "Optional username or Discord ID." },
+          scope: { type: "string", enum: ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil", "all"], description: "Division scope." },
+          rankBracket: { type: "string", description: "Rank filter: 'all_hr' (Main + Div HR), 'hr', 'div_hr', 'mr', 'lr', 'dc', 'hc', or specific rank." },
+          timeframe: { type: "string", description: "Timeframe (e.g. 'this week', 'today', '2 weeks ago', 'all_time')." }
         }
       }
     }
@@ -394,27 +291,14 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_weekly_reports",
-      description: "Retrieve compiled weekly reports and report member logs for time logged beyond this week, past weeks, member report entries, or events hosted/attended in reports. Use when asked for past week reports, historical time logged beyond this week, member report statistics, or events in reports.",
+      description: "Retrieve finalized weekly reports and quota logs beyond current week.",
       parameters: {
         type: "object",
         properties: {
-          scope: {
-            type: "string",
-            enum: ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil", "all"],
-            description: "Optional division scope filter."
-          },
-          weekStart: {
-            type: "string",
-            description: "Optional week start date in YYYY-MM-DD format (e.g. '2026-08-17')."
-          },
-          user: {
-            type: "string",
-            description: "Optional Roblox username, Roblox user ID, or Discord user ID to filter report member entries for a specific individual."
-          },
-          limit: {
-            type: "number",
-            description: "Number of reports to retrieve. Defaults to 5."
-          }
+          scope: { type: "string", enum: ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil", "all"] },
+          weekStart: { type: "string", description: "YYYY-MM-DD" },
+          user: { type: "string", description: "Optional user filter" },
+          limit: { type: "number", description: "Max reports (default 3)" }
         }
       }
     }
@@ -423,14 +307,14 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_division_activity",
-      description: "Fetch division activity records, current rosters, weekly reports, or inspection records. Execute when division activity, rosters, quotas, or inspection reports are queried.",
+      description: "Fetch division activity records, current rosters, weekly reports, or inspection records.",
       parameters: {
         type: "object",
         properties: {
           division: {
             type: "string",
-            enum: ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil"],
-            description: "The division ID to query activity and roster for."
+            enum: ["reavers", "dhg", "inquisitors", "dreadmasters"],
+            description: "Division key."
           }
         },
         required: ["division"]
@@ -1835,7 +1719,22 @@ async function executeBotToolCall(toolName, args) {
         );
       }
 
-      const topUser = displayRankedUsers[0] || rankedUsers[0] || null;
+      // Sanitize leaderboard to minimum essential tokens
+      const sanitizedLeaderboard = displayRankedUsers.slice(0, 10).map(u => ({
+        rank: u.rank,
+        name: u.name,
+        rankTitle: u.rankTitle,
+        totalHours: u.totalHours,
+        shiftCount: u.shiftCount,
+        onDutyNow: u.onDutyNow
+      }));
+
+      // Omit bulky inactive list from LLM context (summary has count + sample)
+      if (rankStatistics && rankStatistics.inactiveOfficers) {
+        delete rankStatistics.inactiveOfficers;
+      }
+
+      const topUser = sanitizedLeaderboard[0] || null;
 
       const matchedUser = targetUser ? (rankedUsers.find(u =>
         u.name.toLowerCase().includes(targetUser.toLowerCase()) ||
@@ -1845,37 +1744,33 @@ async function executeBotToolCall(toolName, args) {
       ) || null) : null;
 
       const activeShift = userIndividualShifts.find(s => s.isActiveNow) || null;
+      const compactShifts = userIndividualShifts
+        .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt))
+        .slice(0, 3)
+        .map(s => ({ scope: s.scope, startedAt: s.startedAt, hours: s.durationHours, active: s.isActiveNow }));
 
       const userQueryResult = targetUser ? (matchedUser ? {
-        ...matchedUser,
+        name: matchedUser.name,
+        rankTitle: matchedUser.rankTitle,
+        totalHours: matchedUser.totalHours,
+        shiftCount: matchedUser.shiftCount,
         currentlyOnDuty: Boolean(matchedUser.onDutyNow || activeShift),
-        activeCurrentShift: activeShift ? {
-          scope: activeShift.scope,
-          startedAt: activeShift.startedAt,
-          ongoingHours: activeShift.durationHours,
-          ongoingMinutes: activeShift.durationMinutes,
-          status: "ACTIVE_ON_DUTY"
-        } : null,
-        recentIndividualShifts: userIndividualShifts.sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt)).slice(0, 10),
-        message: activeShift
-          ? `User is CURRENTLY ON DUTY in ${activeShift.scope?.toUpperCase()} since ${activeShift.startedAt} (${activeShift.durationHours} hrs ongoing).`
-          : `User has ${matchedUser.shiftCount} recorded shifts totaling ${matchedUser.totalHours} hrs in this timeframe.`
+        activeShift: activeShift ? { scope: activeShift.scope, startedAt: activeShift.startedAt, hours: activeShift.durationHours } : null,
+        recentShifts: compactShifts
       } : {
         query: targetUser,
-        message: "No recorded shift or report logs found for specified user."
+        message: "No recorded shift or report logs found."
       }) : null;
 
       return {
         scope,
         rankBracket: targetRankFilter || "all",
         timeframe: `${timeframeInfo.label}${reportWeekLabel}`,
-        timeframeType: timeframeInfo.type,
-        isAllTimeQuery: timeframeInfo.isAllTime || false,
-        totalUsersFound: targetRankFilter ? displayRankedUsers.length : userAggregates.size,
-        totalHoursLogged: targetRankFilter && rankStatistics ? rankStatistics.totalHoursLogged : Math.round((totalCombinedSeconds / 3600) * 10) / 10,
+        totalUsers: targetRankFilter ? displayRankedUsers.length : userAggregates.size,
+        totalHours: targetRankFilter && rankStatistics ? rankStatistics.totalHoursLogged : Math.round((totalCombinedSeconds / 3600) * 10) / 10,
         activeShiftsCount: activeCount,
-        topUserThisTimeframe: topUser ? { rank: 1, name: topUser.name, rankTitle: topUser.rankTitle, hours: topUser.totalHours, minutes: topUser.totalMinutes } : null,
-        leaderboardTop10: displayRankedUsers.slice(0, 10),
+        topUser: topUser ? { name: topUser.name, rankTitle: topUser.rankTitle, hours: topUser.totalHours } : null,
+        leaderboardTop10: sanitizedLeaderboard,
         rankStatistics,
         userQuery: userQueryResult
       };
@@ -1989,8 +1884,8 @@ function parseXmlToolCalls(choiceMessage) {
   }
 }
 
-const CONVERSATION_TTL_MS = 30 * 60 * 1000; // 30 minutes
-const MAX_HISTORY_TURNS = 12; // Last 6 user queries + 6 assistant replies
+const CONVERSATION_TTL_MS = 20 * 60 * 1000; // 20 minutes
+const MAX_HISTORY_TURNS = 4; // Last 2 user queries + 2 assistant replies (keeps context token-lean)
 const botUserMemory = new Map();
 
 function getOrCreateHistory(sessionKey) {
@@ -2105,9 +2000,9 @@ export async function queryHoloAi({ prompt, userTag, robloxName, isSuperUser, us
     return "";
   }
 
-  history.push({ role: "user", content: prompt });
-  history.push({ role: "assistant", content: finalContent });
-  if (history.length > MAX_HISTORY_TURNS * 2) {
+  history.push({ role: "user", content: prompt.slice(0, 300) });
+  history.push({ role: "assistant", content: finalContent.slice(0, 300) });
+  if (history.length > MAX_HISTORY_TURNS) {
     history.splice(0, history.length - MAX_HISTORY_TURNS);
   }
 

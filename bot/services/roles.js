@@ -12,6 +12,7 @@ import {
   roleIdsFromRule,
   roleSyncPlan
 } from "./role-rules.js";
+import { enforcePowerbaseMemberEligibility } from "./powerbase-api.js";
 
 const ROBLOX_RANK_DELEGATE_DISCORD_IDS = new Set(["1046546991360004136"]);
 const UNLINKED_ROLE_ID = config.roles?.unlinked || "1340850135680155674";
@@ -340,6 +341,12 @@ export async function syncMemberRoles(member, actorDiscordId = member.id) {
       metadata: { added: add, removed: remove, unlinked: true, nicknameUpdated }
     });
 
+    try {
+      await enforcePowerbaseMemberEligibility(member, null, actorDiscordId);
+    } catch (err) {
+      console.error("Failed to enforce powerbase eligibility for unlinked user:", member.id, err);
+    }
+
     return {
       link: null,
       profile: null,
@@ -372,6 +379,12 @@ export async function syncMemberRoles(member, actorDiscordId = member.id) {
     robloxUserId: verified.link.roblox_user_id,
     metadata: { added: add, removed: remove, nickname: nickname || null, nicknameUpdated }
   });
+
+  try {
+    await enforcePowerbaseMemberEligibility(member, verified.profile, actorDiscordId);
+  } catch (err) {
+    console.error("Failed to enforce powerbase eligibility for user:", member.id, err);
+  }
 
   return { ...verified, added: add, removed: remove, roleIds: wanted, nickname, nicknameUpdated };
 }

@@ -280,7 +280,7 @@ export async function handleButton(interaction) {
 
   if (interaction.customId === "verify:update") {
     try {
-      const result = await syncMemberRoles(interaction.member);
+      const result = await syncMemberRoles(interaction.member, interaction.user.id);
       await interaction.reply(ephemeral({ embeds: [successEmbed("Roles Updated", `Added ${result.added.length} role(s), removed ${result.removed.length} role(s).${result.nickname ? `\nNickname: ${result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`}` : ""}`)] }));
       await postVerificationLog(interaction.client, {
         title: "Roles Updated",

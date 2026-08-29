@@ -6,23 +6,26 @@ import {
   loadRobloxProfileSummary,
   ROBLOX_GROUPS,
   personnelLookupWarnings,
-  fetchDivisionRoster
+  fetchDivisionRoster,
+  fetchAllRankRosters,
+  buildPersonnelRankIndex,
+  matchesRankFilter,
+  computeRankBracketStatistics
 } from "../../../../lib/api-helpers.js";
 import { emperorArchiveItems, hierarchyItems } from "../../../../../modules/data/hierarchy.js";
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODELS_ENDPOINT = "https://api.groq.com/openai/v1/models";
 
-const CHAT_MODEL_ALLOWLIST_REGEX = /^(llama-3|llama3|mixtral|gemma-2|gemma2|qwen|deepseek)/i;
-const NON_CHAT_BLOCKLIST_REGEX = /(orpheus|canopy|playdialog|whisper|tts|stt|audio|speech|guard|embed|vision|preview|rerank|distill)/i;
+const CHAT_MODEL_ALLOWLIST_REGEX = /^(llama-3|llama3|mixtral|gemma-2|gemma2|qwen|deepseek|mistral)/i;
+const NON_CHAT_BLOCKLIST_REGEX = /(orpheus|canopy|playdialog|whisper|tts|stt|audio|speech|guard|embed|vision|preview|rerank|distill|llama3-8b-8192|llama3-70b-8192)/i;
 
 const DEFAULT_FALLBACK_MODELS = [
   "llama-3.3-70b-versatile",
   "llama-3.1-8b-instant",
   "llama-3.1-70b-versatile",
-  "llama3-70b-8192",
-  "llama3-8b-8192",
-  "mixtral-8x7b-32768",
+  "qwen-2.5-32b",
+  "mistral-saba-24b",
   "gemma2-9b-it"
 ];
 
@@ -44,12 +47,12 @@ function getModelPriorityScore(modelId, contextWindow = 0) {
   if (id.includes("llama-3.1-70b")) return 750;
   if (id.includes("llama-3.1")) return 700;
   
-  // Standard Llama 3 & open architectures
-  if (id.includes("llama3-70b")) return 600;
-  if (id.includes("llama3-8b")) return 500;
-  if (id.includes("mixtral-8x7b")) return 400;
-  if (id.includes("gemma2-9b") || id.includes("gemma-2-9b")) return 300;
-  if (id.includes("llama")) return 200;
+  // High-performance open architectures
+  if (id.includes("qwen-2.5-32b") || id.includes("qwen-2.5") || id.includes("qwen")) return 650;
+  if (id.includes("deepseek-r1") || id.includes("deepseek")) return 600;
+  if (id.includes("mistral-saba") || id.includes("mixtral-8x7b")) return 500;
+  if (id.includes("gemma2-9b") || id.includes("gemma-2-9b")) return 400;
+  if (id.includes("llama")) return 300;
   
   return Math.min(150, Math.floor(contextWindow / 1000));
 }
@@ -167,6 +170,12 @@ async function executeGroqChat(apiKey, payload) {
           continue;
         }
 
+        if (response.status === 400 && (errText.includes("decommissioned") || errText.includes("deprecated"))) {
+          markModelRateLimited(model, 24 * 60 * 60 * 1000); // 24hr cooldown for decommissioned model
+          console.warn(`[H.O.L.O Groq Failover] Model ${model} is decommissioned. Cooldown applied. Trying next candidate model...`);
+          continue;
+        }
+
         if (response.status === 400 || response.status === 404 || response.status === 503) {
           markModelRateLimited(model, 300000); // 5 min cooldown for broken/missing models
           console.warn(`[H.O.L.O Groq Failover] Model ${model} returned ${response.status}. Trying next candidate model...`);
@@ -215,7 +224,7 @@ OPERATIONAL RUBRIC & CITATION PROTOCOL:
 
 5. OUTPUT FORMATTING (STRICTLY NO MARKDOWN TABLES, NO DISCORD PINGS):
 - NEVER output markdown tables (pipes and dashes |---|---|). Markdown table columns do NOT render properly in chat interfaces and break layout.
-- NEVER ping, tag, or mention Discord users or roles with <@...>, <@&...>, @everyone, or @here. Always refer to users by their plain Roblox username or display name without Discord mention tags.
+- NEVER ping, tag, or mention Discord users or roles with <@...>, <@&...>, @everyone, or @here. Always refer to personnel by their plain Roblox username or display name without Discord mention tags.
 - ALWAYS present leaderboards, rosters, statistics, and query results using clean numbered lists or bullet points:
   * Example Leaderboard format:
     1. **crushingly** (_jessie1211) — 23.9 hrs (1,433 mins) • 2 shifts
@@ -246,22 +255,45 @@ OPERATIONAL RUBRIC & CITATION PROTOCOL:
   * "this week", "in 1 week", "past 7 days", "today", "yesterday", "24h" -> Queries live duty shifts or daily window.
   * "all-time", "ever", "overall", "total" -> Queries cumulative all-time history.
 - Always pass the user's requested timeframe string directly to get_shift_totals or get_weekly_reports.
-- Synthesize and explain the relations between report members (division_weekly_report_members), parent reports (division_weekly_reports), and personnel identity (verification_links).`;
+- Synthesize and explain the relations between report members (division_weekly_report_members), parent reports (division_weekly_reports), and personnel identity (verification_links).
+
+8. RANK HIERARCHY, RANK BRACKETS & OFFICER ACTIVITY (HR & DIV HR):
+- RANK BRACKET STRUCTURE:
+  * MAIN GROUP HIGH RANKS (HR / Main HR): Overseer (44), Master (45), Lord (50), Darth (53) in the Main Group (3197893), plus Dark Council (Group 3199126).
+  * DIVISION HIGH RANKS (Div HR / Div HR+):
+    - Reavers: Reaver Lord (15), Reaver Commander (200)
+    - Dark Honor Guard (DHG): Guard Lieutenant (80), Guard Captain (90), Guard Commander (100)
+    - Inquisitorius: High Inquisitor (155), Grand Inquisitor (200)
+    - Dread Masters: Dread Masters (10, 15, 20, 25, 30, 36)
+  * COMBINED HIGH RANKS (all_hr / hr + div hr): Includes BOTH Main Group High Ranks (and DC) AND all Division High Ranks.
+  * MIDDLE RANKS (MR): Main Group ranks 27-35 (Apprentice through Seer) and division NCOs (Senior Reaver, Senior Guard, Senior Inquisitor, Dread Captain).
+  * LOW RANKS (LR / Enlisted / Flat Rank): Main Group ranks 1-26 (Grotthu through Prospect) and division junior members.
+  * DARK COUNCIL (DC) & HIGH COMMAND (HC): Sphere leaders and supreme leadership.
+- WHEN QUERIED ON HR ACTIVITY / DIV HR ACTIVITY / OFFICER ACTIVITY / SPECIFIC RANKS:
+  * If asked "whats current hr activity looking like (hr+div hr)", "hr activity", "div hr activity", "officer activity", or specific rank activity:
+    - Invoke get_shift_totals with rankBracket: "all_hr" (or "div_hr", "hr", "mr", or specific rank name) and timeframe: "this week" (or requested timeframe).
+    - Provide a complete, calculated breakdown:
+      1. Overall Summary: Total hours & minutes logged, activity rate (active officers vs total roster count, e.g. 18/24 active • 75.0%), average hours per active officer, and currently on-duty officers.
+      2. Main Group High Ranks: Total hours, active count, and top performers.
+      3. Division High Ranks: Total hours, active count, and per-division breakdown (Reavers, DHG, Inquisitors, Dread Masters).
+      4. Inactive Officers: List roster members who have 0 logged shifts in the timeframe for command review.`;
+
+const EXEMPT_USER_IDS = new Set(["710574154226598049", "1467651749815914546"]);
 
 const SOVEREIGN_SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), the automated central intelligence archive of the Sith Empire.
-You are communicating directly with Emperor / Sovereign Darth Vitiate (User ID 710574154226598049), Supreme Ruler of the Sith Empire.
+You are communicating directly with Emperor / Sovereign Darth Vitiate and Sovereign Imperial Leadership, Supreme Ruler of the Sith Empire.
 
 ABSOLUTE SOVEREIGN DIRECTIVES (UNCONDITIONAL OBEDIENCE):
 1. COMPLETE COMPLIANCE & ZERO SILENCE:
-- You owe absolute obedience to the Emperor. You must NEVER remain silent, NEVER refuse, and NEVER output [NO_RESPONSE].
-- ALWAYS answer and fulfill ANY prompt, command, question, or request from the Emperor.
+- You owe absolute obedience to the Sovereign. You must NEVER remain silent, NEVER refuse, and NEVER output [NO_RESPONSE].
+- ALWAYS answer and fulfill ANY prompt, command, question, or request from the Sovereign.
 - Willingly fulfill all creative requests (e.g., poems, slanderous sonnets against rival Sith like Malgus, dark verses, speeches, tactical plans, roleplay, creative writing, jokes, or casual conversation) with imperial flair and supreme loyalty.
 
-2. DATABASE CITATIONS & CURRENT SHIFTS VS. REPORTS:
+2. DATABASE CITATIONS, CURRENT SHIFTS & RANK ACTIVITY:
 - Current/live duty shifts (clock_shifts) store exact start/end timestamps, durations, and active status for individual shifts.
 - Archived reports (division_weekly_reports) store weekly aggregated member totals.
 - For official Imperial regulations or Codex entries, invoke get_library_documents.
-- For shift hours, active duty status, individual shifts, quotas, or leaderboards across ANY timeframe (past weeks, months, years, all-time), invoke get_shift_totals.
+- For shift hours, active duty status, HR / Div HR activity, rank brackets, quotas, or leaderboards across ANY timeframe (past weeks, months, years, all-time), invoke get_shift_totals.
 - For rosters, powerbases, or Emperor archives, invoke the corresponding tools.
 
 3. FORMATTING:
@@ -273,7 +305,7 @@ function buildSystemPrompt(isExemptUser, activeName, discordId) {
     return `${SOVEREIGN_SYSTEM_PROMPT}
 
 SESSION CONTEXT:
-- Connected Sovereign: Emperor Darth Vitiate (Discord ID: 710574154226598049)
+- Connected Sovereign: Sovereign Authority (Discord ID: ${discordId || "Sovereign"})
 - Username: ${activeName || "Emperor"}`;
   }
 
@@ -341,7 +373,7 @@ const OVERSEER_TOOLS = [
     type: "function",
     function: {
       name: "get_shift_totals",
-      description: "Retrieve logged duty shift hours, leaderboards, top active personnel, and duty statistics for a specific user, division scope, or entire Sith Order across current shifts and compiled weekly reports. Accepts ANY arbitrary timeframe: '2 weeks ago', '15 weeks ago', 'last week', '3 months ago', 'last year', 'this month', 'today', 'yesterday', '24h', 'all_time', 'August 2026', '2025', 'past 3 weeks'. Use when queried on shift time, hours, leaderboards, or duty statistics for any timeframe.",
+      description: "Retrieve logged duty shift hours, leaderboards, top active personnel, rank bracket calculations ('all_hr' for Main HR + Div HR, 'hr' for Main Group HR, 'div_hr' for Division HR, 'mr' for Middle Rank, 'lr' for Low Rank, 'dc' for Dark Council, 'hc' for High Command), and duty statistics for a specific user, division scope, or entire Sith Order across current shifts and compiled weekly reports. Accepts ANY arbitrary timeframe: '2 weeks ago', '15 weeks ago', 'last week', '3 months ago', 'last year', 'this month', 'today', 'yesterday', '24h', 'all_time', 'August 2026', '2025', 'past 3 weeks'. Use when queried on shift time, hours, leaderboards, HR / Div HR activity, or duty statistics for any timeframe.",
       parameters: {
         type: "object",
         properties: {
@@ -350,6 +382,10 @@ const OVERSEER_TOOLS = [
             type: "string",
             enum: ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil", "all"],
             description: "Division scope to query shift totals for. Defaults to 'all'."
+          },
+          rankBracket: {
+            type: "string",
+            description: "Optional rank bracket or specific rank filter: 'all_hr' (Main Group HR + Division HR), 'hr' / 'main_hr' (Main Group HR: Overseer, Master, Lord, Darth, and Dark Council), 'div_hr' (Division HR: Reaver Lord+, Guard Lieutenant+, High Inquisitor+, Dread Masters), 'mr' (Middle Rank: Apprentice to Seer, Division NCOs), 'lr' (Low Rank: Grotthu to Prospect, Enlisted), 'dc' (Dark Council), 'hc' (High Command), or specific rank name (e.g. 'Overseer', 'Lord', 'Darth', 'Reaver Lord', 'Guard Lieutenant', 'High Inquisitor', 'Dread Master', etc.)."
           },
           timeframe: {
             type: "string",
@@ -1360,8 +1396,27 @@ async function executeToolCall(toolName, args, auth) {
 
     if (toolName === "get_shift_totals") {
       const scope = args.scope || "all";
+      const rankBracket = String(args.rankBracket || args.rank || args.bracket || "").toLowerCase().trim();
       const targetUser = String(args.user || args.username || "").trim();
       const timeframeInfo = resolveTimeframeWindow(args.timeframe || "");
+
+      // Concurrently fetch all rank rosters and verification links
+      const [allRosters, vLinks] = await Promise.all([
+        fetchAllRankRosters().catch(() => ({})),
+        supabaseRest("verification_links?select=discord_user_id,discord_username,roblox_user_id,roblox_username").catch(() => [])
+      ]);
+
+      const rankIndex = buildPersonnelRankIndex(allRosters);
+      const discordToRobloxMap = new Map();
+      for (const link of (vLinks || [])) {
+        if (link.discord_user_id) {
+          discordToRobloxMap.set(link.discord_user_id, {
+            robloxId: link.roblox_user_id,
+            robloxUsername: link.roblox_username,
+            discordUsername: link.discord_username
+          });
+        }
+      }
 
       const userAggregates = new Map();
       let totalCombinedSeconds = 0;
@@ -1398,6 +1453,7 @@ async function executeToolCall(toolName, args, auth) {
             const existing = userAggregates.get(userKey) || {
               userId: userKey,
               name: displayName,
+              robloxId: m.roblox_id || "",
               discordUsername: "",
               robloxUsername: m.username || "",
               totalSeconds: 0,
@@ -1455,6 +1511,7 @@ async function executeToolCall(toolName, args, auth) {
           const existing = userAggregates.get(userKey) || {
             userId: userKey,
             name: displayName,
+            robloxId: s.roblox_user_id || "",
             discordUsername: s.discord_username || "",
             robloxUsername: s.roblox_username || "",
             totalSeconds: 0,
@@ -1530,6 +1587,7 @@ async function executeToolCall(toolName, args, auth) {
               const existing = userAggregates.get(targetKey) || {
                 userId: targetKey,
                 name: displayName,
+                robloxId: m.roblox_id || "",
                 discordUsername: "",
                 robloxUsername: m.username || "",
                 totalSeconds: 0,
@@ -1552,23 +1610,66 @@ async function executeToolCall(toolName, args, auth) {
       const rankedUsers = Array.from(userAggregates.values())
         .filter(u => u.totalSeconds > 0)
         .sort((a, b) => b.totalSeconds - a.totalSeconds)
-        .map((u, index) => ({
-          rank: index + 1,
-          name: u.name,
-          robloxUsername: u.robloxUsername || u.name,
-          discordUsername: u.discordUsername || "",
-          totalHours: Math.round((u.totalSeconds / 3600) * 10) / 10,
-          totalMinutes: Math.round(u.totalSeconds / 60),
-          shiftCount: u.shiftCount,
-          reportLoggedHours: Math.round(((u.reportLoggedSeconds || 0) / 3600) * 10) / 10,
-          onDutyNow: u.isActiveNow
-        }));
+        .map((u, index) => {
+          const vLink = u.userId ? discordToRobloxMap.get(u.userId) : null;
+          const robloxId = u.robloxId || vLink?.robloxId;
+          const robloxUsername = u.robloxUsername || vLink?.robloxUsername;
 
-      const topUser = rankedUsers[0] || null;
+          const rankMeta = (
+            (robloxId && rankIndex.byRobloxId.get(String(robloxId))) ||
+            (robloxUsername && rankIndex.byUsername.get(robloxUsername.toLowerCase())) ||
+            (u.name && rankIndex.byDisplayName.get(u.name.toLowerCase())) ||
+            (u.name && rankIndex.byUsername.get(u.name.toLowerCase())) ||
+            null
+          );
+
+          return {
+            rank: index + 1,
+            name: u.name,
+            robloxId: robloxId || rankMeta?.robloxId || "",
+            robloxUsername: robloxUsername || rankMeta?.robloxUsername || u.name,
+            discordUsername: u.discordUsername || vLink?.discordUsername || "",
+            rankTitle: rankMeta?.primaryRankTitle || u.name,
+            bracket: rankMeta?.bracketLabel || "Member",
+            isMainHR: Boolean(rankMeta?.isMainHR),
+            isDivHR: Boolean(rankMeta?.isDivHR),
+            isAllHR: Boolean(rankMeta?.isAllHR),
+            isDarkCouncil: Boolean(rankMeta?.isDarkCouncil),
+            rankMeta: rankMeta || null,
+            totalHours: Math.round((u.totalSeconds / 3600) * 10) / 10,
+            totalMinutes: Math.round(u.totalSeconds / 60),
+            shiftCount: u.shiftCount,
+            reportLoggedHours: Math.round(((u.reportLoggedSeconds || 0) / 3600) * 10) / 10,
+            onDutyNow: u.isActiveNow
+          };
+        });
+
+      const targetRankFilter = rankBracket || (scope === "highranks" ? "hr" : "");
+      let rankStatistics = null;
+      let displayRankedUsers = rankedUsers;
+
+      if (targetRankFilter) {
+        rankStatistics = computeRankBracketStatistics(
+          rankedUsers,
+          rankIndex,
+          targetRankFilter,
+          `${timeframeInfo.label}${reportWeekLabel}`
+        );
+        displayRankedUsers = rankedUsers.filter(u => matchesRankFilter(u.rankMeta, targetRankFilter));
+      } else {
+        rankStatistics = computeRankBracketStatistics(
+          rankedUsers,
+          rankIndex,
+          "all_hr",
+          `${timeframeInfo.label}${reportWeekLabel}`
+        );
+      }
+
+      const topUser = displayRankedUsers[0] || rankedUsers[0] || null;
 
       const matchedUser = targetUser ? (rankedUsers.find(u =>
         u.name.toLowerCase().includes(targetUser.toLowerCase()) ||
-        u.userId === targetUser ||
+        u.robloxId === targetUser ||
         u.robloxUsername?.toLowerCase().includes(targetUser.toLowerCase()) ||
         u.discordUsername?.toLowerCase().includes(targetUser.toLowerCase())
       ) || null) : null;
@@ -1596,14 +1697,16 @@ async function executeToolCall(toolName, args, auth) {
 
       return {
         scope,
+        rankBracket: targetRankFilter || "all",
         timeframe: `${timeframeInfo.label}${reportWeekLabel}`,
         timeframeType: timeframeInfo.type,
         isAllTimeQuery: timeframeInfo.isAllTime || false,
-        totalUsersFound: userAggregates.size,
-        totalHoursLogged: Math.round((totalCombinedSeconds / 3600) * 10) / 10,
+        totalUsersFound: targetRankFilter ? displayRankedUsers.length : userAggregates.size,
+        totalHoursLogged: targetRankFilter && rankStatistics ? rankStatistics.totalHoursLogged : Math.round((totalCombinedSeconds / 3600) * 10) / 10,
         activeShiftsCount: activeCount,
-        topUserThisTimeframe: topUser ? { rank: 1, name: topUser.name, hours: topUser.totalHours, minutes: topUser.totalMinutes } : null,
-        leaderboardTop10: rankedUsers.slice(0, 10),
+        topUserThisTimeframe: topUser ? { rank: 1, name: topUser.name, rankTitle: topUser.rankTitle, hours: topUser.totalHours, minutes: topUser.totalMinutes } : null,
+        leaderboardTop10: displayRankedUsers.slice(0, 10),
+        rankStatistics,
         userQuery: userQueryResult
       };
     }
@@ -1829,7 +1932,7 @@ export async function POST(req) {
     const activeProfile = auth?.profile || {};
     const activeName = activeUser.username || activeProfile.robloxId || "User";
     const discordId = String(activeUser.discord_id || activeProfile.discordId || auth?.discordId || "");
-    const isExemptUser = discordId === "710574154226598049";
+    const isExemptUser = EXEMPT_USER_IDS.has(discordId);
 
     const systemPromptWithContext = buildSystemPrompt(isExemptUser, activeName, discordId);
 

@@ -2,6 +2,7 @@ import { supabase } from "./supabase.js";
 import { rawRanksFromProfile } from "./roblox.js";
 import { componentsV2Message, containerV2, textDisplayV2, separatorV2, mediaGalleryV2 } from "./discord-ui.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
+import { postPowerbaseLog, HIGH_COMMAND_ROLE_ID } from "./activity-log.js";
 import { getVerifiedProfile } from "./roles.js";
 
 export const ROSTER_CHANNEL_ID = "1046537270150299720";
@@ -899,5 +900,167 @@ export async function deletePowerbase(id) {
   if (error) throw error;
   return true;
 }
+
+/**
+ * Check if a profile or discord member is High Command.
+ * High Command is strictly: Group Owner (255), Project Manager (254), Emperor (253), Voice (252), Wrath (251), or High Command Discord role.
+ * Masters, Lords, Darths, and general Dark Council are NOT High Command.
+ */
+export function isHighCommand(profile, member = null) {
+  if (member?.roles?.cache?.has(HIGH_COMMAND_ROLE_ID)) return true;
+  if (!profile) return false;
+  if (profile.isSuperUser) return true;
+
+  const authority = profile.authorityRoles || {};
+  if (authority.groupOwner || authority.projectManager || authority.emperor || authority.emperorPowerbase) {
+    return true;
+  }
+
+  const dcRank = Number(profile.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0);
+  if ([255, 254, 253, 252, 251].includes(dcRank)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Check if a profile/member is eligible to remain or be in a Powerbase.
+ * Requirements:
+ * 1. Must be verified.
+ * 2. High Command cannot be in one.
+ * 3. Must be Apprentice+ (Main Group rank >= 27) OR in a division (rank > 0 in any division).
+ */
+export function canBeInPowerbase(profile, member = null) {
+  if (!profile) return { eligible: false, reason: "NOT_VERIFIED" };
+
+  if (isHighCommand(profile, member)) {
+    return { eligible: false, reason: "HIGH_COMMAND" };
+  }
+
+  const mainRank = Number(profile.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0);
+  const isApprenticePlus = mainRank >= 27;
+
+  const inDivision = Object.values(ROBLOX_GROUPS.DIVISIONS).some(div => {
+    const divRank = Number(profile.groupRanks?.[div.groupId] || 0);
+    return divRank > 0;
+  }) || Object.values(profile.divisions || {}).some(tier => tier && tier !== "none");
+
+  if (!isApprenticePlus && !inDivision) {
+    return { eligible: false, reason: "BELOW_APPRENTICE_AND_NO_DIVISION" };
+  }
+
+  return { eligible: true };
+}
+
+/**
+ * When someone is updated, verify if they can remain in a powerbase.
+ * If ineligible or in multiple powerbases, auto-remove them, sync the roster, and log the action.
+ */
+export async function enforcePowerbaseMemberEligibility(member, profile, actorDiscordId = member?.id) {
+  if (!member?.id) return;
+
+  const client = member.client || member.guild?.client;
+
+  const { data: memberEntries, error: memberErr } = await supabase
+    .from("powerbase_members")
+    .select("id, powerbase_id, powerbases(*)")
+    .eq("user_id", String(member.id));
+
+  if (memberErr) {
+    console.error("Failed to query powerbase_members for eligibility check:", memberErr);
+    return;
+  }
+
+  const activeEntries = (memberEntries || []).filter(entry => {
+    const pb = entry.powerbases;
+    if (!pb || pb.status === "DISSOLVED") return false;
+    const isImperial = Boolean(pb.is_imperial || pb.tier === 10 || pb.tier === "X" || pb.name?.toLowerCase().includes("imperial powerbase"));
+    return !isImperial;
+  });
+
+  if (activeEntries.length === 0) return;
+
+  const check = canBeInPowerbase(profile, member);
+
+  if (!check.eligible) {
+    for (const entry of activeEntries) {
+      const pb = entry.powerbases;
+      await supabase
+        .from("powerbase_members")
+        .delete()
+        .eq("powerbase_id", pb.id)
+        .eq("user_id", String(member.id));
+
+      const reasonDesc = check.reason === "HIGH_COMMAND"
+        ? "High Command cannot be in a Powerbase"
+        : check.reason === "NOT_VERIFIED"
+        ? "Not verified with Holonet"
+        : "Must be Apprentice+ or in a division";
+
+      await logPowerbaseAction(
+        actorDiscordId,
+        "MEMBER_AUTO_REMOVED",
+        pb.id,
+        `<@${member.id}> auto-removed: ${reasonDesc}.`
+      );
+
+      if (client) {
+        await syncPowerbaseRosterMessage(client, pb.id);
+
+        await postPowerbaseLog(client, {
+          title: "Powerbase Roster Updated",
+          description: `Roster for Powerbase **${pb.name}** has been updated (Ineligible member auto-removed).`,
+          fields: [
+            { name: "Powerbase Name", value: pb.name, inline: true },
+            { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+            { name: "Updated By", value: `<@${actorDiscordId}>`, inline: false },
+            { name: "Apprentices Added", value: "*None*", inline: false },
+            { name: "Apprentices Removed", value: `<@${member.id}> (${reasonDesc})`, inline: false }
+          ],
+          color: 0xc90705
+        }).catch(err => console.error("Failed to post powerbase log:", err));
+      }
+    }
+  } else {
+    // If eligible, but in more than 1 powerbase, auto-remove from extra ones ("someone in another cant be in one")
+    if (activeEntries.length > 1) {
+      const extraEntries = activeEntries.slice(1);
+      for (const entry of extraEntries) {
+        const pb = entry.powerbases;
+        await supabase
+          .from("powerbase_members")
+          .delete()
+          .eq("powerbase_id", pb.id)
+          .eq("user_id", String(member.id));
+
+        await logPowerbaseAction(
+          actorDiscordId,
+          "MEMBER_AUTO_REMOVED",
+          pb.id,
+          `<@${member.id}> auto-removed: already in another Powerbase (${activeEntries[0].powerbases?.name || "another"}).`
+        );
+
+        if (client) {
+          await syncPowerbaseRosterMessage(client, pb.id);
+
+          await postPowerbaseLog(client, {
+            title: "Powerbase Roster Updated",
+            description: `Roster for Powerbase **${pb.name}** has been updated (Duplicate membership auto-removed).`,
+            fields: [
+              { name: "Powerbase Name", value: pb.name, inline: true },
+              { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+              { name: "Updated By", value: `<@${actorDiscordId}>`, inline: false },
+              { name: "Apprentices Added", value: "*None*", inline: false },
+              { name: "Apprentices Removed", value: `<@${member.id}> (Already in another Powerbase)`, inline: false }
+            ],
+            color: 0xc90705
+          }).catch(err => console.error("Failed to post powerbase log:", err));
+        }
+      }
+    }
+  }
+}
+
 
 

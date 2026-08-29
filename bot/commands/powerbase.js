@@ -2,7 +2,7 @@ import { ActionRowBuilder, SlashCommandBuilder, StringSelectMenuBuilder, UserSel
 import { getVerifiedProfile } from "../services/roles.js";
 import { hasAnyOverseer, hasDarkCouncilRank } from "./shift.js";
 import { ephemeral, componentsV2Message, containerV2, textDisplayV2, separatorV2, buttonRow, button, mediaGalleryV2 } from "../services/discord-ui.js";
-import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseCapacity, getPowerbaseForUser, isHigherRank, logPowerbaseAction, persistBannerImage, slugifyPowerbase, syncPowerbaseRosterMessage, syncStoredPowerbaseRosters, updatePowerbase } from "../services/powerbase-api.js";
+import { createPowerbase, deletePowerbase, fetchPowerbases, getPowerbase, getPowerbaseByName, getPowerbaseCapacity, getPowerbaseForUser, isHigherRank, logPowerbaseAction, persistBannerImage, slugifyPowerbase, syncPowerbaseRosterMessage, syncStoredPowerbaseRosters, updatePowerbase, canBeInPowerbase, isHighCommand } from "../services/powerbase-api.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
 import { hasPermission } from "../../modules/auth/permissions.js";
 import { postActivityLog, postPowerbaseLog, HIGH_COMMAND_ROLE_ID } from "../services/activity-log.js";
@@ -195,6 +195,10 @@ async function showImageOptions(interaction, pbId) {
 async function handleCreate(interaction, verified) {
   if (!hasPermission(verified.profile, "powerbase:create")) {
     return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You must be a Sith Overseer or higher to create a Powerbase.")])])));
+  }
+
+  if (isHighCommand(verified.profile, interaction.member)) {
+    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("High Command cannot create or lead a Powerbase.")])])));
   }
 
   const existing = await getPowerbaseForUser(interaction.user.id);
@@ -432,6 +436,22 @@ async function handleEditMembers(interaction) {
       if (memberId === pb.leader_id) continue;
       const memberProfile = await getVerifiedProfile(memberId);
       if (!memberProfile) throw new Error(`<@${memberId}> is not verified with Holonet.`);
+
+      let targetMember = null;
+      try {
+        targetMember = await interaction.guild.members.fetch(memberId);
+      } catch (_) {}
+
+      const check = canBeInPowerbase(memberProfile.profile, targetMember);
+      if (!check.eligible) {
+        if (check.reason === "HIGH_COMMAND") {
+          throw new Error(`<@${memberId}> is High Command and cannot be in a Powerbase.`);
+        }
+        if (check.reason === "BELOW_APPRENTICE_AND_NO_DIVISION") {
+          throw new Error(`<@${memberId}> must be an Apprentice+ or in a division to join a Powerbase.`);
+        }
+        throw new Error(`<@${memberId}> is not eligible to join a Powerbase.`);
+      }
 
       const memberPb = await getPowerbaseForUser(memberId);
       if (memberPb && memberPb.id !== pb.id) {
@@ -739,6 +759,15 @@ async function handleChangeLeaderSelect(interaction) {
   try {
     const verified = await getVerifiedProfile(newLeaderId);
     if (!verified) throw new Error(`<@${newLeaderId}> is not verified with Holonet.`);
+
+    let targetMember = null;
+    try {
+      targetMember = await interaction.guild.members.fetch(newLeaderId);
+    } catch (_) {}
+
+    if (isHighCommand(verified.profile, targetMember)) {
+      throw new Error(`<@${newLeaderId}> is High Command and cannot lead a Powerbase.`);
+    }
 
     const existingPb = await getPowerbaseForUser(newLeaderId);
     if (existingPb && existingPb.id !== pbId) {

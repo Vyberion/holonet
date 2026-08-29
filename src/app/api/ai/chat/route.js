@@ -1886,11 +1886,6 @@ export async function POST(req) {
       }
     }
 
-    // Strictly enforce 500-character ceiling
-    if (finalContent.length > 500) {
-      finalContent = finalContent.slice(0, 500).trim();
-    }
-
     return NextResponse.json({
       role: "assistant",
       content: finalContent || "HOLONET NOTICE: Query logged. No records returned."

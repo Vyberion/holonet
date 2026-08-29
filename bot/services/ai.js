@@ -1974,11 +1974,6 @@ export async function queryHoloAi({ prompt, userTag, robloxName, isSuperUser, us
     return "";
   }
 
-  // Strictly enforce 500-character ceiling
-  if (finalContent.length > 500) {
-    finalContent = finalContent.slice(0, 500).trim();
-  }
-
   history.push({ role: "user", content: prompt.slice(0, 300) });
   history.push({ role: "assistant", content: finalContent.slice(0, 300) });
   if (history.length > MAX_HISTORY_TURNS) {

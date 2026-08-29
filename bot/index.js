@@ -34,7 +34,7 @@ const OLD_BOT_IDS = new Set(["242385236259405824", "1536841658149376100", "42653
 const LEGACY_TEXT_TRIGGERS = [";getrole", "!getrole", "/getrole", ";verify", "!verify", ";update-roles", "!update-roles"];
 
 async function maybeHandleHoloAiResponse(message) {
-  if (message.author?.bot) return;
+  if (message.author?.id === client.user?.id) return;
 
   const content = message.content || "";
   const isDirectMessage = !message.guild;

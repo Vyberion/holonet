@@ -1358,12 +1358,16 @@ export async function fetchDivisionRoster(division) {
         if (seenRobloxIds.has(userId)) return;
         seenRobloxIds.add(userId);
 
+        const rankNumber = Number(role.rank);
+        const configuredRank = definition.ranks?.[String(rankNumber)];
+        const rankTitle = (typeof configuredRank === "object" ? configuredRank.value : configuredRank) || role.name || "";
+
         members.push({
           robloxId: userId,
           username: item.username || "",
           displayName: item.displayName || "",
-          rank: Number(role.rank),
-          role: role.name || ""
+          rank: rankNumber,
+          role: rankTitle
         });
       });
 
@@ -1807,7 +1811,16 @@ export function normalizeReportMember(row, index = 0) {
 }
 
 export function normalizeWeeklyReport(row, members = []) {
-  const reportMembers = members.map(normalizeReportMember);
+  const definition = rosterDefinitionForDivision(row.division_key);
+  const reportMembers = members.map((m, index) => {
+    const norm = normalizeReportMember(m, index);
+    if (!norm.role || norm.role.toLowerCase() === "member" || norm.role.toLowerCase() === "guest" || norm.role.toLowerCase() === "unranked") {
+      const rankConfig = definition?.ranks?.[String(norm.rank)];
+      const rankTitle = typeof rankConfig === "object" ? rankConfig.value : rankConfig;
+      if (rankTitle) norm.role = rankTitle;
+    }
+    return norm;
+  });
   return {
     id: row.id,
     divisionKey: row.division_key,

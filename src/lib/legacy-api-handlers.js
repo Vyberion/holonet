@@ -1346,12 +1346,16 @@ async function fetchDivisionRoster(division) {
           if (seenRobloxIds.has(userId)) return;
           seenRobloxIds.add(userId);
 
+          const rankNumber = Number(role.rank);
+          const configuredRank = definition.ranks?.[String(rankNumber)];
+          const rankTitle = (typeof configuredRank === "object" ? configuredRank.value : configuredRank) || role.name || "";
+
           members.push({
             robloxId: userId,
             username: item.username || "",
             displayName: item.displayName || "",
-            rank: Number(role.rank),
-            role: role.name || ""
+            rank: rankNumber,
+            role: rankTitle
           });
         });
 

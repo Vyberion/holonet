@@ -1323,6 +1323,7 @@ async function fetchDivisionRoster(division) {
       role.name !== "Guest"
     );
     const members = [];
+    const seenRobloxIds = new Set();
 
     for (const role of targetRoles) {
       let cursor = "";
@@ -1343,6 +1344,9 @@ async function fetchDivisionRoster(division) {
           const uname = String(item.username || "").toLowerCase();
           const dname = String(item.displayName || "").toLowerCase();
           if (uname === "naktisterminus" || dname === "naktisterminus") return;
+
+          if (seenRobloxIds.has(userId)) return;
+          seenRobloxIds.add(userId);
 
           members.push({
             robloxId: userId,
@@ -1479,13 +1483,13 @@ async function loadClockShiftTotalsForRoster(division, members = []) {
   const select = "id,scope,discord_user_id,roblox_user_id,status,started_at,duration_seconds,adjustment_seconds";
 
   const robloxRows = await supabaseRest(
-    `clock_shifts?roblox_user_id=${encodeURIComponent(inFilter(robloxIds))}&select=${select}`
+    `clock_shifts?scope=eq.${encodeURIComponent(scope)}&roblox_user_id=${encodeURIComponent(inFilter(robloxIds))}&select=${select}`
   );
   (robloxRows || []).forEach(row => rowMap.set(row.id, row));
 
   if (discordIds.length) {
     const discordRows = await supabaseRest(
-      `clock_shifts?discord_user_id=${encodeURIComponent(inFilter(discordIds))}&select=${select}`
+      `clock_shifts?scope=eq.${encodeURIComponent(scope)}&discord_user_id=${encodeURIComponent(inFilter(discordIds))}&select=${select}`
     );
     (discordRows || []).forEach(row => rowMap.set(row.id, row));
   }
@@ -1546,19 +1550,61 @@ function reportTotals(members) {
 }
 
 function reportMemberRows(reportId, members = []) {
-  return members.filter(Boolean).map((member, index) => ({
-    report_id: reportId,
-    roblox_id: requireString(member.robloxId),
-    username: requireString(member.username),
-    display_name: requireString(member.displayName),
-    rank: Number(member.rank) || 0,
-    role: requireString(member.role),
-    hours: Math.max(0, Number(member.hours) || 0),
-    minutes: Math.max(0, Number(member.minutes) || 0),
-    events_hosted: Math.max(0, Number(member.eventsHosted) || 0),
-    events_attended: Math.max(0, Number(member.eventsAttended) || 0),
-    display_order: index
-  })).filter(row => row.roblox_id);
+  const memberMap = new Map();
+
+  members.filter(Boolean).forEach((member, index) => {
+    const robloxId = requireString(member.robloxId || member.roblox_id);
+    if (!robloxId) return;
+
+    const rank = Number(member.rank) || 0;
+    const hours = Math.max(0, Number(member.hours) || 0);
+    const minutes = Math.max(0, Number(member.minutes) || 0);
+    const eventsHosted = Math.max(0, Number(member.eventsHosted || member.events_hosted || 0));
+    const eventsAttended = Math.max(0, Number(member.eventsAttended || member.events_attended || 0));
+    const username = requireString(member.username);
+    const displayName = requireString(member.displayName || member.display_name);
+    const role = requireString(member.role);
+
+    if (!memberMap.has(robloxId)) {
+      memberMap.set(robloxId, {
+        report_id: reportId,
+        roblox_id: robloxId,
+        username: username,
+        display_name: displayName,
+        rank: rank,
+        role: role,
+        totalMinutes: hours * 60 + minutes,
+        events_hosted: eventsHosted,
+        events_attended: eventsAttended,
+        display_order: index
+      });
+    } else {
+      const existing = memberMap.get(robloxId);
+      existing.totalMinutes += (hours * 60 + minutes);
+      existing.events_hosted += eventsHosted;
+      existing.events_attended += eventsAttended;
+      if (rank > existing.rank) {
+        existing.rank = rank;
+        if (role) existing.role = role;
+      }
+      if (!existing.username && username) existing.username = username;
+      if (!existing.display_name && displayName) existing.display_name = displayName;
+    }
+  });
+
+  return Array.from(memberMap.values()).map((row, index) => ({
+    report_id: row.report_id,
+    roblox_id: row.roblox_id,
+    username: row.username,
+    display_name: row.display_name,
+    rank: row.rank,
+    role: row.role,
+    hours: Math.floor(row.totalMinutes / 60),
+    minutes: row.totalMinutes % 60,
+    events_hosted: row.events_hosted,
+    events_attended: row.events_attended,
+    display_order: row.display_order ?? index
+  }));
 }
 
 function normalizeIncomingReportMember(member) {
@@ -1590,8 +1636,9 @@ async function replaceWeeklyReportMembers(reportId, members = []) {
   const rows = reportMemberRows(reportId, members);
   if (!rows.length) return;
 
-  await supabaseRest("division_weekly_report_members", {
+  await supabaseRest("division_weekly_report_members?on_conflict=report_id,roblox_id", {
     method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates" },
     body: JSON.stringify(rows)
   });
 }

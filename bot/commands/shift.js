@@ -456,7 +456,7 @@ export async function handleCommand(interaction) {
       const user3 = interaction.options.getUser("user3");
       const usersToWipe = [user, user2, user3].filter(Boolean);
 
-      let query = supabase.from("clock_shifts").delete();
+      let query = supabase.from("clock_shifts").delete().eq("scope", scope);
       if (usersToWipe.length > 0) {
         const userIds = [];
         for (const u of usersToWipe) {
@@ -467,8 +467,6 @@ export async function handleCommand(interaction) {
         }
         const uniqueIds = [...new Set(userIds)];
         query = query.or(`discord_user_id.in.(${uniqueIds.join(",")}),roblox_user_id.in.(${uniqueIds.join(",")})`);
-      } else {
-        query = query.eq("scope", scope);
       }
 
       const { error } = await query;

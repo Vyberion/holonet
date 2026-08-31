@@ -315,13 +315,16 @@ export async function syncMemberRoles(member, actorDiscordId = member.id) {
   if (add.length) await member.roles.add(add, "Holonet role sync");
 
   // Wipe clock shifts for division scopes when a member loses division roles
-  const divisionScopes = ["reavers", "dhg", "inquisitors", "dreadmasters"];
+  const divisionScopes = ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil"];
   for (const scope of divisionScopes) {
     const scopeRoleIds = getExclusiveScopeRoles(scope);
     const hadRole = scopeRoleIds.some(id => currentRoleIds.includes(id));
     const hasRoleNow = scopeRoleIds.some(id => wanted.includes(id));
     if (hadRole && !hasRoleNow) {
       await supabase.from("clock_shifts").delete().eq("discord_user_id", member.id).eq("scope", scope);
+      if (verified?.profile?.robloxId) {
+        await supabase.from("clock_shifts").delete().eq("roblox_user_id", String(verified.profile.robloxId)).eq("scope", scope);
+      }
     }
   }
 

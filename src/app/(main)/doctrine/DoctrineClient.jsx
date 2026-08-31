@@ -175,8 +175,49 @@ export default function DoctrineClient() {
     }
   };
 
+  const availableTags = React.useMemo(() => {
+    const customTags = directives
+      .map(d => String(d.tag || "").toUpperCase().trim())
+      .filter(Boolean);
+    const combined = Array.from(new Set([...TAGS, ...customTags]));
+    return [
+      { id: "ALL", label: "ALL" },
+      ...combined.map(t => ({ id: t, label: t }))
+    ];
+  }, [directives]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tagParam = params.get("tag");
+    if (tagParam) {
+      setSelectedTag(tagParam.toUpperCase());
+    }
+
+    function handlePopState() {
+      const p = new URLSearchParams(window.location.search);
+      setSelectedTag(p.get("tag")?.toUpperCase() || "ALL");
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const selectTag = (tagId) => {
+    const nextTag = tagId || "ALL";
+    const params = new URLSearchParams(window.location.search);
+    if (nextTag === "ALL") {
+      params.delete("tag");
+    } else {
+      params.set("tag", nextTag);
+    }
+    const query = params.toString();
+    const nextUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+    window.history.pushState({}, "", nextUrl);
+    setSelectedTag(nextTag);
+  };
+
   const filteredDirectives = directives.filter(d => {
-    return selectedTag === "ALL" || d.tag === selectedTag;
+    return selectedTag === "ALL" || String(d.tag || "").toUpperCase() === selectedTag;
   });
 
   return (
@@ -184,57 +225,36 @@ export default function DoctrineClient() {
       <link rel="stylesheet" href="/css/codex.css" />
       <div className="doctrine-shell" style={{ width: "100%", maxWidth: "1600px", margin: "0 auto", padding: "0 1rem 3rem" }}>
 
-        {/* Top Control Bar: Tag Filters Left, Global Search & Action Buttons Right */}
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "1rem", borderBottom: "1px solid var(--border)", paddingBottom: "1.2rem", marginBottom: "2rem" }}>
-
-          {/* Tag Filter Chips */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center" }}>
-            <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.72rem", color: "var(--text-dim)", letterSpacing: "0.15em", marginRight: "0.4rem" }}>CLASSIFICATION:</span>
-            <button
-              type="button"
-              className={`tag-chip ${selectedTag === "ALL" ? "active" : ""}`}
-              onClick={() => setSelectedTag("ALL")}
-            >
-              ALL
-            </button>
-            {TAGS.map(tag => (
-              <button
-                key={tag}
-                type="button"
-                className={`tag-chip ${selectedTag === tag ? "active" : ""}`}
-                onClick={() => setSelectedTag(tag)}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
-
-          {/* Search Codex & New Directive Buttons */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
-            <button
-              type="button"
-              className="hub-cancel-btn"
-              onClick={() => window.initHolonetSearch?.()}
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <span>SEARCH CODEX</span>
-            </button>
+        {/* Hierarchy-Style Classification Tag Filter Tabs */}
+        <div className="hierarchy-tabs-shell" style={{ marginBottom: "2.5rem" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+            <div className="hierarchy-tab-strip" role="tablist" aria-label="Doctrine classification tags" style={{ flex: 1, minWidth: "280px" }}>
+              {availableTags.map(tab => (
+                <button
+                  aria-selected={selectedTag === tab.id}
+                  className={`hierarchy-tab${selectedTag === tab.id ? " is-active" : ""}`}
+                  key={tab.id}
+                  onClick={() => selectTag(tab.id)}
+                  role="tab"
+                  type="button"
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
             {canEdit && (
-              <button
-                type="button"
-                className="hub-write-btn"
-                onClick={handleOpenNew}
-              >
-                + NEW DIRECTIVE
-              </button>
+              <div style={{ paddingBottom: "4px" }}>
+                <button
+                  type="button"
+                  className="hub-write-btn"
+                  onClick={handleOpenNew}
+                >
+                  + NEW DIRECTIVE
+                </button>
+              </div>
             )}
           </div>
-
         </div>
 
         {/* Trello-Style Multi-Column Grid Board (Zero Horizontal Scroll, Multi-Column Wrapping) */}
@@ -455,26 +475,6 @@ export default function DoctrineClient() {
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js", "/js/search.js"]} />
 
       <style jsx>{`
-        .tag-chip {
-          background: linear-gradient(135deg, rgba(192,0,26,0.08), transparent);
-          border: 1px solid var(--border-hot);
-          color: var(--text-dim);
-          font-family: 'Share Tech Mono', monospace;
-          font-size: 0.72rem;
-          padding: 0.35rem 0.75rem;
-          cursor: pointer;
-          letter-spacing: 0.1em;
-          transition: all 0.3s ease;
-          clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
-        }
-        .tag-chip:hover, .tag-chip.active {
-          border-color: var(--red-bright);
-          color: var(--red-bright);
-          background: rgba(192,0,26,0.15);
-          box-shadow: 0 0 12px var(--red-glow), 0 0 2px rgba(0,200,255,0.08);
-          text-shadow: 0 0 6px var(--red-glow);
-        }
-
         .trello-board-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));

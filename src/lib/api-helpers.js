@@ -2087,9 +2087,8 @@ export async function replaceWeeklyReportMembers(reportId, members = []) {
   const rows = reportMemberRows(reportId, members);
   if (!rows.length) return;
 
-  await supabaseRest("division_weekly_report_members?on_conflict=report_id,roblox_id", {
+  await supabaseRest("division_weekly_report_members", {
     method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates" },
     body: JSON.stringify(rows)
   });
 }

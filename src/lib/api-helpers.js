@@ -1318,9 +1318,7 @@ export async function fetchDivisionRoster(division) {
   if (!definition?.groupId) return [];
 
   const allowedRanks = new Set(
-    division === "highranks"
-      ? Object.values(definition.tiers || {}).flat().map(Number).filter(Boolean)
-      : Object.keys(definition.ranks || {}).map(Number).filter(n => !isNaN(n) && n <= (division === "darkCouncil" ? 253 : 250))
+    Object.values(definition.tiers || {}).flat().map(Number).filter(Boolean)
   );
   if (allowedRanks.size === 0) return []; // Require explicit ranks for safety
 

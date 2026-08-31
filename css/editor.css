@@ -1,6 +1,6 @@
-body.editor-overlay-active > :not(#resource-editor-overlay):not(#library-editor-overlay):not(#inspection-editor-overlay):not(#council-editor-overlay):not(#timeline-editor-overlay):not(#cots-editor-overlay):not(script):not(style),
+body.editor-overlay-active > :not(#resource-editor-overlay):not(#codex-editor-overlay):not(#inspection-editor-overlay):not(#council-editor-overlay):not(#timeline-editor-overlay):not(#cots-editor-overlay):not(script):not(style),
 body:has(#resource-editor-overlay.active) > :not(#resource-editor-overlay):not(script):not(style),
-body:has(#library-editor-overlay.active) > :not(#library-editor-overlay):not(script):not(style),
+body:has(#codex-editor-overlay.active) > :not(#codex-editor-overlay):not(script):not(style),
 body:has(#inspection-editor-overlay.active) > :not(#inspection-editor-overlay):not(script):not(style),
 body:has(#council-editor-overlay.active) > :not(#council-editor-overlay):not(script):not(style),
 body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(script):not(style),

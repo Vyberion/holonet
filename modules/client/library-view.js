@@ -281,19 +281,19 @@ function ensureEditorOverlay() {
 
   overlay = document.createElement("div");
   overlay.id = "library-editor-overlay";
+  overlay.className = "codex-modal-backdrop";
   overlay.innerHTML = `
-    <div class="resource-editor-container library-editor-container" role="dialog" aria-modal="true" aria-labelledby="library-editor-title">
-      <div class="resource-editor-topbar">
-        <span class="resource-editor-title" id="library-editor-title">WRITE CANON ARTICLE</span>
-        <button type="button" class="resource-editor-close" data-library-close>CLOSE</button>
+    <div class="codex-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="library-editor-title">
+      <div class="codex-modal-header">
+        <h2 style="font-family: Cinzel, serif; font-size: 1.2rem; color: var(--red-bright); margin: 0; letter-spacing: 0.15em; text-shadow: 0 0 6px rgba(255,0,34,0.55), 0 0 20px rgba(255,0,34,0.35);" id="library-editor-title">WRITE CANON ARTICLE</h2>
+        <button type="button" class="codex-modal-close" data-library-close>&times;</button>
       </div>
-      <form class="resource-editor-form library-editor-form" id="library-editor-form"></form>
-      <div class="resource-editor-actions">
-        <span class="resource-editor-status" data-library-status></span>
-        <button type="submit" class="resource-editor-submit" form="library-editor-form">SAVE</button>
-      </div>
-      <div class="resource-editor-footer">
-        <span class="resource-editor-hint"><kbd>ESC</kbd> CLOSE</span>
+      <form class="codex-modal-body" id="library-editor-form"></form>
+      <div class="codex-modal-footer">
+        <span class="resource-editor-status" data-library-status style="color: var(--text-dim); margin-right: auto; align-self: center;"></span>
+        <button type="button" class="hub-cancel-btn" data-library-delete style="color: var(--red-bright); border-color: var(--red-bright); margin-right: auto; text-shadow: 0 0 6px var(--red-glow); display: none;">PURGE ARTICLE</button>
+        <button type="button" class="hub-cancel-btn" data-library-close>CANCEL</button>
+        <button type="submit" class="hub-write-btn" form="library-editor-form">SAVE ARTICLE</button>
       </div>
     </div>
   `;
@@ -412,7 +412,6 @@ async function initLibraryView() {
       return;
     }
     let workingDocument = JSON.parse(JSON.stringify(documentData));
-    let viewMode = "article"; // "article" or "regulation"
     let editingRegulationIndex = -1;
 
     function syncWorkingDocumentFromForm() {
@@ -420,34 +419,32 @@ async function initLibraryView() {
       if (!liveForm) return;
 
       const data = Object.fromEntries(new FormData(liveForm).entries());
-      if (viewMode === "article") {
-        workingDocument.id = data.id || workingDocument.id;
-        const articleNumber = archiveMode
-          ? cleanArticleInput(data.articleNumber, articleNumberValue(workingDocument))
-          : articleNumberValue(workingDocument);
-        workingDocument.articleNumber = archiveMode
-          ? `ARTICLE ${articleNumber}`
-          : workingDocument.articleNumber || `ARTICLE ${toRoman(articleNumber)}`;
-        workingDocument.title = data.title || workingDocument.title || "";
-        workingDocument.status = "published";
-        workingDocument.displayOrder = articleNumber;
-        if (archiveMode) {
-          workingDocument.label = data.label || "Archive Entry";
-          workingDocument.body = data.body || "";
-          workingDocument.imagePath = data.imagePath || "";
-          workingDocument.imageAlt = data.title || "";
-        }
-      } else if (viewMode === "regulation") {
-        const index = Number(data.editingRegulationIndex);
-        const articleNumber = articleNumberValue(workingDocument);
-        if (index >= 0 && index < workingDocument.entries.length) {
-          workingDocument.entries[index] = {
-            ...workingDocument.entries[index],
-            anchor: generatedAnchor(articleNumber, Number(data['entry-number']) || index + 1),
-            label: labelForRegulation(Number(data['entry-number']) || index + 1),
+      
+      workingDocument.id = data.id || workingDocument.id;
+      const articleNumber = archiveMode
+        ? cleanArticleInput(data.articleNumber, articleNumberValue(workingDocument))
+        : articleNumberValue(workingDocument);
+      workingDocument.articleNumber = archiveMode
+        ? `ARTICLE ${articleNumber}`
+        : workingDocument.articleNumber || `ARTICLE ${toRoman(articleNumber)}`;
+      workingDocument.title = data.title || workingDocument.title || "";
+      workingDocument.status = "published";
+      workingDocument.displayOrder = articleNumber;
+      
+      if (archiveMode) {
+        workingDocument.label = data.label || "Archive Entry";
+        workingDocument.body = data.body || "";
+        workingDocument.imagePath = data.imagePath || "";
+        workingDocument.imageAlt = data.title || "";
+      } else {
+        if (editingRegulationIndex >= 0 && editingRegulationIndex < workingDocument.entries.length) {
+          workingDocument.entries[editingRegulationIndex] = {
+            ...workingDocument.entries[editingRegulationIndex],
+            anchor: generatedAnchor(articleNumber, Number(data['entry-number']) || editingRegulationIndex + 1),
+            label: labelForRegulation(Number(data['entry-number']) || editingRegulationIndex + 1),
             body: data['entry-body'] || "",
             subClauses: normalizeLineClauses(data['entry-sub'] || ""),
-            displayOrder: Number(data['entry-number']) || index + 1
+            displayOrder: Number(data['entry-number']) || editingRegulationIndex + 1
           };
         }
       }
@@ -458,40 +455,31 @@ async function initLibraryView() {
         ? `${workingDocument.id ? "EDIT" : "WRITE"} ARCHIVE ARTICLE`
         : `${workingDocument.id ? "EDIT" : "WRITE"} CODEX ARTICLE`;
 
-      const submitBtn = overlay.querySelector(".resource-editor-submit");
-      if (submitBtn) {
-        submitBtn.style.display = (viewMode === "regulation" || archiveMode) ? "none" : "";
-        if (archiveMode) submitBtn.style.display = ""; // Archive mode needs it
+      const deleteBtn = overlay.querySelector("[data-library-delete]");
+      if (deleteBtn) {
+        deleteBtn.style.display = workingDocument.id ? "inline-block" : "none";
       }
 
       if (archiveMode) {
         form.innerHTML = `
           <input type="hidden" name="id" value="${escapeHtml(workingDocument.id || "")}">
-          <div class="library-entry-stack">
-            <section class="library-entry-editor">
-              <div class="library-entry-toolbar">
-                <span class="library-entry-title">Archive Article</span>
-              </div>
-              <div class="resource-editor-field">
-                <label>Article Title</label>
-                <input name="title" value="${escapeHtml(workingDocument.title || "")}" required>
-              </div>
-              <div class="resource-editor-field">
-                <label>Article Body</label>
-                <textarea name="body" required>${escapeHtml(workingDocument.body || "")}</textarea>
-              </div>
-              <div class="resource-editor-field">
-                <label>Image Asset Path</label>
-                <input name="imagePath" value="${escapeHtml(workingDocument.imagePath || "")}" placeholder="archives/example.png">
-              </div>
-              <div class="resource-editor-field">
-                <label>Article Number</label>
-                <input type="number" min="1" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}" required>
-              </div>
-            </section>
-          </div>
-          <div class="library-editor-buttons">
-            ${workingDocument.id ? `<button type="button" class="library-inline-btn danger" data-library-delete>DELETE ARTICLE</button>` : ""}
+          <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.2rem;">
+            <div>
+              <label class="codex-label">ARTICLE TITLE</label>
+              <input type="text" class="codex-input" name="title" value="${escapeHtml(workingDocument.title || "")}" required>
+            </div>
+            <div>
+              <label class="codex-label">ARTICLE NUMBER</label>
+              <input type="number" min="1" class="codex-input" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}" required>
+            </div>
+            <div>
+              <label class="codex-label">IMAGE ASSET PATH (OPTIONAL)</label>
+              <input type="text" class="codex-input" name="imagePath" value="${escapeHtml(workingDocument.imagePath || "")}" placeholder="archives/example.png">
+            </div>
+            <div>
+              <label class="codex-label">FULL ARTICLE BODY</label>
+              <textarea class="codex-textarea" name="body" rows="12" required>${escapeHtml(workingDocument.body || "")}</textarea>
+            </div>
           </div>
         `;
         return;
@@ -500,58 +488,71 @@ async function initLibraryView() {
       if (!Array.isArray(workingDocument.entries)) {
         workingDocument.entries = [];
       }
+      
+      const activeEntry = editingRegulationIndex >= 0 && editingRegulationIndex < workingDocument.entries.length 
+        ? workingDocument.entries[editingRegulationIndex] 
+        : null;
 
-      if (viewMode === "article") {
-        form.innerHTML = `
-          <input type="hidden" name="id" value="${escapeHtml(workingDocument.id || "")}">
-          <input type="hidden" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}">
-          <div class="resource-editor-field">
-            <label>Article Title</label>
-            <input name="title" value="${escapeHtml(workingDocument.title || "")}" required>
+      form.innerHTML = `
+        <input type="hidden" name="id" value="${escapeHtml(workingDocument.id || "")}">
+        <div class="codex-split-container">
+          <!-- LEFT PANEL -->
+          <div class="codex-split-left">
+            <div>
+              <label class="codex-label">ARTICLE TITLE</label>
+              <input type="text" class="codex-input" name="title" value="${escapeHtml(workingDocument.title || "")}" required>
+            </div>
+            <div>
+              <label class="codex-label">ARTICLE NUMBER</label>
+              <input type="number" min="1" class="codex-input" name="articleNumber" value="${escapeHtml(articleNumberValue(workingDocument))}" required>
+            </div>
+            <div style="margin-top: 1rem; border-top: 1px solid var(--border-hot); padding-top: 1rem;">
+              <label class="codex-label" style="color: var(--red-bright); margin-bottom: 0.8rem;">REGULATIONS (${workingDocument.entries.length})</label>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;">
+                ${workingDocument.entries.map((entry, index) => `
+                  <div class="codex-regulation-pill ${index === editingRegulationIndex ? 'active' : ''}" data-library-edit-entry="${index}">
+                    <span class="codex-regulation-pill-title">REG ${regulationNumberValue(entry, index)}</span>
+                    <div class="codex-regulation-pill-actions">
+                      <button type="button" class="hub-cancel-btn" style="padding: 2px 6px; font-size: 0.6rem;" data-library-move-up="${index}">▲</button>
+                      <button type="button" class="hub-cancel-btn" style="padding: 2px 6px; font-size: 0.6rem;" data-library-move-down="${index}">▼</button>
+                    </div>
+                  </div>
+                `).join("")}
+                ${workingDocument.entries.length === 0 ? `<div style="color: var(--text-dim); font-size: 0.8rem; font-family: 'Share Tech Mono', monospace; font-style: italic;">No regulations found.</div>` : ''}
+              </div>
+              <button type="button" class="hub-cancel-btn" style="width: 100%; margin-top: 0.8rem;" data-library-add-entry>+ ADD REGULATION</button>
+            </div>
           </div>
-          <div class="library-entry-list">
-            ${workingDocument.entries.map((entry, index) => `
-              <div class="library-entry-list-item">
-                <span class="library-entry-list-title">Regulation ${regulationNumberValue(entry, index)}</span>
-                <div class="library-entry-list-actions">
-                  <button type="button" class="library-inline-btn" data-library-edit-entry="${index}">EDIT</button>
-                  <button type="button" class="library-inline-btn" data-library-move-up="${index}">▲</button>
-                  <button type="button" class="library-inline-btn" data-library-move-down="${index}">▼</button>
-                  <button type="button" class="library-inline-btn danger" data-library-remove-entry="${index}">REMOVE</button>
+          
+          <!-- RIGHT PANEL -->
+          <div class="codex-split-right">
+            ${activeEntry ? `
+              <div>
+                <label class="codex-label" style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>EDITING REGULATION ${regulationNumberValue(activeEntry, editingRegulationIndex)}</span>
+                  <button type="button" class="hub-cancel-btn" style="color: var(--red-bright); border-color: var(--red-bright); padding: 2px 6px; font-size: 0.65rem;" data-library-remove-entry="${editingRegulationIndex}">REMOVE</button>
+                </label>
+                <div style="margin-bottom: 1rem;">
+                  <label class="codex-label">REGULATION NUMBER</label>
+                  <input type="number" min="1" class="codex-input" name="entry-number" value="${escapeHtml(regulationNumberValue(activeEntry, editingRegulationIndex))}" required>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                  <label class="codex-label">REGULATION BODY</label>
+                  <textarea class="codex-textarea" name="entry-body" rows="6" required>${escapeHtml(activeEntry.body || "")}</textarea>
+                </div>
+                <div>
+                  <label class="codex-label">SUB-SECTIONS (ONE PER LINE)</label>
+                  <textarea class="codex-textarea" name="entry-sub" rows="4" placeholder="- Clause A\n- Clause B">${escapeHtml(subClauseText(activeEntry.subClauses))}</textarea>
                 </div>
               </div>
-            `).join("")}
+            ` : `
+              <div style="height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; border: 1px dashed var(--border-hot); background: rgba(192,0,26,0.03);">
+                SELECT A REGULATION TO EDIT
+              </div>
+            `}
           </div>
-          <div class="library-editor-buttons">
-            <button type="button" class="library-inline-btn" data-library-add-entry>+ ADD REGULATION</button>
-            ${workingDocument.id ? `<button type="button" class="library-inline-btn danger" data-library-delete>DELETE ARTICLE</button>` : ""}
-          </div>
-        `;
-      } else if (viewMode === "regulation") {
-        const entry = workingDocument.entries[editingRegulationIndex];
-        const regulationNumber = regulationNumberValue(entry, editingRegulationIndex);
-        title.textContent = `EDIT REGULATION ${regulationNumber}`;
-        
-        form.innerHTML = `
-          <input type="hidden" name="editingRegulationIndex" value="${editingRegulationIndex}">
-          <div class="resource-editor-field">
-            <label>Regulation Number</label>
-            <input type="number" min="1" name="entry-number" value="${escapeHtml(regulationNumber)}" required>
-          </div>
-          <div class="resource-editor-field">
-            <label>Regulation Body</label>
-            <textarea name="entry-body" required>${escapeHtml(entry.body || "")}</textarea>
-          </div>
-          <div class="resource-editor-field">
-            <label>Sub-Sections</label>
-            <textarea name="entry-sub" placeholder="One sub-section per line">${escapeHtml(subClauseText(entry.subClauses))}</textarea>
-          </div>
-          <div class="library-editor-buttons">
-            <button type="button" class="library-inline-btn cancel" data-library-cancel-entry>CANCEL</button>
-            <button type="button" class="library-inline-btn save" data-library-save-entry>SAVE REGULATION</button>
-          </div>
-        `;
-      }
+        </div>
+      `;
     }
 
     renderForm();
@@ -580,27 +581,12 @@ async function initLibraryView() {
       
       const editEntry = event.target.closest("[data-library-edit-entry]");
       if (editEntry) {
-        syncWorkingDocumentFromForm();
-        editingRegulationIndex = Number(editEntry.dataset.libraryEditEntry);
-        viewMode = "regulation";
-        renderForm();
-        return;
-      }
-      
-      const saveEntry = event.target.closest("[data-library-save-entry]");
-      if (saveEntry) {
-        syncWorkingDocumentFromForm(); // Syncs from form back into workingDocument.entries
-        viewMode = "article";
-        editingRegulationIndex = -1;
-        renderForm();
-        return;
-      }
-      
-      const cancelEntry = event.target.closest("[data-library-cancel-entry]");
-      if (cancelEntry) {
-        viewMode = "article";
-        editingRegulationIndex = -1;
-        renderForm();
+        // Only trigger edit if it wasn't a move action
+        if (!event.target.closest("[data-library-move-up]") && !event.target.closest("[data-library-move-down]")) {
+          syncWorkingDocumentFromForm();
+          editingRegulationIndex = Number(editEntry.dataset.libraryEditEntry);
+          renderForm();
+        }
         return;
       }
 
@@ -609,7 +595,6 @@ async function initLibraryView() {
         syncWorkingDocumentFromForm();
         workingDocument.entries.push({ anchor: "", label: "", body: "", subClauses: [], displayOrder: workingDocument.entries.length + 1 });
         editingRegulationIndex = workingDocument.entries.length - 1;
-        viewMode = "regulation";
         renderForm();
         return;
        }
@@ -620,6 +605,7 @@ async function initLibraryView() {
 
         syncWorkingDocumentFromForm();
         workingDocument.entries.splice(Number(remove.dataset.libraryRemoveEntry), 1);
+        editingRegulationIndex = -1;
         renderForm();
         return;
       }

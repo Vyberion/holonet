@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from "discord.js";
 import { ephemeral } from "../services/discord-ui.js";
 
-const ECHO_USER_ID = "710574154226598049";
+const ECHO_USER_IDS = new Set(["710574154226598049", "1467651749815914546"]);
 
 export const commands = [
   new SlashCommandBuilder()
@@ -17,7 +17,7 @@ export const commands = [
 export async function handleCommand(interaction) {
   if (interaction.commandName !== "echo") return false;
 
-  if (String(interaction.user.id) !== ECHO_USER_ID) {
+  if (!ECHO_USER_IDS.has(String(interaction.user.id))) {
     await interaction.reply(ephemeral({ content: "You do not have clearance to use this command." }));
     return true;
   }

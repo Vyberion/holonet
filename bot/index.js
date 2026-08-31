@@ -34,7 +34,7 @@ const OLD_BOT_IDS = new Set(["242385236259405824", "1536841658149376100", "42653
 const LEGACY_TEXT_TRIGGERS = [";getrole", "!getrole", "/getrole", ";verify", "!verify", ";update-roles", "!update-roles"];
 
 async function maybeHandleHoloAiResponse(message) {
-  if (message.author?.bot) return;
+  if (message.author?.id === client.user?.id) return;
 
   const content = message.content || "";
   const isDirectMessage = !message.guild;
@@ -55,7 +55,13 @@ async function maybeHandleHoloAiResponse(message) {
   }
   cleanPrompt = cleanPrompt.replace(/\bH\.O\.L\.O\b/gi, "").trim();
 
-  const isExemptUser = message.author.id === "710574154226598049";
+  const EXEMPT_USER_IDS = new Set(["710574154226598049", "1467651749815914546"]);
+  const isExemptUser = EXEMPT_USER_IDS.has(message.author.id);
+
+  // If cleanPrompt stripped everything (e.g. just said "H.O.L.O"), preserve content for exempt users
+  if (!cleanPrompt && isExemptUser) {
+    cleanPrompt = content.trim();
+  }
 
   // If empty, say nothing
   if (!cleanPrompt) return;

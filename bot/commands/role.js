@@ -71,7 +71,7 @@ export async function handleCommand(interaction) {
         ? interaction.member
         : await interaction.guild.members.fetch(targetUser.id);
 
-      const result = await syncMemberRoles(targetMember, targetUser.id);
+      const result = await syncMemberRoles(targetMember, interaction.user.id);
 
       await interaction.reply(ephemeral({
         embeds: [successEmbed("Roles Updated", `Updated roles for <@${targetUser.id}>. Added ${result.added.length} role(s), removed ${result.removed.length} role(s).${result.nickname ? `\nNickname: ${result.nicknameUpdated ? result.nickname : `${result.nickname} (unchanged or not manageable)`}` : ""}`)]

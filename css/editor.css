@@ -461,6 +461,36 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
   padding: 18px 24px 24px;
 }
 
+.library-entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 24px 24px;
+}
+
+.library-entry-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--editor-accent) 5%, transparent) 0%, rgba(255, 255, 255, 0.015) 100%);
+  border: 1px solid var(--editor-border);
+  padding: 8px 16px;
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+}
+
+.library-entry-list-title {
+  color: var(--editor-label);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.library-entry-list-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .library-entry-editor {
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 5%, transparent), rgba(255, 255, 255, 0.014)),

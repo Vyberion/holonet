@@ -276,11 +276,11 @@ function formEntryMarkup(entry, index) {
 }
 
 function ensureEditorOverlay() {
-  let overlay = document.getElementById("library-editor-overlay");
+  let overlay = document.getElementById("codex-editor-overlay");
   if (overlay) return overlay;
 
   overlay = document.createElement("div");
-  overlay.id = "library-editor-overlay";
+  overlay.id = "codex-editor-overlay";
   overlay.className = "codex-modal-backdrop";
   overlay.innerHTML = `
     <div class="codex-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="library-editor-title">
@@ -289,11 +289,11 @@ function ensureEditorOverlay() {
         <button type="button" class="codex-modal-close" data-library-close>&times;</button>
       </div>
       <form class="codex-modal-body" id="library-editor-form"></form>
-      <div class="codex-modal-footer">
-        <span class="resource-editor-status" data-library-status style="color: var(--text-dim); margin-right: auto; align-self: center;"></span>
-        <button type="button" class="hub-cancel-btn" data-library-delete style="color: var(--red-bright); border-color: var(--red-bright); margin-right: auto; text-shadow: 0 0 6px var(--red-glow); display: none;">PURGE ARTICLE</button>
+      <div class="codex-modal-footer" style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
+        <button type="button" class="hub-cancel-btn" data-library-delete style="color: var(--red-bright); border-color: var(--red-bright); text-shadow: 0 0 6px var(--red-glow); display: none; margin-right: auto;">PURGE</button>
+        <span class="resource-editor-status" data-library-status style="color: var(--text-dim); margin-right: 1rem;"></span>
         <button type="button" class="hub-cancel-btn" data-library-close>CANCEL</button>
-        <button type="submit" class="hub-write-btn" form="library-editor-form">SAVE ARTICLE</button>
+        <button type="submit" class="hub-write-btn" form="library-editor-form">SAVE</button>
       </div>
     </div>
   `;
@@ -509,15 +509,20 @@ async function initLibraryView() {
             <div style="margin-top: 1rem; border-top: 1px solid var(--border-hot); padding-top: 1rem;">
               <label class="codex-label" style="color: var(--red-bright); margin-bottom: 0.8rem;">REGULATIONS (${workingDocument.entries.length})</label>
               <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;">
-                ${workingDocument.entries.map((entry, index) => `
+                ${workingDocument.entries.map((entry, index) => {
+                  const titleStr = entry.body ? entry.body.substring(0, 35) + (entry.body.length > 35 ? "..." : "") : "New Regulation";
+                  return `
                   <div class="codex-regulation-pill ${index === editingRegulationIndex ? 'active' : ''}" data-library-edit-entry="${index}">
-                    <span class="codex-regulation-pill-title">REG ${regulationNumberValue(entry, index)}</span>
+                    <span class="codex-regulation-pill-title" style="display: flex; flex-direction: column; gap: 2px;">
+                      <span style="font-weight: bold;">REG ${regulationNumberValue(entry, index)}</span>
+                      <span style="font-size: 0.7rem; color: var(--text-dim);">${escapeHtml(titleStr)}</span>
+                    </span>
                     <div class="codex-regulation-pill-actions">
                       <button type="button" class="hub-cancel-btn" style="padding: 2px 6px; font-size: 0.6rem;" data-library-move-up="${index}">▲</button>
                       <button type="button" class="hub-cancel-btn" style="padding: 2px 6px; font-size: 0.6rem;" data-library-move-down="${index}">▼</button>
                     </div>
                   </div>
-                `).join("")}
+                `}).join("")}
                 ${workingDocument.entries.length === 0 ? `<div style="color: var(--text-dim); font-size: 0.8rem; font-family: 'Share Tech Mono', monospace; font-style: italic;">No regulations found.</div>` : ''}
               </div>
               <button type="button" class="hub-cancel-btn" style="width: 100%; margin-top: 0.8rem;" data-library-add-entry>+ ADD REGULATION</button>

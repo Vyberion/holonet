@@ -1322,15 +1322,30 @@ export async function fetchDivisionRoster(division) {
   );
   if (allowedRanks.size === 0) return []; // Require explicit ranks for safety
 
+  // Build a set of expected role names from the config for precise matching
+  const allowedRoleNames = new Set(
+    Object.entries(definition.ranks || {}).map(([, cfg]) => {
+      const name = typeof cfg === "object" ? cfg.value : cfg;
+      return String(name || "").toLowerCase();
+    }).filter(Boolean)
+  );
+
   // 1. Fetch group roles to map rank to roleId
   const rolesResponse = await fetch(`https://groups.roblox.com/v1/groups/${definition.groupId}/roles`);
   if (!rolesResponse.ok) throw new Error("ROBLOX_ROLES_LOOKUP_FAILED");
   const rolesPayload = await rolesResponse.json();
 
-  const targetRoles = (rolesPayload.roles || []).filter(role => 
-    allowedRanks.has(Number(role.rank)) && 
-    role.name !== "Guest"
-  );
+  const targetRoles = (rolesPayload.roles || []).filter(role => {
+    if (!allowedRanks.has(Number(role.rank))) return false;
+    if (role.name === "Guest") return false;
+    // If we have configured role names, only allow roles whose name matches a configured rank title
+    if (allowedRoleNames.size > 0) {
+      const configuredRank = definition.ranks?.[String(Number(role.rank))];
+      const expectedName = typeof configuredRank === "object" ? configuredRank.value : configuredRank;
+      if (expectedName && role.name.toLowerCase() !== expectedName.toLowerCase()) return false;
+    }
+    return true;
+  });
   const members = [];
   const seenRobloxIds = new Set();
 

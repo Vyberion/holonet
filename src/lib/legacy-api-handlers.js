@@ -1316,10 +1316,24 @@ async function fetchDivisionRoster(division) {
     if (!rolesResponse.ok) return [];
     const rolesPayload = await rolesResponse.json();
 
-    const targetRoles = (rolesPayload.roles || []).filter(role => 
-      allowedRanks.has(Number(role.rank)) && 
-      role.name !== "Guest"
+    // Build a set of expected role names from the config for precise matching
+    const allowedRoleNames = new Set(
+      Object.entries(definition.ranks || {}).map(([, cfg]) => {
+        const name = typeof cfg === "object" ? cfg.value : cfg;
+        return String(name || "").toLowerCase();
+      }).filter(Boolean)
     );
+
+    const targetRoles = (rolesPayload.roles || []).filter(role => {
+      if (!allowedRanks.has(Number(role.rank))) return false;
+      if (role.name === "Guest") return false;
+      if (allowedRoleNames.size > 0) {
+        const configuredRank = definition.ranks?.[String(Number(role.rank))];
+        const expectedName = typeof configuredRank === "object" ? configuredRank.value : configuredRank;
+        if (expectedName && role.name.toLowerCase() !== expectedName.toLowerCase()) return false;
+      }
+      return true;
+    });
     const members = [];
     const seenRobloxIds = new Set();
 

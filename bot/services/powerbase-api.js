@@ -1015,7 +1015,6 @@ export async function enforcePowerbaseMemberEligibility(member, profile, actorDi
             { name: "Powerbase Name", value: pb.name, inline: true },
             { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
             { name: "Updated By", value: `<@${actorDiscordId}>`, inline: false },
-            { name: "Apprentices Added", value: "*None*", inline: false },
             { name: "Apprentices Removed", value: `<@${member.id}> (${reasonDesc})`, inline: false }
           ],
           color: 0xc90705
@@ -1051,7 +1050,6 @@ export async function enforcePowerbaseMemberEligibility(member, profile, actorDi
               { name: "Powerbase Name", value: pb.name, inline: true },
               { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
               { name: "Updated By", value: `<@${actorDiscordId}>`, inline: false },
-              { name: "Apprentices Added", value: "*None*", inline: false },
               { name: "Apprentices Removed", value: `<@${member.id}> (Already in another Powerbase)`, inline: false }
             ],
             color: 0xc90705

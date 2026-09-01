@@ -79,7 +79,7 @@ function guardEditorOverlayDismissal() {
 
   const editorOverlaySelector = [
     "#resource-editor-overlay",
-    "#library-editor-overlay",
+    "#codex-editor-overlay",
     "#inspection-editor-overlay",
     "#council-editor-overlay",
     "#timeline-editor-overlay"

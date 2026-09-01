@@ -14,25 +14,7 @@ function divisionParams(section) {
   return { division: "dark-council", section };
 }
 
-export function generateStaticParams() {
-  return (getVisibleHierarchyGroup("dark-council")?.items || []).map(item => ({ slug: item.slug }));
-}
 
-export async function generateMetadata({ params }) {
-  const { slug } = await params;
-
-  if (isDivisionSection(slug)) {
-    return generateDivisionSectionMetadata({ params: divisionParams(slug) });
-  }
-
-  const item = getHierarchyItem("dark-council", slug);
-  if (!item) return {};
-
-  return holonetMetadata({
-    title: item.name,
-    description: `${item.name} information.`
-  });
-}
 
 export default async function DarkCouncilPage({ params }) {
   const { slug } = await params;

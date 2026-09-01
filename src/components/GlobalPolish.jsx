@@ -6,7 +6,7 @@ export function GlobalPolish() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const activeOverlays = "#resource-editor-overlay, #library-editor-overlay, #inspection-editor-overlay, #council-editor-overlay, #timeline-editor-overlay, #cots-editor-overlay, #search-overlay";
+    const activeOverlays = "#resource-editor-overlay, #codex-editor-overlay, #inspection-editor-overlay, #council-editor-overlay, #timeline-editor-overlay, #cots-editor-overlay, #search-overlay";
     const editorPanels = ".resource-editor-container, .library-editor-container, #search-container, .search-container";
     let selectionGuard = false;
 

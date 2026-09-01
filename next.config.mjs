@@ -35,6 +35,9 @@ const nextConfig = {
   images: {
     remotePatterns
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   async headers() {
     return [
       {

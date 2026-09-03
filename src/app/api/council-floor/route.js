@@ -12,7 +12,8 @@ const handler = async (req, res) => {
     }
 
     const permissions = councilPermissions(auth.profile);
-    if (!permissions.canView && !auth.profile?.isSuperUser) {
+    // Allow authenticated users to view/submit proposals; council-specific actions check permissions per action
+    if (!permissions.canView && !auth.profile?.isSuperUser && req.method === "GET") {
       return res.status(200).json({ ok: false, authorized: false, reason: "SUPERUSER_CLEARANCE_REQUIRED" });
     }
 
@@ -73,9 +74,10 @@ const handler = async (req, res) => {
 
     return res.status(405).json({ ok: false, reason: "METHOD_NOT_ALLOWED" });
   } catch (error) {
+    console.error("Council Floor error:", error);
     if (isMissingSchemaError(error)) {
       if (req.method !== "GET") {
-        return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED" });
+        return res.status(200).json({ ok: false, reason: "MIGRATION_REQUIRED", detail: error.message });
       }
 
       return res.status(200).json({
@@ -88,7 +90,7 @@ const handler = async (req, res) => {
       });
     }
 
-    return res.status(500).json({ ok: false, error: error.message });
+    return res.status(200).json({ ok: false, reason: error.message || "SERVER_TRANSMISSION_ERROR" });
   }
 };
 

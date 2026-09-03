@@ -167,7 +167,7 @@ export default function DocketClient() {
         })
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       if (json.ok) {
         setStatusNotice({
           type: "success",
@@ -191,10 +191,11 @@ export default function DocketClient() {
         setSelectedTab("agenda");
         loadData();
       } else {
-        setStatusNotice({ type: "error", message: json.reason || "Failed to submit proposal." });
+        const errorReason = json.reason || json.error || json.detail || "Failed to submit proposal.";
+        setStatusNotice({ type: "error", message: errorReason });
       }
     } catch (err) {
-      setStatusNotice({ type: "error", message: "Network transmission failure." });
+      setStatusNotice({ type: "error", message: `Transmission failure: ${err.message || "Network error"}` });
     } finally {
       setSubmitting(false);
     }

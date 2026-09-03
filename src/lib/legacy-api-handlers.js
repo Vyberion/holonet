@@ -2544,16 +2544,25 @@ async function loadCouncilProposals() {
 
 async function createCouncilProposal(auth, body) {
   const permissions = councilPermissions(auth.profile);
-  if (!permissions.canPropose) {
+  const targetStatus = (body.status === "submitted" || body.targetStatus === "submitted")
+    ? "submitted"
+    : (body.status === "docket" || body.targetStatus === "docket")
+      ? "docket"
+      : "open";
+
+  if (!permissions.canPropose && targetStatus !== "submitted") {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
   }
 
-  const proposalType = requireString(body.proposalType || body.proposal_type || "motion");
+  const proposalType = requireString(body.proposalType || body.proposal_type || "legislation");
   const title = requireString(body.title);
   const proposalBody = requireString(body.body);
   const durationHours = clampDurationHours(body.durationHours || body.duration_hours);
+  const authors = Array.isArray(body.authors) ? body.authors : (body.authors ? String(body.authors).split(",").map(s => s.trim()) : []);
+  const coAuthors = Array.isArray(body.coAuthors) ? body.coAuthors : (body.coAuthors ? String(body.coAuthors).split(",").map(s => s.trim()) : []);
+  const legalFormat = Boolean(body.legalFormat);
 
-  if (!["legislation", "motion", "councillor_election"].includes(proposalType) || !title || !proposalBody) {
+  if (!["legislation", "motion", "councillor_election", "promotion", "disciplinary", "kaggath"].includes(proposalType) || !title || !proposalBody) {
     return { ok: false, status: 400, payload: { ok: false, reason: "PROPOSAL_FIELDS_REQUIRED" } };
   }
 
@@ -2567,12 +2576,16 @@ async function createCouncilProposal(auth, body) {
       proposal_type: proposalType,
       title,
       body: proposalBody,
-      status: "open",
+      status: targetStatus,
       created_by: String(auth.user.roblox_id),
       created_by_name: auth.user.roblox_username || auth.user.roblox_display_name || String(auth.user.roblox_id),
       opens_at: opensAt.toISOString(),
       closes_at: closesAt.toISOString(),
       duration_hours: durationHours,
+      authors,
+      co_authors: coAuthors,
+      legal_format: legalFormat,
+      amendment_iteration: 0,
       eligible_snapshot: roleSnapshot.snapshot,
       counting_eligible_count: roleSnapshot.countingEligibleCount,
       majority_count: roleSnapshot.majorityCount

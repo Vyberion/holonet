@@ -105,7 +105,7 @@ export function HomeNavGrid() {
   if (canViewAnyDomain) {
     secondRowCards.push({
       href: "/domains",
-      title: "The Domains",
+      title: "Specializations",
       glyph: "IV",
       hex: "0x4D  SECT.04",
       clearance: "CLEARANCE: RESTRICTED",
@@ -179,7 +179,7 @@ export function HomeNavGrid() {
             CLEARANCE: UNCLASSIFIED<br />
             DESIGNATION: LEVEL 1<br />
           </div>
-          <span className="card-category">Section 03 &mdash; Factions</span>
+          <span className="card-category">Section 04 &mdash; Political Factions</span>
           <h2 className="card-title">The Powerbases</h2>
           <p className="card-desc">Political factions.</p>
           <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>

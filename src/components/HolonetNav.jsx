@@ -163,9 +163,9 @@ export function HolonetNav() {
   const divisionContext = currentDivisionContext(pathname, hostname);
   
   const isPowerbaseDetail = pathname.startsWith("/powerbases/") && pathname !== "/powerbases";
-  const isDecreeReader = (pathname.startsWith("/decrees/") && pathname !== "/decrees") || (pathname.startsWith("/statutes/") && pathname !== "/statutes");
-  const showDivisionReturn = (divisionContext && !["home", "info"].includes(divisionContext.section)) || isDecreeReader || isPowerbaseDetail;
-  const returnHref = isPowerbaseDetail ? "/powerbases" : isDecreeReader ? "/decrees" : (divisionContext?.base || "/");
+  const isStatuteReader = pathname.startsWith("/statutes/") && pathname !== "/statutes";
+  const showDivisionReturn = (divisionContext && !["home", "info"].includes(divisionContext.section)) || isStatuteReader || isPowerbaseDetail;
+  const returnHref = isPowerbaseDetail ? "/powerbases" : isStatuteReader ? "/statutes" : (divisionContext?.base || "/");
   
   const getHref = path => formatNavHref(path, hostname);
 
@@ -257,7 +257,7 @@ export function HolonetNav() {
       href: getHref("/domains"),
       page: "domains",
       prefix: "03",
-      label: "Domains",
+      label: "Specializations",
       dropdown: domainsSubItems
     },
     { href: getHref("/powerbases"), page: "powerbases", prefix: "04", label: "Powerbases" },

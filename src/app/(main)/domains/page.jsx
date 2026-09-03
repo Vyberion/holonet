@@ -5,8 +5,8 @@ import { getDivision } from "../../../lib/divisions.js";
 import { holonetMetadata } from "../../../lib/metadata.js";
 
 export const metadata = holonetMetadata({
-  title: "The Domains",
-  description: "Specialized military branches, martial cadres, and autonomous Imperial domains."
+  title: "Specializations",
+  description: "The departments and divisions of the Sith Order."
 });
 
 const DOMAINS_LIST = [
@@ -60,7 +60,7 @@ const DOMAINS_LIST = [
 export default function DomainsPage() {
   return (
     <HolonetFrame
-      title="THE DOMAINS"
+      title="SPECIALIZATIONS"
       subtitle="BRANCHES & OPERATIONAL HUBS"
       footerNode="DOM-03"
       includeSearchOverlay
@@ -74,7 +74,7 @@ export default function DomainsPage() {
             <div>
               <span className="hub-kicker">// SPECIALIZED IMPERIAL ARMS &bull; SECTORS</span>
               <h1 className="hub-title" style={{ fontFamily: "Cinzel, serif", fontSize: "1.8rem", color: "var(--red-bright)", margin: "0.2rem 0" }}>
-                Imperial Domains
+                Specializations
               </h1>
               <p style={{ color: "var(--text-dim)", fontFamily: "Share Tech Mono, monospace", fontSize: "0.85rem", margin: 0 }}>
                 Specialized branches operating under autonomous authority and dedicated sub-sites.

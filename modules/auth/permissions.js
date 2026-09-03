@@ -2,6 +2,10 @@ const PAGE_ACCESS = {
   codex: { public: true },
   cots: { public: true },
   archives: { public: true },
+  timeline: { require: 'superuser:only' },
+  archives_group_timeline: { require: 'superuser:only' },
+  decrees: { public: true },
+  statutes: { public: true },
   hierarchy: { public: true },
   low_ranks: { public: true },
   low_ranks_grotthu: { public: true },
@@ -166,6 +170,14 @@ export function checkPageAccess(profile, page) {
     return { authorized: true, pageKey };
   }
 
+  // Timeline page restricted to superusers only for testing phase
+  if (pageKey === "timeline" || pageKey.startsWith("timeline_") || pageKey === "archives_group_timeline") {
+    if (!profile?.isSuperUser) {
+      return { authorized: false, pageKey, reason: "SUPERUSER_CLEARANCE_REQUIRED" };
+    }
+    return { authorized: true, pageKey };
+  }
+
   const rule = PAGE_ACCESS[pageKey];
 
   if (!rule) {
@@ -199,24 +211,27 @@ export function checkResourceWriteAccess(profile, { division, resourceType }) {
 }
 
 export function canEditLibrary(profile, libraryKey) {
-  if (hasPermission(profile, 'library:edit')) return { authorized: true, reason: "PERMISSION_GRANTED" };
+  if (!profile) return { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
+  if (
+    profile.isSuperUser ||
+    profile.hasFullAccess ||
+    hasPermission(profile, 'library:edit') ||
+    hasPermission(profile, 'codex:edit') ||
+    hasPermission(profile, 'archives:edit') ||
+    hasPermission(profile, 'doctrine:edit')
+  ) {
+    return { authorized: true, reason: "PERMISSION_GRANTED" };
+  }
   return { authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" };
 }
 
 export function canEditStatutes(profile) {
-  if (hasPermission(profile, 'codex:edit')) return { authorized: true, reason: "PERMISSION_GRANTED" };
-  return { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
+  return canEditLibrary(profile, "decrees");
 }
 
 export function canEditDoctrine(profile) {
   if (!profile) return false;
-  return Boolean(
-    profile.isSuperUser ||
-    profile.hasFullAccess ||
-    hasPermission(profile, 'doctrine:edit') ||
-    hasPermission(profile, 'codex:edit') ||
-    canViewStatuteDrafts(profile)
-  );
+  return canEditLibrary(profile, "doctrine").authorized;
 }
 
 export function canViewStatuteDrafts(profile) {

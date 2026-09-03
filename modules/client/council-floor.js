@@ -382,7 +382,12 @@ async function initCouncilFloor() {
     // Tab switching
     const tabButton = event.target.closest("[data-council-switch-tab]");
     if (tabButton) {
-      mount.dataset.councilTab = tabButton.dataset.councilSwitchTab;
+      const targetTab = tabButton.dataset.councilSwitchTab;
+      if (targetTab === "decrees") {
+        window.location.href = "/decrees";
+        return;
+      }
+      mount.dataset.councilTab = targetTab;
       if (latestPayload) renderCouncil(mount, latestPayload);
       return;
     }

@@ -163,9 +163,9 @@ export function HolonetNav() {
   const divisionContext = currentDivisionContext(pathname, hostname);
   
   const isPowerbaseDetail = pathname.startsWith("/powerbases/") && pathname !== "/powerbases";
-  const isStatuteReader = pathname.startsWith("/statutes/") && pathname !== "/statutes";
-  const showDivisionReturn = (divisionContext && !["home", "info"].includes(divisionContext.section)) || isStatuteReader || isPowerbaseDetail;
-  const returnHref = isPowerbaseDetail ? "/powerbases" : isStatuteReader ? "/statutes" : (divisionContext?.base || "/");
+  const isDecreeReader = (pathname.startsWith("/decrees/") && pathname !== "/decrees") || (pathname.startsWith("/statutes/") && pathname !== "/statutes");
+  const showDivisionReturn = (divisionContext && !["home", "info"].includes(divisionContext.section)) || isDecreeReader || isPowerbaseDetail;
+  const returnHref = isPowerbaseDetail ? "/powerbases" : isDecreeReader ? "/decrees" : (divisionContext?.base || "/");
   
   const getHref = path => formatNavHref(path, hostname);
 
@@ -218,17 +218,17 @@ export function HolonetNav() {
   });
 
   const domainsSubItems = [
-    { href: divisionLockedHref("highranks"), page: "instructors", label: "High Ranks" },
-    { href: divisionLockedHref("dhg"), page: "dhg", label: "Dark Honor Guard" },
+    { href: divisionLockedHref("highranks"), page: "instructors", label: "Instructors" },
+    { href: divisionLockedHref("dhg"), page: "dhg", label: "Guards" },
     { href: divisionLockedHref("reavers"), page: "reavers", label: "Reavers" },
     { href: divisionLockedHref("inquisitors"), page: "inquisitors", label: "Inquisitors" },
     { href: divisionLockedHref("dreadmasters"), page: "dreadmasters", label: "Dread Masters" }
   ];
 
   const councilSubItems = [
-    { href: getHref("/council/docket"), page: "council-docket", label: "Docket" },
-    { href: getHref("/council/floor"), page: "council-floor", label: "Floor" },
-    { href: getHref("/council/decrees"), page: "council-decrees", label: "Decrees" }
+    { href: divisionLockedHref("darkCouncil", "docket"), page: "council-docket", label: "Docket" },
+    { href: divisionLockedHref("darkCouncil", "floor"), page: "council-floor", label: "Floor" },
+    { href: divisionLockedHref("darkCouncil", "decrees"), page: "council-decrees", label: "Decrees" }
   ];
 
   const centerLinks = [

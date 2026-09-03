@@ -6,6 +6,7 @@ import { getHierarchyItem } from "../../../../../../modules/data/hierarchy.js";
 import { getDivisionByRouteSlug } from "../../../../../lib/divisions.js";
 import { holonetMetadata } from "../../../../../lib/metadata.js";
 import { HierarchyDetail } from "../../../hierarchy/HierarchyDetail.jsx";
+import StatutesClient from "../../../../(main)/statutes/StatutesClient.jsx";
 
 function normalizeSection(section) {
   return String(section || "").toLowerCase();
@@ -67,8 +68,8 @@ export async function generateMetadata({ params }) {
   const section = normalizeSection(routeParams.section);
 
   if (!division) return {};
-  if (!["home", "info", "handbooks", "transmissions", "reports", "activity", "council-floor"].includes(section)) return {};
-  if (section === "council-floor" && division.id !== "darkCouncil") return {};
+  if (!["home", "info", "handbooks", "transmissions", "reports", "activity", "council-floor", "floor", "docket", "decrees"].includes(section)) return {};
+  if (["council-floor", "floor", "docket", "decrees"].includes(section) && division.id !== "darkCouncil") return {};
 
   const singularName = divisionSingularName(division);
 
@@ -122,8 +123,8 @@ export default async function DivisionSectionPage({ params }) {
   const section = normalizeSection(routeParams.section);
 
   if (!division) notFound();
-  if (!["home", "info", "handbooks", "transmissions", "reports", "activity", "council-floor"].includes(section)) notFound();
-  if (section === "council-floor" && division.id !== "darkCouncil") notFound();
+  if (!["home", "info", "handbooks", "transmissions", "reports", "activity", "council-floor", "floor", "docket", "decrees"].includes(section)) notFound();
+  if (["council-floor", "floor", "docket", "decrees"].includes(section) && division.id !== "darkCouncil") notFound();
 
   if (section === "info") {
     const hierarchySlug = {
@@ -230,7 +231,11 @@ export default async function DivisionSectionPage({ params }) {
     );
   }
 
-  if (section === "council-floor" || section === "floor" || section === "docket" || section === "decrees") {
+  if (section === "decrees") {
+    return <StatutesClient isDecreesMode={true} />;
+  }
+
+  if (section === "council-floor" || section === "floor" || section === "docket") {
     const defaultTab = section === "council-floor" ? "floor" : section;
     return (
       <HolonetFrame

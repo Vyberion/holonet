@@ -81,7 +81,7 @@ export function DiscordActivityProvider({ clientId }) {
 
     if (path === "/") pageName = "Home";
     else if (path.startsWith("/codex")) pageName = "The Codex";
-    else if (path.startsWith("/statutes")) pageName = "Statutes";
+    else if (path.startsWith("/decrees") || path.startsWith("/statutes")) pageName = "Imperial Decrees";
     else if (path.startsWith("/archives")) pageName = "The Archives";
     else if (path.startsWith("/hierarchy")) pageName = "The Hierarchy";
     else if (path.startsWith("/registry")) pageName = "The Registry";

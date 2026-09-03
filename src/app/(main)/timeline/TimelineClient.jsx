@@ -148,53 +148,35 @@ export default function TimelineClient() {
     >
       <div className="timeline-shell" style={{ maxWidth: "1100px", margin: "0 auto", padding: "1.5rem 1rem 4rem" }}>
         
-        {/* Terminal Header & Filter HUD */}
-        <div className="hub-hero" style={{ marginBottom: "2rem" }}>
-          <div className="hub-identity" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "1rem" }}>
-            <div>
-              <span className="hub-kicker">// SITH CHRONICLES &bull; KOR-7 REGISTRY</span>
-              <h1 className="hub-title" style={{ fontFamily: "Cinzel, serif", fontSize: "1.8rem", color: "var(--red-bright)", margin: "0.2rem 0" }}>
-                Order Chronology
-              </h1>
-              <p style={{ color: "var(--text-dim)", fontFamily: "Share Tech Mono, monospace", fontSize: "0.85rem", margin: 0 }}>
-                Historical lineage, epochal transitions, and Imperial reforms.
-              </p>
+        {/* Classification Tag Filter Tabs (Doctrine / Hierarchy Style) */}
+        <div className="hierarchy-tabs-shell" style={{ margin: "0.5rem 0 2.5rem" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+            <div className="hierarchy-tab-strip" role="tablist" aria-label="Chronology classification tags" style={{ flex: 1, minWidth: "280px" }}>
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selectedCategory === cat.id}
+                  className={`hierarchy-tab${selectedCategory === cat.id ? " is-active" : ""}`}
+                  onClick={() => setSelectedCategory(cat.id)}
+                >
+                  {cat.label}
+                </button>
+              ))}
             </div>
 
             {canEdit && (
-              <button
-                type="button"
-                className="hub-write-btn"
-                onClick={handleOpenNew}
-                style={{ padding: "0.6rem 1.4rem", fontSize: "0.85rem" }}
-              >
-                + INSCRIBE EVENT
-              </button>
+              <div style={{ paddingBottom: "4px" }}>
+                <button
+                  type="button"
+                  className="hub-write-btn"
+                  onClick={handleOpenNew}
+                >
+                  + INSCRIBE EVENT
+                </button>
+              </div>
             )}
-          </div>
-
-          {/* Filter Chips */}
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "1.5rem", borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                className={`hub-tab-btn ${selectedCategory === cat.id ? "active" : ""}`}
-                onClick={() => setSelectedCategory(cat.id)}
-                style={{
-                  background: selectedCategory === cat.id ? "rgba(192,0,26,0.2)" : "rgba(0,0,0,0.4)",
-                  border: `1px solid ${selectedCategory === cat.id ? "var(--red-bright)" : "var(--border-hot)"}`,
-                  color: selectedCategory === cat.id ? "var(--red-bright)" : "var(--text-dim)",
-                  padding: "0.35rem 0.8rem",
-                  fontSize: "0.75rem",
-                  fontFamily: "Share Tech Mono, monospace",
-                  cursor: "pointer",
-                  transition: "all 0.2s"
-                }}
-              >
-                {cat.label}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -447,7 +429,7 @@ export default function TimelineClient() {
         )}
 
       </div>
-      <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} />
+      <PageScripts guarded scripts={["/js/main.js", "/modules/client/site.js"]} />
     </HolonetFrame>
   );
 }

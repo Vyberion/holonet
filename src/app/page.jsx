@@ -104,14 +104,58 @@ export default function HomePage() {
       <style>{`
         .nav-grid--home {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+          grid-template-columns: repeat(6, 1fr);
+          grid-auto-rows: 1fr;
           gap: 1.5rem;
           margin: 1.5rem 0 3rem;
         }
 
-        @media (max-width: 860px) {
+        .nav-grid--home > .nav-card {
+          height: 100%;
+          min-height: 280px;
+          display: flex;
+          flex-direction: column;
+        }
+
+        /* Row 1: 3 cards (Codex, Archives, Domains) - 2 of 6 cols each */
+        .nav-grid--home > .nav-card:nth-child(1),
+        .nav-grid--home > .nav-card:nth-child(2),
+        .nav-grid--home > .nav-card:nth-child(3) {
+          grid-column: span 2;
+        }
+
+        /* Row 2: 2 cards (Powerbases, Dark Council) - 3 of 6 cols each (half row) */
+        .nav-grid--home > .nav-card:nth-child(4),
+        .nav-grid--home > .nav-card:nth-child(5) {
+          grid-column: span 3;
+        }
+
+        @media (max-width: 1024px) {
+          .nav-grid--home {
+            grid-template-columns: repeat(2, 1fr);
+            grid-auto-rows: auto;
+          }
+          .nav-grid--home > .nav-card:nth-child(1),
+          .nav-grid--home > .nav-card:nth-child(2),
+          .nav-grid--home > .nav-card:nth-child(3),
+          .nav-grid--home > .nav-card:nth-child(4) {
+            grid-column: span 1;
+          }
+          .nav-grid--home > .nav-card:nth-child(5) {
+            grid-column: span 2;
+          }
+        }
+
+        @media (max-width: 680px) {
           .nav-grid--home {
             grid-template-columns: 1fr;
+          }
+          .nav-grid--home > .nav-card:nth-child(1),
+          .nav-grid--home > .nav-card:nth-child(2),
+          .nav-grid--home > .nav-card:nth-child(3),
+          .nav-grid--home > .nav-card:nth-child(4),
+          .nav-grid--home > .nav-card:nth-child(5) {
+            grid-column: span 1;
           }
         }
       `}</style>

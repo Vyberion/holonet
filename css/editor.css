@@ -673,20 +673,28 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
 
 .codex-modal-dialog,
 .doctrine-modal-dialog {
-  background: linear-gradient(135deg, rgba(192,0,26,0.05) 0%, transparent 60%), var(--surface);
+  background: linear-gradient(135deg, rgba(192,0,26,0.05) 0%, transparent 60%), #060003;
   border: 1px solid var(--theme-border-hot, var(--border-hot));
   box-shadow:
     0 0 30px rgba(192,0,26,0.06),
     0 0 80px rgba(192,0,26,0.03),
     inset 0 0 40px rgba(192,0,26,0.03);
-  width: min(780px, calc(100vw - 36px));
-  max-width: 780px;
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
   z-index: 4001;
   clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
   transition: box-shadow 0.3s;
+}
+
+.codex-modal-dialog {
+  width: min(1200px, calc(100vw - 36px));
+  max-width: 1200px;
+}
+
+.doctrine-modal-dialog {
+  width: min(850px, calc(100vw - 36px));
+  max-width: 850px;
 }
 
 .codex-modal-dialog:hover,

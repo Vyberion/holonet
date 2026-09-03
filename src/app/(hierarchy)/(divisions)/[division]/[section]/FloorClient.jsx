@@ -159,7 +159,7 @@ export default function FloorClient() {
             <span style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.7rem", color: "var(--text-dim)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
               Authority
             </span>
-            <span style={{ fontFamily: "Cinzel, serif", fontSize: "1.05rem", color: "var(--theme-accent)", textShadow: "0 0 8px var(--theme-accent-glow)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            <span style={{ fontFamily: "Orbitron, monospace", fontSize: "0.95rem", fontWeight: 700, color: "var(--theme-accent)", textShadow: "0 0 8px var(--theme-accent-glow)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
               {permissions.role || (isDarkCouncil ? "Dark Councilor" : "Council Observer")}
             </span>
           </div>
@@ -199,13 +199,13 @@ export default function FloorClient() {
 
           <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
             <div style={{ textAlign: "center", padding: "0.4rem 0.8rem", background: "rgba(0,0,0,0.4)", border: "1px solid var(--theme-border-hot)" }}>
-              <span style={{ display: "block", fontFamily: "Cinzel, serif", fontSize: "1.1rem", color: "var(--theme-accent)" }}>
+              <span style={{ display: "block", fontFamily: "Orbitron, monospace", fontSize: "1.1rem", fontWeight: 700, color: "var(--theme-accent)" }}>
                 {data?.roleSnapshot?.countingEligibleCount || 12}
               </span>
               <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.65rem", color: "var(--text-dim)", textTransform: "uppercase" }}>Chamber Seats</span>
             </div>
             <div style={{ textAlign: "center", padding: "0.4rem 0.8rem", background: "rgba(0,0,0,0.4)", border: "1px solid var(--theme-border-hot)" }}>
-              <span style={{ display: "block", fontFamily: "Cinzel, serif", fontSize: "1.1rem", color: "var(--theme-accent-soft)" }}>
+              <span style={{ display: "block", fontFamily: "Orbitron, monospace", fontSize: "1.1rem", fontWeight: 700, color: "var(--theme-accent-soft)" }}>
                 {data?.roleSnapshot?.majorityCount || 7}
               </span>
               <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.65rem", color: "var(--text-dim)", textTransform: "uppercase" }}>Majority Quorum</span>
@@ -338,7 +338,7 @@ export default function FloorClient() {
                           ● VOTING IN PROGRESS
                         </span>
                       </div>
-                      <h2 style={{ fontFamily: "Cinzel, serif", fontSize: "1.6rem", color: "var(--theme-accent)", margin: 0, textShadow: "0 0 8px var(--theme-accent-glow)" }}>
+                      <h2 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.25rem", fontWeight: 700, color: "var(--theme-accent)", margin: 0, textShadow: "0 0 8px var(--theme-accent-glow)", letterSpacing: "0.05em" }}>
                         {item.title}
                       </h2>
                     </div>
@@ -516,7 +516,7 @@ export default function FloorClient() {
                           }}
                         >
                           <div>
-                            <span style={{ display: "block", fontFamily: "Cinzel, serif", fontSize: "0.85rem", color: "var(--text-bright)" }}>
+                            <span style={{ display: "block", fontFamily: "Orbitron, monospace", fontSize: "0.82rem", fontWeight: 700, color: "var(--text-bright)" }}>
                               {vote.voterName || "Councilor"}
                             </span>
                             {vote.comment && <span style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.68rem", color: "var(--text-dim)", fontStyle: "italic" }}>"{vote.comment.slice(0, 35)}..."</span>}
@@ -578,7 +578,7 @@ export default function FloorClient() {
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {queuedDocketItems.length === 0 ? (
             <div style={{ padding: "3rem 1rem", textAlign: "center", border: "1px dashed var(--theme-border-hot)" }}>
-              <p style={{ fontFamily: "Cinzel, serif", fontSize: "1.1rem", color: "var(--theme-accent)", margin: "0 0 0.5rem" }}>
+              <p style={{ fontFamily: "Orbitron, monospace", fontSize: "0.95rem", fontWeight: 700, color: "var(--theme-accent)", margin: "0 0 0.5rem", letterSpacing: "0.05em" }}>
                 Queue Empty
               </p>
               <p style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.8rem", color: "var(--text-dim)", margin: 0 }}>
@@ -604,7 +604,7 @@ export default function FloorClient() {
                   <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.68rem", color: "var(--theme-accent)", textTransform: "uppercase" }}>
                     // {item.proposalType}
                   </span>
-                  <h3 style={{ fontFamily: "Cinzel, serif", fontSize: "1.2rem", color: "var(--text-bright)", margin: "0.2rem 0" }}>
+                  <h3 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.05rem", fontWeight: 700, color: "var(--text-bright)", margin: "0.2rem 0", letterSpacing: "0.03em" }}>
                     {item.title}
                   </h3>
                   <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.72rem", color: "var(--text-dim)" }}>
@@ -652,7 +652,7 @@ export default function FloorClient() {
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.8rem", marginBottom: "0.5rem" }}>
-                  <h3 style={{ fontFamily: "Cinzel, serif", fontSize: "1.15rem", color: "var(--theme-accent)", margin: 0 }}>
+                  <h3 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.05rem", fontWeight: 700, color: "var(--theme-accent)", margin: 0, letterSpacing: "0.03em" }}>
                     {item.title}
                   </h3>
                   <span style={{

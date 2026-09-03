@@ -3,18 +3,18 @@ import { PageScripts } from "../../../components/PageScripts.jsx";
 import { holonetMetadata } from "../../../lib/metadata.js";
 
 export const metadata = holonetMetadata({
-  title: "Inspections",
+  title: "Divisional Reports",
   description: "Divisional weekly and inspection reports."
 });
 
 export default function ReportsPage() {
   return (
-    <HolonetFrame title="INSPECTIONS" subtitle="DIVISION INSPECTIONS" footerNode="KOR-7" showHeader={false}>
+    <HolonetFrame title="DIVISIONAL REPORTS" subtitle="DIVISION INSPECTIONS & WEEKLY REPORTS" footerNode="KOR-7" showHeader={false}>
       <section className="nexus-shell" data-nexus-console>
         <div className="hub-hero">
           <div className="hub-identity">
             <div>
-              <h2 className="hub-title">Inspections</h2>
+              <h2 className="hub-title">Divisional Reports</h2>
             </div>
             <div>
               <span className="hub-kicker">Status</span>
@@ -23,7 +23,7 @@ export default function ReportsPage() {
           </div>
           <p className="hub-summary">Loading division reports and inspection scores.</p>
         </div>
-        <p className="hub-empty">Loading inspections...</p>
+        <p className="hub-empty">Loading divisional reports...</p>
       </section>
 
       <PageScripts guarded scripts={["/js/main.js", "/modules/client/site.js"]} moduleScripts={["/modules/client/nexus.js"]} />

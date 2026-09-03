@@ -57,14 +57,14 @@ function ReportsCard() {
     <div
       className="dir-card dir-card--overview"
       data-status="restricted"
-      aria-label="Inspections - inspection matrix"
+      aria-label="Divisional Reports - inspection matrix"
     >
       <div className="dir-card-frame" aria-hidden="true" />
       <div className="card-vline" aria-hidden="true" />
       <div className="card-scan" aria-hidden="true" />
       <div className="dir-card-top">
-        <h2 className="dir-card-title">Inspections</h2>
-        <span className="dir-card-badge">[ INSPECTIONS ]</span>
+        <h2 className="dir-card-title">Divisional Reports</h2>
+        <span className="dir-card-badge">[ REPORTS ]</span>
       </div>
       <p className="dir-card-desc">Divisional inspection scores and weekly reports.</p>
       <div className="dir-card-bottom">

@@ -97,7 +97,7 @@ function divisionSectionName(division = {}) {
 function titleForSection(section, division = null) {
   const baseTitle = {
     transmissions: "Transmissions",
-    reports: "Inspections",
+    reports: "Reports",
     activity: "Activity"
   }[section] || "Division";
 
@@ -509,16 +509,6 @@ function openEditor(entry = {}) {
   status.textContent = "";
   form.innerHTML = `
     ${formFieldsFor(activeContext.section, entry)}
-    ${activeContext.section === "transmissions" ? "" : `
-      <div class="resource-editor-field">
-        <label for="resource-status">Status</label>
-        <select id="resource-status" name="status">
-          <option value="published" ${entry.status === "published" ? "selected" : ""}>Published</option>
-          <option value="draft" ${entry.status === "draft" ? "selected" : ""}>Draft</option>
-          <option value="archived" ${entry.status === "archived" ? "selected" : ""}>Archived</option>
-        </select>
-      </div>
-    `}
   `;
 
   form.onclick = async event => {

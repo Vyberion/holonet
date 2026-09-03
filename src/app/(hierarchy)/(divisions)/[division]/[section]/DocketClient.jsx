@@ -239,7 +239,7 @@ export default function DocketClient() {
             <span style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.7rem", color: "var(--text-dim)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
               Access Authority
             </span>
-            <span style={{ fontFamily: "Cinzel, serif", fontSize: "1.05rem", color: "var(--theme-accent)", textShadow: "0 0 8px var(--theme-accent-glow)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            <span style={{ fontFamily: "Orbitron, monospace", fontSize: "0.95rem", fontWeight: 700, color: "var(--theme-accent)", textShadow: "0 0 8px var(--theme-accent-glow)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
               {permissions.role || (isDarkCouncil ? "Dark Councilor" : "Council Observer")}
             </span>
           </div>
@@ -270,11 +270,11 @@ export default function DocketClient() {
           </div>
           <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
             <div style={{ textAlign: "center", padding: "0.4rem 0.8rem", background: "rgba(0,0,0,0.4)", border: "1px solid var(--theme-border-hot)" }}>
-              <span style={{ display: "block", fontFamily: "Cinzel, serif", fontSize: "1.1rem", color: "var(--theme-accent)" }}>{docketItems.length}</span>
+              <span style={{ display: "block", fontFamily: "Orbitron, monospace", fontSize: "1.1rem", fontWeight: 700, color: "var(--theme-accent)" }}>{docketItems.length}</span>
               <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.65rem", color: "var(--text-dim)", textTransform: "uppercase" }}>On Docket</span>
             </div>
             <div style={{ textAlign: "center", padding: "0.4rem 0.8rem", background: "rgba(0,0,0,0.4)", border: "1px solid var(--theme-border-hot)" }}>
-              <span style={{ display: "block", fontFamily: "Cinzel, serif", fontSize: "1.1rem", color: "var(--theme-accent-soft)" }}>{submissionItems.length}</span>
+              <span style={{ display: "block", fontFamily: "Orbitron, monospace", fontSize: "1.1rem", fontWeight: 700, color: "var(--theme-accent-soft)" }}>{submissionItems.length}</span>
               <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.65rem", color: "var(--text-dim)", textTransform: "uppercase" }}>In Review</span>
             </div>
           </div>
@@ -386,7 +386,7 @@ export default function DocketClient() {
           padding: "2rem",
           position: "relative"
         }}>
-          <h2 style={{ fontFamily: "Cinzel, serif", fontSize: "1.4rem", color: "var(--theme-accent)", margin: "0 0 0.5rem" }}>
+          <h2 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.25rem", fontWeight: 700, color: "var(--theme-accent)", margin: "0 0 0.5rem", letterSpacing: "0.05em" }}>
             Submit Council Proposal
           </h2>
           <p style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.85rem", color: "var(--text-dim)", marginBottom: "1.5rem" }}>
@@ -451,103 +451,181 @@ export default function DocketClient() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.2rem" }}>
                 <div>
                   <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                    CANDIDATE ROBLOX USERNAME *
+                    CANDIDATE / NOMINEE ROBLOX USERNAME *
                   </label>
                   <input
                     type="text"
                     required
-                    value={formData.candidateName}
-                    onChange={e => setFormData({ ...formData, candidateName: e.target.value })}
-                    placeholder="e.g., LordExar"
-                    style={{ width: "100%", padding: "0.65rem 0.8rem", background: "rgba(0,0,0,0.5)", border: "1px solid var(--theme-border-hot)", color: "var(--text)" }}
+                    value={formData.candidate}
+                    onChange={e => setFormData({ ...formData, candidate: e.target.value })}
+                    placeholder="e.g., Darth_Vex"
+                    style={{
+                      width: "100%",
+                      padding: "0.65rem 0.8rem",
+                      background: "rgba(0,0,0,0.5)",
+                      border: "1px solid var(--theme-border-hot)",
+                      color: "var(--text)",
+                      fontFamily: "inherit",
+                      fontSize: "0.9rem"
+                    }}
                   />
                 </div>
                 <div>
                   <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                    NOMINATED TARGET RANK *
+                    TARGET ELEVATION RANK *
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.targetRank}
                     onChange={e => setFormData({ ...formData, targetRank: e.target.value })}
-                    placeholder="e.g., Master / Overseer / Darth"
-                    style={{ width: "100%", padding: "0.65rem 0.8rem", background: "rgba(0,0,0,0.5)", border: "1px solid var(--theme-border-hot)", color: "var(--text)" }}
+                    placeholder="e.g., Sith Master / High Rank"
+                    style={{
+                      width: "100%",
+                      padding: "0.65rem 0.8rem",
+                      background: "rgba(0,0,0,0.5)",
+                      border: "1px solid var(--theme-border-hot)",
+                      color: "var(--text)",
+                      fontFamily: "inherit",
+                      fontSize: "0.9rem"
+                    }}
                   />
                 </div>
               </div>
             )}
 
             {formType === "disciplinary" && (
-              <>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.2rem" }}>
+              <div style={{ marginBottom: "1.2rem" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
                   <div>
                     <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                      ACCUSED ROBLOX USERNAME *
+                      ACCUSED SITH USERNAME *
                     </label>
                     <input
                       type="text"
                       required
-                      value={formData.accusedName}
-                      onChange={e => setFormData({ ...formData, accusedName: e.target.value })}
-                      placeholder="e.g., AcolyteVane"
-                      style={{ width: "100%", padding: "0.65rem 0.8rem", background: "rgba(0,0,0,0.5)", border: "1px solid var(--theme-border-hot)", color: "var(--text)" }}
+                      value={formData.accused}
+                      onChange={e => setFormData({ ...formData, accused: e.target.value })}
+                      placeholder="e.g., TraitorousAcolyte"
+                      style={{
+                        width: "100%",
+                        padding: "0.65rem 0.8rem",
+                        background: "rgba(0,0,0,0.5)",
+                        border: "1px solid var(--theme-border-hot)",
+                        color: "var(--text)",
+                        fontFamily: "inherit",
+                        fontSize: "0.9rem"
+                      }}
                     />
                   </div>
                   <div>
                     <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                      PROPOSED SANCTION RANGE
+                      EVIDENCE LOG / DOSSIER LINK (OPTIONAL)
                     </label>
                     <input
-                      type="text"
-                      value={formData.proposedSanction}
-                      onChange={e => setFormData({ ...formData, proposedSanction: e.target.value })}
-                      placeholder="e.g., Demotion to Adept / Probational Suspension"
-                      style={{ width: "100%", padding: "0.65rem 0.8rem", background: "rgba(0,0,0,0.5)", border: "1px solid var(--theme-border-hot)", color: "var(--text)" }}
+                      type="url"
+                      value={formData.evidenceUrl}
+                      onChange={e => setFormData({ ...formData, evidenceUrl: e.target.value })}
+                      placeholder="https://..."
+                      style={{
+                        width: "100%",
+                        padding: "0.65rem 0.8rem",
+                        background: "rgba(0,0,0,0.5)",
+                        border: "1px solid var(--theme-border-hot)",
+                        color: "var(--text)",
+                        fontFamily: "inherit",
+                        fontSize: "0.9rem"
+                      }}
                     />
                   </div>
                 </div>
-                <div style={{ marginBottom: "1.2rem" }}>
+                <div>
                   <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                    EVIDENCE LOGS / AUDIT URLS
+                    FORMAL CHARGES / INQUISITION FINDINGS *
                   </label>
                   <input
-                    type="url"
-                    value={formData.evidenceUrl}
-                    onChange={e => setFormData({ ...formData, evidenceUrl: e.target.value })}
-                    placeholder="https://..."
-                    style={{ width: "100%", padding: "0.65rem 0.8rem", background: "rgba(0,0,0,0.5)", border: "1px solid var(--theme-border-hot)", color: "var(--text)" }}
+                    type="text"
+                    required
+                    value={formData.charges}
+                    onChange={e => setFormData({ ...formData, charges: e.target.value })}
+                    placeholder="e.g., Insubordination during temple combat drill, unauthorized powerbase mobilization"
+                    style={{
+                      width: "100%",
+                      padding: "0.65rem 0.8rem",
+                      background: "rgba(0,0,0,0.5)",
+                      border: "1px solid var(--theme-border-hot)",
+                      color: "var(--text)",
+                      fontFamily: "inherit",
+                      fontSize: "0.9rem"
+                    }}
                   />
                 </div>
-              </>
+              </div>
             )}
 
             {formType === "kaggath" && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.2rem" }}>
                 <div>
                   <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                    CHALLENGER (YOUR USERNAME) *
+                    CHALLENGER SITH *
                   </label>
                   <input
                     type="text"
                     required
-                    value={formData.challengerName}
-                    onChange={e => setFormData({ ...formData, challengerName: e.target.value })}
-                    placeholder="Challenger Username"
-                    style={{ width: "100%", padding: "0.65rem 0.8rem", background: "rgba(0,0,0,0.5)", border: "1px solid var(--theme-border-hot)", color: "var(--text)" }}
+                    value={formData.challenger}
+                    onChange={e => setFormData({ ...formData, challenger: e.target.value })}
+                    placeholder="e.g., Lord_Bane"
+                    style={{
+                      width: "100%",
+                      padding: "0.65rem 0.8rem",
+                      background: "rgba(0,0,0,0.5)",
+                      border: "1px solid var(--theme-border-hot)",
+                      color: "var(--text)",
+                      fontFamily: "inherit",
+                      fontSize: "0.9rem"
+                    }}
                   />
                 </div>
                 <div>
                   <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                    ACCUSED RIVAL USERNAME *
+                    DEFENDING / ACCUSED RIVAL *
                   </label>
                   <input
                     type="text"
                     required
-                    value={formData.accusedName}
-                    onChange={e => setFormData({ ...formData, accusedName: e.target.value })}
-                    placeholder="Rival Username"
-                    style={{ width: "100%", padding: "0.65rem 0.8rem", background: "rgba(0,0,0,0.5)", border: "1px solid var(--theme-border-hot)", color: "var(--text)" }}
+                    value={formData.accused}
+                    onChange={e => setFormData({ ...formData, accused: e.target.value })}
+                    placeholder="e.g., Lord_Zash"
+                    style={{
+                      width: "100%",
+                      padding: "0.65rem 0.8rem",
+                      background: "rgba(0,0,0,0.5)",
+                      border: "1px solid var(--theme-border-hot)",
+                      color: "var(--text)",
+                      fontFamily: "inherit",
+                      fontSize: "0.9rem"
+                    }}
+                  />
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
+                    KAGGATH TERMS / STAKES *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.kaggathStakes}
+                    onChange={e => setFormData({ ...formData, kaggathStakes: e.target.value })}
+                    placeholder="e.g., Complete assimilation of the loser's sphere resources and exile from Korriban"
+                    style={{
+                      width: "100%",
+                      padding: "0.65rem 0.8rem",
+                      background: "rgba(0,0,0,0.5)",
+                      border: "1px solid var(--theme-border-hot)",
+                      color: "var(--text)",
+                      fontFamily: "inherit",
+                      fontSize: "0.9rem"
+                    }}
                   />
                 </div>
               </div>
@@ -555,29 +633,45 @@ export default function DocketClient() {
 
             <div style={{ marginBottom: "1.2rem" }}>
               <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                EXECUTIVE SUMMARY / BRIEF *
+                EXECUTIVE SUMMARY / PURPOSE
               </label>
               <textarea
                 rows={2}
-                required
                 value={formData.summary}
                 onChange={e => setFormData({ ...formData, summary: e.target.value })}
-                placeholder="Concise overview presented to the Dark Council..."
-                style={{ width: "100%", padding: "0.65rem 0.8rem", background: "rgba(0,0,0,0.5)", border: "1px solid var(--theme-border-hot)", color: "var(--text)", fontFamily: "inherit" }}
+                placeholder="Brief summary explaining why this motion should be placed onto the Council docket..."
+                style={{
+                  width: "100%",
+                  padding: "0.65rem 0.8rem",
+                  background: "rgba(0,0,0,0.5)",
+                  border: "1px solid var(--theme-border-hot)",
+                  color: "var(--text)",
+                  fontFamily: "inherit",
+                  fontSize: "0.88rem"
+                }}
               />
             </div>
 
             <div style={{ marginBottom: "1.5rem" }}>
               <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                FULL STATEMENT / STATUTORY TEXT / DOSSIER *
+                DETAILED LEGISLATIVE / PETITION TEXT *
               </label>
               <textarea
                 rows={6}
                 required
-                value={formData.bodyText}
-                onChange={e => setFormData({ ...formData, bodyText: e.target.value })}
-                placeholder="Detailed text, clauses, or trial arguments..."
-                style={{ width: "100%", padding: "0.65rem 0.8rem", background: "rgba(0,0,0,0.5)", border: "1px solid var(--theme-border-hot)", color: "var(--text)", fontFamily: "inherit" }}
+                value={formData.body}
+                onChange={e => setFormData({ ...formData, body: e.target.value })}
+                placeholder="Full text of the proposal, motion clauses, evidence, or terms..."
+                style={{
+                  width: "100%",
+                  padding: "0.65rem 0.8rem",
+                  background: "rgba(0,0,0,0.5)",
+                  border: "1px solid var(--theme-border-hot)",
+                  color: "var(--text)",
+                  fontFamily: "inherit",
+                  fontSize: "0.88rem",
+                  lineHeight: "1.6"
+                }}
               />
             </div>
 
@@ -630,7 +724,7 @@ export default function DocketClient() {
               border: "1px dashed var(--theme-border-hot)",
               background: "rgba(0,0,0,0.3)"
             }}>
-              <p style={{ fontFamily: "Cinzel, serif", fontSize: "1.1rem", color: "var(--theme-accent)", margin: "0 0 0.5rem" }}>
+              <p style={{ fontFamily: "Orbitron, monospace", fontSize: "0.95rem", fontWeight: 700, color: "var(--theme-accent)", margin: "0 0 0.5rem", letterSpacing: "0.05em" }}>
                 No Records Found
               </p>
               <p style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.8rem", color: "var(--text-dim)", margin: 0 }}>
@@ -683,7 +777,7 @@ export default function DocketClient() {
                           STATUS: {String(item.status || "DOCKET").toUpperCase()}
                         </span>
                       </div>
-                      <h3 style={{ fontFamily: "Cinzel, serif", fontSize: "1.25rem", color: "var(--theme-accent)", margin: 0 }}>
+                      <h3 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.05rem", fontWeight: 700, color: "var(--theme-accent)", margin: 0, letterSpacing: "0.03em" }}>
                         {item.title}
                       </h3>
                     </div>

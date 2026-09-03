@@ -6,9 +6,6 @@ import { createSignedStorageUrl, removeStorageObjects, supabaseRest, listStorage
 import { checkPageAccess } from "../../../../modules/auth/permissions.js";
 import { getAuthContext } from "../../../../modules/auth/auth-context.js";
 
-
-
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -132,7 +129,7 @@ async function signedCacheRedirect(cachePath, cacheStatus) {
 
 async function loadHandbookResource(resourceId) {
   const [resource] = await supabaseRest(
-    `registry_resources?id=eq.${encodeURIComponent(resourceId)}&resource_type=eq.handbook&status=eq.published&select=id,division_key,slug,title,status,visibility,created_at,updated_at`
+    `registry_resources?id=eq.${encodeURIComponent(resourceId)}&resource_type=eq.handbook&select=id,division_key,slug,title,status,visibility,created_at,updated_at`
   );
 
   if (!resource) return null;

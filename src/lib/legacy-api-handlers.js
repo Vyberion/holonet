@@ -1102,7 +1102,7 @@ async function deleteLibraryDocument(id) {
 
 async function loadPublishedResources(division, resourceType) {
   return supabaseRest(
-    `registry_resources?division_key=eq.${encodeURIComponent(division)}&resource_type=eq.${encodeURIComponent(resourceType)}&status=eq.published&select=id,division_key,slug,title,description,visibility,status,display_order,created_at,updated_at&order=display_order.asc,created_at.desc`
+    `registry_resources?division_key=eq.${encodeURIComponent(division)}&resource_type=eq.${encodeURIComponent(resourceType)}&select=id,division_key,slug,title,description,visibility,status,display_order,created_at,updated_at&order=display_order.asc,created_at.desc`
   );
 }
 
@@ -1198,7 +1198,7 @@ async function normalizeRows(resources, detailRows, resourceType) {
 
 async function loadBoardTransmissions() {
   const resources = await supabaseRest(
-    "registry_resources?resource_type=eq.transmission&status=eq.published&select=id,division_key,slug,title,description,visibility,status,display_order,created_at,updated_at&order=updated_at.desc,created_at.desc&limit=40"
+    "registry_resources?resource_type=eq.transmission&select=id,division_key,slug,title,description,visibility,status,display_order,created_at,updated_at&order=updated_at.desc,created_at.desc&limit=40"
   );
 
   const rows = resources?.length
@@ -1453,7 +1453,7 @@ async function loadWeeklyReportMembers(reportIds = []) {
 async function loadWeeklyReports(division = "") {
   const filter = division ? `division_key=eq.${encodeURIComponent(division)}&` : "";
   const rows = await supabaseRest(
-    `division_weekly_reports?${filter}status=eq.published&select=id,division_key,week_start,author_id,author_name,status,created_at,updated_at&order=week_start.desc,created_at.desc&limit=40`
+    `division_weekly_reports?${filter}select=id,division_key,week_start,author_id,author_name,status,created_at,updated_at&order=week_start.desc,created_at.desc&limit=40`
   );
   const memberMap = await loadWeeklyReportMembers((rows || []).map(row => row.id));
   return (rows || []).map(row => normalizeWeeklyReport(row, memberMap.get(String(row.id)) || []));
@@ -1700,7 +1700,7 @@ async function writeWeeklyReport(auth, body) {
     week_start: weekStart,
     author_id: String(auth.user.roblox_id),
     author_name: auth.user.roblox_username || auth.user.roblox_display_name || String(auth.user.roblox_id),
-    status: ["draft", "published", "archived"].includes(body.status) ? body.status : "published",
+    status: "published",
     updated_at: reportAt
   };
 
@@ -1929,7 +1929,7 @@ async function writeResource({ division, resourceType, detailTable, body, author
 
   const now = new Date().toISOString();
   const slug = slugify(body.slug || title);
-  const status = ["draft", "published", "archived"].includes(body.status) ? body.status : "published";
+  const status = "published";
   const visibility = ["public", "restricted", "private"].includes(body.visibility) ? body.visibility : "restricted";
   const resourceId = requireString(body.id);
   const parentDescription = requireString(body.body || body.summary || body.notes || title);
@@ -2727,10 +2727,9 @@ function normalizeTimelineEntry(entry) {
   };
 }
 
-async function loadTimelineEntries(includeDrafts = false) {
-  const statusFilter = includeDrafts ? "" : "status=eq.published&";
+async function loadTimelineEntries() {
   const entries = await supabaseRest(
-    `group_timeline_entries?${statusFilter}select=*&order=start_date.asc,display_order.asc,created_at.asc`
+    "group_timeline_entries?select=*&order=start_date.asc,display_order.asc,created_at.asc"
   );
   return (entries || []).map(normalizeTimelineEntry);
 }
@@ -2759,7 +2758,7 @@ async function writeTimelineEntry(auth, body) {
     end_date: body.endDate || body.end_date || null,
     image_path: requireString(body.imagePath || body.image_path),
     image_alt: requireString(body.imageAlt || body.image_alt || title),
-    status: ["draft", "published", "archived"].includes(body.status) ? body.status : "published",
+    status: "published",
     display_order: Number.isFinite(Number(body.displayOrder)) ? Number(body.displayOrder) : 0,
     created_by: String(auth.user.roblox_id),
     created_by_name: auth.user.roblox_username || auth.user.roblox_display_name || String(auth.user.roblox_id),

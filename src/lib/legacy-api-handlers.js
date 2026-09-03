@@ -476,10 +476,15 @@ function publicImageUrl(path) {
   const value = requireString(path);
   if (!value) return "";
   if (/^https?:\/\//i.test(value)) return value;
-  if (value.startsWith("/")) return value;
-  if (value.startsWith("public/")) return `/${value.slice("public/".length)}`;
+  if (value.startsWith("/assets/")) return value;
   if (value.startsWith("assets/")) return `/${value}`;
-  return "";
+  if (value.startsWith("public/assets/")) return `/${value.slice("public/".length)}`;
+  if (value.startsWith("/")) {
+    if (value.startsWith("/archives/")) return `/assets${value}`;
+    return value;
+  }
+  const clean = value.replace(/^archives\//i, "").replace(/^assets\/archives\//i, "");
+  return `/assets/archives/${clean}`;
 }
 
 function isLocalHostname(hostname = "") {
@@ -845,8 +850,24 @@ async function loadArchiveArticles() {
     "archive_articles?select=id,slug,title,body,image_bucket,image_path,image_alt,status,display_order,created_at,updated_at&order=display_order.asc,created_at.asc"
   );
 
-  const normalized = await Promise.all((articles || []).map(async article => {
+  const DEFAULT_ARCHIVE_ASSETS = [
+    "/assets/archives/darth_revan.jpg",
+    "/assets/archives/darth_nihilus.jpg",
+    "/assets/archives/exar_kun.png",
+    "/assets/archives/force_wars.png",
+    "/assets/archives/marka_ragnos.png",
+    "/assets/archives/naga_sadow.jpg",
+    "/assets/archives/sorzus_syn.png",
+    "/assets/archives/tulak_hord.jpg"
+  ];
+
+  const normalized = await Promise.all((articles || []).map(async (article, idx) => {
     const articleOrder = articleOrderFrom(article.display_order);
+    const resolvedImage = publicImageUrl(article.image_path) || (article.image_path
+      ? await createSignedStorageUrl(article.image_bucket || "archives", article.image_path).catch(() => "")
+      : "");
+    const finalImageUrl = resolvedImage || DEFAULT_ARCHIVE_ASSETS[idx % DEFAULT_ARCHIVE_ASSETS.length];
+
     return {
       id: article.id,
       slug: article.slug,
@@ -856,9 +877,7 @@ async function loadArchiveArticles() {
       imageBucket: article.image_bucket || "",
       imagePath: article.image_path || "",
       imageAlt: article.image_alt || "",
-      imageUrl: publicImageUrl(article.image_path) || (article.image_path
-        ? await createSignedStorageUrl(article.image_bucket || "archives", article.image_path).catch(() => "")
-        : ""),
+      imageUrl: finalImageUrl,
       status: article.status,
       displayOrder: articleOrder,
       createdAt: article.created_at,

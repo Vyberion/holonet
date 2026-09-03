@@ -84,8 +84,32 @@ function renderDocument(documentData, canEdit, index) {
   `;
 }
 
+const DEFAULT_ARCHIVE_ASSETS = [
+  "/assets/archives/darth_revan.jpg",
+  "/assets/archives/darth_nihilus.jpg",
+  "/assets/archives/exar_kun.png",
+  "/assets/archives/force_wars.png",
+  "/assets/archives/marka_ragnos.png",
+  "/assets/archives/naga_sadow.jpg",
+  "/assets/archives/sorzus_syn.png",
+  "/assets/archives/tulak_hord.jpg"
+];
+
+function resolveArchiveImageUrl(article = {}, index = 0) {
+  const raw = String(article.imageUrl || article.imagePath || "").trim();
+  if (raw) {
+    if (/^https?:\/\//i.test(raw) || raw.startsWith("/assets/")) return raw;
+    if (raw.startsWith("assets/")) return `/${raw}`;
+    if (raw.startsWith("public/assets/")) return `/${raw.slice("public/".length)}`;
+    const clean = raw.replace(/^\/?archives\//i, "").replace(/^\/?assets\/archives\//i, "");
+    return `/assets/archives/${clean}`;
+  }
+  return DEFAULT_ARCHIVE_ASSETS[index % DEFAULT_ARCHIVE_ASSETS.length];
+}
+
 function renderArchiveArticle(article, canEdit, index) {
   const articleAnchor = escapeHtml(articleNumberAnchor(article.articleNumber, index + 1));
+  const archiveImg = resolveArchiveImageUrl(article, index);
   return `
     <article class="codex-article archive-article" id="${articleAnchor}" data-library-document-id="${escapeHtml(article.id || "")}">
       <div class="article-header">
@@ -94,9 +118,9 @@ function renderArchiveArticle(article, canEdit, index) {
         ${canEdit ? `<button type="button" class="hub-write-btn" data-library-edit="${escapeHtml(article.id || "")}">EDIT ARTICLE</button>` : ""}
       </div>
       <div class="article-content">
-        ${article.imageUrl ? `
+        ${archiveImg ? `
           <figure class="archive-image">
-            <img src="${escapeHtml(article.imageUrl)}" alt="${escapeHtml(article.imageAlt || article.title || "Archive image")}" loading="lazy">
+            <img src="${escapeHtml(archiveImg)}" alt="${escapeHtml(article.imageAlt || article.title || "Archive image")}" loading="lazy">
           </figure>
         ` : ""}
         <div class="regulation">

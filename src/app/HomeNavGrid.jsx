@@ -226,6 +226,12 @@ export function HomeNavGrid() {
           grid-column: span 2;
         }
 
+        /* Second row cards: half the height */
+        .nav-grid--home > .nav-card.second-row-card {
+          height: clamp(190px, 19vh, 270px);
+          min-height: 190px;
+        }
+
         /* Second row: if 2 cards, split 50% each (3 cols each) */
         .nav-grid--home.second-row-count-2 > .nav-card.second-row-card {
           grid-column: span 3;

@@ -215,10 +215,15 @@ export function canEditLibrary(profile, libraryKey) {
   if (
     profile.isSuperUser ||
     profile.hasFullAccess ||
+    profile.authorityRoles?.emperor ||
+    profile.authorityRoles?.groupOwner ||
+    profile.authorityRoles?.projectManager ||
+    (profile.divisions?.darkCouncil && profile.divisions.darkCouncil !== "none") ||
     hasPermission(profile, 'library:edit') ||
     hasPermission(profile, 'codex:edit') ||
     hasPermission(profile, 'archives:edit') ||
-    hasPermission(profile, 'doctrine:edit')
+    hasPermission(profile, 'doctrine:edit') ||
+    hasPermission(profile, 'timeline:edit')
   ) {
     return { authorized: true, reason: "PERMISSION_GRANTED" };
   }

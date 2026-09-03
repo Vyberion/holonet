@@ -4,20 +4,23 @@ body:has(#codex-editor-overlay.active) > :not(#codex-editor-overlay):not(script)
 body:has(#inspection-editor-overlay.active) > :not(#inspection-editor-overlay):not(script):not(style),
 body:has(#council-editor-overlay.active) > :not(#council-editor-overlay):not(script):not(style),
 body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(script):not(style),
-body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):not(style) {
-  filter: blur(12px);
-  transform: scale(1.012);
+body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):not(style),
+body:has(#library-editor-overlay.active) > :not(#library-editor-overlay):not(script):not(style),
+body:has(.codex-modal-backdrop.active) > :not(.codex-modal-backdrop):not(script):not(style),
+body:has(.doctrine-modal-backdrop.active) > :not(.doctrine-modal-backdrop):not(script):not(style) {
+  filter: blur(5px);
+  transform: scale(1.006);
   transition: filter 0.18s ease, transform 0.18s ease;
 }
 
 #resource-editor-overlay {
   align-items: flex-start;
   background:
-    radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 9%, transparent), transparent 68%),
-    linear-gradient(rgba(0, 0, 0, 0.46), rgba(0, 0, 0, 0.46)),
-    color-mix(in srgb, var(--theme-bg, var(--void)) 86%, transparent);
-  backdrop-filter: blur(10px) saturate(0.82);
-  -webkit-backdrop-filter: blur(10px) saturate(0.82);
+    radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 8%, transparent), transparent 68%),
+    linear-gradient(rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.32)),
+    color-mix(in srgb, var(--theme-bg, var(--void)) 72%, transparent);
+  backdrop-filter: blur(5px) saturate(0.9);
+  -webkit-backdrop-filter: blur(5px) saturate(0.9);
   display: none;
   inset: 0;
   justify-content: center;
@@ -60,7 +63,9 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
   background:
     radial-gradient(ellipse 90% 80% at 100% 0%, color-mix(in srgb, var(--editor-accent) 8%, transparent), transparent 68%),
     linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 5%, transparent) 0%, transparent 58%),
-    var(--editor-panel);
+    color-mix(in srgb, var(--editor-panel) 90%, transparent);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
   border: 1px solid var(--editor-border);
   box-shadow:
     0 0 28px color-mix(in srgb, var(--editor-accent-glow) 82%, transparent),
@@ -374,11 +379,11 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
 #cots-editor-overlay {
   align-items: flex-start;
   background:
-    radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 9%, transparent), transparent 68%),
-    linear-gradient(rgba(0, 0, 0, 0.46), rgba(0, 0, 0, 0.46)),
-    color-mix(in srgb, var(--theme-bg, var(--void)) 86%, transparent);
-  backdrop-filter: blur(10px) saturate(0.82);
-  -webkit-backdrop-filter: blur(10px) saturate(0.82);
+    radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 8%, transparent), transparent 68%),
+    linear-gradient(rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.32)),
+    color-mix(in srgb, var(--theme-bg, var(--void)) 72%, transparent);
+  backdrop-filter: blur(5px) saturate(0.9);
+  -webkit-backdrop-filter: blur(5px) saturate(0.9);
   display: none;
   inset: 0;
   justify-content: center;
@@ -429,7 +434,9 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
   background:
     radial-gradient(ellipse 85% 80% at 100% 0%, color-mix(in srgb, var(--editor-accent) 8%, transparent), transparent 68%),
     linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 5%, transparent) 0%, transparent 58%),
-    var(--editor-panel, var(--theme-panel, var(--panel)));
+    color-mix(in srgb, var(--editor-panel, var(--theme-panel, var(--panel))) 90%, transparent);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
   border: 1px solid var(--editor-border, var(--theme-accent-dim, var(--border-hot)));
   box-shadow:
     0 0 28px color-mix(in srgb, var(--editor-accent-glow, var(--theme-accent-glow, var(--red-glow))) 82%, transparent),
@@ -644,9 +651,9 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
   inset: 0;
   background:
     radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 8%, transparent), transparent 68%),
-    rgba(0, 0, 0, 0.82);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+    rgba(0, 0, 0, 0.60);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   z-index: 4000;
   display: none;
   align-items: center;
@@ -674,9 +681,11 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
 .codex-modal-dialog,
 .doctrine-modal-dialog {
   background:
-    linear-gradient(135deg, rgba(192, 0, 26, 0.10) 0%, rgba(192, 0, 26, 0.02) 40%, transparent 70%),
-    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(192, 0, 26, 0.15) 0%, transparent 75%),
-    #170609;
+    linear-gradient(135deg, rgba(192, 0, 26, 0.08) 0%, rgba(192, 0, 26, 0.02) 40%, transparent 70%),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(192, 0, 26, 0.12) 0%, transparent 75%),
+    rgba(23, 6, 9, 0.90);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
   border: 1px solid var(--theme-border-hot, var(--border-hot));
   box-shadow:
     0 0 30px rgba(192, 0, 26, 0.10),

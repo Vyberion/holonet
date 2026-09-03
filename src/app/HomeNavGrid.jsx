@@ -104,13 +104,13 @@ export function HomeNavGrid() {
 
   if (canViewAnyDomain) {
     secondRowCards.push({
-      href: "/domains",
-      title: "Specializations",
+      href: "/disciplines",
+      title: "The Disciplines",
       glyph: "IV",
       hex: "0x4D  SECT.04",
       clearance: "CLEARANCE: RESTRICTED",
       designation: "DESIGNATION: LEVEL 2",
-      category: "Section 04 — Departments",
+      category: "Section 04 — Disciplines",
       desc: "The Departments and divisions of the Sith Order."
     });
   }

@@ -40,6 +40,7 @@ function currentPageKey(pathname = "/") {
   const segments = String(pathname || "/").split("/").filter(Boolean);
   if (segments[0] === "archives" && segments[1]) return `archives-${segments[1]}`;
   if (segments[0] === "council" && segments[1]) return `council-${segments[1]}`;
+  if (segments[0] === "disciplines" || segments[0] === "domains") return "disciplines";
 
   const page = segments.length === 0 ? "home" : segments[0].replace(".html", "") || "home";
   return page === "index" ? "home" : page;
@@ -254,10 +255,10 @@ export function HolonetNav() {
       ]
     },
     {
-      href: getHref("/domains"),
-      page: "domains",
+      href: getHref("/disciplines"),
+      page: "disciplines",
       prefix: "03",
-      label: "Specializations",
+      label: "Disciplines",
       dropdown: domainsSubItems
     },
     { href: getHref("/powerbases"), page: "powerbases", prefix: "04", label: "Powerbases" },

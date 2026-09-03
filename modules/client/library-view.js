@@ -520,10 +520,6 @@ async function initLibraryView() {
                       <span style="font-weight: bold;">REG ${regulationNumberValue(entry, index)}</span>
                       <span style="font-size: 0.7rem; color: var(--text-dim);">${escapeHtml(titleStr)}</span>
                     </span>
-                    <div class="codex-regulation-pill-actions">
-                      <button type="button" class="hub-cancel-btn" style="padding: 2px 6px; font-size: 0.6rem;" data-library-move-up="${index}">▲</button>
-                      <button type="button" class="hub-cancel-btn" style="padding: 2px 6px; font-size: 0.6rem;" data-library-move-down="${index}">▼</button>
-                    </div>
                   </div>
                 `}).join("")}
                 ${workingDocument.entries.length === 0 ? `<div style="color: var(--text-dim); font-size: 0.8rem; font-family: 'Share Tech Mono', monospace; font-style: italic;">No regulations found.</div>` : ''}
@@ -598,12 +594,9 @@ async function initLibraryView() {
       
       const editEntry = event.target.closest("[data-library-edit-entry]");
       if (editEntry) {
-        // Only trigger edit if it wasn't a move action
-        if (!event.target.closest("[data-library-move-up]") && !event.target.closest("[data-library-move-down]")) {
-          syncWorkingDocumentFromForm();
-          editingRegulationIndex = Number(editEntry.dataset.libraryEditEntry);
-          renderForm();
-        }
+        syncWorkingDocumentFromForm();
+        editingRegulationIndex = Number(editEntry.dataset.libraryEditEntry);
+        renderForm();
         return;
       }
 
@@ -627,31 +620,6 @@ async function initLibraryView() {
         return;
       }
       
-      const moveUp = event.target.closest("[data-library-move-up]");
-      if (moveUp) {
-        syncWorkingDocumentFromForm();
-        const idx = Number(moveUp.dataset.libraryMoveUp);
-        if (idx > 0) {
-          const temp = workingDocument.entries[idx];
-          workingDocument.entries[idx] = workingDocument.entries[idx - 1];
-          workingDocument.entries[idx - 1] = temp;
-          renderForm();
-        }
-        return;
-      }
-
-      const moveDown = event.target.closest("[data-library-move-down]");
-      if (moveDown) {
-        syncWorkingDocumentFromForm();
-        const idx = Number(moveDown.dataset.libraryMoveDown);
-        if (idx < workingDocument.entries.length - 1) {
-          const temp = workingDocument.entries[idx];
-          workingDocument.entries[idx] = workingDocument.entries[idx + 1];
-          workingDocument.entries[idx + 1] = temp;
-          renderForm();
-        }
-        return;
-      }
     };
 
     form.onsubmit = async event => {

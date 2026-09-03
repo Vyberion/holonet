@@ -52,8 +52,32 @@ export default function TimelineClient() {
     }
   };
 
+  const checkPermissions = async () => {
+    try {
+      const res = await fetch("/api/auth/check-access");
+      const data = await res.json();
+      if (data?.authorized) {
+        const profile = data.profile;
+        const perms = Array.isArray(profile?.permissions) ? profile.permissions : [];
+        const hasAdmin = profile?.isSuperUser || profile?.hasFullAccess ||
+          profile?.authorityRoles?.emperor ||
+          profile?.authorityRoles?.groupOwner ||
+          profile?.authorityRoles?.projectManager ||
+          (profile?.divisions?.darkCouncil && profile.divisions.darkCouncil !== "none") ||
+          perms.includes("doctrine:edit") ||
+          perms.includes("codex:edit") ||
+          perms.includes("archives:edit") ||
+          perms.includes("timeline:edit");
+        if (hasAdmin) setCanEdit(true);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     fetchTimeline();
+    checkPermissions();
   }, []);
 
   const handleOpenNew = () => {

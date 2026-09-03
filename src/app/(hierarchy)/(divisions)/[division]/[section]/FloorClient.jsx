@@ -153,78 +153,40 @@ export default function FloorClient() {
   };
 
   return (
-    <div className="council-floor-shell" style={{ maxWidth: "1160px", margin: "0 auto", paddingBottom: "4rem" }}>
+    <div className="hub-shell" style={{ paddingBottom: "4rem" }}>
 
-      {/* Top Chamber Hero */}
-      <div className="hub-hero" style={{ borderBottom: "1px solid var(--theme-border-hot)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "1rem" }}>
+      {/* Top Chamber Hero (Matching Hub Hero Structure Exactly) */}
+      <div className="hub-hero">
+        <div className="hub-identity">
           <div>
-            <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.72rem", color: "var(--theme-accent)", letterSpacing: "0.26em", textTransform: "uppercase" }}>
-              Registry Node / DC-06
-            </span>
-            <h1 style={{ fontFamily: "Cinzel, serif", fontSize: "clamp(2rem, 5vw, 3.8rem)", color: "var(--theme-accent)", margin: "0.4rem 0", textShadow: "0 0 20px var(--theme-accent-glow)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
-              COUNCIL FLOOR
-            </h1>
-            <p style={{ color: "var(--text-dim)", fontFamily: "Share Tech Mono, monospace", fontSize: "0.85rem", margin: 0, maxWidth: "680px", lineHeight: "1.65" }}>
-              Dark Council voting and legislation.
-            </p>
+            <span className="hub-kicker">Registry Node / DC-06</span>
+            <h1 className="hub-title" style={{ margin: "8px 0 0" }}>COUNCIL FLOOR</h1>
           </div>
-
-          <div style={{ textAlign: "right" }}>
-            <span style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.7rem", color: "var(--text-dim)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
-              Authority
-            </span>
-            <span style={{ fontFamily: "Orbitron, monospace", fontSize: "0.95rem", fontWeight: 700, color: "var(--theme-accent)", textShadow: "0 0 8px var(--theme-accent-glow)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              {permissions.role || (isDarkCouncil ? "Dark Councilor" : "Council Observer")}
-            </span>
+          <div>
+            <span className="hub-kicker">Authority</span>
+            <span className="hub-value">{permissions.role || (isDarkCouncil ? "Councilor" : "Observer")}</span>
           </div>
         </div>
 
-        {/* Quorum & Active Chamber State Bar */}
-        <div style={{
-          marginTop: "1.5rem",
-          background: "linear-gradient(135deg, rgba(168, 151, 134, 0.08) 0%, rgba(22, 19, 16, 0.95) 100%)",
-          border: "1px solid var(--theme-border-hot)",
-          padding: "1rem 1.25rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1rem"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
-            <span style={{
-              width: "10px",
-              height: "10px",
-              borderRadius: "50%",
-              background: activeFloorItems.length > 0 ? "var(--theme-accent)" : "#555",
-              boxShadow: activeFloorItems.length > 0 ? "0 0 10px var(--theme-accent-glow)" : "none"
-            }} />
-            <div>
-              <span style={{ fontFamily: "Orbitron, monospace", fontSize: "0.85rem", color: "var(--theme-accent)", letterSpacing: "0.12em" }}>
-                {activeFloorItems.length > 0 ? "● FLOOR ACTIVE" : "○ FLOOR ADJOURNED"}
-              </span>
-              <p style={{ margin: "0.15rem 0 0", fontFamily: "Share Tech Mono, monospace", fontSize: "0.78rem", color: "var(--text-dim)" }}>
-                {activeFloorItems.length > 0
-                  ? `${activeFloorItems.length} active motion currently on the Council floor.`
-                  : "No active motions currently on the floor."}
-              </p>
-            </div>
-          </div>
+        <p className="hub-summary">
+          Dark Council legislative floor and recorded votes.
+        </p>
 
-          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-            <div style={{ textAlign: "center", padding: "0.4rem 0.8rem", background: "rgba(0,0,0,0.4)", border: "1px solid var(--theme-border-hot)" }}>
-              <span style={{ display: "block", fontFamily: "Orbitron, monospace", fontSize: "1.1rem", fontWeight: 700, color: "var(--theme-accent)" }}>
-                {data?.roleSnapshot?.countingEligibleCount || 12}
-              </span>
-              <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.65rem", color: "var(--text-dim)", textTransform: "uppercase" }}>Chamber Seats</span>
-            </div>
-            <div style={{ textAlign: "center", padding: "0.4rem 0.8rem", background: "rgba(0,0,0,0.4)", border: "1px solid var(--theme-border-hot)" }}>
-              <span style={{ display: "block", fontFamily: "Orbitron, monospace", fontSize: "1.1rem", fontWeight: 700, color: "var(--theme-accent-soft)" }}>
-                {data?.roleSnapshot?.majorityCount || 7}
-              </span>
-              <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.65rem", color: "var(--text-dim)", textTransform: "uppercase" }}>Majority Quorum</span>
-            </div>
+        {/* Quorum & Active Chamber State Bar in standard Hub Status Grid */}
+        <div className="hub-status-grid">
+          <div className="hub-status-cell">
+            <span className="hub-label">Floor Status</span>
+            <span className="hub-value" style={{ color: activeFloorItems.length > 0 ? "var(--theme-accent)" : "var(--text-dim)" }}>
+              {activeFloorItems.length > 0 ? "● ACTIVE" : "○ ADJOURNED"}
+            </span>
+          </div>
+          <div className="hub-status-cell">
+            <span className="hub-label">Chamber Seats</span>
+            <span className="hub-value">{data?.roleSnapshot?.countingEligibleCount || 12}</span>
+          </div>
+          <div className="hub-status-cell">
+            <span className="hub-label">Majority Quorum</span>
+            <span className="hub-value">{data?.roleSnapshot?.majorityCount || 7} AYES</span>
           </div>
         </div>
       </div>
@@ -279,12 +241,12 @@ export default function FloorClient() {
       {/* VIEW: Active Floor Deliberation & Voting */}
       {selectedTab === "active" ? (
         activeFloorItems.length === 0 ? (
-          <div style={{ padding: "4rem 1rem", textAlign: "center", border: "1px dashed var(--theme-border-hot)" }}>
-            <p style={{ fontFamily: "Orbitron, monospace", fontSize: "1.05rem", fontWeight: 700, color: "var(--theme-accent)", margin: "0 0 0.5rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              The Floor is Currently Adjourned
+          <div style={{ padding: "3rem 1rem", textAlign: "center", border: "1px dashed var(--theme-border-hot)" }}>
+            <p style={{ fontFamily: "Orbitron, monospace", fontSize: "0.95rem", fontWeight: 700, color: "var(--theme-accent)", margin: "0 0 0.5rem", letterSpacing: "0.05em" }}>
+              No Records Found
             </p>
-            <p style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.85rem", color: "var(--text-dim)", maxWidth: "500px", margin: "0 auto 1.5rem" }}>
-              No items are currently active for live voting. Review the Floor Queue to bring a scheduled docket item before the chamber.
+            <p style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.8rem", color: "var(--text-dim)", margin: queuedDocketItems.length > 0 && isDarkCouncil ? "0 0 1.2rem" : 0 }}>
+              No items are currently on the floor.
             </p>
             {queuedDocketItems.length > 0 && isDarkCouncil && (
               <button
@@ -594,10 +556,10 @@ export default function FloorClient() {
           {queuedDocketItems.length === 0 ? (
             <div style={{ padding: "3rem 1rem", textAlign: "center", border: "1px dashed var(--theme-border-hot)" }}>
               <p style={{ fontFamily: "Orbitron, monospace", fontSize: "0.95rem", fontWeight: 700, color: "var(--theme-accent)", margin: "0 0 0.5rem", letterSpacing: "0.05em" }}>
-                Queue Empty
+                No Records Found
               </p>
               <p style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.8rem", color: "var(--text-dim)", margin: 0 }}>
-                No docket items are waiting to be brought to the floor. Check the Council Docket to approve proposals.
+                Submit a proposal or approve items from the queue.
               </p>
             </div>
           ) : (
@@ -653,11 +615,11 @@ export default function FloorClient() {
         /* VIEW: Recorded Votes */
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {recordedItems.length === 0 ? (
-            <div style={{ padding: "4rem 1rem", textAlign: "center", border: "1px dashed var(--theme-border-hot)" }}>
-              <p style={{ fontFamily: "Orbitron, monospace", fontSize: "1.05rem", fontWeight: 700, color: "var(--theme-accent)", margin: "0 0 0.5rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            <div style={{ padding: "3rem 1rem", textAlign: "center", border: "1px dashed var(--theme-border-hot)" }}>
+              <p style={{ fontFamily: "Orbitron, monospace", fontSize: "0.95rem", fontWeight: 700, color: "var(--theme-accent)", margin: "0 0 0.5rem", letterSpacing: "0.05em" }}>
                 No Recorded Votes
               </p>
-              <p style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.85rem", color: "var(--text-dim)", maxWidth: "500px", margin: "0 auto" }}>
+              <p style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.8rem", color: "var(--text-dim)", margin: 0 }}>
                 No past votes or concluded deliberations have been archived yet.
               </p>
             </div>
@@ -677,28 +639,28 @@ export default function FloorClient() {
 
               const outcomeBadge = status === "passed" ? {
                 label: "PASSED / CODIFIED",
-                bg: "rgba(53, 196, 111, 0.15)",
-                color: "#8affb2",
-                border: "#35c46f"
+                bg: "rgba(168, 151, 134, 0.15)",
+                color: "var(--theme-accent)",
+                border: "var(--theme-accent)"
               } : status === "vetoed" ? {
                 label: "VETOED BY HIGH COMMAND",
-                bg: "rgba(227, 168, 87, 0.15)",
-                color: "#ffd180",
-                border: "#e3a857"
+                bg: "rgba(168, 151, 134, 0.08)",
+                color: "var(--theme-accent-soft)",
+                border: "var(--theme-border-hot)"
               } : {
                 label: "FAILED / REJECTED",
-                bg: "rgba(192, 0, 26, 0.2)",
-                color: "#ff8080",
-                border: "#ff4d4d"
+                bg: "rgba(0, 0, 0, 0.4)",
+                color: "var(--text-dim)",
+                border: "var(--border)"
               };
 
               return (
                 <div
                   key={item.id}
                   style={{
-                    background: "linear-gradient(135deg, rgba(168, 151, 134, 0.05) 0%, transparent 60%), #1c1814",
-                    border: `1px solid ${outcomeBadge.border}44`,
-                    borderLeft: `4px solid ${outcomeBadge.border}`,
+                    background: "linear-gradient(135deg, rgba(168, 151, 134, 0.04) 0%, transparent 60%), #1c1814",
+                    border: "1px solid var(--theme-border-hot)",
+                    borderLeft: `3px solid ${outcomeBadge.border}`,
                     position: "relative",
                     transition: "border-color 0.2s"
                   }}
@@ -751,7 +713,7 @@ export default function FloorClient() {
                     <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap" }}>
                       <div style={{ textAlign: "right", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem" }}>
                         <span style={{ display: "block", color: "var(--text-dim)" }}>
-                          Ayes: <strong style={{ color: "#8affb2" }}>{item.counts?.yes || 0}</strong> &bull; Nays: <strong style={{ color: "#ff8080" }}>{item.counts?.no || 0}</strong>
+                          Ayes: <strong style={{ color: "var(--theme-accent)" }}>{item.counts?.yes || 0}</strong> &bull; Nays: <strong style={{ color: "var(--text-dim)" }}>{item.counts?.no || 0}</strong>
                         </span>
                         <span style={{ fontSize: "0.68rem", color: "var(--text-faint)" }}>
                           {item.closesAt ? new Date(item.closesAt).toLocaleDateString() : (item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "")}
@@ -781,13 +743,13 @@ export default function FloorClient() {
                       {cat === "promotion" && parsed.candidate && (
                         <div style={{ display: "flex", gap: "1.5rem", background: "rgba(0,0,0,0.3)", padding: "0.6rem 1rem", border: "1px solid var(--theme-border-hot)", marginBottom: "1rem", fontSize: "0.8rem", fontFamily: "Share Tech Mono, monospace" }}>
                           <span>Candidate: <strong style={{ color: "var(--theme-accent)" }}>{parsed.candidate}</strong></span>
-                          <span>Target Rank: <strong style={{ color: "#e3a857" }}>{parsed.targetRank || "Not Specified"}</strong></span>
+                          <span>Target Rank: <strong style={{ color: "var(--theme-accent-soft)" }}>{parsed.targetRank || "Not Specified"}</strong></span>
                         </div>
                       )}
 
                       {cat === "disciplinary" && parsed.accused && (
-                        <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", background: "rgba(255, 82, 82, 0.05)", padding: "0.6rem 1rem", border: "1px solid rgba(255, 82, 82, 0.2)", marginBottom: "1rem", fontSize: "0.8rem", fontFamily: "Share Tech Mono, monospace" }}>
-                          <span>Accused: <strong style={{ color: "#ff8080" }}>{parsed.accused}</strong></span>
+                        <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", background: "rgba(168, 151, 134, 0.05)", padding: "0.6rem 1rem", border: "1px solid var(--theme-border-hot)", marginBottom: "1rem", fontSize: "0.8rem", fontFamily: "Share Tech Mono, monospace" }}>
+                          <span>Accused: <strong style={{ color: "var(--theme-accent)" }}>{parsed.accused}</strong></span>
                           {parsed.proposedSanction && <span>Sanction: <strong style={{ color: "var(--text-bright)" }}>{parsed.proposedSanction}</strong></span>}
                           {parsed.evidenceUrl && <a href={parsed.evidenceUrl} target="_blank" rel="noreferrer" style={{ color: "var(--theme-accent)", textDecoration: "underline" }}>View Evidence Log</a>}
                         </div>
@@ -797,7 +759,7 @@ export default function FloorClient() {
                         <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", background: "rgba(168, 151, 134, 0.08)", padding: "0.6rem 1rem", border: "1px solid var(--theme-border-hot)", marginBottom: "1rem", fontSize: "0.8rem", fontFamily: "Share Tech Mono, monospace" }}>
                           <span>Challenger: <strong style={{ color: "var(--theme-accent)" }}>{parsed.challenger || "Unknown"}</strong></span>
                           <span style={{ color: "var(--text-faint)" }}>VS</span>
-                          <span>Rival: <strong style={{ color: "#ff8080" }}>{parsed.accused || "Unknown"}</strong></span>
+                          <span>Rival: <strong style={{ color: "var(--theme-accent-soft)" }}>{parsed.accused || "Unknown"}</strong></span>
                           {parsed.kaggathStakes && <span>Stakes: <strong style={{ color: "var(--text-bright)" }}>{parsed.kaggathStakes}</strong></span>}
                         </div>
                       )}
@@ -808,7 +770,7 @@ export default function FloorClient() {
 
                       {/* Veto Notation */}
                       {item.vetoedBy && (
-                        <div style={{ background: "rgba(227, 168, 87, 0.08)", border: "1px solid rgba(227, 168, 87, 0.3)", padding: "0.6rem 1rem", marginBottom: "1rem", fontFamily: "Share Tech Mono, monospace", fontSize: "0.8rem", color: "#ffd180" }}>
+                        <div style={{ background: "rgba(168, 151, 134, 0.08)", border: "1px solid var(--theme-border-hot)", padding: "0.6rem 1rem", marginBottom: "1rem", fontFamily: "Share Tech Mono, monospace", fontSize: "0.8rem", color: "var(--theme-accent-soft)" }}>
                           <strong>VETO NOTATION:</strong> Vetoed by {item.vetoedByName || item.vetoedBy}{item.vetoReason ? ` — "${item.vetoReason}"` : ""}
                         </div>
                       )}
@@ -844,10 +806,10 @@ export default function FloorClient() {
                                   fontFamily: "Orbitron, monospace",
                                   fontSize: "0.72rem",
                                   fontWeight: 700,
-                                  color: vote.vote === "yes" ? "#8affb2" : vote.vote === "no" ? "#ff8080" : "var(--text-dim)",
+                                  color: vote.vote === "yes" ? "var(--theme-accent)" : "var(--text-dim)",
                                   padding: "0.15rem 0.45rem",
-                                  background: vote.vote === "yes" ? "rgba(53, 196, 111, 0.15)" : vote.vote === "no" ? "rgba(192, 0, 26, 0.2)" : "rgba(168, 151, 134, 0.1)",
-                                  border: `1px solid ${vote.vote === "yes" ? "#35c46f" : vote.vote === "no" ? "#ff4d4d" : "var(--theme-border-hot)"}`
+                                  background: vote.vote === "yes" ? "rgba(168, 151, 134, 0.15)" : "rgba(0,0,0,0.3)",
+                                  border: `1px solid ${vote.vote === "yes" ? "var(--theme-accent)" : "var(--border)"}`
                                 }}>
                                   {String(vote.vote).toUpperCase()}
                                 </span>

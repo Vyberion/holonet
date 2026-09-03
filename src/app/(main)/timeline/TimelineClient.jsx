@@ -320,13 +320,6 @@ export default function TimelineClient() {
             }
             .timeline-tree-card {
               width: 100% !important;
-              border-left: 3px solid var(--red-bright) !important;
-              border-right: 1px solid var(--border) !important;
-            }
-            .timeline-branch-line {
-              left: -45px !important;
-              right: auto !important;
-              width: 45px !important;
             }
           }
         `}} />
@@ -378,7 +371,7 @@ export default function TimelineClient() {
           </div>
         ) : (
           <div className="timeline-tree-container" style={{ position: "relative", maxWidth: "1200px", margin: "0 auto", padding: "2rem 0" }}>
-            {/* Central Vertical Spine */}
+            {/* Central Vertical Spine - Solid Bright Red */}
             <div
               className="timeline-center-spine"
               style={{
@@ -388,8 +381,8 @@ export default function TimelineClient() {
                 bottom: 0,
                 width: "2px",
                 transform: "translateX(-50%)",
-                background: "linear-gradient(180deg, var(--red-bright) 0%, rgba(192,0,26,0.4) 70%, transparent 100%)",
-                boxShadow: "0 0 12px var(--red-glow)",
+                background: "var(--red-bright)",
+                boxShadow: "0 0 10px var(--red-glow), 0 0 20px rgba(255,0,34,0.3)",
                 zIndex: 1
               }}
             />
@@ -410,7 +403,7 @@ export default function TimelineClient() {
                       width: "100%"
                     }}
                   >
-                    {/* Node Dot on the Central Spine */}
+                    {/* Node Dot on the Central Spine (No branching line to the card) */}
                     <div
                       className="timeline-spine-dot"
                       style={{
@@ -423,51 +416,31 @@ export default function TimelineClient() {
                         borderRadius: "50%",
                         background: "#0d0b09",
                         border: "2px solid var(--red-bright)",
-                        boxShadow: "0 0 10px var(--red-glow)",
+                        boxShadow: "0 0 10px var(--red-glow), 0 0 4px var(--red-bright)",
                         zIndex: 3
                       }}
                     />
 
-                    {/* Timeline Event Card (Occupies roughly 46% of width on desktop) */}
+                    {/* Timeline Event Card in standard Codex Article Style */}
                     <article
                       className="codex-article timeline-tree-card"
                       style={{
                         width: "calc(50% - 2.5rem)",
                         margin: 0,
-                        position: "relative",
-                        background: "linear-gradient(135deg, rgba(192,0,26,0.04) 0%, transparent 60%), #14110e",
-                        border: "1px solid var(--border)",
-                        borderLeft: isLeft ? "3px solid var(--red-bright)" : "1px solid var(--border)",
-                        borderRight: !isLeft ? "3px solid var(--red-bright)" : "1px solid var(--border)",
-                        boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
-                        padding: "1.5rem"
+                        position: "relative"
                       }}
                     >
-                      {/* Branch Connector Line pointing toward the center spine */}
-                      <div
-                        className="timeline-branch-line"
-                        style={{
-                          position: "absolute",
-                          top: "1.8rem",
-                          [isLeft ? "right" : "left"]: "-2.5rem",
-                          width: "2.5rem",
-                          height: "1px",
-                          background: "linear-gradient(90deg, var(--red-bright), rgba(192,0,26,0.3))",
-                          boxShadow: "0 0 6px var(--red-glow)"
-                        }}
-                      />
-
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.8rem", borderBottom: "1px solid var(--border)", paddingBottom: "0.8rem", marginBottom: "1rem" }}>
+                      <div className="article-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.8rem", width: "100%" }}>
                         <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.3rem", flexWrap: "wrap" }}>
-                            <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.72rem", color: "var(--red-bright)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.4rem", flexWrap: "wrap" }}>
+                            <span className="article-number" style={{ margin: 0 }}>
                               // {entry.category || "EVENT"}
                             </span>
                             <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.7rem", color: "var(--text-dim)", background: "rgba(0,0,0,0.5)", border: "1px solid var(--border)", padding: "0.1rem 0.45rem" }}>
                               {dateText}
                             </span>
                           </div>
-                          <h2 style={{ fontFamily: "Cinzel, serif", fontSize: "1.25rem", color: "var(--red-bright)", margin: "0.2rem 0 0", textShadow: "0 0 6px rgba(255,0,34,0.4)", letterSpacing: "0.05em" }}>
+                          <h2 className="article-title" style={{ fontSize: "1.25rem", margin: "0.2rem 0 0" }}>
                             {entry.title}
                           </h2>
                         </div>
@@ -484,25 +457,27 @@ export default function TimelineClient() {
                         )}
                       </div>
 
-                      {entry.summary && (
-                        <div style={{ background: "rgba(192,0,26,0.06)", borderLeft: "3px solid var(--red-bright)", padding: "0.8rem 1rem", marginBottom: "1.2rem", fontStyle: "italic", fontSize: "0.88rem", color: "var(--text-bright)" }}>
-                          <DiscordMarkdown content={entry.summary} />
-                        </div>
-                      )}
+                      <div className="article-content">
+                        {entry.summary && (
+                          <div style={{ background: "rgba(192,0,26,0.06)", borderLeft: "3px solid var(--red-bright)", padding: "0.8rem 1rem", marginBottom: "1.2rem", fontStyle: "italic", fontSize: "0.88rem", color: "var(--text-bright)" }}>
+                            <DiscordMarkdown content={entry.summary} />
+                          </div>
+                        )}
 
-                      {entry.imageUrl && (
-                        <div style={{ margin: "1rem 0", maxWidth: "100%", border: "1px solid var(--border-hot)", overflow: "hidden" }}>
-                          <img
-                            src={entry.imageUrl}
-                            alt={entry.imageAlt || entry.title}
-                            style={{ width: "100%", height: "auto", display: "block", cursor: "pointer" }}
-                            onClick={() => setSelectedImage(entry.imageUrl)}
-                          />
-                        </div>
-                      )}
+                        {entry.imageUrl && (
+                          <div style={{ margin: "1rem 0", maxWidth: "100%", border: "1px solid var(--border-hot)", overflow: "hidden" }}>
+                            <img
+                              src={entry.imageUrl}
+                              alt={entry.imageAlt || entry.title}
+                              style={{ width: "100%", height: "auto", display: "block", cursor: "pointer" }}
+                              onClick={() => setSelectedImage(entry.imageUrl)}
+                            />
+                          </div>
+                        )}
 
-                      <div style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.9rem", lineHeight: "1.65", color: "var(--text-bright)" }}>
-                        <DiscordMarkdown content={entry.body} />
+                        <div style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.9rem", lineHeight: "1.65", color: "var(--text-bright)" }}>
+                          <DiscordMarkdown content={entry.body} />
+                        </div>
                       </div>
                     </article>
                   </div>

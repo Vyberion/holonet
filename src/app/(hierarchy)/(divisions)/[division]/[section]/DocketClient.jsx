@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { DiscordMarkdown } from "../../../../../components/DiscordMarkdown.jsx";
 
 const ITEM_TYPES = [
@@ -19,6 +20,7 @@ export default function DocketClient() {
   const [submitting, setSubmitting] = useState(false);
   const [formType, setFormType] = useState("legislation");
   const [statusNotice, setStatusNotice] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -56,6 +58,7 @@ export default function DocketClient() {
   };
 
   useEffect(() => {
+    setMounted(true);
     loadData();
   }, []);
 
@@ -223,64 +226,38 @@ export default function DocketClient() {
   }, [selectedTab, docketItems, submissionItems, archiveItems, typeFilter]);
 
   return (
-    <div className="council-floor-shell" style={{ maxWidth: "1160px", margin: "0 auto", paddingBottom: "4rem" }}>
+    <div className="hub-shell" style={{ paddingBottom: "4rem" }}>
 
-      {/* Top Identity Hero */}
-      <div className="hub-hero" style={{ borderBottom: "1px solid var(--theme-border-hot)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "1rem" }}>
+      {/* Top Identity Hero (Matching Hub Hero Structure Exactly) */}
+      <div className="hub-hero">
+        <div className="hub-identity">
           <div>
-            <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.72rem", color: "var(--theme-accent)", letterSpacing: "0.26em", textTransform: "uppercase" }}>
-              Registry Node / DC-06 &bull; Docket
-            </span>
-            <h1 style={{ fontFamily: "Cinzel, serif", fontSize: "clamp(2rem, 5vw, 3.8rem)", color: "var(--theme-accent)", margin: "0.4rem 0", textShadow: "0 0 20px var(--theme-accent-glow)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
-              COUNCIL DOCKET
-            </h1>
-            <p style={{ color: "var(--text-dim)", fontFamily: "Share Tech Mono, monospace", fontSize: "0.85rem", margin: 0, maxWidth: "680px", lineHeight: "1.65" }}>
-              Official meeting schedule, legislative proposals, promotion nominations, and hearing dockets.
-            </p>
+            <span className="hub-kicker">Registry Node / DC-06 &bull; Docket</span>
+            <h1 className="hub-title" style={{ margin: "8px 0 0" }}>COUNCIL DOCKET</h1>
           </div>
-          <div style={{ textAlign: "right" }}>
-            <span style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.7rem", color: "var(--text-dim)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
-              Access Authority
-            </span>
-            <span style={{ fontFamily: "Orbitron, monospace", fontSize: "0.95rem", fontWeight: 700, color: "var(--theme-accent)", textShadow: "0 0 8px var(--theme-accent-glow)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              {permissions.role || (isDarkCouncil ? "Dark Councilor" : "Council Observer")}
-            </span>
+          <div>
+            <span className="hub-kicker">Access Authority</span>
+            <span className="hub-value">{permissions.role || (isDarkCouncil ? "Dark Councilor" : "Council Observer")}</span>
           </div>
         </div>
 
-        {/* Next Session Broadcast Banner */}
-        <div style={{
-          marginTop: "1.5rem",
-          background: "linear-gradient(135deg, rgba(168, 151, 134, 0.08) 0%, rgba(22, 19, 16, 0.95) 100%)",
-          border: "1px solid var(--theme-border-hot)",
-          padding: "1rem 1.25rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1rem"
-        }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.25rem" }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--theme-accent)", boxShadow: "0 0 8px var(--theme-accent-glow)" }} />
-              <span style={{ fontFamily: "Orbitron, monospace", fontSize: "0.8rem", color: "var(--theme-accent)", letterSpacing: "0.15em" }}>
-                NEXT COUNCIL MEETING: SCHEDULED
-              </span>
-            </div>
-            <p style={{ margin: 0, fontFamily: "Share Tech Mono, monospace", fontSize: "0.8rem", color: "var(--text-dim)" }}>
-              Items approved to the docket will be addressed during this meeting.
-            </p>
+        <p className="hub-summary">
+          Official meeting schedule, legislative proposals, promotion nominations, and hearing dockets.
+        </p>
+
+        {/* Meeting Status & Docket Metrics in standard Hub Status Grid */}
+        <div className="hub-status-grid">
+          <div className="hub-status-cell">
+            <span className="hub-label">Next Session</span>
+            <span className="hub-value">SCHEDULED</span>
           </div>
-          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-            <div style={{ textAlign: "center", padding: "0.4rem 0.8rem", background: "rgba(0,0,0,0.4)", border: "1px solid var(--theme-border-hot)" }}>
-              <span style={{ display: "block", fontFamily: "Orbitron, monospace", fontSize: "1.1rem", fontWeight: 700, color: "var(--theme-accent)" }}>{docketItems.length}</span>
-              <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.65rem", color: "var(--text-dim)", textTransform: "uppercase" }}>On Docket</span>
-            </div>
-            <div style={{ textAlign: "center", padding: "0.4rem 0.8rem", background: "rgba(0,0,0,0.4)", border: "1px solid var(--theme-border-hot)" }}>
-              <span style={{ display: "block", fontFamily: "Orbitron, monospace", fontSize: "1.1rem", fontWeight: 700, color: "var(--theme-accent-soft)" }}>{submissionItems.length}</span>
-              <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.65rem", color: "var(--text-dim)", textTransform: "uppercase" }}>In Review</span>
-            </div>
+          <div className="hub-status-cell">
+            <span className="hub-label">On Docket</span>
+            <span className="hub-value">{docketItems.length}</span>
+          </div>
+          <div className="hub-status-cell">
+            <span className="hub-label">In Review</span>
+            <span className="hub-value">{submissionItems.length}</span>
           </div>
         </div>
       </div>
@@ -401,7 +378,7 @@ export default function DocketClient() {
               No Records Found
             </p>
             <p style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.8rem", color: "var(--text-dim)", margin: 0 }}>
-              {selectedTab === "agenda" ? "The Council docket is currently empty. Submit a proposal or approve items from the queue." : "No matching items located in this queue."}
+              {selectedTab === "agenda" ? "Submit a proposal or approve items from the queue." : "Submit a proposal or approve items from the queue."}
             </p>
           </div>
         ) : (
@@ -645,15 +622,17 @@ export default function DocketClient() {
                 {ITEM_TYPES.map(t => {
                   const active = formType === t.id;
                   return (
-                    <div
+                    <button
                       key={t.id}
+                      type="button"
                       onClick={() => setFormType(t.id)}
                       style={{
-                        background: active ? "rgba(168, 151, 134, 0.18)" : "rgba(0,0,0,0.35)",
+                        background: active ? "rgba(168, 151, 134, 0.2)" : "rgba(0,0,0,0.35)",
                         border: `1px solid ${active ? "var(--theme-accent)" : "var(--theme-border-hot)"}`,
                         padding: "0.8rem 1rem",
                         cursor: "pointer",
-                        transition: "all 0.2s"
+                        transition: "all 0.2s",
+                        textAlign: "left"
                       }}
                     >
                       <span style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.7rem", color: active ? "var(--theme-accent)" : "var(--text-dim)" }}>
@@ -662,15 +641,16 @@ export default function DocketClient() {
                       <span style={{ fontFamily: "Orbitron, monospace", fontSize: "0.78rem", fontWeight: 700, color: active ? "var(--theme-accent)" : "var(--text-bright)" }}>
                         {t.label}
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
 
-              <form onSubmit={handleSubmitPetition}>
+              <form onSubmit={handleSubmitProposal}>
+                {/* Title */}
                 <div style={{ marginBottom: "1.2rem" }}>
-                  <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                    TITLE *
+                  <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)", marginBottom: "0.4rem" }}>
+                    PROPOSAL TITLE *
                   </label>
                   <input
                     type="text"
@@ -681,21 +661,21 @@ export default function DocketClient() {
                     style={{
                       width: "100%",
                       padding: "0.65rem 0.8rem",
-                      background: "rgba(0,0,0,0.5)",
+                      background: "#110e0b",
                       border: "1px solid var(--theme-border-hot)",
-                      color: "var(--text)",
-                      fontFamily: "inherit",
+                      color: "var(--text-bright)",
+                      fontFamily: "Orbitron, monospace",
                       fontSize: "0.9rem"
                     }}
                   />
                 </div>
 
-                {/* Specific Fields */}
+                {/* Specific Fields by Type */}
                 {formType === "promotion" && (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.2rem" }}>
                     <div>
-                      <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                        CANDIDATE *
+                      <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)", marginBottom: "0.4rem" }}>
+                        CANDIDATE USERNAME *
                       </label>
                       <input
                         type="text"
@@ -706,17 +686,17 @@ export default function DocketClient() {
                         style={{
                           width: "100%",
                           padding: "0.65rem 0.8rem",
-                          background: "rgba(0,0,0,0.5)",
+                          background: "#110e0b",
                           border: "1px solid var(--theme-border-hot)",
-                          color: "var(--text)",
-                          fontFamily: "inherit",
-                          fontSize: "0.9rem"
+                          color: "var(--text-bright)",
+                          fontFamily: "Share Tech Mono, monospace",
+                          fontSize: "0.85rem"
                         }}
                       />
                     </div>
                     <div>
-                      <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                        NEW RANK *
+                      <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)", marginBottom: "0.4rem" }}>
+                        TARGET RANK / OFFICE *
                       </label>
                       <input
                         type="text"
@@ -727,11 +707,11 @@ export default function DocketClient() {
                         style={{
                           width: "100%",
                           padding: "0.65rem 0.8rem",
-                          background: "rgba(0,0,0,0.5)",
+                          background: "#110e0b",
                           border: "1px solid var(--theme-border-hot)",
-                          color: "var(--text)",
-                          fontFamily: "inherit",
-                          fontSize: "0.9rem"
+                          color: "var(--text-bright)",
+                          fontFamily: "Share Tech Mono, monospace",
+                          fontSize: "0.85rem"
                         }}
                       />
                     </div>
@@ -739,11 +719,11 @@ export default function DocketClient() {
                 )}
 
                 {formType === "disciplinary" && (
-                  <div style={{ marginBottom: "1.2rem" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.2rem" }}>
                       <div>
-                        <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                          ACCUSED *
+                        <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "#ff8080", marginBottom: "0.4rem" }}>
+                          ACCUSED SITH USERNAME *
                         </label>
                         <input
                           type="text"
@@ -754,17 +734,64 @@ export default function DocketClient() {
                           style={{
                             width: "100%",
                             padding: "0.65rem 0.8rem",
-                            background: "rgba(0,0,0,0.5)",
-                            border: "1px solid var(--theme-border-hot)",
-                            color: "var(--text)",
-                            fontFamily: "inherit",
-                            fontSize: "0.9rem"
+                            background: "#110e0b",
+                            border: "1px solid rgba(255, 82, 82, 0.4)",
+                            color: "var(--text-bright)",
+                            fontFamily: "Share Tech Mono, monospace",
+                            fontSize: "0.85rem"
                           }}
                         />
                       </div>
                       <div>
-                        <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                          EVIDENCE (OPTIONAL)
+                        <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)", marginBottom: "0.4rem" }}>
+                          PROPOSED SANCTION
+                        </label>
+                        <select
+                          value={formData.proposedSanction}
+                          onChange={e => setFormData({ ...formData, proposedSanction: e.target.value })}
+                          style={{
+                            width: "100%",
+                            padding: "0.65rem 0.8rem",
+                            background: "#110e0b",
+                            border: "1px solid var(--theme-border-hot)",
+                            color: "var(--text-bright)",
+                            fontFamily: "Share Tech Mono, monospace",
+                            fontSize: "0.85rem"
+                          }}
+                        >
+                          <option value="Demotion in Rank">Demotion in Rank</option>
+                          <option value="Probational Inactivity / Watch">Probational Inactivity / Watch</option>
+                          <option value="Official Demerits & Warning">Official Demerits & Warning</option>
+                          <option value="Sphere Resource Fine">Sphere Resource Fine</option>
+                          <option value="Chamber Censure">Chamber Censure</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.2rem" }}>
+                      <div>
+                        <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)", marginBottom: "0.4rem" }}>
+                          PRIMARY CHARGES (SUMMARY)
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.charges}
+                          onChange={e => setFormData({ ...formData, charges: e.target.value })}
+                          placeholder="e.g., Treason, Insubordination, dereliction..."
+                          style={{
+                            width: "100%",
+                            padding: "0.65rem 0.8rem",
+                            background: "#110e0b",
+                            border: "1px solid var(--theme-border-hot)",
+                            color: "var(--text-bright)",
+                            fontFamily: "Share Tech Mono, monospace",
+                            fontSize: "0.85rem"
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)", marginBottom: "0.4rem" }}>
+                          EVIDENCE LOG LINK (OPTIONAL)
                         </label>
                         <input
                           type="url"
@@ -774,44 +801,23 @@ export default function DocketClient() {
                           style={{
                             width: "100%",
                             padding: "0.65rem 0.8rem",
-                            background: "rgba(0,0,0,0.5)",
+                            background: "#110e0b",
                             border: "1px solid var(--theme-border-hot)",
-                            color: "var(--text)",
-                            fontFamily: "inherit",
-                            fontSize: "0.9rem"
+                            color: "var(--text-bright)",
+                            fontFamily: "Share Tech Mono, monospace",
+                            fontSize: "0.85rem"
                           }}
                         />
                       </div>
                     </div>
-                    <div>
-                      <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                        CHARGES *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.charges}
-                        onChange={e => setFormData({ ...formData, charges: e.target.value })}
-                        placeholder="e.g., Insubordination during Combat Training"
-                        style={{
-                          width: "100%",
-                          padding: "0.65rem 0.8rem",
-                          background: "rgba(0,0,0,0.5)",
-                          border: "1px solid var(--theme-border-hot)",
-                          color: "var(--text)",
-                          fontFamily: "inherit",
-                          fontSize: "0.9rem"
-                        }}
-                      />
-                    </div>
-                  </div>
+                  </>
                 )}
 
                 {formType === "kaggath" && (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.2rem" }}>
                     <div>
                       <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                        ACCUSER *
+                        CHALLENGER (CLAIMANT) *
                       </label>
                       <input
                         type="text"
@@ -822,17 +828,17 @@ export default function DocketClient() {
                         style={{
                           width: "100%",
                           padding: "0.65rem 0.8rem",
-                          background: "rgba(0,0,0,0.5)",
+                          background: "#110e0b",
                           border: "1px solid var(--theme-border-hot)",
-                          color: "var(--text)",
-                          fontFamily: "inherit",
-                          fontSize: "0.9rem"
+                          color: "var(--text-bright)",
+                          fontFamily: "Share Tech Mono, monospace",
+                          fontSize: "0.85rem"
                         }}
                       />
                     </div>
                     <div>
-                      <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                        ACCUSED *
+                      <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "#ff8080", marginBottom: "0.4rem" }}>
+                        RIVAL (TARGET OF CHALLENGE) *
                       </label>
                       <input
                         type="text"
@@ -843,57 +849,60 @@ export default function DocketClient() {
                         style={{
                           width: "100%",
                           padding: "0.65rem 0.8rem",
-                          background: "rgba(0,0,0,0.5)",
-                          border: "1px solid var(--theme-border-hot)",
-                          color: "var(--text)",
-                          fontFamily: "inherit",
-                          fontSize: "0.9rem"
-                        }}
-                      />
-                    </div>
-                    <div style={{ gridColumn: "1 / -1" }}>
-                      <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                        TERMS *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.kaggathStakes}
-                        onChange={e => setFormData({ ...formData, kaggathStakes: e.target.value })}
-                        placeholder="e.g., Complete assimilation of the loser's sphere resources and exile"
-                        style={{
-                          width: "100%",
-                          padding: "0.65rem 0.8rem",
-                          background: "rgba(0,0,0,0.5)",
-                          border: "1px solid var(--theme-border-hot)",
-                          color: "var(--text)",
-                          fontFamily: "inherit",
-                          fontSize: "0.9rem"
+                          background: "#110e0b",
+                          border: "1px solid rgba(255, 82, 82, 0.4)",
+                          color: "var(--text-bright)",
+                          fontFamily: "Share Tech Mono, monospace",
+                          fontSize: "0.85rem"
                         }}
                       />
                     </div>
                   </div>
                 )}
 
+                {formType === "kaggath" && (
+                  <div style={{ marginBottom: "1.2rem" }}>
+                    <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)", marginBottom: "0.4rem" }}>
+                      STAKES OF THE KAGGATH (POWERBASE / SPHERE JURISDICTION / EXILE)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.kaggathStakes}
+                      onChange={e => setFormData({ ...formData, kaggathStakes: e.target.value })}
+                      placeholder="e.g., Relinquishment of all Korriban military assets to victor..."
+                      style={{
+                        width: "100%",
+                        padding: "0.65rem 0.8rem",
+                        background: "#110e0b",
+                        border: "1px solid var(--theme-border-hot)",
+                        color: "var(--text-bright)",
+                        fontFamily: "Share Tech Mono, monospace",
+                        fontSize: "0.85rem"
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Description Body */}
                 <div style={{ marginBottom: "1.5rem" }}>
-                  <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--theme-accent)", marginBottom: "0.4rem" }}>
-                    DESCRIPTION *
+                  <label style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)", marginBottom: "0.4rem" }}>
+                    FULL PROPOSAL DESCRIPTION / MOTION TEXT *
                   </label>
                   <textarea
-                    rows={8}
                     required
+                    rows={6}
                     value={formData.body}
                     onChange={e => setFormData({ ...formData, body: e.target.value })}
-                    placeholder="Full text of the proposal..."
+                    placeholder="Enter full legislative clauses, hearing testimony, or petition details (Markdown supported)..."
                     style={{
                       width: "100%",
-                      padding: "0.65rem 0.8rem",
-                      background: "rgba(0,0,0,0.5)",
+                      padding: "0.8rem",
+                      background: "#110e0b",
                       border: "1px solid var(--theme-border-hot)",
-                      color: "var(--text)",
-                      fontFamily: "inherit",
-                      fontSize: "0.88rem",
-                      lineHeight: "1.6"
+                      color: "var(--text-bright)",
+                      fontFamily: "Share Tech Mono, monospace",
+                      fontSize: "0.85rem",
+                      lineHeight: "1.5"
                     }}
                   />
                 </div>
@@ -934,7 +943,8 @@ export default function DocketClient() {
               </form>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

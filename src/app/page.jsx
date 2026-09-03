@@ -105,14 +105,13 @@ export default function HomePage() {
         .nav-grid--home {
           display: grid;
           grid-template-columns: repeat(6, 1fr);
-          grid-auto-rows: 1fr;
           gap: 1.5rem;
           margin: 1.5rem 0 3rem;
         }
 
         .nav-grid--home > .nav-card {
-          height: 100%;
-          min-height: 280px;
+          height: clamp(380px, 38vh, 540px);
+          min-height: 380px;
           display: flex;
           flex-direction: column;
         }

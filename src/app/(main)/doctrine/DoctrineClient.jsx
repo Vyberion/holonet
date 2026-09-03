@@ -321,8 +321,8 @@ export default function DoctrineClient() {
 
         {/* Modal View Detail Overlay */}
         {activeModal === "view" && currentDirective && (
-          <div className="codex-modal-backdrop active" onClick={() => setActiveModal(null)}>
-            <div className="codex-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ width: "min(780px, calc(100vw - 32px))", maxWidth: "780px", margin: "auto" }}>
+          <div className="doctrine-modal-backdrop active" onClick={() => setActiveModal(null)}>
+            <div className="doctrine-modal-dialog" onClick={(e) => e.stopPropagation()}>
               <div className="codex-modal-header">
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
                   <span className="trello-card-tag">{currentDirective.tag || "GENERAL"}</span>
@@ -359,8 +359,8 @@ export default function DoctrineClient() {
 
         {/* Tailored Codex-Style Edit/Create Modal Overlay */}
         {activeModal === "edit" && (
-          <div className="codex-modal-backdrop active" onClick={() => setActiveModal(null)}>
-            <div className="codex-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ width: "min(780px, calc(100vw - 32px))", maxWidth: "780px", margin: "auto" }}>
+          <div className="doctrine-modal-backdrop active" onClick={() => setActiveModal(null)}>
+            <div className="doctrine-modal-dialog" onClick={(e) => e.stopPropagation()}>
               <form onSubmit={handleSave}>
                 <div className="codex-modal-header">
                   <h2 style={{ fontFamily: "Cinzel, serif", fontSize: "1.2rem", color: "var(--red-bright)", margin: 0, letterSpacing: "0.15em", textShadow: "0 0 6px rgba(255,0,34,0.55), 0 0 20px rgba(255,0,34,0.35)" }}>

@@ -144,23 +144,8 @@ export default function TimelineClient() {
       subtitle="HISTORICAL CHRONOLOGY"
       footerNode="ARC-01"
       includeSearchOverlay
-      mainClassName="timeline-main"
     >
-      <style>{`
-        main.timeline-main {
-          width: 100% !important;
-          max-width: 100% !important;
-          padding: 0 clamp(16px, 2.5vw, 48px);
-        }
-        .timeline-shell {
-          width: 100% !important;
-          max-width: 100% !important;
-        }
-        .timeline-track {
-          width: 100% !important;
-        }
-      `}</style>
-      <div className="timeline-shell" style={{ width: "100%", maxWidth: "100%", margin: "0 auto", padding: "1rem 0 4rem" }}>
+      <div className="timeline-shell" style={{ width: "100%", margin: "0 auto", padding: "0.5rem 0 4rem" }}>
         
         {/* Classification Tag Filter Tabs (Doctrine / Hierarchy Style) */}
         <div className="hierarchy-tabs-shell" style={{ margin: "0.5rem 0 2.5rem" }}>
@@ -230,13 +215,13 @@ export default function TimelineClient() {
                   <article
                     key={entry.id || index}
                     className="codex-article"
-                    style={{ position: "relative", marginLeft: "1rem", scrollMarginTop: "100px" }}
+                    style={{ position: "relative", width: "100%", margin: "0 0 1.5rem 0", boxSizing: "border-box", scrollMarginTop: "100px" }}
                   >
                     {/* Node Dot on the Spine */}
                     <div
                       style={{
                         position: "absolute",
-                        left: "-3rem",
+                        left: "-2.35rem",
                         top: "2rem",
                         width: "14px",
                         height: "14px",

@@ -159,6 +159,7 @@ import { divisionIdFromRouteSlug, divisionIdFromSubdomain } from "../data/divisi
       sessionStorage.setItem("holonet:access:global", JSON.stringify(access));
     } catch {}
     document.documentElement.classList.remove("access-pending");
+    document.documentElement.style.background = "";
     pendingStyle.remove();
   }
 

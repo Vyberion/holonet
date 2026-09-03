@@ -145,7 +145,7 @@ export default function DocketClient() {
     }
   };
 
-  const handleSubmitPetition = async (e) => {
+  const handleSubmitProposal = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setStatusNotice(null);

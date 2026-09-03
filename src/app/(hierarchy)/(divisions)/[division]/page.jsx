@@ -12,6 +12,6 @@ export default async function DivisionRedirectPage({ params }) {
   const divisionSlug = String(rawDivisionSlug || "");
   const division = getDivisionByRouteSlug(divisionSlug);
   if (!division) notFound();
-  // Directly render the info section
-  return DivisionSectionPage({ params: { division: divisionSlug, section: "info" } });
+  const defaultSection = division.id === "darkCouncil" ? "floor" : "info";
+  return DivisionSectionPage({ params: { division: divisionSlug, section: defaultSection } });
 }

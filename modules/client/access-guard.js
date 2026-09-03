@@ -181,6 +181,21 @@ import { divisionIdFromRouteSlug, divisionIdFromSubdomain } from "../data/divisi
         return;
       }
 
+      if (isCouncilPage()) {
+        const response = await fetch("/api/auth/check-access");
+        const access = await response.json();
+
+        if (response.ok && access.authorized && hasCouncilAccess(access.profile)) {
+          allowAccess(access);
+          return;
+        }
+
+        const reason = access.profile ? "SUPERUSER_CLEARANCE_REQUIRED" : (access.reason || "SESSION_REQUIRED");
+        const showAccount = ["SESSION_MISSING", "SESSION_INVALID", "SESSION_EXPIRED", "SESSION_REQUIRED", "USER_NOT_FOUND"].includes(reason);
+        rejectAccess(`ACCESS DENIED: ${reason.replace(/_/g, " ")}`, { showAccount });
+        return;
+      }
+
       const pageKey = getPageKey();
       const response = await fetch(`/api/auth/check-access?page=${encodeURIComponent(pageKey)}`);
       const access = await response.json();

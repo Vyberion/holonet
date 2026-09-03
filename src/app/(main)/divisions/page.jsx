@@ -4,8 +4,8 @@ import { getDivision } from "../../../lib/divisions.js";
 import { holonetMetadata } from "../../../lib/metadata.js";
 
 export const metadata = holonetMetadata({
-  title: "The Departments",
-  description: "Departmental directory."
+  title: "The Divisions",
+  description: "Divisional directory."
 });
 
 function statusLabel(status) {
@@ -75,9 +75,9 @@ function ReportsCard() {
   );
 }
 
-export default function DepartmentsPage() {
+export default function DivisionsPage() {
   return (
-    <HolonetFrame title="DEPARTMENTS" subtitle="DEPARTMENTAL DIRECTORY" footerNode="KOR-7">
+    <HolonetFrame title="DIVISIONS" subtitle="DIVISIONAL DIRECTORY" footerNode="KOR-7">
       <div className="registry-main">
         <section className="registry-section registry-section--overview" aria-labelledby="sec-overview">
           <div className="section-header">

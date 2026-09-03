@@ -104,13 +104,13 @@ export function HomeNavGrid() {
 
   if (canViewAnyDomain) {
     secondRowCards.push({
-      href: "/departments",
-      title: "The Departments",
+      href: "/divisions",
+      title: "The Divisions",
       glyph: "IV",
       hex: "0x4D  SECT.04",
       clearance: "CLEARANCE: RESTRICTED",
       designation: "DESIGNATION: LEVEL 2",
-      category: "Section 04 — Departments",
+      category: "Section 04 — Divisions",
       desc: "Specialised divisions."
     });
   }

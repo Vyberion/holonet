@@ -17,8 +17,7 @@ const LOCKED_SECTIONS = new Set([
   "trackers",
   "council-floor",
   "floor",
-  "docket",
-  "decrees"
+  "docket"
 ]);
 const APEX_HOSTNAME = "thesithorder.org";
 const CANONICAL_HOSTNAME = "www.thesithorder.org";

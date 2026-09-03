@@ -6,7 +6,8 @@ import { getHierarchyItem } from "../../../../../../modules/data/hierarchy.js";
 import { getDivisionByRouteSlug } from "../../../../../lib/divisions.js";
 import { holonetMetadata } from "../../../../../lib/metadata.js";
 import { HierarchyDetail } from "../../../hierarchy/HierarchyDetail.jsx";
-import StatutesClient from "../../../../(main)/statutes/StatutesClient.jsx";
+import DocketClient from "./DocketClient.jsx";
+import FloorClient from "./FloorClient.jsx";
 
 function normalizeSection(section) {
   return String(section || "").toLowerCase();
@@ -21,23 +22,21 @@ function sectionTitle(section) {
     activity: "Activity",
     "council-floor": "Council Floor",
     floor: "Council Floor",
-    docket: "Conclave Docket",
-    decrees: "Imperial Decrees"
+    docket: "Council Docket"
   }[section] || "Division";
 }
 
 function sectionSubtitle(section) {
   return {
-    home: "COMMAND DASHBOARD",
-    handbooks: "SECURE DOCUMENT VIEWER",
-    transmissions: "MESSAGE CHANNEL",
-    reports: "REPORTING CHANNEL",
-    activity: "ACTIVITY CHANNEL",
-    "council-floor": "LEGISLATIVE CHANNEL",
-    floor: "LEGISLATIVE CHANNEL",
-    docket: "CONCLAVE DOCKET",
-    decrees: "STATUTORY REPOSITORY"
-  }[section] || "DIVISION NODE";
+    home: "Internal operations, transmissions, and divisional resources.",
+    handbooks: "Core documentation, procedures, and divisional protocols.",
+    transmissions: "Command broadcasts and official divisional notices.",
+    reports: "Activity reporting, operations logs, and personnel tracking.",
+    activity: "Member logs, session metrics, and service records.",
+    "council-floor": "Floor voting, debate, and legislative motions.",
+    floor: "Floor voting, debate, and legislative motions.",
+    docket: "Meeting agenda, proposals, and scheduled hearings."
+  }[section] || "Divisional resources.";
 }
 
 function divisionTitleName(division) {
@@ -68,8 +67,8 @@ export async function generateMetadata({ params }) {
   const section = normalizeSection(routeParams.section);
 
   if (!division) return {};
-  if (!["home", "info", "handbooks", "transmissions", "reports", "activity", "council-floor", "floor", "docket", "decrees"].includes(section)) return {};
-  if (["council-floor", "floor", "docket", "decrees"].includes(section) && division.id !== "darkCouncil") return {};
+  if (!["home", "info", "handbooks", "transmissions", "reports", "activity", "council-floor", "floor", "docket"].includes(section)) return {};
+  if (["council-floor", "floor", "docket"].includes(section) && division.id !== "darkCouncil") return {};
 
   const singularName = divisionSingularName(division);
 
@@ -231,16 +230,11 @@ export default async function DivisionSectionPage({ params }) {
     );
   }
 
-  if (section === "decrees") {
-    return <StatutesClient isDecreesMode={true} />;
-  }
-
-  if (section === "council-floor" || section === "floor" || section === "docket") {
-    const defaultTab = section === "council-floor" ? "floor" : section;
+  if (section === "docket") {
     return (
       <HolonetFrame
-        title={sectionTitle(section).toUpperCase()}
-        subtitle={sectionSubtitle(section)}
+        title="COUNCIL DOCKET"
+        subtitle="MEETING AGENDA & PROPOSALS"
         footerNode={division.node}
         mainClassName="division-main"
         showHeader={false}
@@ -248,9 +242,26 @@ export default async function DivisionSectionPage({ params }) {
         theme={division.theme}
       >
         <ThemeClass theme={division.theme} />
-        <div data-council-floor data-council-tab={defaultTab} />
+        <DocketClient />
+        <PageScripts guarded scripts={["/js/main.js", "/modules/client/site.js"]} />
+      </HolonetFrame>
+    );
+  }
 
-        <PageScripts guarded scripts={["/js/main.js", "/modules/client/site.js"]} moduleScripts={["/modules/client/council-floor.js"]} />
+  if (section === "council-floor" || section === "floor") {
+    return (
+      <HolonetFrame
+        title="COUNCIL FLOOR"
+        subtitle="ACTIVE DELIBERATIONS & VOTING"
+        footerNode={division.node}
+        mainClassName="division-main"
+        showHeader={false}
+        showStatusBar={false}
+        theme={division.theme}
+      >
+        <ThemeClass theme={division.theme} />
+        <FloorClient />
+        <PageScripts guarded scripts={["/js/main.js", "/modules/client/site.js"]} />
       </HolonetFrame>
     );
   }

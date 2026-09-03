@@ -227,8 +227,7 @@ export function HolonetNav() {
 
   const councilSubItems = [
     { href: divisionLockedHref("darkCouncil", "docket"), page: "council-docket", label: "Docket" },
-    { href: divisionLockedHref("darkCouncil", "floor"), page: "council-floor", label: "Floor" },
-    { href: divisionLockedHref("darkCouncil", "decrees"), page: "council-decrees", label: "Decrees" }
+    { href: divisionLockedHref("darkCouncil", "floor"), page: "council-floor", label: "Floor" }
   ];
 
   const centerLinks = [

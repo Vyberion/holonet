@@ -1,55 +1,12 @@
-import React from "react";
 import { HolonetFrame } from "../components/HolonetFrame.jsx";
 import { PageScripts } from "../components/PageScripts.jsx";
 import { holonetMetadata } from "../lib/metadata.js";
+import { HomeNavGrid } from "./HomeNavGrid.jsx";
 
 export const metadata = holonetMetadata({
   title: "The Holonet",
-  description: "Laws, lore, ranks, records, domains and legislative conclaves for Manar's The Sith Order."
+  description: "Laws, lore, ranks, records and division resources for Manar's The Sith Order."
 });
-
-const PILLARS = [
-  {
-    href: "/codex",
-    title: "The Codex",
-    glyph: "I",
-    hex: "0x1A  SECT.01",
-    category: "Section 01 — Doctrine & Law",
-    desc: "Imperial doctrine, statutory articles, and the hierarchical ranks of the Order."
-  },
-  {
-    href: "/archives",
-    title: "The Archives",
-    glyph: "II",
-    hex: "0x2B  SECT.02",
-    category: "Section 02 — Chronicles",
-    desc: "The unbroken historical timeline, imperial lineages, and ancient Sith history."
-  },
-  {
-    href: "/domains",
-    title: "The Domains",
-    glyph: "III",
-    hex: "0x3C  SECT.03",
-    category: "Section 03 — Specialized Arms",
-    desc: "Autonomous martial branches, frontline vanguard, purge forces, and operational hubs."
-  },
-  {
-    href: "/powerbases",
-    title: "Powerbases",
-    glyph: "IV",
-    hex: "0x4D  SECT.04",
-    category: "Section 04 — Political Factions",
-    desc: "Political coalitions and personal spheres of influence led by High Ranks."
-  },
-  {
-    href: "/council",
-    title: "The Dark Council",
-    glyph: "V",
-    hex: "0x5E  SECT.05",
-    category: "Section 05 — Conclave",
-    desc: "The legislative chamber, Conclave Docket, floor deliberations, and Imperial Decrees."
-  }
-];
 
 export default function HomePage() {
   return (
@@ -59,26 +16,7 @@ export default function HomePage() {
       footerNode="KOR-7"
       mainClassName="home-main"
     >
-      <nav className="nav-grid nav-grid--home" aria-label="Holonet Primary Pillars">
-        {PILLARS.map((pillar) => (
-          <a key={pillar.href} href={pillar.href} className="nav-card" aria-label={`Enter ${pillar.title}`}>
-            <div className="card-inner-border" aria-hidden="true" />
-            <div className="card-corners" aria-hidden="true" />
-            <div className="card-vline" aria-hidden="true" />
-            <div className="card-scan" aria-hidden="true" />
-            <div className="card-bg-glyph" aria-hidden="true">{pillar.glyph}</div>
-            <div className="card-hex" aria-hidden="true">{pillar.hex}</div>
-            <div className="card-data" aria-hidden="true">
-              CLEARANCE: UNCLASSIFIED<br />
-              DESIGNATION: LEVEL 1<br />
-            </div>
-            <span className="card-category">{pillar.category}</span>
-            <h2 className="card-title">{pillar.title}</h2>
-            <p className="card-desc">{pillar.desc}</p>
-            <span className="card-enter" aria-hidden="true">Enter &rsaquo;&rsaquo;</span>
-          </a>
-        ))}
-      </nav>
+      <HomeNavGrid />
 
       <div className="marquee-wrap" aria-hidden="true">
         <div className="marquee-track" style={{ color: "var(--text-dim)" }}>
@@ -100,64 +38,6 @@ export default function HomePage() {
           ))}
         </div>
       </div>
-
-      <style>{`
-        .nav-grid--home {
-          display: grid;
-          grid-template-columns: repeat(6, 1fr);
-          gap: 1.5rem;
-          margin: 1.5rem 0 3rem;
-        }
-
-        .nav-grid--home > .nav-card {
-          height: clamp(380px, 38vh, 540px);
-          min-height: 380px;
-          display: flex;
-          flex-direction: column;
-        }
-
-        /* Row 1: 3 cards (Codex, Archives, Domains) - 2 of 6 cols each */
-        .nav-grid--home > .nav-card:nth-child(1),
-        .nav-grid--home > .nav-card:nth-child(2),
-        .nav-grid--home > .nav-card:nth-child(3) {
-          grid-column: span 2;
-        }
-
-        /* Row 2: 2 cards (Powerbases, Dark Council) - 3 of 6 cols each (half row) */
-        .nav-grid--home > .nav-card:nth-child(4),
-        .nav-grid--home > .nav-card:nth-child(5) {
-          grid-column: span 3;
-        }
-
-        @media (max-width: 1024px) {
-          .nav-grid--home {
-            grid-template-columns: repeat(2, 1fr);
-            grid-auto-rows: auto;
-          }
-          .nav-grid--home > .nav-card:nth-child(1),
-          .nav-grid--home > .nav-card:nth-child(2),
-          .nav-grid--home > .nav-card:nth-child(3),
-          .nav-grid--home > .nav-card:nth-child(4) {
-            grid-column: span 1;
-          }
-          .nav-grid--home > .nav-card:nth-child(5) {
-            grid-column: span 2;
-          }
-        }
-
-        @media (max-width: 680px) {
-          .nav-grid--home {
-            grid-template-columns: 1fr;
-          }
-          .nav-grid--home > .nav-card:nth-child(1),
-          .nav-grid--home > .nav-card:nth-child(2),
-          .nav-grid--home > .nav-card:nth-child(3),
-          .nav-grid--home > .nav-card:nth-child(4),
-          .nav-grid--home > .nav-card:nth-child(5) {
-            grid-column: span 1;
-          }
-        }
-      `}</style>
 
       <PageScripts scripts={["/js/main.js", "/modules/client/site.js"]} />
     </HolonetFrame>

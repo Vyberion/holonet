@@ -99,7 +99,7 @@ function renderResultPanel(proposal) {
 
 function renderCloseMeta(proposal) {
   if (proposal.status === "docket") {
-    return `<span>Tabled for Upcoming Conclave Session</span>`;
+    return `<span>Tabled for Upcoming Council Meeting</span>`;
   }
   if (proposal.status === "open") {
     return `<span>Closes ${escapeHtml(formatDate(proposal.closesAt))}</span>`;
@@ -174,7 +174,7 @@ function ensureProposalOverlay() {
   overlay.innerHTML = `
     <div class="codex-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="council-editor-title" style="width: min(780px, calc(100vw - 32px)); max-width: 780px; margin: auto;">
       <div class="codex-modal-header">
-        <h2 style="font-family: Cinzel, serif; font-size: 1.2rem; color: var(--theme-accent, var(--red-bright)); margin: 0; letter-spacing: 0.15em; text-shadow: 0 0 6px rgba(255,0,34,0.55);" id="council-editor-title">INSCRIBE CONCLAVE PROPOSAL</h2>
+        <h2 style="font-family: Cinzel, serif; font-size: 1.2rem; color: var(--theme-accent, var(--red-bright)); margin: 0; letter-spacing: 0.15em; text-shadow: 0 0 6px rgba(255,0,34,0.55);" id="council-editor-title">CREATE COUNCIL PROPOSAL</h2>
         <button type="button" class="codex-modal-close" data-council-close>&times;</button>
       </div>
       <form class="codex-modal-body" id="council-editor-form" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.2rem;">
@@ -183,9 +183,9 @@ function ensureProposalOverlay() {
         
         <div class="codex-modal-grid-2">
           <div>
-            <label class="codex-label">TARGET CONCLAVE STAGE</label>
+            <label class="codex-label">TARGET STAGE</label>
             <select class="codex-select" name="targetStatus">
-              <option value="docket">Table to Conclave Docket (Upcoming Meeting)</option>
+              <option value="docket">Add to Council Docket (Upcoming Meeting)</option>
               <option value="open">Open Directly to Council Floor</option>
             </select>
           </div>
@@ -275,9 +275,9 @@ function renderCouncil(mount, payload) {
       <div class="hub-hero council-floor-hero">
         <div class="hub-identity" style="display: flex; justify-content: space-between; align-items: flex-end; flexWrap: wrap; gap: 1rem;">
           <div>
-            <span class="hub-kicker">// IMPERIAL HIGH SEAT &bull; DARK COUNCIL CHAMBER</span>
+            <span class="hub-kicker">// DARK COUNCIL • THE COUNCIL FLOOR</span>
             <h1 class="hub-title" style="font-family: Cinzel, serif; font-size: 1.8rem; color: var(--red-bright); margin: 0.2rem 0;">
-              Council Conclave
+              The Council Floor
             </h1>
             <p style="color: var(--text-dim); font-family: Share Tech Mono, monospace; font-size: 0.85rem; margin: 0;">
               Legislative agenda, floor deliberations, statutory ratifications, and classified records.
@@ -300,7 +300,7 @@ function renderCouncil(mount, payload) {
             data-council-switch-tab="docket"
             style="background: ${currentTab === "docket" ? "rgba(192,0,26,0.2)" : "rgba(0,0,0,0.4)"}; border: 1px solid ${currentTab === "docket" ? "var(--red-bright)" : "var(--border-hot)"}; color: ${currentTab === "docket" ? "var(--red-bright)" : "var(--text-dim)"}; padding: 0.4rem 0.9rem; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; cursor: pointer;"
           >
-            THE CONCLAVE DOCKET (${docketItems.length})
+            THE COUNCIL DOCKET (${docketItems.length})
           </button>
           <button
             type="button"
@@ -338,7 +338,7 @@ function renderCouncil(mount, payload) {
       <div class="council-proposal-stack" style="margin-top: 2rem;">
         ${displayItems.length
           ? displayItems.map(proposal => renderProposal(proposal, permissions)).join("")
-          : `<div style="text-align: center; padding: 4rem 1rem; border: 1px dashed var(--border-hot); background: rgba(192,0,26,0.02); font-family: 'Share Tech Mono', monospace; color: var(--text-dim);">NO CONCLAVE PROPOSALS RECORDED UNDER THIS CATEGORY.</div>`}
+          : `<div style="text-align: center; padding: 4rem 1rem; border: 1px dashed var(--border-hot); background: rgba(192,0,26,0.02); font-family: 'Share Tech Mono', monospace; color: var(--text-dim);">NO COUNCIL PROPOSALS RECORDED UNDER THIS CATEGORY.</div>`}
       </div>
     </section>
   `;
@@ -396,7 +396,7 @@ async function initCouncilFloor() {
     const promoteBtn = event.target.closest("[data-council-promote]");
     if (promoteBtn) {
       const proposalId = promoteBtn.dataset.councilPromote;
-      if (!window.confirm("Open this proposal from the Conclave Docket to the active Council Floor for voting?")) return;
+      if (!window.confirm("Open this proposal from the Council Docket to the active Council Floor for voting?")) return;
       try {
         const payload = await sendCouncilAction({ action: "promote_floor", proposalId, durationHours: 48 });
         mount.dataset.councilTab = "floor";

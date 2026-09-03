@@ -1,6 +1,6 @@
 import { executeLegacyHandler } from "../../../lib/legacy-api-adapter.js";
 import {
-  requireString, isMissingSchemaError, councilPermissions, fetchCouncilEligibleSnapshot, loadCouncilProposals, createCouncilProposal, writeCouncilVote, vetoCouncilProposal, reopenCouncilProposal, amendCouncilProposal, promoteCouncilDocketItem
+  requireString, isMissingSchemaError, councilPermissions, fetchCouncilEligibleSnapshot, loadCouncilProposals, createCouncilProposal, writeCouncilVote, vetoCouncilProposal, reopenCouncilProposal, amendCouncilProposal, promoteCouncilDocketItem, approveCouncilDocketItem
 } from "../../../lib/api-helpers.js";
 import { getAuthContext } from "../../../../modules/auth/auth-context.js";
 
@@ -38,6 +38,11 @@ const handler = async (req, res) => {
 
     if (req.method === "POST" && action === "create") {
       const result = await createCouncilProposal(auth, body);
+      return res.status(result.status).json(result.payload);
+    }
+
+    if ((req.method === "POST" || req.method === "PATCH") && action === "docket_approve") {
+      const result = await approveCouncilDocketItem(auth, body);
       return res.status(result.status).json(result.payload);
     }
 

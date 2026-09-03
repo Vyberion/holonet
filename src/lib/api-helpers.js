@@ -2900,7 +2900,7 @@ export function voteCounts(votes = []) {
 }
 
 export function derivedCouncilStatus(proposal, votes = []) {
-  if (["vetoed", "withdrawn", "passed", "failed", "docket"].includes(proposal.status)) return proposal.status;
+  if (["vetoed", "withdrawn", "passed", "failed", "docket", "submitted"].includes(proposal.status)) return proposal.status;
 
   const openedAt = new Date(proposal.opens_at || proposal.created_at);
   const closesAt = new Date(proposal.closes_at);
@@ -2975,11 +2975,17 @@ export async function loadCouncilProposals() {
 
 export async function createCouncilProposal(auth, body) {
   const permissions = councilPermissions(auth.profile);
-  if (!permissions.canPropose) {
+  const targetStatus = (body.status === "submitted" || body.targetStatus === "submitted")
+    ? "submitted"
+    : (body.status === "docket" || body.targetStatus === "docket")
+      ? "docket"
+      : "open";
+
+  if (!permissions.canPropose && targetStatus !== "submitted") {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
   }
 
-  const proposalType = requireString(body.proposalType || body.proposal_type || "motion");
+  const proposalType = requireString(body.proposalType || body.proposal_type || "legislation");
   const title = requireString(body.title);
   const proposalBody = requireString(body.body);
   const durationHours = clampDurationHours(body.durationHours || body.duration_hours);
@@ -2987,14 +2993,13 @@ export async function createCouncilProposal(auth, body) {
   const coAuthors = Array.isArray(body.coAuthors) ? body.coAuthors : (body.coAuthors ? String(body.coAuthors).split(",").map(s => s.trim()) : []);
   const legalFormat = Boolean(body.legalFormat);
 
-  if (!["legislation", "motion", "councillor_election"].includes(proposalType) || !title || !proposalBody) {
+  if (!["legislation", "motion", "councillor_election", "promotion", "disciplinary", "kaggath"].includes(proposalType) || !title || !proposalBody) {
     return { ok: false, status: 400, payload: { ok: false, reason: "PROPOSAL_FIELDS_REQUIRED" } };
   }
 
   const roleSnapshot = await fetchCouncilEligibleSnapshot();
   const opensAt = new Date();
   const closesAt = new Date(opensAt.getTime() + durationHours * 60 * 60 * 1000);
-  const targetStatus = (body.status === "docket" || body.targetStatus === "docket") ? "docket" : "open";
 
   await supabaseRest("council_proposals", {
     method: "POST",
@@ -3015,6 +3020,25 @@ export async function createCouncilProposal(auth, body) {
       eligible_snapshot: roleSnapshot.snapshot,
       counting_eligible_count: roleSnapshot.countingEligibleCount,
       majority_count: roleSnapshot.majorityCount
+    })
+  });
+
+  return { ok: true, status: 200, payload: { ok: true, proposals: await loadCouncilProposals() } };
+}
+
+export async function approveCouncilDocketItem(auth, body) {
+  const permissions = councilPermissions(auth.profile);
+  if (!permissions.canPropose) {
+    return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
+  }
+
+  const proposalId = requireString(body.proposalId || body.id);
+  if (!proposalId) return { ok: false, status: 400, payload: { ok: false, reason: "PROPOSAL_ID_REQUIRED" } };
+
+  await supabaseRest(`council_proposals?id=eq.${encodeURIComponent(proposalId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      status: "docket"
     })
   });
 
@@ -3117,7 +3141,9 @@ export async function writeCouncilVote(auth, body) {
   }
 
   const proposalId = requireString(body.proposalId || body.proposal_id);
-  const vote = requireString(body.vote).toLowerCase();
+  let vote = requireString(body.vote).toLowerCase();
+  if (vote === "guilty") vote = "yes";
+  if (vote === "not_guilty") vote = "no";
   if (!proposalId || !["yes", "no", "abstain"].includes(vote)) {
     return { ok: false, status: 400, payload: { ok: false, reason: "VOTE_FIELDS_REQUIRED" } };
   }

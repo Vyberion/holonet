@@ -18,9 +18,9 @@ body:has(.codex-modal-backdrop.active) .site-frame,
 body:has(.codex-modal-backdrop.active) .site-main,
 body:has(.doctrine-modal-backdrop.active) .site-frame,
 body:has(.doctrine-modal-backdrop.active) .site-main {
-  filter: blur(5px);
+  filter: blur(10px);
   transform: scale(1.006);
-  transition: filter 0.18s ease, transform 0.18s ease;
+  transition: filter 0.2s ease, transform 0.2s ease;
 }
 
 .codex-modal-backdrop,
@@ -40,10 +40,9 @@ body:has(.doctrine-modal-backdrop.active) .site-main {
   align-items: flex-start;
   background:
     radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 8%, transparent), transparent 68%),
-    linear-gradient(rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.32)),
-    color-mix(in srgb, var(--theme-bg, var(--void)) 72%, transparent);
-  backdrop-filter: blur(5px) saturate(0.9);
-  -webkit-backdrop-filter: blur(5px) saturate(0.9);
+    rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
   display: none;
   inset: 0;
   justify-content: center;
@@ -403,10 +402,9 @@ body:has(.doctrine-modal-backdrop.active) .site-main {
   align-items: flex-start;
   background:
     radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 8%, transparent), transparent 68%),
-    linear-gradient(rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.32)),
-    color-mix(in srgb, var(--theme-bg, var(--void)) 72%, transparent);
-  backdrop-filter: blur(5px) saturate(0.9);
-  -webkit-backdrop-filter: blur(5px) saturate(0.9);
+    rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
   display: none;
   inset: 0;
   justify-content: center;
@@ -674,9 +672,9 @@ body:has(.doctrine-modal-backdrop.active) .site-main {
   inset: 0;
   background:
     radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 8%, transparent), transparent 68%),
-    rgba(0, 0, 0, 0.60);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+    rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
   z-index: 4000;
   display: none;
   align-items: center;

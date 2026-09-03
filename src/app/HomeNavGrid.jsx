@@ -111,7 +111,7 @@ export function HomeNavGrid() {
       clearance: "CLEARANCE: RESTRICTED",
       designation: "DESIGNATION: LEVEL 2",
       category: "Section 04 — Disciplines",
-      desc: "The Departments and divisions of the Sith Order."
+      desc: "Specialised divisions."
     });
   }
 
@@ -124,7 +124,7 @@ export function HomeNavGrid() {
       clearance: "CLEARANCE: CLASSIFIED",
       designation: "DESIGNATION: LEVEL 3",
       category: "Section 05 — Council",
-      desc: "The legislative body of the Sith Order."
+      desc: "Dark Council."
     });
   }
 

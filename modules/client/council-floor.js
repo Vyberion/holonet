@@ -280,7 +280,7 @@ function renderCouncil(mount, payload) {
               The Council Floor
             </h1>
             <p style="color: var(--text-dim); font-family: Share Tech Mono, monospace; font-size: 0.85rem; margin: 0;">
-              Legislative agenda, floor deliberations, statutory ratifications, and classified records.
+              The legislative body of the Sith Order.
             </p>
           </div>
           <div>
@@ -337,8 +337,8 @@ function renderCouncil(mount, payload) {
 
       <div class="council-proposal-stack" style="margin-top: 2rem;">
         ${displayItems.length
-          ? displayItems.map(proposal => renderProposal(proposal, permissions)).join("")
-          : `<div style="text-align: center; padding: 4rem 1rem; border: 1px dashed var(--border-hot); background: rgba(192,0,26,0.02); font-family: 'Share Tech Mono', monospace; color: var(--text-dim);">NO COUNCIL PROPOSALS RECORDED UNDER THIS CATEGORY.</div>`}
+      ? displayItems.map(proposal => renderProposal(proposal, permissions)).join("")
+      : `<div style="text-align: center; padding: 4rem 1rem; border: 1px dashed var(--border-hot); background: rgba(192,0,26,0.02); font-family: 'Share Tech Mono', monospace; color: var(--text-dim);">NO COUNCIL PROPOSALS RECORDED UNDER THIS CATEGORY.</div>`}
       </div>
     </section>
   `;

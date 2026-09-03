@@ -329,7 +329,7 @@ function renderCouncil(mount, payload) {
 
           ${permissions.canPropose ? `
             <button type="button" class="hub-write-btn" data-council-new style="margin-left: auto; padding: 0.4rem 1.1rem; font-size: 0.8rem;">
-              + INSCRIBE PROPOSAL
+              INSCRIBE PROPOSAL
             </button>
           ` : ""}
         </div>

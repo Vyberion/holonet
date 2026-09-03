@@ -16,6 +16,126 @@ const CATEGORIES = [
   { id: "owner", label: "OWNERSHIP" }
 ];
 
+const MONTH_MAP = {
+  jan: 0, january: 0,
+  feb: 1, february: 1,
+  mar: 2, march: 2,
+  apr: 3, april: 3,
+  may: 4,
+  jun: 5, june: 5,
+  jul: 6, july: 6,
+  aug: 7, august: 7,
+  sep: 8, sept: 8, september: 8,
+  oct: 9, october: 9,
+  nov: 10, november: 10,
+  dec: 11, december: 11
+};
+
+export function parseFlexibleDate(raw) {
+  if (!raw || typeof raw !== "string") return null;
+  const str = raw.trim();
+  if (!str) return null;
+
+  // 1. American numeric: M/D/YY, M/D/YYYY, MM/DD/YY, MM/DD/YYYY, or with dashes (e.g. 9/3/26, 09/03/26, 9/3/2026, 09/03/2026)
+  const usNumericMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (usNumericMatch) {
+    const month = parseInt(usNumericMatch[1], 10) - 1;
+    const day = parseInt(usNumericMatch[2], 10);
+    let year = parseInt(usNumericMatch[3], 10);
+    if (year < 100) {
+      year += year < 50 ? 2000 : 1900;
+    }
+    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+      return new Date(Date.UTC(year, month, day)).getTime();
+    }
+  }
+
+  // 2. Day of month year: e.g. "3rd of September 2026", "3 September 2026", "3rd September 2026", "03 September 26"
+  const dmyMatch = str.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([A-Za-z]+)(?:,)?\s+(\d{2,4})/i);
+  if (dmyMatch) {
+    const day = parseInt(dmyMatch[1], 10);
+    const monthKey = dmyMatch[2].toLowerCase();
+    let year = parseInt(dmyMatch[3], 10);
+    if (year < 100) {
+      year += year < 50 ? 2000 : 1900;
+    }
+    if (MONTH_MAP[monthKey] !== undefined && day >= 1 && day <= 31) {
+      return new Date(Date.UTC(year, MONTH_MAP[monthKey], day)).getTime();
+    }
+  }
+
+  // 3. Month day year: e.g. "September 3rd 2026", "September 3, 2026", "Sep 3 2026", "September 03, 26"
+  const mdyMatch = str.match(/^([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,)?\s+(\d{2,4})/i);
+  if (mdyMatch) {
+    const monthKey = mdyMatch[1].toLowerCase();
+    const day = parseInt(mdyMatch[2], 10);
+    let year = parseInt(mdyMatch[3], 10);
+    if (year < 100) {
+      year += year < 50 ? 2000 : 1900;
+    }
+    if (MONTH_MAP[monthKey] !== undefined && day >= 1 && day <= 31) {
+      return new Date(Date.UTC(year, MONTH_MAP[monthKey], day)).getTime();
+    }
+  }
+
+  // 4. Month year: e.g. "September 2026", "Sep 2026"
+  const myMatch = str.match(/^([A-Za-z]+)\s+(\d{2,4})$/i);
+  if (myMatch) {
+    const monthKey = myMatch[1].toLowerCase();
+    let year = parseInt(myMatch[2], 10);
+    if (year < 100) {
+      year += year < 50 ? 2000 : 1900;
+    }
+    if (MONTH_MAP[monthKey] !== undefined) {
+      return new Date(Date.UTC(year, MONTH_MAP[monthKey], 1)).getTime();
+    }
+  }
+
+  // 5. Star Wars / Galactic BTC / ATC era check: e.g. "24 BTC", "1000 BBY", "500 ABY", "12 ATC"
+  const btcMatch = str.match(/^(\d+)\s*BTC$/i) || str.match(/^(\d+)\s*BBY$/i);
+  if (btcMatch) {
+    const num = parseInt(btcMatch[1], 10);
+    return -1000000000000000 - num;
+  }
+  const atcMatch = str.match(/^(\d+)\s*ATC$/i) || str.match(/^(\d+)\s*ABY$/i);
+  if (atcMatch) {
+    const num = parseInt(atcMatch[1], 10);
+    return -1000000000000000 + 1000000 + num;
+  }
+
+  // 6. ISO Date check: YYYY-MM-DD or YYYY/MM/DD
+  const isoMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (isoMatch) {
+    const year = parseInt(isoMatch[1], 10);
+    const month = parseInt(isoMatch[2], 10) - 1;
+    const day = parseInt(isoMatch[3], 10);
+    return new Date(Date.UTC(year, month, day)).getTime();
+  }
+
+  // 7. Plain 4-digit year: e.g. "2026"
+  const yearMatch = str.match(/^(\d{4})$/);
+  if (yearMatch) {
+    return new Date(Date.UTC(parseInt(yearMatch[1], 10), 0, 1)).getTime();
+  }
+
+  // 8. Native Date.parse fallback
+  const parsed = Date.parse(str);
+  if (!isNaN(parsed)) return parsed;
+
+  return null;
+}
+
+export function getEntryTimestamp(entry) {
+  if (!entry) return 0;
+  return (
+    parseFlexibleDate(entry.dateLabel) ??
+    parseFlexibleDate(entry.startDate) ??
+    parseFlexibleDate(entry.endDate) ??
+    parseFlexibleDate(entry.createdAt) ??
+    0
+  );
+}
+
 export default function TimelineClient() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -160,10 +280,20 @@ export default function TimelineClient() {
     }
   };
 
-  const filteredEntries = entries.filter((entry) => {
-    if (selectedCategory === "all") return true;
-    return (entry.category || "major_event").toLowerCase() === selectedCategory.toLowerCase();
-  });
+  const filteredEntries = entries
+    .filter((entry) => {
+      if (selectedCategory === "all") return true;
+      return (entry.category || "major_event").toLowerCase() === selectedCategory.toLowerCase();
+    })
+    .sort((a, b) => {
+      const timeA = getEntryTimestamp(a);
+      const timeB = getEntryTimestamp(b);
+      if (timeA !== timeB) return timeA - timeB;
+      const orderA = Number.isFinite(Number(a.displayOrder)) ? Number(a.displayOrder) : 0;
+      const orderB = Number.isFinite(Number(b.displayOrder)) ? Number(b.displayOrder) : 0;
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.id || "").localeCompare(b.id || "");
+    });
 
   return (
     <HolonetFrame
@@ -173,6 +303,33 @@ export default function TimelineClient() {
       includeSearchOverlay
     >
       <div className="timeline-shell" style={{ width: "100%", margin: "0 auto", padding: "0.5rem 0 4rem" }}>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media (max-width: 860px) {
+            .timeline-center-spine {
+              left: 20px !important;
+              transform: none !important;
+            }
+            .timeline-spine-dot {
+              left: 20px !important;
+              transform: translate(-50%, -50%) !important;
+            }
+            .timeline-branch-row {
+              justify-content: flex-end !important;
+              padding-left: 45px !important;
+              box-sizing: border-box !important;
+            }
+            .timeline-tree-card {
+              width: 100% !important;
+              border-left: 3px solid var(--red-bright) !important;
+              border-right: 1px solid var(--border) !important;
+            }
+            .timeline-branch-line {
+              left: -45px !important;
+              right: auto !important;
+              width: 45px !important;
+            }
+          }
+        `}} />
         
         {/* Classification Tag Filter Tabs (Doctrine / Hierarchy Style) */}
         <div className="hierarchy-tabs-shell" style={{ margin: "0.5rem 0 2.5rem" }}>
@@ -220,93 +377,135 @@ export default function TimelineClient() {
             </p>
           </div>
         ) : (
-          <div className="timeline-track" style={{ position: "relative", paddingLeft: "2rem" }}>
-            {/* Vertical Glowing Spine */}
+          <div className="timeline-tree-container" style={{ position: "relative", maxWidth: "1200px", margin: "0 auto", padding: "2rem 0" }}>
+            {/* Central Vertical Spine */}
             <div
+              className="timeline-center-spine"
               style={{
                 position: "absolute",
-                left: "8px",
-                top: "10px",
-                bottom: "10px",
+                left: "50%",
+                top: 0,
+                bottom: 0,
                 width: "2px",
-                background: "linear-gradient(180deg, var(--red-bright) 0%, rgba(192,0,26,0.3) 50%, transparent 100%)",
-                boxShadow: "0 0 10px var(--red-glow)"
+                transform: "translateX(-50%)",
+                background: "linear-gradient(180deg, var(--red-bright) 0%, rgba(192,0,26,0.4) 70%, transparent 100%)",
+                boxShadow: "0 0 12px var(--red-glow)",
+                zIndex: 1
               }}
             />
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem", position: "relative", zIndex: 2 }}>
               {filteredEntries.map((entry, index) => {
+                const isLeft = index % 2 === 0;
                 const dateText = entry.dateLabel || [entry.startDate, entry.endDate].filter(Boolean).join(" - ") || "Undated Record";
 
                 return (
-                  <article
+                  <div
                     key={entry.id || index}
-                    className="codex-article"
-                    style={{ position: "relative", width: "100%", margin: "0 0 1.5rem 0", boxSizing: "border-box", scrollMarginTop: "100px" }}
+                    className={`timeline-branch-row ${isLeft ? "is-left" : "is-right"}`}
+                    style={{
+                      display: "flex",
+                      justifyContent: isLeft ? "flex-start" : "flex-end",
+                      position: "relative",
+                      width: "100%"
+                    }}
                   >
-                    {/* Node Dot on the Spine */}
+                    {/* Node Dot on the Central Spine */}
                     <div
+                      className="timeline-spine-dot"
                       style={{
                         position: "absolute",
-                        left: "-2.35rem",
-                        top: "2rem",
-                        width: "14px",
-                        height: "14px",
+                        left: "50%",
+                        top: "1.8rem",
+                        transform: "translate(-50%, -50%)",
+                        width: "16px",
+                        height: "16px",
                         borderRadius: "50%",
-                        background: "var(--surface)",
+                        background: "#0d0b09",
                         border: "2px solid var(--red-bright)",
-                        boxShadow: "0 0 8px var(--red-glow)"
+                        boxShadow: "0 0 10px var(--red-glow)",
+                        zIndex: 3
                       }}
                     />
 
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.8rem", borderBottom: "1px solid var(--border)", paddingBottom: "0.8rem", marginBottom: "1rem" }}>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.8rem", marginBottom: "0.3rem" }}>
-                          <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--red-bright)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                            // {entry.category || "EVENT"}
-                          </span>
-                          <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.72rem", color: "var(--text-dim)", background: "rgba(0,0,0,0.5)", border: "1px solid var(--border)", padding: "0.1rem 0.4rem" }}>
-                            {dateText}
-                          </span>
+                    {/* Timeline Event Card (Occupies roughly 46% of width on desktop) */}
+                    <article
+                      className="codex-article timeline-tree-card"
+                      style={{
+                        width: "calc(50% - 2.5rem)",
+                        margin: 0,
+                        position: "relative",
+                        background: "linear-gradient(135deg, rgba(192,0,26,0.04) 0%, transparent 60%), #14110e",
+                        border: "1px solid var(--border)",
+                        borderLeft: isLeft ? "3px solid var(--red-bright)" : "1px solid var(--border)",
+                        borderRight: !isLeft ? "3px solid var(--red-bright)" : "1px solid var(--border)",
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+                        padding: "1.5rem"
+                      }}
+                    >
+                      {/* Branch Connector Line pointing toward the center spine */}
+                      <div
+                        className="timeline-branch-line"
+                        style={{
+                          position: "absolute",
+                          top: "1.8rem",
+                          [isLeft ? "right" : "left"]: "-2.5rem",
+                          width: "2.5rem",
+                          height: "1px",
+                          background: "linear-gradient(90deg, var(--red-bright), rgba(192,0,26,0.3))",
+                          boxShadow: "0 0 6px var(--red-glow)"
+                        }}
+                      />
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.8rem", borderBottom: "1px solid var(--border)", paddingBottom: "0.8rem", marginBottom: "1rem" }}>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.3rem", flexWrap: "wrap" }}>
+                            <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.72rem", color: "var(--red-bright)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                              // {entry.category || "EVENT"}
+                            </span>
+                            <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.7rem", color: "var(--text-dim)", background: "rgba(0,0,0,0.5)", border: "1px solid var(--border)", padding: "0.1rem 0.45rem" }}>
+                              {dateText}
+                            </span>
+                          </div>
+                          <h2 style={{ fontFamily: "Cinzel, serif", fontSize: "1.25rem", color: "var(--red-bright)", margin: "0.2rem 0 0", textShadow: "0 0 6px rgba(255,0,34,0.4)", letterSpacing: "0.05em" }}>
+                            {entry.title}
+                          </h2>
                         </div>
-                        <h2 style={{ fontFamily: "Cinzel, serif", fontSize: "1.35rem", color: "var(--red-bright)", margin: 0, textShadow: "0 0 6px rgba(255,0,34,0.4)" }}>
-                          {entry.title}
-                        </h2>
+
+                        {canEdit && (
+                          <button
+                            type="button"
+                            className="hub-write-btn"
+                            onClick={(e) => handleOpenEdit(entry, e)}
+                            style={{ padding: "0.25rem 0.65rem", fontSize: "0.7rem" }}
+                          >
+                            EDIT
+                          </button>
+                        )}
                       </div>
 
-                      {canEdit && (
-                        <button
-                          type="button"
-                          className="hub-write-btn"
-                          onClick={(e) => handleOpenEdit(entry, e)}
-                          style={{ padding: "0.3rem 0.8rem", fontSize: "0.72rem" }}
-                        >
-                          EDIT RECORD
-                        </button>
+                      {entry.summary && (
+                        <div style={{ background: "rgba(192,0,26,0.06)", borderLeft: "3px solid var(--red-bright)", padding: "0.8rem 1rem", marginBottom: "1.2rem", fontStyle: "italic", fontSize: "0.88rem", color: "var(--text-bright)" }}>
+                          <DiscordMarkdown content={entry.summary} />
+                        </div>
                       )}
-                    </div>
 
-                    {entry.summary && (
-                      <div style={{ background: "rgba(192,0,26,0.06)", borderLeft: "3px solid var(--red-bright)", padding: "0.8rem 1rem", marginBottom: "1.2rem", fontStyle: "italic" }}>
-                        <DiscordMarkdown content={entry.summary} />
+                      {entry.imageUrl && (
+                        <div style={{ margin: "1rem 0", maxWidth: "100%", border: "1px solid var(--border-hot)", overflow: "hidden" }}>
+                          <img
+                            src={entry.imageUrl}
+                            alt={entry.imageAlt || entry.title}
+                            style={{ width: "100%", height: "auto", display: "block", cursor: "pointer" }}
+                            onClick={() => setSelectedImage(entry.imageUrl)}
+                          />
+                        </div>
+                      )}
+
+                      <div style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.9rem", lineHeight: "1.65", color: "var(--text-bright)" }}>
+                        <DiscordMarkdown content={entry.body} />
                       </div>
-                    )}
-
-                    {entry.imageUrl && (
-                      <div style={{ margin: "1rem 0", maxWidth: "600px", border: "1px solid var(--border-hot)", overflow: "hidden" }}>
-                        <img
-                          src={entry.imageUrl}
-                          alt={entry.imageAlt || entry.title}
-                          style={{ width: "100%", height: "auto", display: "block", cursor: "pointer" }}
-                          onClick={() => setSelectedImage(entry.imageUrl)}
-                        />
-                      </div>
-                    )}
-
-                    <div style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.92rem", lineHeight: "1.65", color: "var(--text-bright)" }}>
-                      <DiscordMarkdown content={entry.body} />
-                    </div>
-                  </article>
+                    </article>
+                  </div>
                 );
               })}
             </div>

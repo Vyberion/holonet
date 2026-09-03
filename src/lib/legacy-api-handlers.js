@@ -2474,15 +2474,15 @@ function voteCounts(votes = []) {
 }
 
 function derivedCouncilStatus(proposal, votes = []) {
-  if (["vetoed", "withdrawn", "passed", "failed"].includes(proposal.status)) return proposal.status;
+  if (proposal.status === "vetoed" && proposal.vetoed_by) return "vetoed";
+  if (["withdrawn", "passed", "failed", "docket", "submitted"].includes(proposal.status)) return proposal.status;
 
-  const openedAt = new Date(proposal.opens_at || proposal.created_at);
   const closesAt = new Date(proposal.closes_at);
   const now = new Date();
-  const minimumCloseAt = new Date(openedAt.getTime() + 24 * 60 * 60 * 1000);
   const counts = voteCounts(votes);
+  const majority = Number(proposal.majority_count || 1);
 
-  if (now >= minimumCloseAt && counts.yes >= Number(proposal.majority_count || 1)) {
+  if (counts.yes >= majority) {
     return "passed";
   }
 
@@ -2740,11 +2740,145 @@ function normalizeTimelineEntry(entry) {
   };
 }
 
+const MONTH_MAP = {
+  jan: 0, january: 0,
+  feb: 1, february: 1,
+  mar: 2, march: 2,
+  apr: 3, april: 3,
+  may: 4,
+  jun: 5, june: 5,
+  jul: 6, july: 6,
+  aug: 7, august: 7,
+  sep: 8, sept: 8, september: 8,
+  oct: 9, october: 9,
+  nov: 10, november: 10,
+  dec: 11, december: 11
+};
+
+function parseFlexibleDate(raw) {
+  if (!raw || typeof raw !== "string") return null;
+  const str = raw.trim();
+  if (!str) return null;
+
+  // 1. American numeric: M/D/YY, M/D/YYYY, MM/DD/YY, MM/DD/YYYY, or with dashes
+  const usNumericMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (usNumericMatch) {
+    const month = parseInt(usNumericMatch[1], 10) - 1;
+    const day = parseInt(usNumericMatch[2], 10);
+    let year = parseInt(usNumericMatch[3], 10);
+    if (year < 100) {
+      year += year < 50 ? 2000 : 1900;
+    }
+    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+      return new Date(Date.UTC(year, month, day)).getTime();
+    }
+  }
+
+  // 2. Day of month year: e.g. "3rd of September 2026", "3 September 2026", "3rd September 2026"
+  const dmyMatch = str.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([A-Za-z]+)(?:,)?\s+(\d{2,4})/i);
+  if (dmyMatch) {
+    const day = parseInt(dmyMatch[1], 10);
+    const monthKey = dmyMatch[2].toLowerCase();
+    let year = parseInt(dmyMatch[3], 10);
+    if (year < 100) {
+      year += year < 50 ? 2000 : 1900;
+    }
+    if (MONTH_MAP[monthKey] !== undefined && day >= 1 && day <= 31) {
+      return new Date(Date.UTC(year, MONTH_MAP[monthKey], day)).getTime();
+    }
+  }
+
+  // 3. Month day year: e.g. "September 3rd 2026", "September 3, 2026", "Sep 3 2026"
+  const mdyMatch = str.match(/^([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,)?\s+(\d{2,4})/i);
+  if (mdyMatch) {
+    const monthKey = mdyMatch[1].toLowerCase();
+    const day = parseInt(mdyMatch[2], 10);
+    let year = parseInt(mdyMatch[3], 10);
+    if (year < 100) {
+      year += year < 50 ? 2000 : 1900;
+    }
+    if (MONTH_MAP[monthKey] !== undefined && day >= 1 && day <= 31) {
+      return new Date(Date.UTC(year, MONTH_MAP[monthKey], day)).getTime();
+    }
+  }
+
+  // 4. Month year: e.g. "September 2026", "Sep 2026"
+  const myMatch = str.match(/^([A-Za-z]+)\s+(\d{2,4})$/i);
+  if (myMatch) {
+    const monthKey = myMatch[1].toLowerCase();
+    let year = parseInt(myMatch[2], 10);
+    if (year < 100) {
+      year += year < 50 ? 2000 : 1900;
+    }
+    if (MONTH_MAP[monthKey] !== undefined) {
+      return new Date(Date.UTC(year, MONTH_MAP[monthKey], 1)).getTime();
+    }
+  }
+
+  // 5. Star Wars / Galactic BTC / ATC era check
+  const btcMatch = str.match(/^(\d+)\s*BTC$/i) || str.match(/^(\d+)\s*BBY$/i);
+  if (btcMatch) {
+    const num = parseInt(btcMatch[1], 10);
+    return -1000000000000000 - num;
+  }
+  const atcMatch = str.match(/^(\d+)\s*ATC$/i) || str.match(/^(\d+)\s*ABY$/i);
+  if (atcMatch) {
+    const num = parseInt(atcMatch[1], 10);
+    return -1000000000000000 + 1000000 + num;
+  }
+
+  // 6. ISO Date check: YYYY-MM-DD or YYYY/MM/DD
+  const isoMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (isoMatch) {
+    const year = parseInt(isoMatch[1], 10);
+    const month = parseInt(isoMatch[2], 10) - 1;
+    const day = parseInt(isoMatch[3], 10);
+    return new Date(Date.UTC(year, month, day)).getTime();
+  }
+
+  // 7. Plain 4-digit year
+  const yearMatch = str.match(/^(\d{4})$/);
+  if (yearMatch) {
+    return new Date(Date.UTC(parseInt(yearMatch[1], 10), 0, 1)).getTime();
+  }
+
+  const parsed = Date.parse(str);
+  if (!isNaN(parsed)) return parsed;
+
+  return null;
+}
+
+function parseDateToIso(str) {
+  const ts = parseFlexibleDate(str);
+  if (!ts || ts < 0) return null;
+  return new Date(ts).toISOString().slice(0, 10);
+}
+
+function getEntryTimestamp(entry) {
+  if (!entry) return 0;
+  return (
+    parseFlexibleDate(entry.dateLabel || entry.date_label) ??
+    parseFlexibleDate(entry.startDate || entry.start_date) ??
+    parseFlexibleDate(entry.endDate || entry.end_date) ??
+    parseFlexibleDate(entry.createdAt || entry.created_at) ??
+    0
+  );
+}
+
 async function loadTimelineEntries() {
   const entries = await supabaseRest(
     "group_timeline_entries?select=*&order=start_date.asc,display_order.asc,created_at.asc"
   );
-  return (entries || []).map(normalizeTimelineEntry);
+  const normalized = (entries || []).map(normalizeTimelineEntry);
+  return normalized.sort((a, b) => {
+    const timeA = getEntryTimestamp(a);
+    const timeB = getEntryTimestamp(b);
+    if (timeA !== timeB) return timeA - timeB;
+    const orderA = Number.isFinite(Number(a.displayOrder)) ? Number(a.displayOrder) : 0;
+    const orderB = Number.isFinite(Number(b.displayOrder)) ? Number(b.displayOrder) : 0;
+    if (orderA !== orderB) return orderA - orderB;
+    return (a.id || "").localeCompare(b.id || "");
+  });
 }
 
 async function writeTimelineEntry(auth, body) {
@@ -2762,12 +2896,17 @@ async function writeTimelineEntry(auth, body) {
     return { ok: false, status: 400, payload: { ok: false, reason: "TIMELINE_FIELDS_REQUIRED" } };
   }
 
+  const dateLabel = requireString(body.dateLabel || body.date_label);
+  const explicitStartDate = body.startDate || body.start_date || null;
+  const inferredStartDate = parseDateToIso(dateLabel);
+  const startDate = explicitStartDate || inferredStartDate || null;
+
   const payload = {
     title,
     body: entryBody,
     category,
-    date_label: requireString(body.dateLabel || body.date_label),
-    start_date: body.startDate || body.start_date || null,
+    date_label: dateLabel,
+    start_date: startDate,
     end_date: body.endDate || body.end_date || null,
     image_path: requireString(body.imagePath || body.image_path),
     image_alt: requireString(body.imageAlt || body.image_alt || title),

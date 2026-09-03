@@ -12,6 +12,21 @@ export default function FloorClient() {
   const [voteOpinion, setVoteOpinion] = useState("");
   const [sanctionChoice, setSanctionChoice] = useState("demotion");
   const [statusNotice, setStatusNotice] = useState(null);
+  const [expandedHistoryIds, setExpandedHistoryIds] = useState({});
+
+  const toggleHistoryItem = (id) => {
+    setExpandedHistoryIds(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  useEffect(() => {
+    if (statusNotice) {
+      const timer = setTimeout(() => setStatusNotice(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [statusNotice]);
 
   const loadData = async () => {
     try {
@@ -264,8 +279,8 @@ export default function FloorClient() {
       {/* VIEW: Active Floor Deliberation & Voting */}
       {selectedTab === "active" ? (
         activeFloorItems.length === 0 ? (
-          <div style={{ padding: "4rem 1rem", textAlign: "center", border: "1px dashed var(--theme-border-hot)", background: "rgba(0,0,0,0.3)" }}>
-            <p style={{ fontFamily: "Cinzel, serif", fontSize: "1.2rem", color: "var(--theme-accent)", margin: "0 0 0.5rem" }}>
+          <div style={{ padding: "4rem 1rem", textAlign: "center", border: "1px dashed var(--theme-border-hot)" }}>
+            <p style={{ fontFamily: "Orbitron, monospace", fontSize: "1.05rem", fontWeight: 700, color: "var(--theme-accent)", margin: "0 0 0.5rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
               The Floor is Currently Adjourned
             </p>
             <p style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.85rem", color: "var(--text-dim)", maxWidth: "500px", margin: "0 auto 1.5rem" }}>
@@ -325,7 +340,7 @@ export default function FloorClient() {
                           letterSpacing: "0.15em",
                           textTransform: "uppercase"
                         }}>
-                          // ACTIVE FLOOR MOTION • {cat}
+                          // {cat}
                         </span>
                         <span style={{
                           fontFamily: "Share Tech Mono, monospace",
@@ -638,42 +653,214 @@ export default function FloorClient() {
         /* VIEW: Recorded Votes */
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {recordedItems.length === 0 ? (
-            <p style={{ color: "var(--text-dim)", fontFamily: "Share Tech Mono, monospace", textAlign: "center", padding: "3rem" }}>
-              No recorded votes archived yet.
-            </p>
+            <div style={{ padding: "4rem 1rem", textAlign: "center", border: "1px dashed var(--theme-border-hot)" }}>
+              <p style={{ fontFamily: "Orbitron, monospace", fontSize: "1.05rem", fontWeight: 700, color: "var(--theme-accent)", margin: "0 0 0.5rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                No Recorded Votes
+              </p>
+              <p style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.85rem", color: "var(--text-dim)", maxWidth: "500px", margin: "0 auto" }}>
+                No past votes or concluded deliberations have been archived yet.
+              </p>
+            </div>
           ) : (
-            recordedItems.map(item => (
-              <div
-                key={item.id}
-                style={{
-                  background: "linear-gradient(135deg, rgba(168, 151, 134, 0.04) 0%, transparent 60%), #1c1814",
-                  border: "1px solid var(--border)",
-                  padding: "1.2rem 1.5rem"
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.8rem", marginBottom: "0.5rem" }}>
-                  <h3 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.05rem", fontWeight: 700, color: "var(--theme-accent)", margin: 0, letterSpacing: "0.03em" }}>
-                    {item.title}
-                  </h3>
-                  <span style={{
-                    fontFamily: "Orbitron, monospace",
-                    fontSize: "0.72rem",
-                    padding: "0.2rem 0.6rem",
-                    background: item.status === "passed" ? "rgba(53, 196, 111, 0.15)" : "rgba(192, 0, 26, 0.15)",
-                    color: item.status === "passed" ? "#8affb2" : "#ff8080",
-                    border: `1px solid ${item.status === "passed" ? "#35c46f" : "#771521"}`
-                  }}>
-                    {String(item.status).toUpperCase()}
-                  </span>
+            recordedItems.map(item => {
+              const parsed = parseItemContent(item);
+              const cat = (parsed.category || item.proposalType || "legislation").toLowerCase();
+              const status = String(item.status || "concluded").toLowerCase();
+              const isExpanded = Boolean(expandedHistoryIds[item.id]);
+
+              const typeBadge = {
+                legislation: { label: "LEGISLATION", color: "var(--theme-accent)" },
+                promotion: { label: "PROMOTION", color: "#e3a857" },
+                disciplinary: { label: "TRIBUNAL", color: "#ff5252" },
+                kaggath: { label: "KAGGATH", color: "#c0ab98" }
+              }[cat] || { label: "PROPOSAL", color: "var(--theme-accent)" };
+
+              const outcomeBadge = status === "passed" ? {
+                label: "PASSED / CODIFIED",
+                bg: "rgba(53, 196, 111, 0.15)",
+                color: "#8affb2",
+                border: "#35c46f"
+              } : status === "vetoed" ? {
+                label: "VETOED BY HIGH COMMAND",
+                bg: "rgba(227, 168, 87, 0.15)",
+                color: "#ffd180",
+                border: "#e3a857"
+              } : {
+                label: "FAILED / REJECTED",
+                bg: "rgba(192, 0, 26, 0.2)",
+                color: "#ff8080",
+                border: "#ff4d4d"
+              };
+
+              return (
+                <div
+                  key={item.id}
+                  style={{
+                    background: "linear-gradient(135deg, rgba(168, 151, 134, 0.05) 0%, transparent 60%), #1c1814",
+                    border: `1px solid ${outcomeBadge.border}44`,
+                    borderLeft: `4px solid ${outcomeBadge.border}`,
+                    position: "relative",
+                    transition: "border-color 0.2s"
+                  }}
+                >
+                  {/* Collapsed Header Bar (Clickable) */}
+                  <div
+                    onClick={() => toggleHistoryItem(item.id)}
+                    style={{
+                      padding: "1.2rem 1.4rem",
+                      cursor: "pointer",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: "0.8rem",
+                      background: isExpanded ? "rgba(0,0,0,0.3)" : "transparent"
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: "260px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.3rem", flexWrap: "wrap" }}>
+                        <span style={{
+                          fontFamily: "Share Tech Mono, monospace",
+                          fontSize: "0.68rem",
+                          color: typeBadge.color,
+                          background: "rgba(0,0,0,0.5)",
+                          border: `1px solid ${typeBadge.color}`,
+                          padding: "0.15rem 0.5rem",
+                          letterSpacing: "0.1em"
+                        }}>
+                          // {typeBadge.label}
+                        </span>
+                        <span style={{
+                          fontFamily: "Orbitron, monospace",
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: outcomeBadge.color,
+                          background: outcomeBadge.bg,
+                          border: `1px solid ${outcomeBadge.border}`,
+                          padding: "0.15rem 0.55rem",
+                          letterSpacing: "0.08em"
+                        }}>
+                          {outcomeBadge.label}
+                        </span>
+                      </div>
+                      <h3 style={{ fontFamily: "Orbitron, monospace", fontSize: "1.05rem", fontWeight: 700, color: "var(--theme-accent)", margin: 0, letterSpacing: "0.03em" }}>
+                        {item.title}
+                      </h3>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap" }}>
+                      <div style={{ textAlign: "right", fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem" }}>
+                        <span style={{ display: "block", color: "var(--text-dim)" }}>
+                          Ayes: <strong style={{ color: "#8affb2" }}>{item.counts?.yes || 0}</strong> &bull; Nays: <strong style={{ color: "#ff8080" }}>{item.counts?.no || 0}</strong>
+                        </span>
+                        <span style={{ fontSize: "0.68rem", color: "var(--text-faint)" }}>
+                          {item.closesAt ? new Date(item.closesAt).toLocaleDateString() : (item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "")}
+                        </span>
+                      </div>
+                      <span style={{
+                        fontFamily: "Orbitron, monospace",
+                        fontSize: "0.9rem",
+                        color: "var(--theme-accent)",
+                        transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                        transition: "transform 0.2s"
+                      }}>
+                        ▼
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Expanded Body Panel (Like Codex Article) */}
+                  {isExpanded && (
+                    <div style={{ padding: "0 1.4rem 1.4rem", borderTop: "1px solid var(--border)", marginTop: "0.4rem", paddingTop: "1.2rem" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", fontFamily: "Share Tech Mono, monospace", fontSize: "0.72rem", color: "var(--text-dim)" }}>
+                        <span>Author / Sponsor: <strong style={{ color: "var(--text-bright)" }}>{item.createdByName || "Councilor"}</strong></span>
+                        {item.majorityCount > 0 && <span>Quorum Required: <strong style={{ color: "var(--theme-accent)" }}>{item.majorityCount} Ayes</strong></span>}
+                      </div>
+
+                      {/* Specific Highlights */}
+                      {cat === "promotion" && parsed.candidate && (
+                        <div style={{ display: "flex", gap: "1.5rem", background: "rgba(0,0,0,0.3)", padding: "0.6rem 1rem", border: "1px solid var(--theme-border-hot)", marginBottom: "1rem", fontSize: "0.8rem", fontFamily: "Share Tech Mono, monospace" }}>
+                          <span>Candidate: <strong style={{ color: "var(--theme-accent)" }}>{parsed.candidate}</strong></span>
+                          <span>Target Rank: <strong style={{ color: "#e3a857" }}>{parsed.targetRank || "Not Specified"}</strong></span>
+                        </div>
+                      )}
+
+                      {cat === "disciplinary" && parsed.accused && (
+                        <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", background: "rgba(255, 82, 82, 0.05)", padding: "0.6rem 1rem", border: "1px solid rgba(255, 82, 82, 0.2)", marginBottom: "1rem", fontSize: "0.8rem", fontFamily: "Share Tech Mono, monospace" }}>
+                          <span>Accused: <strong style={{ color: "#ff8080" }}>{parsed.accused}</strong></span>
+                          {parsed.proposedSanction && <span>Sanction: <strong style={{ color: "var(--text-bright)" }}>{parsed.proposedSanction}</strong></span>}
+                          {parsed.evidenceUrl && <a href={parsed.evidenceUrl} target="_blank" rel="noreferrer" style={{ color: "var(--theme-accent)", textDecoration: "underline" }}>View Evidence Log</a>}
+                        </div>
+                      )}
+
+                      {cat === "kaggath" && (parsed.challenger || parsed.accused) && (
+                        <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", background: "rgba(168, 151, 134, 0.08)", padding: "0.6rem 1rem", border: "1px solid var(--theme-border-hot)", marginBottom: "1rem", fontSize: "0.8rem", fontFamily: "Share Tech Mono, monospace" }}>
+                          <span>Challenger: <strong style={{ color: "var(--theme-accent)" }}>{parsed.challenger || "Unknown"}</strong></span>
+                          <span style={{ color: "var(--text-faint)" }}>VS</span>
+                          <span>Rival: <strong style={{ color: "#ff8080" }}>{parsed.accused || "Unknown"}</strong></span>
+                          {parsed.kaggathStakes && <span>Stakes: <strong style={{ color: "var(--text-bright)" }}>{parsed.kaggathStakes}</strong></span>}
+                        </div>
+                      )}
+
+                      <div style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.88rem", lineHeight: "1.65", color: "var(--text-bright)", background: "rgba(0,0,0,0.25)", padding: "1rem", border: "1px solid var(--border)", marginBottom: "1rem" }}>
+                        <DiscordMarkdown content={parsed.text || item.body} />
+                      </div>
+
+                      {/* Veto Notation */}
+                      {item.vetoedBy && (
+                        <div style={{ background: "rgba(227, 168, 87, 0.08)", border: "1px solid rgba(227, 168, 87, 0.3)", padding: "0.6rem 1rem", marginBottom: "1rem", fontFamily: "Share Tech Mono, monospace", fontSize: "0.8rem", color: "#ffd180" }}>
+                          <strong>VETO NOTATION:</strong> Vetoed by {item.vetoedByName || item.vetoedBy}{item.vetoReason ? ` — "${item.vetoReason}"` : ""}
+                        </div>
+                      )}
+
+                      {/* Individual Councilor Votes */}
+                      {item.votes && item.votes.length > 0 && (
+                        <div>
+                          <span style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.72rem", color: "var(--text-dim)", textTransform: "uppercase", marginBottom: "0.5rem" }}>
+                            Recorded Council Ballots ({item.votes.length})
+                          </span>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "0.5rem" }}>
+                            {item.votes.map((vote, idx) => (
+                              <div
+                                key={idx}
+                                style={{
+                                  background: "rgba(0,0,0,0.4)",
+                                  border: "1px solid var(--theme-border-hot)",
+                                  padding: "0.5rem 0.75rem",
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center"
+                                }}
+                              >
+                                <div>
+                                  <span style={{ display: "block", fontFamily: "Orbitron, monospace", fontSize: "0.78rem", fontWeight: 700, color: "var(--text-bright)" }}>
+                                    {vote.voterName || "Councilor"}
+                                  </span>
+                                  <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.65rem", color: "var(--text-dim)" }}>
+                                    {vote.voterRank || vote.voterRole || "Seat"}
+                                  </span>
+                                </div>
+                                <span style={{
+                                  fontFamily: "Orbitron, monospace",
+                                  fontSize: "0.72rem",
+                                  fontWeight: 700,
+                                  color: vote.vote === "yes" ? "#8affb2" : vote.vote === "no" ? "#ff8080" : "var(--text-dim)",
+                                  padding: "0.15rem 0.45rem",
+                                  background: vote.vote === "yes" ? "rgba(53, 196, 111, 0.15)" : vote.vote === "no" ? "rgba(192, 0, 26, 0.2)" : "rgba(168, 151, 134, 0.1)",
+                                  border: `1px solid ${vote.vote === "yes" ? "#35c46f" : vote.vote === "no" ? "#ff4d4d" : "var(--theme-border-hot)"}`
+                                }}>
+                                  {String(vote.vote).toUpperCase()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.75rem", color: "var(--text-dim)", display: "flex", gap: "1.5rem" }}>
-                  <span>Ayes: {item.counts?.yes || 0}</span>
-                  <span>Nays: {item.counts?.no || 0}</span>
-                  <span>Abstain: {item.counts?.abstain || 0}</span>
-                  <span>Date: {item.closesAt ? new Date(item.closesAt).toLocaleDateString() : ""}</span>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       )}

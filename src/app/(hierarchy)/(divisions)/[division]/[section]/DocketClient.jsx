@@ -543,7 +543,7 @@ export default function DocketClient() {
       </div>
 
       {/* POPUP MODAL: Submit Council Proposal */}
-      {isSubmitOpen && (
+      {mounted && isSubmitOpen && typeof document !== "undefined" && createPortal(
         <div
           className="codex-modal-backdrop active"
           style={{
@@ -554,7 +554,7 @@ export default function DocketClient() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 1200,
+            zIndex: 4100,
             padding: "1rem"
           }}
           onClick={(e) => {

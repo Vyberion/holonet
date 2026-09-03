@@ -413,19 +413,16 @@ export function councilRoleForRank(rank) {
 export function councilPermissions(profile) {
   const rank = councilRank(profile);
   const isSuperUser = Boolean(profile?.isSuperUser);
-  const floorAccess = profile ? checkPageAccess(profile, "dark-council/council-floor") : { authorized: false };
-  const hasFloorOverride = floorAccess.reason === "OVERRIDE_GRANT";
-  const canUseFloor = isSuperUser || COUNCIL_VOTING_RANKS.includes(rank) || hasFloorOverride;
 
   return {
     rank,
-    role: isSuperUser ? "Super User" : councilRoleForRank(rank) || (hasFloorOverride ? "Override Authority" : ""),
-    canView: floorAccess.authorized || canUseFloor,
-    canPropose: canUseFloor,
-    canVote: canUseFloor,
-    canVeto: isSuperUser || COUNCIL_VETO_RANKS.includes(rank),
-    canReopen: isSuperUser || COUNCIL_VETO_RANKS.includes(rank),
-    countsTowardsMajority: COUNCIL_COUNTING_RANKS.includes(rank)
+    role: isSuperUser ? "Super User" : "Restricted",
+    canView: isSuperUser,
+    canPropose: isSuperUser,
+    canVote: isSuperUser,
+    canVeto: isSuperUser,
+    canReopen: isSuperUser,
+    countsTowardsMajority: isSuperUser
   };
 }
 

@@ -12,8 +12,8 @@ const handler = async (req, res) => {
     }
 
     const permissions = councilPermissions(auth.profile);
-    if (!permissions.canView) {
-      return res.status(200).json({ ok: false, authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" });
+    if (!auth.profile?.isSuperUser || !permissions.canView) {
+      return res.status(200).json({ ok: false, authorized: false, reason: "SUPERUSER_CLEARANCE_REQUIRED" });
     }
 
     if (req.method === "GET") {

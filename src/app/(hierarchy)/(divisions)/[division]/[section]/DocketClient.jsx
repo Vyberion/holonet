@@ -225,21 +225,21 @@ export default function DocketClient() {
       <div className="hub-hero" style={{ borderBottom: "1px solid var(--theme-border-hot)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "1rem" }}>
           <div>
-            <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.72rem", color: "var(--theme-accent)", letterSpacing: "0.2em", textTransform: "uppercase" }}>
-              // DARK COUNCIL • COUNCIL DOCKET
+            <span style={{ fontFamily: "Share Tech Mono, monospace", fontSize: "0.72rem", color: "var(--theme-accent)", letterSpacing: "0.26em", textTransform: "uppercase" }}>
+              Registry Node / DC-06 &bull; Docket
             </span>
-            <h1 style={{ fontFamily: "Cinzel, serif", fontSize: "2rem", color: "var(--theme-accent)", margin: "0.3rem 0", textShadow: "0 0 10px var(--theme-accent-glow)" }}>
-              Council Docket
+            <h1 style={{ fontFamily: "Cinzel, serif", fontSize: "clamp(2rem, 5vw, 3.8rem)", color: "var(--theme-accent)", margin: "0.4rem 0", textShadow: "0 0 20px var(--theme-accent-glow)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
+              COUNCIL DOCKET
             </h1>
-            <p style={{ color: "var(--text-dim)", fontFamily: "Share Tech Mono, monospace", fontSize: "0.85rem", margin: 0, maxWidth: "680px", lineHeight: "1.5" }}>
+            <p style={{ color: "var(--text-dim)", fontFamily: "Share Tech Mono, monospace", fontSize: "0.85rem", margin: 0, maxWidth: "680px", lineHeight: "1.65" }}>
               Official meeting schedule, legislative proposals, promotion nominations, and hearing dockets.
             </p>
           </div>
           <div style={{ textAlign: "right" }}>
-            <span style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.7rem", color: "var(--text-dim)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+            <span style={{ display: "block", fontFamily: "Share Tech Mono, monospace", fontSize: "0.7rem", color: "var(--text-dim)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
               Access Authority
             </span>
-            <span style={{ fontFamily: "Cinzel, serif", fontSize: "1.05rem", color: "var(--theme-accent)", textShadow: "0 0 8px var(--theme-accent-glow)" }}>
+            <span style={{ fontFamily: "Cinzel, serif", fontSize: "1.05rem", color: "var(--theme-accent)", textShadow: "0 0 8px var(--theme-accent-glow)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
               {permissions.role || (isDarkCouncil ? "Dark Councilor" : "Council Observer")}
             </span>
           </div>

@@ -146,7 +146,21 @@ export default function TimelineClient() {
       includeSearchOverlay
       mainClassName="timeline-main"
     >
-      <div className="timeline-shell" style={{ maxWidth: "1100px", margin: "0 auto", padding: "1.5rem 1rem 4rem" }}>
+      <style>{`
+        main.timeline-main {
+          width: 100% !important;
+          max-width: 100% !important;
+          padding: 0 clamp(16px, 2.5vw, 48px);
+        }
+        .timeline-shell {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        .timeline-track {
+          width: 100% !important;
+        }
+      `}</style>
+      <div className="timeline-shell" style={{ width: "100%", maxWidth: "100%", margin: "0 auto", padding: "1rem 0 4rem" }}>
         
         {/* Classification Tag Filter Tabs (Doctrine / Hierarchy Style) */}
         <div className="hierarchy-tabs-shell" style={{ margin: "0.5rem 0 2.5rem" }}>

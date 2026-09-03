@@ -1891,6 +1891,11 @@ html.holonet-release-intro #loader:not([data-loader-phase]) .loader-intro-prompt
   gap: 44px;
 }
 
+.timeline-main {
+  width: 100%;
+  max-width: 100%;
+}
+
 .hierarchy-tabs-shell {
   display: grid;
   gap: 16px;

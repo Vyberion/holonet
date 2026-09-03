@@ -1,26 +1,27 @@
+body.editor-overlay-active #app,
 body.editor-overlay-active .site-frame,
-body.editor-overlay-active .site-main,
+body:has(#resource-editor-overlay.active) #app,
 body:has(#resource-editor-overlay.active) .site-frame,
-body:has(#resource-editor-overlay.active) .site-main,
+body:has(#codex-editor-overlay.active) #app,
 body:has(#codex-editor-overlay.active) .site-frame,
-body:has(#codex-editor-overlay.active) .site-main,
+body:has(#inspection-editor-overlay.active) #app,
 body:has(#inspection-editor-overlay.active) .site-frame,
-body:has(#inspection-editor-overlay.active) .site-main,
+body:has(#council-editor-overlay.active) #app,
 body:has(#council-editor-overlay.active) .site-frame,
-body:has(#council-editor-overlay.active) .site-main,
+body:has(#timeline-editor-overlay.active) #app,
 body:has(#timeline-editor-overlay.active) .site-frame,
-body:has(#timeline-editor-overlay.active) .site-main,
+body:has(#cots-editor-overlay.active) #app,
 body:has(#cots-editor-overlay.active) .site-frame,
-body:has(#cots-editor-overlay.active) .site-main,
+body:has(#library-editor-overlay.active) #app,
 body:has(#library-editor-overlay.active) .site-frame,
-body:has(#library-editor-overlay.active) .site-main,
+body:has(.codex-modal-backdrop.active) #app,
 body:has(.codex-modal-backdrop.active) .site-frame,
-body:has(.codex-modal-backdrop.active) .site-main,
-body:has(.doctrine-modal-backdrop.active) .site-frame,
-body:has(.doctrine-modal-backdrop.active) .site-main {
-  filter: blur(10px);
+body:has(.doctrine-modal-backdrop.active) #app,
+body:has(.doctrine-modal-backdrop.active) .site-frame {
+  filter: blur(14px) !important;
   transform: scale(1.006);
   transition: filter 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
 }
 
 .codex-modal-backdrop,

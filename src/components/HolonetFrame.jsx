@@ -453,7 +453,7 @@ export function HolonetFrame({
         </div>
       </div>
 
-      <div id="app" className={includeSearchOverlay ? 'document-viewer-page' : ''}>
+      <div id="app" className={`site-frame ${includeSearchOverlay ? 'document-viewer-page' : ''}`}>
         {showNav && (
           <div id="nav-container">
             <HolonetNav />
@@ -486,7 +486,7 @@ export function HolonetFrame({
           </div>
         ) : null}
 
-        <main className={mainClassName}>{children}</main>
+        <main className={`site-main ${mainClassName}`.trim()}>{children}</main>
 
         {showFooter ? (
           <footer>

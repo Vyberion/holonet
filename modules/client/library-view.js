@@ -299,7 +299,9 @@ function ensureEditorOverlay() {
   `;
 
   document.body.appendChild(overlay);
-  overlay.querySelector("[data-library-close]").addEventListener("click", () => overlay.classList.remove("active"));
+  overlay.querySelectorAll("[data-library-close]").forEach(btn => {
+    btn.addEventListener("click", () => overlay.classList.remove("active"));
+  });
   let pointerStartedOnOverlay = false;
   overlay.addEventListener("pointerdown", event => {
     pointerStartedOnOverlay = event.target === overlay;
@@ -492,10 +494,11 @@ async function initLibraryView() {
       const activeEntry = editingRegulationIndex >= 0 && editingRegulationIndex < workingDocument.entries.length 
         ? workingDocument.entries[editingRegulationIndex] 
         : null;
+      let mobileActivePane = editingRegulationIndex >= 0 ? "editor" : "list";
 
       form.innerHTML = `
         <input type="hidden" name="id" value="${escapeHtml(workingDocument.id || "")}">
-        <div class="codex-split-container">
+        <div class="codex-split-container" data-active-pane="${mobileActivePane}">
           <!-- LEFT PANEL -->
           <div class="codex-split-left">
             <div>
@@ -533,6 +536,7 @@ async function initLibraryView() {
           <div class="codex-split-right">
             ${activeEntry ? `
               <div>
+                <button type="button" class="codex-split-return-btn" data-library-return-list>&larr; RETURN TO REGULATIONS</button>
                 <label class="codex-label" style="display: flex; justify-content: space-between; align-items: center;">
                   <span>EDITING REGULATION ${regulationNumberValue(activeEntry, editingRegulationIndex)}</span>
                   <button type="button" class="hub-cancel-btn" style="color: var(--red-bright); border-color: var(--red-bright); padding: 2px 6px; font-size: 0.65rem;" data-library-remove-entry="${editingRegulationIndex}">REMOVE</button>
@@ -565,6 +569,14 @@ async function initLibraryView() {
     overlay.classList.add("active");
 
     form.onclick = async event => {
+      const returnList = event.target.closest("[data-library-return-list]");
+      if (returnList) {
+        syncWorkingDocumentFromForm();
+        editingRegulationIndex = -1;
+        renderForm();
+        return;
+      }
+
       const destroy = event.target.closest("[data-library-delete]");
       if (destroy && workingDocument.id) {
         if (!window.confirm("Are you sure you want to delete this article?")) return;
@@ -602,7 +614,7 @@ async function initLibraryView() {
         editingRegulationIndex = workingDocument.entries.length - 1;
         renderForm();
         return;
-       }
+      }
 
       const remove = event.target.closest("[data-library-remove-entry]");
       if (remove) {

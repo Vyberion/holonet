@@ -316,23 +316,36 @@ function ensureInspectionOverlay() {
 
   overlay = document.createElement("div");
   overlay.id = "inspection-editor-overlay";
+  overlay.className = "codex-modal-backdrop";
   overlay.innerHTML = `
-    <div class="resource-editor-container library-editor-container" role="dialog" aria-modal="true" aria-labelledby="inspection-editor-title">
-      <div class="resource-editor-topbar">
-        <span class="resource-editor-title" id="inspection-editor-title">WRITE INSPECTION</span>
-        <button type="button" class="resource-editor-close" data-inspection-close>CLOSE</button>
+    <div class="codex-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="inspection-editor-title" style="width: min(780px, calc(100vw - 32px)); max-width: 780px; margin: auto;">
+      <div class="codex-modal-header">
+        <h2 style="font-family: Cinzel, serif; font-size: 1.2rem; color: var(--theme-accent, var(--red-bright)); margin: 0; letter-spacing: 0.15em; text-shadow: 0 0 6px rgba(255,0,34,0.55);" id="inspection-editor-title">WRITE INSPECTION</h2>
+        <button type="button" class="codex-modal-close" data-inspection-close>&times;</button>
       </div>
-      <form class="resource-editor-form" id="inspection-editor-form"></form>
-      <div class="resource-editor-actions">
-        <span class="resource-editor-status" data-inspection-status></span>
-        <button type="submit" class="resource-editor-submit" form="inspection-editor-form">SAVE SCORE</button>
+      <form class="codex-modal-body" id="inspection-editor-form" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.2rem;"></form>
+      <div class="codex-modal-footer" style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; padding: 1.2rem 1.5rem;">
+        <span class="resource-editor-status" data-inspection-status style="color: var(--text-dim); margin-right: 1rem;"></span>
+        <button type="button" class="hub-cancel-btn" data-inspection-close>CANCEL</button>
+        <button type="submit" class="hub-write-btn" form="inspection-editor-form">SAVE SCORE</button>
       </div>
     </div>
   `;
   document.body.appendChild(overlay);
-  overlay.querySelector("[data-inspection-close]").addEventListener("click", () => overlay.classList.remove("active"));
+
+  const closeInspection = () => {
+    overlay.classList.remove("active");
+    document.body.classList.remove("editor-overlay-active");
+  };
+
+  overlay.querySelectorAll("[data-inspection-close]").forEach(btn => {
+    btn.addEventListener("click", closeInspection);
+  });
   overlay.addEventListener("click", event => {
-    if (event.target === overlay) overlay.classList.remove("active");
+    if (event.target === overlay) closeInspection();
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") closeInspection();
   });
   return overlay;
 }
@@ -356,9 +369,9 @@ function openInspectionEditor(division, afterSave, entry = null) {
   form.innerHTML = `
     <input type="hidden" name="id" value="${escapeHtml(entry?.id || "")}">
     <input type="hidden" name="division" value="${escapeHtml(division.id)}">
-    <div class="resource-editor-field">
-      <label>Held On</label>
-      <input type="date" name="heldOn" value="${escapeHtml(entry?.heldOn || new Date().toISOString().slice(0, 10))}" required>
+    <div>
+      <label class="codex-label">HELD ON</label>
+      <input type="date" class="codex-input" name="heldOn" value="${escapeHtml(entry?.heldOn || new Date().toISOString().slice(0, 10))}" required>
     </div>
     <div class="inspection-editor-grid">
       ${sections.map((section, index) => {
@@ -368,19 +381,19 @@ function openInspectionEditor(division, afterSave, entry = null) {
             <strong>${escapeHtml(name)} <span style="color:var(--text-faint); font-weight:normal; font-size:0.8em; margin-left:0.3rem;">(${escapeHtml(section.weightedPercentage)}%)</span></strong>
             <input type="hidden" name="name-${index}" value="${escapeHtml(name)}">
             <input type="hidden" name="weightedPercentage-${index}" value="${escapeHtml(section.weightedPercentage)}">
-            <label>Achieved <input type="number" min="0" step="0.01" name="achievedScore-${index}" value="${escapeHtml(section.achievedScore ?? "")}" placeholder="0"></label>
-            <label>Out Of <input type="number" min="0" step="0.01" name="outOf-${index}" value="${escapeHtml(section.outOf ?? "")}" placeholder="Out of"></label>
+            <label>Achieved <input type="number" min="0" step="0.01" class="codex-input" style="display:inline-block; width:80px; padding:0.2rem 0.4rem;" name="achievedScore-${index}" value="${escapeHtml(section.achievedScore ?? "")}" placeholder="0"></label>
+            <label>Out Of <input type="number" min="0" step="0.01" class="codex-input" style="display:inline-block; width:80px; padding:0.2rem 0.4rem;" name="outOf-${index}" value="${escapeHtml(section.outOf ?? "")}" placeholder="Out of"></label>
           </div>
         `;
       }).join("")}
     </div>
-    <div class="resource-editor-field">
-      <label>Bonus Percentage</label>
-      <input type="number" step="0.01" name="bonusPercentage" value="${escapeHtml(entry?.bonusPercentage ?? 0)}">
+    <div>
+      <label class="codex-label">BONUS PERCENTAGE</label>
+      <input type="number" step="0.01" class="codex-input" name="bonusPercentage" value="${escapeHtml(entry?.bonusPercentage ?? 0)}">
     </div>
-    <div class="resource-editor-field">
-      <label>Notes</label>
-      <textarea name="notes">${escapeHtml(entry?.notes || "")}</textarea>
+    <div>
+      <label class="codex-label">NOTES</label>
+      <textarea class="codex-textarea" name="notes" rows="4">${escapeHtml(entry?.notes || "")}</textarea>
     </div>
   `;
 

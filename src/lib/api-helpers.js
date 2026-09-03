@@ -2903,7 +2903,7 @@ export function voteCounts(votes = []) {
 }
 
 export function derivedCouncilStatus(proposal, votes = []) {
-  if (["vetoed", "withdrawn", "passed", "failed"].includes(proposal.status)) return proposal.status;
+  if (["vetoed", "withdrawn", "passed", "failed", "docket"].includes(proposal.status)) return proposal.status;
 
   const openedAt = new Date(proposal.opens_at || proposal.created_at);
   const closesAt = new Date(proposal.closes_at);
@@ -2997,6 +2997,7 @@ export async function createCouncilProposal(auth, body) {
   const roleSnapshot = await fetchCouncilEligibleSnapshot();
   const opensAt = new Date();
   const closesAt = new Date(opensAt.getTime() + durationHours * 60 * 60 * 1000);
+  const targetStatus = (body.status === "docket" || body.targetStatus === "docket") ? "docket" : "open";
 
   await supabaseRest("council_proposals", {
     method: "POST",
@@ -3004,7 +3005,7 @@ export async function createCouncilProposal(auth, body) {
       proposal_type: proposalType,
       title,
       body: proposalBody,
-      status: "open",
+      status: targetStatus,
       created_by: String(auth.user.roblox_id),
       created_by_name: auth.user.roblox_username || auth.user.roblox_display_name || String(auth.user.roblox_id),
       opens_at: opensAt.toISOString(),
@@ -3014,6 +3015,36 @@ export async function createCouncilProposal(auth, body) {
       co_authors: coAuthors,
       legal_format: legalFormat,
       amendment_iteration: 0,
+      eligible_snapshot: roleSnapshot.snapshot,
+      counting_eligible_count: roleSnapshot.countingEligibleCount,
+      majority_count: roleSnapshot.majorityCount
+    })
+  });
+
+  return { ok: true, status: 200, payload: { ok: true, proposals: await loadCouncilProposals() } };
+}
+
+export async function promoteCouncilDocketItem(auth, body) {
+  const permissions = councilPermissions(auth.profile);
+  if (!permissions.canPropose) {
+    return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
+  }
+
+  const proposalId = requireString(body.proposalId || body.id);
+  if (!proposalId) return { ok: false, status: 400, payload: { ok: false, reason: "PROPOSAL_ID_REQUIRED" } };
+
+  const durationHours = clampDurationHours(body.durationHours || body.duration_hours || 48);
+  const opensAt = new Date();
+  const closesAt = new Date(opensAt.getTime() + durationHours * 60 * 60 * 1000);
+  const roleSnapshot = await fetchCouncilEligibleSnapshot();
+
+  await supabaseRest(`council_proposals?id=eq.${encodeURIComponent(proposalId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      status: "open",
+      opens_at: opensAt.toISOString(),
+      closes_at: closesAt.toISOString(),
+      duration_hours: durationHours,
       eligible_snapshot: roleSnapshot.snapshot,
       counting_eligible_count: roleSnapshot.countingEligibleCount,
       majority_count: roleSnapshot.majorityCount

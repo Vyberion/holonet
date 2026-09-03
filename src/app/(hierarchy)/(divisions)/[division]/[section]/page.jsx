@@ -18,7 +18,10 @@ function sectionTitle(section) {
     transmissions: "Transmissions",
     reports: "Reports",
     activity: "Activity",
-    "council-floor": "Council Floor"
+    "council-floor": "Council Floor",
+    floor: "Council Floor",
+    docket: "Conclave Docket",
+    decrees: "Imperial Decrees"
   }[section] || "Division";
 }
 
@@ -29,7 +32,10 @@ function sectionSubtitle(section) {
     transmissions: "MESSAGE CHANNEL",
     reports: "REPORTING CHANNEL",
     activity: "ACTIVITY CHANNEL",
-    "council-floor": "LEGISLATIVE CHANNEL"
+    "council-floor": "LEGISLATIVE CHANNEL",
+    floor: "LEGISLATIVE CHANNEL",
+    docket: "CONCLAVE DOCKET",
+    decrees: "STATUTORY REPOSITORY"
   }[section] || "DIVISION NODE";
 }
 
@@ -224,11 +230,12 @@ export default async function DivisionSectionPage({ params }) {
     );
   }
 
-  if (section === "council-floor") {
+  if (section === "council-floor" || section === "floor" || section === "docket" || section === "decrees") {
+    const defaultTab = section === "council-floor" ? "floor" : section;
     return (
       <HolonetFrame
-        title="COUNCIL FLOOR"
-        subtitle="LEGISLATIVE CHANNEL"
+        title={sectionTitle(section).toUpperCase()}
+        subtitle={sectionSubtitle(section)}
         footerNode={division.node}
         mainClassName="division-main"
         showHeader={false}
@@ -236,7 +243,7 @@ export default async function DivisionSectionPage({ params }) {
         theme={division.theme}
       >
         <ThemeClass theme={division.theme} />
-        <div data-council-floor />
+        <div data-council-floor data-council-tab={defaultTab} />
 
         <PageScripts guarded scripts={["/js/main.js", "/modules/client/site.js"]} moduleScripts={["/modules/client/council-floor.js"]} />
       </HolonetFrame>

@@ -321,8 +321,8 @@ export default function DoctrineClient() {
 
         {/* Modal View Detail Overlay */}
         {activeModal === "view" && currentDirective && (
-          <div className="codex-modal-backdrop" onClick={() => setActiveModal(null)}>
-            <div className="codex-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "800px" }}>
+          <div className="codex-modal-backdrop active" onClick={() => setActiveModal(null)}>
+            <div className="codex-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ width: "min(780px, calc(100vw - 32px))", maxWidth: "780px", margin: "auto" }}>
               <div className="codex-modal-header">
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
                   <span className="trello-card-tag">{currentDirective.tag || "GENERAL"}</span>
@@ -359,8 +359,8 @@ export default function DoctrineClient() {
 
         {/* Tailored Codex-Style Edit/Create Modal Overlay */}
         {activeModal === "edit" && (
-          <div className="codex-modal-backdrop" onClick={() => setActiveModal(null)}>
-            <div className="codex-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "750px" }}>
+          <div className="codex-modal-backdrop active" onClick={() => setActiveModal(null)}>
+            <div className="codex-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ width: "min(780px, calc(100vw - 32px))", maxWidth: "780px", margin: "auto" }}>
               <form onSubmit={handleSave}>
                 <div className="codex-modal-header">
                   <h2 style={{ fontFamily: "Cinzel, serif", fontSize: "1.2rem", color: "var(--red-bright)", margin: 0, letterSpacing: "0.15em", textShadow: "0 0 6px rgba(255,0,34,0.55), 0 0 20px rgba(255,0,34,0.35)" }}>
@@ -382,7 +382,7 @@ export default function DoctrineClient() {
                     />
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                  <div className="codex-modal-grid-2">
                     <div>
                       <label className="codex-label">SECTION ASSIGNMENT</label>
                       <select

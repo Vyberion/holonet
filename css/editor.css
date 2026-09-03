@@ -625,30 +625,76 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
   color: var(--editor-label);
 }
 
-/* Codex-style Modal Styling (Doctrine Design System) */
-.codex-modal-backdrop {
+/* Codex & Doctrine Universal Modal Design System */
+.codex-modal-backdrop:not(.active),
+[id$="-editor-overlay"]:not(.active),
+.doctrine-modal-backdrop:not(.active) {
+  display: none !important;
+}
+
+.codex-modal-backdrop.active,
+[id$="-editor-overlay"].active,
+.doctrine-modal-backdrop.active {
+  display: flex !important;
+}
+
+.codex-modal-backdrop,
+.doctrine-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(6px);
-  z-index: 9999;
-  display: flex;
+  background:
+    radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 8%, transparent), transparent 68%),
+    rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 4000;
+  display: none;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
 }
 
-.codex-modal-dialog {
+.codex-modal-backdrop::before,
+.doctrine-modal-backdrop::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    var(--scanline) 2px,
+    var(--scanline) 4px
+  );
+  pointer-events: none;
+  z-index: 4002;
+  opacity: 0.4;
+}
+
+.codex-modal-dialog,
+.doctrine-modal-dialog {
   background: linear-gradient(135deg, rgba(192,0,26,0.05) 0%, transparent 60%), var(--surface);
-  border: 1px solid var(--red-bright);
+  border: 1px solid var(--theme-border-hot, var(--border-hot));
   box-shadow:
-    0 0 40px rgba(192,0,26,0.15),
-    0 0 100px rgba(192,0,26,0.06),
+    0 0 30px rgba(192,0,26,0.06),
+    0 0 80px rgba(192,0,26,0.03),
     inset 0 0 40px rgba(192,0,26,0.03);
-  width: 100%;
+  width: min(780px, calc(100vw - 36px));
+  max-width: 780px;
   max-height: 90vh;
   overflow-y: auto;
-  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  position: relative;
+  z-index: 4001;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  transition: box-shadow 0.3s;
+}
+
+.codex-modal-dialog:hover,
+.doctrine-modal-dialog:hover {
+  box-shadow:
+    0 0 40px rgba(192,0,26,0.12),
+    0 0 120px rgba(192,0,26,0.06),
+    inset 0 0 40px rgba(192,0,26,0.05);
 }
 
 .codex-modal-header {
@@ -729,6 +775,17 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
   border-color: var(--red-bright);
   box-shadow: 0 0 8px var(--red-glow);
   outline: none;
+}
+
+.codex-modal-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 640px) {
+  .codex-modal-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .codex-modal-dialog .hub-cancel-btn {
@@ -824,4 +881,74 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
 .codex-regulation-pill-actions {
   display: flex;
   gap: 4px;
+}
+
+/* Mobile 2-Column Drilldown Navigation */
+.codex-split-return-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .codex-modal-backdrop,
+  .doctrine-modal-backdrop {
+    padding: 0.6rem;
+  }
+
+  .codex-modal-dialog,
+  .doctrine-modal-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 94dvh !important;
+    margin: 0 !important;
+  }
+
+  .codex-split-container {
+    grid-template-columns: 1fr !important;
+    padding: 1rem !important;
+    gap: 1rem !important;
+    min-height: auto !important;
+  }
+
+  /* When viewing regulation list */
+  .codex-split-container[data-active-pane="list"] .codex-split-right {
+    display: none !important;
+  }
+
+  .codex-split-container[data-active-pane="list"] .codex-split-left {
+    display: flex !important;
+    border-right: none !important;
+    padding-right: 0 !important;
+    width: 100% !important;
+  }
+
+  /* When editing active regulation */
+  .codex-split-container[data-active-pane="editor"] .codex-split-left {
+    display: none !important;
+  }
+
+  .codex-split-container[data-active-pane="editor"] .codex-split-right {
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  .codex-split-return-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.9rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--theme-accent, var(--red-bright));
+    border: 1px solid var(--theme-border-hot, var(--border-hot));
+    background: rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    margin-bottom: 0.8rem;
+    width: fit-content;
+    transition: all 0.2s;
+  }
+
+  .codex-split-return-btn:hover {
+    background: rgba(192, 0, 26, 0.15);
+    box-shadow: 0 0 10px var(--red-glow);
+  }
 }

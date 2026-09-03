@@ -12,7 +12,7 @@ const handler = async (req, res) => {
     }
 
     const permissions = councilPermissions(auth.profile);
-    if (!auth.profile?.isSuperUser || !permissions.canView) {
+    if (!permissions.canView && !auth.profile?.isSuperUser) {
       return res.status(200).json({ ok: false, authorized: false, reason: "SUPERUSER_CLEARANCE_REQUIRED" });
     }
 

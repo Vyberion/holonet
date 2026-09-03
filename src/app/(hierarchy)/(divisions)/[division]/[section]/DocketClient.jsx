@@ -23,11 +23,11 @@ export default function DocketClient() {
   const [formData, setFormData] = useState({
     title: "",
     summary: "",
-    bodyText: "",
-    candidateName: "",
+    body: "",
+    candidate: "",
     targetRank: "",
-    accusedName: "",
-    challengerName: "",
+    accused: "",
+    challenger: "",
     charges: "",
     evidenceUrl: "",
     kaggathStakes: "",
@@ -78,8 +78,8 @@ export default function DocketClient() {
     return proposals.filter(p => ["passed", "failed", "vetoed", "concluded"].includes(p.status));
   }, [proposals]);
 
+  // Dark Council Actions
   const handleApproveToDocket = async (proposalId) => {
-    if (!confirm("Approve this item to the Council Docket?")) return;
     try {
       const res = await fetch("/api/council-floor", {
         method: "POST",
@@ -88,18 +88,17 @@ export default function DocketClient() {
       });
       const result = await res.json();
       if (result.ok) {
-        setStatusNotice({ type: "success", message: "Item approved to the Council Docket." });
+        setStatusNotice({ type: "success", message: "Proposal approved and placed on the Council Docket." });
         loadData();
       } else {
-        alert(result.reason || "Failed to approve item.");
+        setStatusNotice({ type: "error", message: result.reason || "Action failed." });
       }
     } catch (e) {
-      alert("Network error while approving item.");
+      alert("Network error.");
     }
   };
 
-  const handleFastTrackFloor = async (proposalId) => {
-    if (!confirm("Fast-track this item immediately onto the active Council Floor for voting?")) return;
+  const handleOpenToFloor = async (proposalId) => {
     try {
       const res = await fetch("/api/council-floor", {
         method: "POST",
@@ -108,10 +107,10 @@ export default function DocketClient() {
       });
       const result = await res.json();
       if (result.ok) {
-        setStatusNotice({ type: "success", message: "Item promoted to the active Council Floor." });
+        setStatusNotice({ type: "success", message: "Item promoted to Council Floor voting session." });
         loadData();
       } else {
-        alert(result.reason || "Failed to promote item.");
+        setStatusNotice({ type: "error", message: result.reason || "Action failed." });
       }
     } catch (e) {
       alert("Network error.");
@@ -119,13 +118,12 @@ export default function DocketClient() {
   };
 
   const handleDismiss = async (proposalId) => {
-    const reason = prompt("Enter justification for dismissing this proposal:");
-    if (reason === null) return;
+    if (!window.confirm("Dismiss this proposal from the queue?")) return;
     try {
       const res = await fetch("/api/council-floor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "veto", proposalId, reason: reason || "Dismissed by Council" })
+        body: JSON.stringify({ action: "veto", proposalId, reason: "Dismissed from docket review" })
       });
       const result = await res.json();
       if (result.ok) {
@@ -143,13 +141,13 @@ export default function DocketClient() {
     setStatusNotice(null);
 
     const structuredPayload = {
-      text: formData.bodyText || formData.summary,
+      text: formData.body || formData.summary,
       summary: formData.summary,
       category: formType,
-      candidate: formData.candidateName || null,
+      candidate: formData.candidate || null,
       targetRank: formData.targetRank || null,
-      accused: formData.accusedName || null,
-      challenger: formData.challengerName || null,
+      accused: formData.accused || null,
+      challenger: formData.challenger || null,
       charges: formData.charges || null,
       evidenceUrl: formData.evidenceUrl || null,
       kaggathStakes: formData.kaggathStakes || null,
@@ -180,11 +178,11 @@ export default function DocketClient() {
         setFormData({
           title: "",
           summary: "",
-          bodyText: "",
-          candidateName: "",
+          body: "",
+          candidate: "",
           targetRank: "",
-          accusedName: "",
-          challengerName: "",
+          accused: "",
+          challenger: "",
           charges: "",
           evidenceUrl: "",
           kaggathStakes: "",

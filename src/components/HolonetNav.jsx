@@ -40,7 +40,7 @@ function currentPageKey(pathname = "/") {
   const segments = String(pathname || "/").split("/").filter(Boolean);
   if (segments[0] === "archives" && segments[1]) return `archives-${segments[1]}`;
   if (segments[0] === "council" && segments[1]) return `council-${segments[1]}`;
-  if (segments[0] === "disciplines" || segments[0] === "domains") return "disciplines";
+  if (segments[0] === "departments" || segments[0] === "disciplines" || segments[0] === "domains") return "departments";
 
   const page = segments.length === 0 ? "home" : segments[0].replace(".html", "") || "home";
   return page === "index" ? "home" : page;
@@ -255,20 +255,13 @@ export function HolonetNav() {
       ]
     },
     {
-      href: getHref("/disciplines"),
-      page: "disciplines",
+      href: getHref("/departments"),
+      page: "departments",
       prefix: "03",
-      label: "Disciplines",
+      label: "Departments",
       dropdown: domainsSubItems
     },
-    { href: getHref("/powerbases"), page: "powerbases", prefix: "04", label: "Powerbases" },
-    {
-      href: divisionLockedHref("darkCouncil"),
-      page: "council",
-      prefix: "05",
-      label: "Council",
-      dropdown: councilSubItems
-    }
+    { href: getHref("/powerbases"), page: "powerbases", prefix: "04", label: "Powerbases" }
   ];
 
   useEffect(() => {

@@ -87,6 +87,18 @@ import { divisionIdFromRouteSlug, divisionIdFromSubdomain } from "../data/divisi
     );
   }
 
+  function isCouncilPage() {
+    const hostLabel = location.hostname.split(".")[0]?.toLowerCase() || "";
+    if (hostLabel === "council") return true;
+    const segments = location.pathname.split("/").filter(Boolean);
+    const first = segments[0]?.toLowerCase();
+    return first === "council" || first === "dark-council" || first === "darkcouncil";
+  }
+
+  function hasCouncilAccess(profile) {
+    return Boolean(profile?.isSuperUser);
+  }
+
   function rejectAccess(message, options = {}) {
     const styles = document.body ? getComputedStyle(document.body) : null;
     const accent = styles?.getPropertyValue("--theme-accent").trim() || "#ff0022";

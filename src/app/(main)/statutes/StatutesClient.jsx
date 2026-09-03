@@ -23,7 +23,7 @@ function getLetter(num) {
   return String.fromCharCode(96 + num); // 1 = a, 2 = b, 3 = c
 }
 
-function StatutesPageContent({ initialSlug, isDecreesMode = false }) {
+function StatutesPageContent({ initialSlug }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -242,14 +242,13 @@ function StatutesPageContent({ initialSlug, isDecreesMode = false }) {
 
   const renderStatuteGridCard = (statute, isDraft) => {
     const status = "restricted";
-    const basePath = isDecreesMode ? "/decrees" : "/decrees";
     return (
       <div 
         key={statute.id} 
         className="dir-card"
         data-status={status}
         aria-label={`${statute.title} - ${isDraft ? "draft" : "published"}`}
-        onClick={() => router.push(`${basePath}/${statute.slug}`)}
+        onClick={() => router.push(`/statutes/${statute.slug}`)}
         style={{ cursor: "pointer" }}
       >
         <div className="dir-card-frame" aria-hidden="true" />
@@ -269,7 +268,7 @@ function StatutesPageContent({ initialSlug, isDecreesMode = false }) {
             tabIndex={-1}
             onClick={(e) => e.preventDefault()}
           >
-            READ DECREE
+            READ STATUTE
           </a>
         </div>
       </div>
@@ -277,7 +276,7 @@ function StatutesPageContent({ initialSlug, isDecreesMode = false }) {
   };
 
   return (
-    <HolonetFrame title={viewingStatute ? viewingStatute.title.toUpperCase() : "IMPERIAL DECREES"} subtitle="STATUTORY REPOSITORY" footerNode="DC-01" includeSearchOverlay>
+    <HolonetFrame title={viewingStatute ? viewingStatute.title.toUpperCase() : "STATUTES"} subtitle="LEGISLATIVE ARCHIVE" includeSearchOverlay>
       <style>{`
         .back-btn:hover { color: var(--red-bright) !important; text-shadow: 0 0 5px var(--red-glow); }
         .statutes-grid-layout {
@@ -441,7 +440,7 @@ function StatutesPageContent({ initialSlug, isDecreesMode = false }) {
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: "1rem", marginBottom: "2rem" }}>
                       <h2 id="drafts" className="codex-section-title" style={{ fontFamily: "Orbitron, monospace", color: "var(--red-bright)", fontSize: "1.2rem", letterSpacing: "0.2em", margin: 0, borderBottom: "none", paddingBottom: 0 }}>DRAFTS</h2>
                       {canEdit && (
-                        <button type="button" className="hub-write-btn" onClick={() => setIsCreating(true)}>WRITE DECREE</button>
+                        <button type="button" className="hub-write-btn" onClick={() => setIsCreating(true)}>WRITE STATUTE</button>
                       )}
                     </div>
                     {statutes.filter(s => !s.is_published).length > 0 ? (
@@ -449,7 +448,7 @@ function StatutesPageContent({ initialSlug, isDecreesMode = false }) {
                         {statutes.filter(s => !s.is_published).map((statute, index) => renderStatuteGridCard(statute, true, index))}
                       </div>
                     ) : (
-                      <p style={{ color: "var(--text-dim)", fontStyle: "italic", marginBottom: "4rem" }}>No draft decrees.</p>
+                      <p style={{ color: "var(--text-dim)", fontStyle: "italic", marginBottom: "4rem" }}>No draft statutes.</p>
                     )}
                   </>
                 )}
@@ -493,10 +492,10 @@ function StatutesPageContent({ initialSlug, isDecreesMode = false }) {
   );
 }
 
-export default function StatutesClient({ initialSlug, isDecreesMode = false }) {
+export default function StatutesClient({ initialSlug }) {
   return (
     <Suspense fallback={<div>Loading archives...</div>}>
-      <StatutesPageContent initialSlug={initialSlug} isDecreesMode={isDecreesMode} />
+      <StatutesPageContent initialSlug={initialSlug} />
     </Suspense>
   );
 }

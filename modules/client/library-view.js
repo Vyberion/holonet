@@ -290,7 +290,7 @@ function ensureEditorOverlay() {
       </div>
       <form class="codex-modal-body" id="library-editor-form"></form>
       <div class="codex-modal-footer" style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
-        <button type="button" class="hub-cancel-btn" data-library-delete style="color: var(--red-bright); border-color: var(--red-bright); text-shadow: 0 0 6px var(--red-glow); display: none; margin-right: auto;">PURGE</button>
+        <button type="button" class="hub-cancel-btn" data-library-delete style="display: none; margin-right: auto;">PURGE</button>
         <span class="resource-editor-status" data-library-status style="color: var(--text-dim); margin-right: 1rem;"></span>
         <button type="button" class="hub-cancel-btn" data-library-close>CANCEL</button>
         <button type="submit" class="hub-write-btn" form="library-editor-form">SAVE</button>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../../components/PageScripts.jsx";
@@ -49,6 +50,7 @@ export default function DoctrineClient() {
   const [selectedTag, setSelectedTag] = useState("ALL");
   const [activeModal, setActiveModal] = useState(null); // 'view' | 'edit' | null
   const [currentDirective, setCurrentDirective] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
   const [formData, setFormData] = useState({
     id: "",
@@ -61,6 +63,7 @@ export default function DoctrineClient() {
   });
 
   useEffect(() => {
+    setMounted(true);
     fetchDirectives();
     checkPermissions();
   }, []);
@@ -320,7 +323,7 @@ export default function DoctrineClient() {
         )}
 
         {/* Modal View Detail Overlay */}
-        {activeModal === "view" && currentDirective && (
+        {mounted && activeModal === "view" && currentDirective && createPortal(
           <div className="doctrine-modal-backdrop active" onClick={() => setActiveModal(null)}>
             <div className="doctrine-modal-dialog" onClick={(e) => e.stopPropagation()}>
               <div className="codex-modal-header">
@@ -354,11 +357,12 @@ export default function DoctrineClient() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Tailored Codex-Style Edit/Create Modal Overlay */}
-        {activeModal === "edit" && (
+        {mounted && activeModal === "edit" && createPortal(
           <div className="doctrine-modal-backdrop active" onClick={() => setActiveModal(null)}>
             <div className="doctrine-modal-dialog" onClick={(e) => e.stopPropagation()}>
               <form onSubmit={handleSave}>
@@ -451,7 +455,7 @@ export default function DoctrineClient() {
                     <button
                       type="button"
                       className="hub-cancel-btn"
-                      style={{ color: "var(--red-bright)", borderColor: "var(--red-bright)", marginRight: "auto", textShadow: "0 0 6px var(--red-glow)" }}
+                      style={{ marginRight: "auto" }}
                       onClick={() => handleDelete(formData.id)}
                     >
                       PURGE DIRECTIVE
@@ -466,7 +470,8 @@ export default function DoctrineClient() {
                 </div>
               </form>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
       </div>

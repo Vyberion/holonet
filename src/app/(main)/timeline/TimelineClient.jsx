@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { HolonetFrame } from "../../../components/HolonetFrame.jsx";
 import { PageScripts } from "../../../components/PageScripts.jsx";
 import { DiscordMarkdown } from "../../../components/DiscordMarkdown.jsx";
@@ -22,6 +23,7 @@ export default function TimelineClient() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [activeModal, setActiveModal] = useState(null); // 'edit' | null
   const [selectedImage, setSelectedImage] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
   const [formData, setFormData] = useState({
     id: "",
@@ -76,6 +78,7 @@ export default function TimelineClient() {
   };
 
   useEffect(() => {
+    setMounted(true);
     fetchTimeline();
     checkPermissions();
   }, []);
@@ -311,7 +314,7 @@ export default function TimelineClient() {
         )}
 
         {/* Universal Doctrine-Style Event Editor Modal */}
-        {activeModal === "edit" && (
+        {mounted && activeModal === "edit" && createPortal(
           <div className="doctrine-modal-backdrop active" onClick={() => setActiveModal(null)}>
             <div className="doctrine-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ width: "min(780px, calc(100vw - 32px))", maxWidth: "780px", margin: "auto" }}>
               <form onSubmit={handleSave}>
@@ -417,7 +420,7 @@ export default function TimelineClient() {
                       type="button"
                       className="hub-cancel-btn"
                       onClick={() => handleDelete(formData.id)}
-                      style={{ color: "var(--red-bright)", borderColor: "var(--red-bright)", marginRight: "auto" }}
+                      style={{ marginRight: "auto" }}
                     >
                       PURGE RECORD
                     </button>
@@ -431,11 +434,12 @@ export default function TimelineClient() {
                 </div>
               </form>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Image Lightbox */}
-        {selectedImage && (
+        {mounted && selectedImage && createPortal(
           <div className="doctrine-modal-backdrop active" onClick={() => setSelectedImage(null)}>
             <div style={{ position: "relative", maxWidth: "90vw", maxHeight: "90vh" }} onClick={(e) => e.stopPropagation()}>
               <img src={selectedImage} alt="Enlarged Archive" style={{ maxWidth: "100%", maxHeight: "90vh", border: "1px solid var(--red-bright)" }} />
@@ -448,7 +452,8 @@ export default function TimelineClient() {
                 &times;
               </button>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
       </div>

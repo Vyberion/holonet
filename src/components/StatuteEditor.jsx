@@ -130,7 +130,7 @@ export function SectionEditor({ section, sectionIndex, onSave, onCancel, onDelet
   const sectionLabel = isNew ? "NEW SECTION" : `SECTION ${getRomanNumeral(sectionIndex + 1)}`;
 
   const modalContent = (
-    <div id="library-editor-overlay" className="active" style={{ zIndex: 99999 }} onClick={(e) => e.target.id === "library-editor-overlay" && onCancel()}>
+    <div id="library-editor-overlay" className="active" onClick={(e) => e.target.id === "library-editor-overlay" && onCancel()}>
       <div className="resource-editor-container library-editor-container" role="dialog" aria-modal="true" aria-labelledby="section-editor-title">
         
         <div className="resource-editor-topbar">
@@ -295,7 +295,7 @@ export function StatuteMetaEditor({ initialData, onSave, onCancel, onDelete }) {
   };
 
   const modalContent = (
-    <div id="library-editor-overlay" className="active" style={{ zIndex: 99999 }} onClick={(e) => e.target.id === "library-editor-overlay" && onCancel()}>
+    <div id="library-editor-overlay" className="active" onClick={(e) => e.target.id === "library-editor-overlay" && onCancel()}>
       <div className="resource-editor-container library-editor-container" role="dialog" aria-modal="true" aria-labelledby="meta-editor-title">
         
         <div className="resource-editor-topbar">

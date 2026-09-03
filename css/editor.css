@@ -1,16 +1,39 @@
-body.editor-overlay-active > :not(#resource-editor-overlay):not(#codex-editor-overlay):not(#inspection-editor-overlay):not(#council-editor-overlay):not(#timeline-editor-overlay):not(#cots-editor-overlay):not(script):not(style),
-body:has(#resource-editor-overlay.active) > :not(#resource-editor-overlay):not(script):not(style),
-body:has(#codex-editor-overlay.active) > :not(#codex-editor-overlay):not(script):not(style),
-body:has(#inspection-editor-overlay.active) > :not(#inspection-editor-overlay):not(script):not(style),
-body:has(#council-editor-overlay.active) > :not(#council-editor-overlay):not(script):not(style),
-body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(script):not(style),
-body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):not(style),
-body:has(#library-editor-overlay.active) > :not(#library-editor-overlay):not(script):not(style),
-body:has(.codex-modal-backdrop.active) > :not(.codex-modal-backdrop):not(script):not(style),
-body:has(.doctrine-modal-backdrop.active) > :not(.doctrine-modal-backdrop):not(script):not(style) {
+body.editor-overlay-active .site-frame,
+body.editor-overlay-active .site-main,
+body:has(#resource-editor-overlay.active) .site-frame,
+body:has(#resource-editor-overlay.active) .site-main,
+body:has(#codex-editor-overlay.active) .site-frame,
+body:has(#codex-editor-overlay.active) .site-main,
+body:has(#inspection-editor-overlay.active) .site-frame,
+body:has(#inspection-editor-overlay.active) .site-main,
+body:has(#council-editor-overlay.active) .site-frame,
+body:has(#council-editor-overlay.active) .site-main,
+body:has(#timeline-editor-overlay.active) .site-frame,
+body:has(#timeline-editor-overlay.active) .site-main,
+body:has(#cots-editor-overlay.active) .site-frame,
+body:has(#cots-editor-overlay.active) .site-main,
+body:has(#library-editor-overlay.active) .site-frame,
+body:has(#library-editor-overlay.active) .site-main,
+body:has(.codex-modal-backdrop.active) .site-frame,
+body:has(.codex-modal-backdrop.active) .site-main,
+body:has(.doctrine-modal-backdrop.active) .site-frame,
+body:has(.doctrine-modal-backdrop.active) .site-main {
   filter: blur(5px);
   transform: scale(1.006);
   transition: filter 0.18s ease, transform 0.18s ease;
+}
+
+.codex-modal-backdrop,
+.doctrine-modal-backdrop,
+#resource-editor-overlay,
+#library-editor-overlay,
+#inspection-editor-overlay,
+#council-editor-overlay,
+#timeline-editor-overlay,
+#cots-editor-overlay {
+  filter: none !important;
+  transform: none !important;
+  isolation: isolate;
 }
 
 #resource-editor-overlay {
@@ -63,9 +86,9 @@ body:has(.doctrine-modal-backdrop.active) > :not(.doctrine-modal-backdrop):not(s
   background:
     radial-gradient(ellipse 90% 80% at 100% 0%, color-mix(in srgb, var(--editor-accent) 8%, transparent), transparent 68%),
     linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 5%, transparent) 0%, transparent 58%),
-    color-mix(in srgb, var(--editor-panel) 90%, transparent);
-  backdrop-filter: blur(14px) saturate(1.1);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+    color-mix(in srgb, var(--editor-panel) 72%, transparent);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
   border: 1px solid var(--editor-border);
   box-shadow:
     0 0 28px color-mix(in srgb, var(--editor-accent-glow) 82%, transparent),
@@ -434,9 +457,9 @@ body:has(.doctrine-modal-backdrop.active) > :not(.doctrine-modal-backdrop):not(s
   background:
     radial-gradient(ellipse 85% 80% at 100% 0%, color-mix(in srgb, var(--editor-accent) 8%, transparent), transparent 68%),
     linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 5%, transparent) 0%, transparent 58%),
-    color-mix(in srgb, var(--editor-panel, var(--theme-panel, var(--panel))) 90%, transparent);
-  backdrop-filter: blur(14px) saturate(1.1);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+    color-mix(in srgb, var(--editor-panel, var(--theme-panel, var(--panel))) 72%, transparent);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
   border: 1px solid var(--editor-border, var(--theme-accent-dim, var(--border-hot)));
   box-shadow:
     0 0 28px color-mix(in srgb, var(--editor-accent-glow, var(--theme-accent-glow, var(--red-glow))) 82%, transparent),
@@ -683,9 +706,9 @@ body:has(.doctrine-modal-backdrop.active) > :not(.doctrine-modal-backdrop):not(s
   background:
     linear-gradient(135deg, rgba(192, 0, 26, 0.08) 0%, rgba(192, 0, 26, 0.02) 40%, transparent 70%),
     radial-gradient(ellipse 90% 60% at 50% 0%, rgba(192, 0, 26, 0.12) 0%, transparent 75%),
-    rgba(23, 6, 9, 0.90);
-  backdrop-filter: blur(14px) saturate(1.1);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+    rgba(18, 5, 8, 0.72);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
   border: 1px solid var(--theme-border-hot, var(--border-hot));
   box-shadow:
     0 0 30px rgba(192, 0, 26, 0.10),
@@ -808,38 +831,60 @@ body:has(.doctrine-modal-backdrop.active) > :not(.doctrine-modal-backdrop):not(s
   }
 }
 
-.codex-modal-dialog .hub-cancel-btn {
-  background: transparent;
-  border: 1px solid var(--border-hot);
-  color: var(--text-dim);
-  font-family: 'Orbitron', monospace;
-  font-size: 0.8rem;
-  padding: 0.5rem 1.2rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.codex-modal-dialog .hub-cancel-btn:hover {
-  border-color: var(--red-bright);
-  color: var(--red-bright);
-  box-shadow: 0 0 8px var(--red-glow);
+/* Unified Footer Buttons for ALL Editors (Same effect as Cancel button on hover and not hovered) */
+.codex-modal-footer button,
+.codex-modal-footer .hub-cancel-btn,
+.codex-modal-footer .hub-write-btn,
+.codex-modal-dialog .hub-cancel-btn,
+.codex-modal-dialog .hub-write-btn,
+.doctrine-modal-dialog .hub-cancel-btn,
+.doctrine-modal-dialog .hub-write-btn,
+.resource-editor-actions .resource-editor-submit,
+.resource-editor-actions button,
+.resource-editor-footer button,
+.library-editor-buttons button,
+#library-editor-overlay .resource-editor-submit,
+#inspection-editor-overlay .resource-editor-submit,
+#council-editor-overlay .resource-editor-submit,
+#timeline-editor-overlay .resource-editor-submit,
+#cots-editor-overlay .resource-editor-submit {
+  background: transparent !important;
+  border: 1px solid var(--border-hot, rgba(192, 0, 26, 0.4)) !important;
+  color: var(--text-dim) !important;
+  font-family: 'Orbitron', monospace, sans-serif !important;
+  font-size: 0.8rem !important;
+  letter-spacing: 0.1em !important;
+  padding: 0.5rem 1.2rem !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  clip-path: none !important;
+  border-radius: 0 !important;
+  transition: all 0.2s ease !important;
 }
 
-.codex-modal-dialog .hub-write-btn {
-  background: rgba(192,0,26,0.12);
-  border: 1px solid var(--red-bright);
-  color: var(--red-bright);
-  font-family: 'Orbitron', monospace;
-  font-size: 0.8rem;
-  padding: 0.5rem 1.2rem;
-  cursor: pointer;
-  text-shadow: 0 0 6px var(--red-glow);
-  transition: all 0.2s ease;
-}
-.codex-modal-dialog .hub-write-btn:hover {
-  background: var(--red-bright);
-  color: #fff;
-  box-shadow: 0 0 20px var(--red-glow), 0 0 4px rgba(0,200,255,0.1);
-  text-shadow: none;
+.codex-modal-footer button:hover,
+.codex-modal-footer button:focus-visible,
+.codex-modal-footer .hub-cancel-btn:hover,
+.codex-modal-footer .hub-write-btn:hover,
+.codex-modal-dialog .hub-cancel-btn:hover,
+.codex-modal-dialog .hub-write-btn:hover,
+.doctrine-modal-dialog .hub-cancel-btn:hover,
+.doctrine-modal-dialog .hub-write-btn:hover,
+.resource-editor-actions .resource-editor-submit:hover,
+.resource-editor-actions button:hover,
+.resource-editor-footer button:hover,
+.library-editor-buttons button:hover,
+#library-editor-overlay .resource-editor-submit:hover,
+#inspection-editor-overlay .resource-editor-submit:hover,
+#council-editor-overlay .resource-editor-submit:hover,
+#timeline-editor-overlay .resource-editor-submit:hover,
+#cots-editor-overlay .resource-editor-submit:hover {
+  background: transparent !important;
+  border-color: var(--red-bright) !important;
+  color: var(--red-bright) !important;
+  box-shadow: 0 0 8px var(--red-glow) !important;
+  text-shadow: 0 0 6px var(--red-glow) !important;
 }
 
 /* Side-by-Side Split Editor Classes */

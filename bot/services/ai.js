@@ -1320,10 +1320,11 @@ async function executeBotToolCall(toolName, args) {
       const timeframeInfo = resolveTimeframeWindow(args.timeframe || "");
 
       const needsRankIndex = Boolean(rankBracket && rankBracket !== "all" && rankBracket !== "*");
-      const [allRosters, { data: vLinks }] = await Promise.all([
+      const [allRosters, vLinksRes] = await Promise.all([
         needsRankIndex ? fetchAllRankRosters().catch(() => ({})) : Promise.resolve({}),
-        supabase.from("verification_links").select("discord_user_id,discord_username,roblox_user_id,roblox_username").catch(() => ({ data: [] }))
+        supabase.from("verification_links").select("discord_user_id,discord_username,roblox_user_id,roblox_username")
       ]);
+      const vLinks = vLinksRes?.data || [];
 
       const rankIndex = buildPersonnelRankIndex(allRosters);
       const discordToRobloxMap = new Map();

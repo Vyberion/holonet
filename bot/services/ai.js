@@ -19,6 +19,15 @@ let lastModelFetchTime = 0;
 let lastSuccessfulModel = null;
 const CACHE_TTL_MS = 10 * 60 * 1000;
 
+function getModelToolPriority(modelId) {
+  const id = String(modelId || "").toLowerCase();
+  // Groq models known for native function/tool-calling support
+  if (id.includes("llama-3.3") || id.includes("llama-3.1") || id.includes("qwen") || id.includes("mistral") || id.includes("mixtral")) {
+    return 100;
+  }
+  return 10;
+}
+
 async function getAvailableGroqModels(apiKey) {
   const now = Date.now();
   if (cachedModels && cachedModels.length > 0 && (now - lastModelFetchTime < CACHE_TTL_MS)) {
@@ -45,8 +54,12 @@ async function getAvailableGroqModels(apiKey) {
         return true;
       });
 
-      // Prefer models with larger context window
-      filtered.sort((a, b) => (b.context_window || 0) - (a.context_window || 0));
+      // Sort by tool-compatibility priority first, then context window capacity
+      filtered.sort((a, b) => {
+        const toolScoreDiff = getModelToolPriority(b.id) - getModelToolPriority(a.id);
+        if (toolScoreDiff !== 0) return toolScoreDiff;
+        return (b.context_window || 0) - (a.context_window || 0);
+      });
 
       const modelIds = filtered.map(m => m.id);
       if (modelIds.length > 0) {

@@ -20,6 +20,8 @@ import "../../css/legal.css";
 import "../../css/editor.css";
 import "../../css/crt.css";
 import "../../css/loader-overlays.css";
+import "../../css/news.css";
+import "../../css/operations.css";
 import "../../css/overrides.css";
 import { GlobalPolish } from "../components/GlobalPolish.jsx";
 

@@ -4,7 +4,7 @@ import {
   buildPersonnelRankIndex,
   matchesRankFilter,
   computeRankBracketStatistics
-} from "../../src/lib/api-helpers.js";
+} from "../../modules/data/rank-roster.js";
 
 test("buildPersonnelRankIndex and matchesRankFilter", () => {
   const mockRosters = {

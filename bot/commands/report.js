@@ -7,7 +7,7 @@ import { botErrorMessage } from "../services/bot-errors.js";
 import { componentsV2Message, containerV2, embed, ephemeral, errorEmbed, successEmbed, textDisplayV2 } from "../services/discord-ui.js";
 import { divisionTierWeight, getVerifiedProfile, canManageBot } from "../services/roles.js";
 import { supabase } from "../services/supabase.js";
-import { fetchDivisionRoster as fetchDivisionRosterHelper } from "../../src/lib/api-helpers.js";
+import { fetchDivisionRoster as fetchDivisionRosterHelper } from "../../modules/data/rank-roster.js";
 
 const VERIFY_INSTRUCTIONS = "You are not linked yet. Go to <#1046452180074381403> and click the verify button, or use `/verify`.";
 const REPORT_PREVIEW_LIMIT = 12;

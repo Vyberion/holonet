@@ -12,58 +12,21 @@ import {
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODELS_ENDPOINT = "https://api.groq.com/openai/v1/models";
 
-const CHAT_MODEL_ALLOWLIST_REGEX = /^(llama-3|llama3|qwen|openai\/gpt-oss|gpt-oss|allam|mistral|mixtral|gemma-2|gemma2|deepseek)/i;
-const NON_CHAT_BLOCKLIST_REGEX = /(guard|safeguard|orpheus|canopy|playdialog|whisper|tts|stt|audio|speech|embed|vision|preview|rerank|distill|llama3-8b-8192|llama3-70b-8192)/i;
-
-const DEFAULT_FALLBACK_MODELS = [
-  "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant",
-  "openai/gpt-oss-120b",
-  "openai/gpt-oss-20b",
-  "qwen/qwen3.8-27b",
-  "qwen/qwen3.6-27b",
-  "llama-3.1-70b-versatile",
-  "allam-2-7b",
-  "gemma2-9b-it"
-];
+const NON_CHAT_BLOCKLIST_REGEX = /(guard|safeguard|whisper|tts|stt|audio|speech|embed|vision|rerank|distill)/i;
 
 let cachedModels = null;
 let lastModelFetchTime = 0;
-let lastSuccessfulModel = "llama-3.3-70b-versatile";
+let lastSuccessfulModel = null;
 const CACHE_TTL_MS = 10 * 60 * 1000;
-
-function getModelPriorityScore(modelId, contextWindow = 0) {
-  const id = String(modelId || "").toLowerCase();
-  if (NON_CHAT_BLOCKLIST_REGEX.test(id) || !CHAT_MODEL_ALLOWLIST_REGEX.test(id)) return -1;
-  
-  // Flagship Llama 3.3 & GPT-OSS
-  if (id.includes("llama-3.3-70b-versatile") || id === "llama-3.3-70b") return 1000;
-  if (id.includes("gpt-oss-120b")) return 950;
-  if (id.includes("llama-3.3")) return 900;
-  if (id.includes("gpt-oss-20b")) return 850;
-  
-  // Fast Llama 3.1 & Qwen 3
-  if (id.includes("llama-3.1-8b-instant") || id === "llama-3.1-8b") return 800;
-  if (id.includes("qwen3.8") || id.includes("qwen3.6") || id.includes("qwen-3")) return 780;
-  if (id.includes("llama-3.1-70b")) return 750;
-  if (id.includes("llama-3.1")) return 700;
-  if (id.includes("qwen-2.5-32b") || id.includes("qwen")) return 650;
-  if (id.includes("allam-2-7b") || id.includes("allam")) return 600;
-  if (id.includes("mistral-saba") || id.includes("mixtral-8x7b")) return 500;
-  if (id.includes("gemma2-9b") || id.includes("gemma-2-9b")) return 400;
-  if (id.includes("llama")) return 300;
-  
-  return Math.min(150, Math.floor(contextWindow / 1000));
-}
 
 async function getAvailableGroqModels(apiKey) {
   const now = Date.now();
-  if (cachedModels && (now - lastModelFetchTime < CACHE_TTL_MS)) {
+  if (cachedModels && cachedModels.length > 0 && (now - lastModelFetchTime < CACHE_TTL_MS)) {
     return cachedModels;
   }
 
   const primaryKey = String(apiKey || "").split(",")[0]?.trim();
-  if (!primaryKey) return DEFAULT_FALLBACK_MODELS;
+  if (!primaryKey) return cachedModels || [];
 
   try {
     const res = await fetch(GROQ_MODELS_ENDPOINT, {
@@ -74,19 +37,16 @@ async function getAvailableGroqModels(apiKey) {
       const json = await res.json();
       const rawList = Array.isArray(json?.data) ? json.data : [];
       
+      // Keep any active model that is not an audio/guard/embed/rerank model
       const filtered = rawList.filter(m => {
         const id = String(m.id || "").toLowerCase();
         if (m.active === false) return false;
         if (NON_CHAT_BLOCKLIST_REGEX.test(id)) return false;
-        if (!CHAT_MODEL_ALLOWLIST_REGEX.test(id)) return false;
         return true;
       });
 
-      filtered.sort((a, b) => {
-        const scoreA = getModelPriorityScore(a.id, a.context_window);
-        const scoreB = getModelPriorityScore(b.id, b.context_window);
-        return scoreB - scoreA;
-      });
+      // Sort by context window descending or whatever capacity groq provides
+      filtered.sort((a, b) => (b.context_window || 0) - (a.context_window || 0));
 
       const modelIds = filtered.map(m => m.id);
       if (modelIds.length > 0) {
@@ -96,10 +56,10 @@ async function getAvailableGroqModels(apiKey) {
       }
     }
   } catch (err) {
-    console.warn("[H.O.L.O Groq] Dynamic model resolution error, falling back to static list:", err?.message);
+    console.warn("[H.O.L.O Groq] Dynamic model resolution error:", err?.message);
   }
 
-  return DEFAULT_FALLBACK_MODELS;
+  return cachedModels || [];
 }
 
 const modelCooldowns = new Map();
@@ -121,18 +81,16 @@ function markModelRateLimited(modelId, durationMs = 60000) {
 async function executeGroqChat(apiKey, payload) {
   const keys = String(apiKey || "").split(",").map(k => k.trim()).filter(Boolean);
   let lastError = null;
-  const isToolCallRequest = Boolean(payload.tools && payload.tools.length > 0 && payload.tool_choice !== "none");
+
+  // Dynamically get available models from Groq without restricting by model names
+  const rawCandidateModels = await getAvailableGroqModels(keys[0]);
   const activeModels = rawCandidateModels.filter(m => {
     if (isModelRateLimited(m)) return false;
     if (NON_CHAT_BLOCKLIST_REGEX.test(m)) return false;
-    if (!CHAT_MODEL_ALLOWLIST_REGEX.test(m)) return false;
-    if (isToolCallRequest && !m.toLowerCase().includes("llama-3")) return false;
     return true;
   });
-  const fallbackList = isToolCallRequest
-    ? ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama-3.1-70b-versatile"]
-    : DEFAULT_FALLBACK_MODELS;
-  const candidateModels = activeModels.length > 0 ? [...activeModels] : fallbackList;
+
+  const candidateModels = activeModels.length > 0 ? [...activeModels] : [...rawCandidateModels];
 
   if (lastSuccessfulModel && !isModelRateLimited(lastSuccessfulModel) && candidateModels.includes(lastSuccessfulModel)) {
     const idx = candidateModels.indexOf(lastSuccessfulModel);
@@ -142,7 +100,8 @@ async function executeGroqChat(apiKey, payload) {
     candidateModels.unshift(lastSuccessfulModel);
   }
 
-  const modelsToTry = candidateModels.slice(0, 5);
+  // Try up to 6 models dynamically cycling through
+  const modelsToTry = candidateModels.slice(0, 6);
 
   for (const currentKey of keys) {
     for (const model of modelsToTry) {

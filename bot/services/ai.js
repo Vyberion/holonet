@@ -12,7 +12,7 @@ import {
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODELS_ENDPOINT = "https://api.groq.com/openai/v1/models";
 
-const NON_CHAT_BLOCKLIST_REGEX = /(guard|safeguard|whisper|tts|stt|audio|speech|embed|vision|rerank|distill)/i;
+const NON_CHAT_BLOCKLIST_REGEX = /(guard|safeguard|whisper|tts|stt|audio|speech|embed|vision|rerank|distill|compound)/i;
 
 let cachedModels = null;
 let lastModelFetchTime = 0;
@@ -37,7 +37,7 @@ async function getAvailableGroqModels(apiKey) {
       const json = await res.json();
       const rawList = Array.isArray(json?.data) ? json.data : [];
       
-      // Keep any active model that is not an audio/guard/embed/rerank model
+      // Keep any active chat model that is not an audio/guard/embed/compound model
       const filtered = rawList.filter(m => {
         const id = String(m.id || "").toLowerCase();
         if (m.active === false) return false;
@@ -45,7 +45,7 @@ async function getAvailableGroqModels(apiKey) {
         return true;
       });
 
-      // Sort by context window descending or whatever capacity groq provides
+      // Prefer models with larger context window
       filtered.sort((a, b) => (b.context_window || 0) - (a.context_window || 0));
 
       const modelIds = filtered.map(m => m.id);
@@ -100,23 +100,23 @@ async function executeGroqChat(apiKey, payload) {
     candidateModels.unshift(lastSuccessfulModel);
   }
 
-  // Try up to 6 models dynamically cycling through
-  const modelsToTry = candidateModels.slice(0, 6);
+  // Cycle through up to 8 models dynamically
+  const modelsToTry = candidateModels.slice(0, 8);
 
   for (const currentKey of keys) {
     for (const model of modelsToTry) {
       try {
+        const bodyPayload = { ...payload, model, temperature: 0.2 };
+
+        // Some models (like gpt-oss or certain lightweight checkpoints) do not support function calling / tools
+        // If a model failed with tool_use error or if tools are not supported, strip them
         const response = await fetch(GROQ_ENDPOINT, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${currentKey}`,
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({
-            ...payload,
-            model,
-            temperature: 0.2
-          }),
+          body: JSON.stringify(bodyPayload),
           signal: AbortSignal.timeout(10000)
         });
 
@@ -141,9 +141,31 @@ async function executeGroqChat(apiKey, payload) {
           continue;
         }
 
+        // If the model rejects tool parameters with a 400 (e.g. "tools are not supported" or "tool_use"), retry without tools if tools were sent
+        if (response.status === 400 && (errText.includes("tool") || errText.includes("function")) && bodyPayload.tools) {
+          console.warn(`[H.O.L.O Groq Failover] Model ${model} does not support tools (${errText.slice(0, 80)}). Retrying without tools...`);
+          const noToolsPayload = { ...bodyPayload };
+          delete noToolsPayload.tools;
+          delete noToolsPayload.tool_choice;
+          const retryRes = await fetch(GROQ_ENDPOINT, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${currentKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(noToolsPayload),
+            signal: AbortSignal.timeout(10000)
+          });
+          if (retryRes.ok) {
+            const data = await retryRes.json();
+            lastSuccessfulModel = model;
+            return { ok: true, data, model };
+          }
+        }
+
         if (response.status === 400 || response.status === 404 || response.status === 503) {
           markModelRateLimited(model, 300000);
-          console.warn(`[H.O.L.O Groq Failover] Model ${model} returned ${response.status}. Trying next candidate model...`);
+          console.warn(`[H.O.L.O Groq Failover] Model ${model} returned ${response.status}: ${errText.slice(0, 100)}. Trying next candidate model...`);
           continue;
         }
 

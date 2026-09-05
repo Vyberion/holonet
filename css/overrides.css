@@ -47,6 +47,18 @@
   .site-nav .nav-dropdown-menu {
     width: 100vw !important;
     max-width: none !important;
+    text-align: left !important;
+  }
+
+  .site-nav .nav-dropdown-link {
+    justify-content: flex-start !important;
+    text-align: left !important;
+    align-items: flex-start !important;
+    padding-left: 36px !important;
+  }
+
+  .site-nav .nav-dropdown-link .nav-link-label {
+    text-align: left !important;
   }
 }
 

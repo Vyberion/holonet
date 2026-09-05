@@ -87,6 +87,20 @@ import { divisionIdFromRouteSlug, divisionIdFromSubdomain } from "../data/divisi
     );
   }
 
+  function isCouncilPage() {
+    const hostLabel = location.hostname.split(".")[0]?.toLowerCase() || "";
+    if (hostLabel === "council") return true;
+    const segments = location.pathname.split("/").filter(Boolean);
+    const first = segments[0]?.toLowerCase();
+    return first === "council" || first === "dark-council" || first === "darkcouncil";
+  }
+
+  function isTimelinePage() {
+    const segments = location.pathname.split("/").filter(Boolean);
+    const first = segments[0]?.toLowerCase();
+    return first === "timeline" || (first === "archives" && segments[1]?.toLowerCase() === "group-timeline");
+  }
+
   function rejectAccess(message, options = {}) {
     const styles = document.body ? getComputedStyle(document.body) : null;
     const accent = styles?.getPropertyValue("--theme-accent").trim() || "#ff0022";
@@ -145,6 +159,7 @@ import { divisionIdFromRouteSlug, divisionIdFromSubdomain } from "../data/divisi
       sessionStorage.setItem("holonet:access:global", JSON.stringify(access));
     } catch {}
     document.documentElement.classList.remove("access-pending");
+    document.documentElement.style.background = "";
     pendingStyle.remove();
   }
 
@@ -166,6 +181,36 @@ import { divisionIdFromRouteSlug, divisionIdFromSubdomain } from "../data/divisi
     try {
       if (isEmperorArchivePage()) {
         await verifyEmperorArchiveAccess();
+        return;
+      }
+
+      if (isCouncilPage()) {
+        const response = await fetch("/api/auth/check-access");
+        const access = await response.json();
+
+        if (response.ok && access.authorized && access.profile?.isSuperUser) {
+          allowAccess(access);
+          return;
+        }
+
+        const reason = access.profile ? "SUPERUSER_CLEARANCE_REQUIRED" : (access.reason || "SESSION_REQUIRED");
+        const showAccount = ["SESSION_MISSING", "SESSION_INVALID", "SESSION_EXPIRED", "SESSION_REQUIRED", "USER_NOT_FOUND"].includes(reason);
+        rejectAccess(`ACCESS DENIED: ${reason.replace(/_/g, " ")}`, { showAccount });
+        return;
+      }
+
+      if (isTimelinePage()) {
+        const response = await fetch("/api/auth/check-access");
+        const access = await response.json();
+
+        if (response.ok && access.authorized && access.profile?.isSuperUser) {
+          allowAccess(access);
+          return;
+        }
+
+        const reason = access.profile ? "SUPERUSER_CLEARANCE_REQUIRED" : (access.reason || "SESSION_REQUIRED");
+        const showAccount = ["SESSION_MISSING", "SESSION_INVALID", "SESSION_EXPIRED", "SESSION_REQUIRED", "USER_NOT_FOUND"].includes(reason);
+        rejectAccess(`ACCESS DENIED: ${reason.replace(/_/g, " ")}`, { showAccount });
         return;
       }
 

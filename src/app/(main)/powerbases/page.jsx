@@ -34,7 +34,7 @@ function PowerbaseCard({ pb }) {
       <div className="dir-card-frame" aria-hidden="true" />
       <div className="card-vline" aria-hidden="true" />
       <div className="card-scan" aria-hidden="true" />
-      
+
       <div className="dir-card-top">
         <h2 className="dir-card-title">{pb.name}</h2>
         {!pb.hidePrestige && (
@@ -69,8 +69,8 @@ export default async function PowerbasesPage() {
 
   return (
     <HolonetFrame
-      title="IMPERIAL POWERBASES"
-      subtitle="DIRECTORY OF APPROVED ORGANISATIONS"
+      title="POWERBASES"
+      subtitle="IMPERIAL FACTIONS"
       node="KOR-7 / HORUSET SYSTEM"
       signalLabel="LIVE"
       signalValue="|||||||||."
@@ -79,12 +79,11 @@ export default async function PowerbasesPage() {
       mainClassName="powerbases-main"
     >
       <div className="registry-main">
-        {/* Tier X (Imperial Sovereign Powerbase) - Full Row */}
         {tiers.X.length > 0 && (
           <section className="registry-section" aria-labelledby="sec-tier-x">
             <div className="section-header">
               <span className="section-tag" id="sec-tier-x">
-                // TIER X // IMPERIAL SOVEREIGN POWERBASE
+                // TIER X POWERBASES
               </span>
               <div className="section-rule" />
             </div>

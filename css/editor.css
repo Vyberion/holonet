@@ -1,23 +1,49 @@
-body.editor-overlay-active > :not(#resource-editor-overlay):not(#codex-editor-overlay):not(#inspection-editor-overlay):not(#council-editor-overlay):not(#timeline-editor-overlay):not(#cots-editor-overlay):not(script):not(style),
-body:has(#resource-editor-overlay.active) > :not(#resource-editor-overlay):not(script):not(style),
-body:has(#codex-editor-overlay.active) > :not(#codex-editor-overlay):not(script):not(style),
-body:has(#inspection-editor-overlay.active) > :not(#inspection-editor-overlay):not(script):not(style),
-body:has(#council-editor-overlay.active) > :not(#council-editor-overlay):not(script):not(style),
-body:has(#timeline-editor-overlay.active) > :not(#timeline-editor-overlay):not(script):not(style),
-body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):not(style) {
-  filter: blur(12px);
-  transform: scale(1.012);
-  transition: filter 0.18s ease, transform 0.18s ease;
+body.editor-overlay-active #app,
+body.editor-overlay-active .site-frame,
+body:has(#resource-editor-overlay.active) #app,
+body:has(#resource-editor-overlay.active) .site-frame,
+body:has(#codex-editor-overlay.active) #app,
+body:has(#codex-editor-overlay.active) .site-frame,
+body:has(#inspection-editor-overlay.active) #app,
+body:has(#inspection-editor-overlay.active) .site-frame,
+body:has(#council-editor-overlay.active) #app,
+body:has(#council-editor-overlay.active) .site-frame,
+body:has(#timeline-editor-overlay.active) #app,
+body:has(#timeline-editor-overlay.active) .site-frame,
+body:has(#cots-editor-overlay.active) #app,
+body:has(#cots-editor-overlay.active) .site-frame,
+body:has(#library-editor-overlay.active) #app,
+body:has(#library-editor-overlay.active) .site-frame,
+body:has(.codex-modal-backdrop.active) #app,
+body:has(.codex-modal-backdrop.active) .site-frame,
+body:has(.doctrine-modal-backdrop.active) #app,
+body:has(.doctrine-modal-backdrop.active) .site-frame {
+  filter: blur(14px) !important;
+  transform: scale(1.006);
+  transition: filter 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.codex-modal-backdrop,
+.doctrine-modal-backdrop,
+#resource-editor-overlay,
+#library-editor-overlay,
+#inspection-editor-overlay,
+#council-editor-overlay,
+#timeline-editor-overlay,
+#cots-editor-overlay {
+  filter: none !important;
+  transform: none !important;
+  isolation: isolate;
 }
 
 #resource-editor-overlay {
   align-items: flex-start;
   background:
-    radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 9%, transparent), transparent 68%),
-    linear-gradient(rgba(0, 0, 0, 0.46), rgba(0, 0, 0, 0.46)),
-    color-mix(in srgb, var(--theme-bg, var(--void)) 86%, transparent);
-  backdrop-filter: blur(10px) saturate(0.82);
-  -webkit-backdrop-filter: blur(10px) saturate(0.82);
+    radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 8%, transparent), transparent 68%),
+    rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
   display: none;
   inset: 0;
   justify-content: center;
@@ -60,7 +86,9 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
   background:
     radial-gradient(ellipse 90% 80% at 100% 0%, color-mix(in srgb, var(--editor-accent) 8%, transparent), transparent 68%),
     linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 5%, transparent) 0%, transparent 58%),
-    var(--editor-panel);
+    color-mix(in srgb, var(--editor-panel) 72%, transparent);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
   border: 1px solid var(--editor-border);
   box-shadow:
     0 0 28px color-mix(in srgb, var(--editor-accent-glow) 82%, transparent),
@@ -374,11 +402,10 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
 #cots-editor-overlay {
   align-items: flex-start;
   background:
-    radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 9%, transparent), transparent 68%),
-    linear-gradient(rgba(0, 0, 0, 0.46), rgba(0, 0, 0, 0.46)),
-    color-mix(in srgb, var(--theme-bg, var(--void)) 86%, transparent);
-  backdrop-filter: blur(10px) saturate(0.82);
-  -webkit-backdrop-filter: blur(10px) saturate(0.82);
+    radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 8%, transparent), transparent 68%),
+    rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
   display: none;
   inset: 0;
   justify-content: center;
@@ -429,7 +456,9 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
   background:
     radial-gradient(ellipse 85% 80% at 100% 0%, color-mix(in srgb, var(--editor-accent) 8%, transparent), transparent 68%),
     linear-gradient(135deg, color-mix(in srgb, var(--editor-accent) 5%, transparent) 0%, transparent 58%),
-    var(--editor-panel, var(--theme-panel, var(--panel)));
+    color-mix(in srgb, var(--editor-panel, var(--theme-panel, var(--panel))) 72%, transparent);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
   border: 1px solid var(--editor-border, var(--theme-accent-dim, var(--border-hot)));
   box-shadow:
     0 0 28px color-mix(in srgb, var(--editor-accent-glow, var(--theme-accent-glow, var(--red-glow))) 82%, transparent),
@@ -625,30 +654,89 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
   color: var(--editor-label);
 }
 
-/* Codex-style Modal Styling (Doctrine Design System) */
-.codex-modal-backdrop {
+/* Codex & Doctrine Universal Modal Design System */
+.codex-modal-backdrop:not(.active),
+[id$="-editor-overlay"]:not(.active),
+.doctrine-modal-backdrop:not(.active) {
+  display: none !important;
+}
+
+.codex-modal-backdrop.active,
+[id$="-editor-overlay"].active,
+.doctrine-modal-backdrop.active {
+  display: flex !important;
+}
+
+.codex-modal-backdrop,
+.doctrine-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(6px);
-  z-index: 9999;
-  display: flex;
+  background:
+    radial-gradient(ellipse 70% 70% at 50% 12%, color-mix(in srgb, var(--theme-accent, var(--red-bright)) 8%, transparent), transparent 68%),
+    rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  z-index: 4000;
+  display: none;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
 }
 
-.codex-modal-dialog {
-  background: linear-gradient(135deg, rgba(192,0,26,0.05) 0%, transparent 60%), var(--surface);
-  border: 1px solid var(--red-bright);
+.codex-modal-backdrop::before,
+.doctrine-modal-backdrop::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    var(--scanline) 2px,
+    var(--scanline) 4px
+  );
+  pointer-events: none;
+  z-index: 4002;
+  opacity: 0.4;
+}
+
+.codex-modal-dialog,
+.doctrine-modal-dialog {
+  background:
+    linear-gradient(135deg, rgba(192, 0, 26, 0.08) 0%, rgba(192, 0, 26, 0.02) 40%, transparent 70%),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(192, 0, 26, 0.12) 0%, transparent 75%),
+    rgba(18, 5, 8, 0.72);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  border: 1px solid var(--theme-border-hot, var(--border-hot));
   box-shadow:
-    0 0 40px rgba(192,0,26,0.15),
-    0 0 100px rgba(192,0,26,0.06),
-    inset 0 0 40px rgba(192,0,26,0.03);
-  width: 100%;
+    0 0 30px rgba(192, 0, 26, 0.10),
+    0 0 80px rgba(192, 0, 26, 0.05),
+    inset 0 0 40px rgba(192, 0, 26, 0.05);
   max-height: 90vh;
   overflow-y: auto;
-  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  position: relative;
+  z-index: 4001;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  transition: box-shadow 0.3s;
+}
+
+.codex-modal-dialog {
+  width: min(1200px, calc(100vw - 36px));
+  max-width: 1200px;
+}
+
+.doctrine-modal-dialog {
+  width: min(850px, calc(100vw - 36px));
+  max-width: 850px;
+}
+
+.codex-modal-dialog:hover,
+.doctrine-modal-dialog:hover {
+  box-shadow:
+    0 0 40px rgba(192,0,26,0.12),
+    0 0 120px rgba(192,0,26,0.06),
+    inset 0 0 40px rgba(192,0,26,0.05);
 }
 
 .codex-modal-header {
@@ -731,38 +819,71 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
   outline: none;
 }
 
-.codex-modal-dialog .hub-cancel-btn {
-  background: transparent;
-  border: 1px solid var(--border-hot);
-  color: var(--text-dim);
-  font-family: 'Orbitron', monospace;
-  font-size: 0.8rem;
-  padding: 0.5rem 1.2rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.codex-modal-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
 }
-.codex-modal-dialog .hub-cancel-btn:hover {
-  border-color: var(--red-bright);
-  color: var(--red-bright);
-  box-shadow: 0 0 8px var(--red-glow);
+@media (max-width: 640px) {
+  .codex-modal-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
 }
 
-.codex-modal-dialog .hub-write-btn {
-  background: rgba(192,0,26,0.12);
-  border: 1px solid var(--red-bright);
-  color: var(--red-bright);
-  font-family: 'Orbitron', monospace;
-  font-size: 0.8rem;
-  padding: 0.5rem 1.2rem;
-  cursor: pointer;
-  text-shadow: 0 0 6px var(--red-glow);
-  transition: all 0.2s ease;
+/* Unified Footer Buttons for ALL Editors (Same effect as Cancel button on hover and not hovered) */
+.codex-modal-footer button,
+.codex-modal-footer .hub-cancel-btn,
+.codex-modal-footer .hub-write-btn,
+.codex-modal-dialog .hub-cancel-btn,
+.codex-modal-dialog .hub-write-btn,
+.doctrine-modal-dialog .hub-cancel-btn,
+.doctrine-modal-dialog .hub-write-btn,
+.resource-editor-actions .resource-editor-submit,
+.resource-editor-actions button,
+.resource-editor-footer button,
+.library-editor-buttons button,
+#library-editor-overlay .resource-editor-submit,
+#inspection-editor-overlay .resource-editor-submit,
+#council-editor-overlay .resource-editor-submit,
+#timeline-editor-overlay .resource-editor-submit,
+#cots-editor-overlay .resource-editor-submit {
+  background: transparent !important;
+  border: 1px solid var(--border-hot, rgba(192, 0, 26, 0.4)) !important;
+  color: var(--text-dim) !important;
+  font-family: 'Orbitron', monospace, sans-serif !important;
+  font-size: 0.8rem !important;
+  letter-spacing: 0.1em !important;
+  padding: 0.5rem 1.2rem !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  clip-path: none !important;
+  border-radius: 0 !important;
+  transition: all 0.2s ease !important;
 }
-.codex-modal-dialog .hub-write-btn:hover {
-  background: var(--red-bright);
-  color: #fff;
-  box-shadow: 0 0 20px var(--red-glow), 0 0 4px rgba(0,200,255,0.1);
-  text-shadow: none;
+
+.codex-modal-footer button:hover,
+.codex-modal-footer button:focus-visible,
+.codex-modal-footer .hub-cancel-btn:hover,
+.codex-modal-footer .hub-write-btn:hover,
+.codex-modal-dialog .hub-cancel-btn:hover,
+.codex-modal-dialog .hub-write-btn:hover,
+.doctrine-modal-dialog .hub-cancel-btn:hover,
+.doctrine-modal-dialog .hub-write-btn:hover,
+.resource-editor-actions .resource-editor-submit:hover,
+.resource-editor-actions button:hover,
+.resource-editor-footer button:hover,
+.library-editor-buttons button:hover,
+#library-editor-overlay .resource-editor-submit:hover,
+#inspection-editor-overlay .resource-editor-submit:hover,
+#council-editor-overlay .resource-editor-submit:hover,
+#timeline-editor-overlay .resource-editor-submit:hover,
+#cots-editor-overlay .resource-editor-submit:hover {
+  background: transparent !important;
+  border-color: var(--red-bright) !important;
+  color: var(--red-bright) !important;
+  box-shadow: 0 0 8px var(--red-glow) !important;
+  text-shadow: 0 0 6px var(--red-glow) !important;
 }
 
 /* Side-by-Side Split Editor Classes */
@@ -824,4 +945,74 @@ body:has(#cots-editor-overlay.active) > :not(#cots-editor-overlay):not(script):n
 .codex-regulation-pill-actions {
   display: flex;
   gap: 4px;
+}
+
+/* Mobile 2-Column Drilldown Navigation */
+.codex-split-return-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .codex-modal-backdrop,
+  .doctrine-modal-backdrop {
+    padding: 0.6rem;
+  }
+
+  .codex-modal-dialog,
+  .doctrine-modal-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 94dvh !important;
+    margin: 0 !important;
+  }
+
+  .codex-split-container {
+    grid-template-columns: 1fr !important;
+    padding: 1rem !important;
+    gap: 1rem !important;
+    min-height: auto !important;
+  }
+
+  /* When viewing regulation list */
+  .codex-split-container[data-active-pane="list"] .codex-split-right {
+    display: none !important;
+  }
+
+  .codex-split-container[data-active-pane="list"] .codex-split-left {
+    display: flex !important;
+    border-right: none !important;
+    padding-right: 0 !important;
+    width: 100% !important;
+  }
+
+  /* When editing active regulation */
+  .codex-split-container[data-active-pane="editor"] .codex-split-left {
+    display: none !important;
+  }
+
+  .codex-split-container[data-active-pane="editor"] .codex-split-right {
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  .codex-split-return-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.9rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--theme-accent, var(--red-bright));
+    border: 1px solid var(--theme-border-hot, var(--border-hot));
+    background: rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    margin-bottom: 0.8rem;
+    width: fit-content;
+    transition: all 0.2s;
+  }
+
+  .codex-split-return-btn:hover {
+    background: rgba(192, 0, 26, 0.15);
+    box-shadow: 0 0 10px var(--red-glow);
+  }
 }

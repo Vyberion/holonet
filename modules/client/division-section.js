@@ -97,7 +97,7 @@ function divisionSectionName(division = {}) {
 function titleForSection(section, division = null) {
   const baseTitle = {
     transmissions: "Transmissions",
-    reports: "Inspections",
+    reports: "Reports",
     activity: "Activity"
   }[section] || "Division";
 
@@ -212,34 +212,35 @@ function renderActivityRoster(members) {
 function formFieldsFor(section, entry = {}) {
   const common = `
     <input type="hidden" name="id" value="${escapeHtml(entry.id || "")}">
-    <div class="resource-editor-field">
-      <label for="resource-title">Title</label>
-      <input id="resource-title" name="title" value="${escapeHtml(entry.title || "")}" required>
+    <input type="hidden" name="resourceType" value="${escapeHtml(resourceType)}">
+    <div>
+      <label class="codex-label" for="resource-title">TITLE</label>
+      <input class="codex-input" id="resource-title" name="title" value="${escapeHtml(entry.title || "")}" required>
     </div>
   `;
 
   if (section === "transmissions") {
     return `${common}
-      <div class="resource-editor-field">
-        <label for="resource-body">Body</label>
-        <textarea id="resource-body" name="body" required>${escapeHtml(entry.body || "")}</textarea>
+      <div>
+        <label class="codex-label" for="resource-body">TRANSMISSION CONTENT</label>
+        <textarea class="codex-textarea" id="resource-body" name="body" rows="8" required>${escapeHtml(entry.body || "")}</textarea>
       </div>
       ${entry.id ? `
-        <div class="library-editor-buttons">
-          <button type="button" class="library-inline-btn danger" data-resource-delete>DELETE TRANSMISSION</button>
+        <div style="margin-top: 0.5rem;">
+          <button type="button" class="hub-cancel-btn" style="color: var(--theme-accent, var(--red-bright)); border-color: var(--theme-accent, var(--red-bright));" data-resource-delete>DELETE TRANSMISSION</button>
         </div>
       ` : ""}
     `;
   }
 
   return `${common}
-    <div class="resource-editor-field">
-      <label for="resource-body">Body</label>
-      <textarea id="resource-body" name="body" required>${escapeHtml(entry.body || "")}</textarea>
+    <div>
+      <label class="codex-label" for="resource-body">BODY</label>
+      <textarea class="codex-textarea" id="resource-body" name="body" rows="8" required>${escapeHtml(entry.body || "")}</textarea>
     </div>
-    <div class="resource-editor-field">
-      <label for="resource-visibility">Visibility</label>
-      <select id="resource-visibility" name="visibility">
+    <div>
+      <label class="codex-label" for="resource-visibility">VISIBILITY</label>
+      <select class="codex-select" id="resource-visibility" name="visibility">
         <option value="restricted" ${entry.visibility !== "public" && entry.visibility !== "private" ? "selected" : ""}>Restricted</option>
         <option value="public" ${entry.visibility === "public" ? "selected" : ""}>Public</option>
         <option value="private" ${entry.visibility === "private" ? "selected" : ""}>Private</option>
@@ -250,33 +251,38 @@ function formFieldsFor(section, entry = {}) {
 
 function ensureEditorOverlay() {
   let overlay = document.getElementById("resource-editor-overlay");
-  if (overlay) return overlay
+  if (overlay) return overlay;
 
   overlay = document.createElement("div");
   overlay.id = "resource-editor-overlay";
+  overlay.className = "codex-modal-backdrop";
   overlay.innerHTML = `
-    <div class="resource-editor-container" role="dialog" aria-modal="true" aria-labelledby="resource-editor-title">
-      <div class="resource-editor-topbar">
-        <span class="resource-editor-title" id="resource-editor-title">WRITE RESOURCE</span>
-        <button type="button" class="resource-editor-close" data-resource-close>CLOSE</button>
+    <div class="codex-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="resource-editor-title" style="width: min(780px, calc(100vw - 32px)); max-width: 780px; margin: auto;">
+      <div class="codex-modal-header">
+        <h2 style="font-family: Cinzel, serif; font-size: 1.2rem; color: var(--theme-accent, var(--red-bright)); margin: 0; letter-spacing: 0.15em; text-shadow: 0 0 6px rgba(255,0,34,0.55);" id="resource-editor-title">WRITE RESOURCE</h2>
+        <button type="button" class="codex-modal-close" data-resource-close>&times;</button>
       </div>
-      <form class="resource-editor-form" data-resource-form></form>
-      <div class="resource-editor-actions">
-        <span class="resource-editor-status" data-resource-status></span>
-        <div style="display: flex; gap: 12px;">
-          <button type="button" class="resource-editor-submit" data-report-delete style="display: none;">DELETE REPORT</button>
-          <button type="submit" class="resource-editor-submit" form="resource-editor-form">SAVE</button>
-        </div>
-      </div>
-      <div class="resource-editor-footer">
-        <span class="resource-editor-hint"><kbd>ESC</kbd> CLOSE</span>
+      <form class="codex-modal-body" data-resource-form id="resource-editor-form" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.2rem;"></form>
+      <div class="codex-modal-footer" style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; padding: 1.2rem 1.5rem;">
+        <button type="button" class="hub-cancel-btn" data-report-delete style="color: var(--theme-accent, var(--red-bright)); border-color: var(--theme-accent, var(--red-bright)); display: none; margin-right: auto;">DELETE REPORT</button>
+        <span class="resource-editor-status" data-resource-status style="color: var(--text-dim); margin-right: 1rem;"></span>
+        <button type="button" class="hub-cancel-btn" data-resource-close>CANCEL</button>
+        <button type="submit" class="hub-write-btn" form="resource-editor-form">SAVE</button>
       </div>
     </div>
   `;
 
   document.body.appendChild(overlay);
   overlay.querySelector("[data-resource-form]").id = "resource-editor-form";
-  overlay.querySelector("[data-resource-close]").addEventListener("click", closeEditor);
+
+  const closeEditor = () => {
+    overlay.classList.remove("active");
+    document.body.classList.remove("editor-overlay-active");
+  };
+
+  overlay.querySelectorAll("[data-resource-close]").forEach(btn => {
+    btn.addEventListener("click", closeEditor);
+  });
   overlay.addEventListener("click", event => {
     if (event.target === overlay) closeEditor();
   });
@@ -503,16 +509,6 @@ function openEditor(entry = {}) {
   status.textContent = "";
   form.innerHTML = `
     ${formFieldsFor(activeContext.section, entry)}
-    ${activeContext.section === "transmissions" ? "" : `
-      <div class="resource-editor-field">
-        <label for="resource-status">Status</label>
-        <select id="resource-status" name="status">
-          <option value="published" ${entry.status === "published" ? "selected" : ""}>Published</option>
-          <option value="draft" ${entry.status === "draft" ? "selected" : ""}>Draft</option>
-          <option value="archived" ${entry.status === "archived" ? "selected" : ""}>Archived</option>
-        </select>
-      </div>
-    `}
   `;
 
   form.onclick = async event => {

@@ -84,8 +84,32 @@ function renderDocument(documentData, canEdit, index) {
   `;
 }
 
+const DEFAULT_ARCHIVE_ASSETS = [
+  "/assets/archives/darth_revan.jpg",
+  "/assets/archives/darth_nihilus.jpg",
+  "/assets/archives/exar_kun.png",
+  "/assets/archives/force_wars.png",
+  "/assets/archives/marka_ragnos.png",
+  "/assets/archives/naga_sadow.jpg",
+  "/assets/archives/sorzus_syn.png",
+  "/assets/archives/tulak_hord.jpg"
+];
+
+function resolveArchiveImageUrl(article = {}, index = 0) {
+  const raw = String(article.imageUrl || article.imagePath || "").trim();
+  if (raw) {
+    if (/^https?:\/\//i.test(raw) || raw.startsWith("/assets/")) return raw;
+    if (raw.startsWith("assets/")) return `/${raw}`;
+    if (raw.startsWith("public/assets/")) return `/${raw.slice("public/".length)}`;
+    const clean = raw.replace(/^\/?archives\//i, "").replace(/^\/?assets\/archives\//i, "");
+    return `/assets/archives/${clean}`;
+  }
+  return DEFAULT_ARCHIVE_ASSETS[index % DEFAULT_ARCHIVE_ASSETS.length];
+}
+
 function renderArchiveArticle(article, canEdit, index) {
   const articleAnchor = escapeHtml(articleNumberAnchor(article.articleNumber, index + 1));
+  const archiveImg = resolveArchiveImageUrl(article, index);
   return `
     <article class="codex-article archive-article" id="${articleAnchor}" data-library-document-id="${escapeHtml(article.id || "")}">
       <div class="article-header">
@@ -94,9 +118,9 @@ function renderArchiveArticle(article, canEdit, index) {
         ${canEdit ? `<button type="button" class="hub-write-btn" data-library-edit="${escapeHtml(article.id || "")}">EDIT ARTICLE</button>` : ""}
       </div>
       <div class="article-content">
-        ${article.imageUrl ? `
+        ${archiveImg ? `
           <figure class="archive-image">
-            <img src="${escapeHtml(article.imageUrl)}" alt="${escapeHtml(article.imageAlt || article.title || "Archive image")}" loading="lazy">
+            <img src="${escapeHtml(archiveImg)}" alt="${escapeHtml(article.imageAlt || article.title || "Archive image")}" loading="lazy">
           </figure>
         ` : ""}
         <div class="regulation">
@@ -290,7 +314,7 @@ function ensureEditorOverlay() {
       </div>
       <form class="codex-modal-body" id="library-editor-form"></form>
       <div class="codex-modal-footer" style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
-        <button type="button" class="hub-cancel-btn" data-library-delete style="color: var(--red-bright); border-color: var(--red-bright); text-shadow: 0 0 6px var(--red-glow); display: none; margin-right: auto;">PURGE</button>
+        <button type="button" class="hub-cancel-btn" data-library-delete style="display: none; margin-right: auto;">PURGE</button>
         <span class="resource-editor-status" data-library-status style="color: var(--text-dim); margin-right: 1rem;"></span>
         <button type="button" class="hub-cancel-btn" data-library-close>CANCEL</button>
         <button type="submit" class="hub-write-btn" form="library-editor-form">SAVE</button>
@@ -299,7 +323,9 @@ function ensureEditorOverlay() {
   `;
 
   document.body.appendChild(overlay);
-  overlay.querySelector("[data-library-close]").addEventListener("click", () => overlay.classList.remove("active"));
+  overlay.querySelectorAll("[data-library-close]").forEach(btn => {
+    btn.addEventListener("click", () => overlay.classList.remove("active"));
+  });
   let pointerStartedOnOverlay = false;
   overlay.addEventListener("pointerdown", event => {
     pointerStartedOnOverlay = event.target === overlay;
@@ -492,10 +518,11 @@ async function initLibraryView() {
       const activeEntry = editingRegulationIndex >= 0 && editingRegulationIndex < workingDocument.entries.length 
         ? workingDocument.entries[editingRegulationIndex] 
         : null;
+      let mobileActivePane = editingRegulationIndex >= 0 ? "editor" : "list";
 
       form.innerHTML = `
         <input type="hidden" name="id" value="${escapeHtml(workingDocument.id || "")}">
-        <div class="codex-split-container">
+        <div class="codex-split-container" data-active-pane="${mobileActivePane}">
           <!-- LEFT PANEL -->
           <div class="codex-split-left">
             <div>
@@ -517,10 +544,6 @@ async function initLibraryView() {
                       <span style="font-weight: bold;">REG ${regulationNumberValue(entry, index)}</span>
                       <span style="font-size: 0.7rem; color: var(--text-dim);">${escapeHtml(titleStr)}</span>
                     </span>
-                    <div class="codex-regulation-pill-actions">
-                      <button type="button" class="hub-cancel-btn" style="padding: 2px 6px; font-size: 0.6rem;" data-library-move-up="${index}">▲</button>
-                      <button type="button" class="hub-cancel-btn" style="padding: 2px 6px; font-size: 0.6rem;" data-library-move-down="${index}">▼</button>
-                    </div>
                   </div>
                 `}).join("")}
                 ${workingDocument.entries.length === 0 ? `<div style="color: var(--text-dim); font-size: 0.8rem; font-family: 'Share Tech Mono', monospace; font-style: italic;">No regulations found.</div>` : ''}
@@ -533,6 +556,7 @@ async function initLibraryView() {
           <div class="codex-split-right">
             ${activeEntry ? `
               <div>
+                <button type="button" class="codex-split-return-btn" data-library-return-list>&larr; RETURN TO REGULATIONS</button>
                 <label class="codex-label" style="display: flex; justify-content: space-between; align-items: center;">
                   <span>EDITING REGULATION ${regulationNumberValue(activeEntry, editingRegulationIndex)}</span>
                   <button type="button" class="hub-cancel-btn" style="color: var(--red-bright); border-color: var(--red-bright); padding: 2px 6px; font-size: 0.65rem;" data-library-remove-entry="${editingRegulationIndex}">REMOVE</button>
@@ -565,6 +589,14 @@ async function initLibraryView() {
     overlay.classList.add("active");
 
     form.onclick = async event => {
+      const returnList = event.target.closest("[data-library-return-list]");
+      if (returnList) {
+        syncWorkingDocumentFromForm();
+        editingRegulationIndex = -1;
+        renderForm();
+        return;
+      }
+
       const destroy = event.target.closest("[data-library-delete]");
       if (destroy && workingDocument.id) {
         if (!window.confirm("Are you sure you want to delete this article?")) return;
@@ -586,12 +618,9 @@ async function initLibraryView() {
       
       const editEntry = event.target.closest("[data-library-edit-entry]");
       if (editEntry) {
-        // Only trigger edit if it wasn't a move action
-        if (!event.target.closest("[data-library-move-up]") && !event.target.closest("[data-library-move-down]")) {
-          syncWorkingDocumentFromForm();
-          editingRegulationIndex = Number(editEntry.dataset.libraryEditEntry);
-          renderForm();
-        }
+        syncWorkingDocumentFromForm();
+        editingRegulationIndex = Number(editEntry.dataset.libraryEditEntry);
+        renderForm();
         return;
       }
 
@@ -602,7 +631,7 @@ async function initLibraryView() {
         editingRegulationIndex = workingDocument.entries.length - 1;
         renderForm();
         return;
-       }
+      }
 
       const remove = event.target.closest("[data-library-remove-entry]");
       if (remove) {
@@ -615,31 +644,6 @@ async function initLibraryView() {
         return;
       }
       
-      const moveUp = event.target.closest("[data-library-move-up]");
-      if (moveUp) {
-        syncWorkingDocumentFromForm();
-        const idx = Number(moveUp.dataset.libraryMoveUp);
-        if (idx > 0) {
-          const temp = workingDocument.entries[idx];
-          workingDocument.entries[idx] = workingDocument.entries[idx - 1];
-          workingDocument.entries[idx - 1] = temp;
-          renderForm();
-        }
-        return;
-      }
-
-      const moveDown = event.target.closest("[data-library-move-down]");
-      if (moveDown) {
-        syncWorkingDocumentFromForm();
-        const idx = Number(moveDown.dataset.libraryMoveDown);
-        if (idx < workingDocument.entries.length - 1) {
-          const temp = workingDocument.entries[idx];
-          workingDocument.entries[idx] = workingDocument.entries[idx + 1];
-          workingDocument.entries[idx + 1] = temp;
-          renderForm();
-        }
-        return;
-      }
     };
 
     form.onsubmit = async event => {

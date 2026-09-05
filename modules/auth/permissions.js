@@ -2,6 +2,10 @@ const PAGE_ACCESS = {
   codex: { public: true },
   cots: { public: true },
   archives: { public: true },
+  timeline: { require: 'superuser:only' },
+  archives_group_timeline: { require: 'superuser:only' },
+  decrees: { public: true },
+  statutes: { public: true },
   hierarchy: { public: true },
   low_ranks: { public: true },
   low_ranks_grotthu: { public: true },
@@ -104,22 +108,40 @@ const PAGE_ACCESS = {
   high_ranks_activity: { require: 'pages:view:highranks' },
   high_ranks_trackers: { require: 'pages:view:highranks' },
 
-  dark_council: { require: 'pages:view:darkcouncil' },
-  dark_council_home: { require: 'pages:view:darkcouncil' },
-  dark_council_council_floor: { require: 'pages:view:darkcouncil' },
-  dark_council_handbooks: { require: 'pages:view:darkcouncil' },
-  dark_council_transmissions: { require: 'pages:view:darkcouncil' },
-  dark_council_reports: { require: 'pages:view:darkcouncil' },
-  dark_council_activity: { require: 'pages:view:darkcouncil' },
-  dark_council_trackers: { require: 'pages:view:darkcouncil' },
-  darkcouncil: { require: 'pages:view:darkcouncil' },
-  darkcouncil_home: { require: 'pages:view:darkcouncil' },
-  darkcouncil_council_floor: { require: 'pages:view:darkcouncil' },
-  darkcouncil_handbooks: { require: 'pages:view:darkcouncil' },
-  darkcouncil_transmissions: { require: 'pages:view:darkcouncil' },
-  darkcouncil_reports: { require: 'pages:view:darkcouncil' },
-  darkcouncil_activity: { require: 'pages:view:darkcouncil' },
-  darkcouncil_trackers: { require: 'pages:view:darkcouncil' },
+  council: { require: 'superuser:only' },
+  council_home: { require: 'superuser:only' },
+  council_info: { require: 'superuser:only' },
+  council_floor: { require: 'superuser:only' },
+  council_docket: { require: 'superuser:only' },
+  council_decrees: { require: 'superuser:only' },
+  council_handbooks: { require: 'superuser:only' },
+  council_transmissions: { require: 'superuser:only' },
+  council_reports: { require: 'superuser:only' },
+  council_activity: { require: 'superuser:only' },
+  dark_council: { require: 'superuser:only' },
+  dark_council_home: { require: 'superuser:only' },
+  dark_council_info: { require: 'superuser:only' },
+  dark_council_floor: { require: 'superuser:only' },
+  dark_council_council_floor: { require: 'superuser:only' },
+  dark_council_docket: { require: 'superuser:only' },
+  dark_council_decrees: { require: 'superuser:only' },
+  dark_council_handbooks: { require: 'superuser:only' },
+  dark_council_transmissions: { require: 'superuser:only' },
+  dark_council_reports: { require: 'superuser:only' },
+  dark_council_activity: { require: 'superuser:only' },
+  dark_council_trackers: { require: 'superuser:only' },
+  darkcouncil: { require: 'superuser:only' },
+  darkcouncil_home: { require: 'superuser:only' },
+  darkcouncil_info: { require: 'superuser:only' },
+  darkcouncil_floor: { require: 'superuser:only' },
+  darkcouncil_council_floor: { require: 'superuser:only' },
+  darkcouncil_docket: { require: 'superuser:only' },
+  darkcouncil_decrees: { require: 'superuser:only' },
+  darkcouncil_handbooks: { require: 'superuser:only' },
+  darkcouncil_transmissions: { require: 'superuser:only' },
+  darkcouncil_reports: { require: 'superuser:only' },
+  darkcouncil_activity: { require: 'superuser:only' },
+  darkcouncil_trackers: { require: 'superuser:only' },
 };
 
 function normalizePageKey(page) {
@@ -139,6 +161,23 @@ export function hasPermission(profile, perm) {
 
 export function checkPageAccess(profile, page) {
   const pageKey = normalizePageKey(page);
+
+  // Council pages restricted to superusers only for now
+  if (pageKey.startsWith("dark_council") || pageKey.startsWith("darkcouncil") || pageKey.startsWith("council")) {
+    if (!profile?.isSuperUser) {
+      return { authorized: false, pageKey, reason: "SUPERUSER_CLEARANCE_REQUIRED" };
+    }
+    return { authorized: true, pageKey };
+  }
+
+  // Timeline page restricted to superusers only for testing phase
+  if (pageKey === "timeline" || pageKey.startsWith("timeline_") || pageKey === "archives_group_timeline") {
+    if (!profile?.isSuperUser) {
+      return { authorized: false, pageKey, reason: "SUPERUSER_CLEARANCE_REQUIRED" };
+    }
+    return { authorized: true, pageKey };
+  }
+
   const rule = PAGE_ACCESS[pageKey];
 
   if (!rule) {
@@ -172,24 +211,32 @@ export function checkResourceWriteAccess(profile, { division, resourceType }) {
 }
 
 export function canEditLibrary(profile, libraryKey) {
-  if (hasPermission(profile, 'library:edit')) return { authorized: true, reason: "PERMISSION_GRANTED" };
+  if (!profile) return { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
+  if (
+    profile.isSuperUser ||
+    profile.hasFullAccess ||
+    profile.authorityRoles?.emperor ||
+    profile.authorityRoles?.groupOwner ||
+    profile.authorityRoles?.projectManager ||
+    (profile.divisions?.darkCouncil && profile.divisions.darkCouncil !== "none") ||
+    hasPermission(profile, 'library:edit') ||
+    hasPermission(profile, 'codex:edit') ||
+    hasPermission(profile, 'archives:edit') ||
+    hasPermission(profile, 'doctrine:edit') ||
+    hasPermission(profile, 'timeline:edit')
+  ) {
+    return { authorized: true, reason: "PERMISSION_GRANTED" };
+  }
   return { authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" };
 }
 
 export function canEditStatutes(profile) {
-  if (hasPermission(profile, 'codex:edit')) return { authorized: true, reason: "PERMISSION_GRANTED" };
-  return { authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" };
+  return canEditLibrary(profile, "decrees");
 }
 
 export function canEditDoctrine(profile) {
   if (!profile) return false;
-  return Boolean(
-    profile.isSuperUser ||
-    profile.hasFullAccess ||
-    hasPermission(profile, 'doctrine:edit') ||
-    hasPermission(profile, 'codex:edit') ||
-    canViewStatuteDrafts(profile)
-  );
+  return canEditLibrary(profile, "doctrine").authorized;
 }
 
 export function canViewStatuteDrafts(profile) {

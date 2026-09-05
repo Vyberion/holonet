@@ -107,14 +107,6 @@ function formMarkup(entry = {}) {
     <div class="resource-editor-field"><label>Body</label><textarea name="body" required>${escapeHtml(entry.body || "")}</textarea></div>
     <div class="resource-editor-field"><label>Image Path</label><input name="imagePath" value="${escapeHtml(entry.imagePath || "")}"></div>
     <div class="resource-editor-field"><label>Image Alt</label><input name="imageAlt" value="${escapeHtml(entry.imageAlt || "")}"></div>
-    <div class="resource-editor-field">
-      <label>Status</label>
-      <select name="status">
-        <option value="published" ${entry.status === "published" ? "selected" : ""}>Published</option>
-        <option value="draft" ${entry.status === "draft" ? "selected" : ""}>Draft</option>
-        <option value="archived" ${entry.status === "archived" ? "selected" : ""}>Archived</option>
-      </select>
-    </div>
     <div class="resource-editor-field"><label>Display Order</label><input type="number" name="displayOrder" value="${escapeHtml(entry.displayOrder || 0)}"></div>
     ${entry.id ? `<button type="button" class="library-inline-btn danger" data-timeline-delete>DELETE ENTRY</button>` : ""}
   `;

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function RegistryRedirect() {
+export default function DomainsRedirect() {
   redirect("/divisions");
 }

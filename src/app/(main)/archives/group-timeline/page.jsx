@@ -1,5 +1,5 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
-export default function GroupTimelinePage() {
-  notFound();
+export default function GroupTimelineRedirect() {
+  redirect("/timeline");
 }

@@ -475,19 +475,32 @@ async function handleEditMembers(interaction) {
     const removedIds = oldMemberIds.filter(id => !normFinalMemberIds.includes(id));
 
     if (addedIds.length > 0 || removedIds.length > 0) {
-      const addedText = addedIds.length > 0 ? addedIds.map(id => `<@${id}>`).join("\n") : "*None*";
-      const removedText = removedIds.length > 0 ? removedIds.map(id => `<@${id}>`).join("\n") : "*None*";
+      const fields = [
+        { name: "Powerbase Name", value: pb.name, inline: true },
+        { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
+        { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false }
+      ];
+
+      if (addedIds.length > 0) {
+        fields.push({
+          name: "Apprentices Added",
+          value: addedIds.map(id => `<@${id}>`).join("\n"),
+          inline: false
+        });
+      }
+
+      if (removedIds.length > 0) {
+        fields.push({
+          name: "Apprentices Removed",
+          value: removedIds.map(id => `<@${id}>`).join("\n"),
+          inline: false
+        });
+      }
 
       await postPowerbaseLog(interaction.client, {
         title: "Powerbase Roster Updated",
         description: `Roster for Powerbase **${pb.name}** has been updated.`,
-        fields: [
-          { name: "Powerbase Name", value: pb.name, inline: true },
-          { name: "Leader", value: `<@${pb.leader_id}>`, inline: true },
-          { name: "Updated By", value: `<@${interaction.user.id}>`, inline: false },
-          { name: "Apprentices Added", value: addedText, inline: false },
-          { name: "Apprentices Removed", value: removedText, inline: false }
-        ],
+        fields,
         color: 0xc90705
       }).catch(err => console.error("Failed to post powerbase log:", err));
     }

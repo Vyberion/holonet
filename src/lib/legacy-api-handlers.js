@@ -476,10 +476,15 @@ function publicImageUrl(path) {
   const value = requireString(path);
   if (!value) return "";
   if (/^https?:\/\//i.test(value)) return value;
-  if (value.startsWith("/")) return value;
-  if (value.startsWith("public/")) return `/${value.slice("public/".length)}`;
+  if (value.startsWith("/assets/")) return value;
   if (value.startsWith("assets/")) return `/${value}`;
-  return "";
+  if (value.startsWith("public/assets/")) return `/${value.slice("public/".length)}`;
+  if (value.startsWith("/")) {
+    if (value.startsWith("/archives/")) return `/assets${value}`;
+    return value;
+  }
+  const clean = value.replace(/^archives\//i, "").replace(/^assets\/archives\//i, "");
+  return `/assets/archives/${clean}`;
 }
 
 function isLocalHostname(hostname = "") {
@@ -845,8 +850,24 @@ async function loadArchiveArticles() {
     "archive_articles?select=id,slug,title,body,image_bucket,image_path,image_alt,status,display_order,created_at,updated_at&order=display_order.asc,created_at.asc"
   );
 
-  const normalized = await Promise.all((articles || []).map(async article => {
+  const DEFAULT_ARCHIVE_ASSETS = [
+    "/assets/archives/darth_revan.jpg",
+    "/assets/archives/darth_nihilus.jpg",
+    "/assets/archives/exar_kun.png",
+    "/assets/archives/force_wars.png",
+    "/assets/archives/marka_ragnos.png",
+    "/assets/archives/naga_sadow.jpg",
+    "/assets/archives/sorzus_syn.png",
+    "/assets/archives/tulak_hord.jpg"
+  ];
+
+  const normalized = await Promise.all((articles || []).map(async (article, idx) => {
     const articleOrder = articleOrderFrom(article.display_order);
+    const resolvedImage = publicImageUrl(article.image_path) || (article.image_path
+      ? await createSignedStorageUrl(article.image_bucket || "archives", article.image_path).catch(() => "")
+      : "");
+    const finalImageUrl = resolvedImage || DEFAULT_ARCHIVE_ASSETS[idx % DEFAULT_ARCHIVE_ASSETS.length];
+
     return {
       id: article.id,
       slug: article.slug,
@@ -856,9 +877,7 @@ async function loadArchiveArticles() {
       imageBucket: article.image_bucket || "",
       imagePath: article.image_path || "",
       imageAlt: article.image_alt || "",
-      imageUrl: publicImageUrl(article.image_path) || (article.image_path
-        ? await createSignedStorageUrl(article.image_bucket || "archives", article.image_path).catch(() => "")
-        : ""),
+      imageUrl: finalImageUrl,
       status: article.status,
       displayOrder: articleOrder,
       createdAt: article.created_at,
@@ -1083,7 +1102,7 @@ async function deleteLibraryDocument(id) {
 
 async function loadPublishedResources(division, resourceType) {
   return supabaseRest(
-    `registry_resources?division_key=eq.${encodeURIComponent(division)}&resource_type=eq.${encodeURIComponent(resourceType)}&status=eq.published&select=id,division_key,slug,title,description,visibility,status,display_order,created_at,updated_at&order=display_order.asc,created_at.desc`
+    `registry_resources?division_key=eq.${encodeURIComponent(division)}&resource_type=eq.${encodeURIComponent(resourceType)}&select=id,division_key,slug,title,description,visibility,status,display_order,created_at,updated_at&order=display_order.asc,created_at.desc`
   );
 }
 
@@ -1179,7 +1198,7 @@ async function normalizeRows(resources, detailRows, resourceType) {
 
 async function loadBoardTransmissions() {
   const resources = await supabaseRest(
-    "registry_resources?resource_type=eq.transmission&status=eq.published&select=id,division_key,slug,title,description,visibility,status,display_order,created_at,updated_at&order=updated_at.desc,created_at.desc&limit=40"
+    "registry_resources?resource_type=eq.transmission&select=id,division_key,slug,title,description,visibility,status,display_order,created_at,updated_at&order=updated_at.desc,created_at.desc&limit=40"
   );
 
   const rows = resources?.length
@@ -1434,7 +1453,7 @@ async function loadWeeklyReportMembers(reportIds = []) {
 async function loadWeeklyReports(division = "") {
   const filter = division ? `division_key=eq.${encodeURIComponent(division)}&` : "";
   const rows = await supabaseRest(
-    `division_weekly_reports?${filter}status=eq.published&select=id,division_key,week_start,author_id,author_name,status,created_at,updated_at&order=week_start.desc,created_at.desc&limit=40`
+    `division_weekly_reports?${filter}select=id,division_key,week_start,author_id,author_name,status,created_at,updated_at&order=week_start.desc,created_at.desc&limit=40`
   );
   const memberMap = await loadWeeklyReportMembers((rows || []).map(row => row.id));
   return (rows || []).map(row => normalizeWeeklyReport(row, memberMap.get(String(row.id)) || []));
@@ -1681,7 +1700,7 @@ async function writeWeeklyReport(auth, body) {
     week_start: weekStart,
     author_id: String(auth.user.roblox_id),
     author_name: auth.user.roblox_username || auth.user.roblox_display_name || String(auth.user.roblox_id),
-    status: ["draft", "published", "archived"].includes(body.status) ? body.status : "published",
+    status: "published",
     updated_at: reportAt
   };
 
@@ -1910,7 +1929,7 @@ async function writeResource({ division, resourceType, detailTable, body, author
 
   const now = new Date().toISOString();
   const slug = slugify(body.slug || title);
-  const status = ["draft", "published", "archived"].includes(body.status) ? body.status : "published";
+  const status = "published";
   const visibility = ["public", "restricted", "private"].includes(body.visibility) ? body.visibility : "restricted";
   const resourceId = requireString(body.id);
   const parentDescription = requireString(body.body || body.summary || body.notes || title);
@@ -2455,15 +2474,15 @@ function voteCounts(votes = []) {
 }
 
 function derivedCouncilStatus(proposal, votes = []) {
-  if (["vetoed", "withdrawn", "passed", "failed"].includes(proposal.status)) return proposal.status;
+  if (proposal.status === "vetoed" && proposal.vetoed_by) return "vetoed";
+  if (["withdrawn", "passed", "failed", "docket", "submitted"].includes(proposal.status)) return proposal.status;
 
-  const openedAt = new Date(proposal.opens_at || proposal.created_at);
   const closesAt = new Date(proposal.closes_at);
   const now = new Date();
-  const minimumCloseAt = new Date(openedAt.getTime() + 24 * 60 * 60 * 1000);
   const counts = voteCounts(votes);
+  const majority = Number(proposal.majority_count || 1);
 
-  if (now >= minimumCloseAt && counts.yes >= Number(proposal.majority_count || 1)) {
+  if (counts.yes >= majority) {
     return "passed";
   }
 
@@ -2525,16 +2544,25 @@ async function loadCouncilProposals() {
 
 async function createCouncilProposal(auth, body) {
   const permissions = councilPermissions(auth.profile);
-  if (!permissions.canPropose) {
+  const targetStatus = (body.status === "submitted" || body.targetStatus === "submitted")
+    ? "submitted"
+    : (body.status === "docket" || body.targetStatus === "docket")
+      ? "docket"
+      : "open";
+
+  if (!permissions.canPropose && targetStatus !== "submitted") {
     return { ok: false, status: 200, payload: { ok: false, authorized: false, reason: "INSUFFICIENT_WRITE_CLEARANCE" } };
   }
 
-  const proposalType = requireString(body.proposalType || body.proposal_type || "motion");
+  const proposalType = requireString(body.proposalType || body.proposal_type || "legislation");
   const title = requireString(body.title);
   const proposalBody = requireString(body.body);
   const durationHours = clampDurationHours(body.durationHours || body.duration_hours);
+  const authors = Array.isArray(body.authors) ? body.authors : (body.authors ? String(body.authors).split(",").map(s => s.trim()) : []);
+  const coAuthors = Array.isArray(body.coAuthors) ? body.coAuthors : (body.coAuthors ? String(body.coAuthors).split(",").map(s => s.trim()) : []);
+  const legalFormat = Boolean(body.legalFormat);
 
-  if (!["legislation", "motion", "councillor_election"].includes(proposalType) || !title || !proposalBody) {
+  if (!["legislation", "motion", "councillor_election", "promotion", "disciplinary", "kaggath"].includes(proposalType) || !title || !proposalBody) {
     return { ok: false, status: 400, payload: { ok: false, reason: "PROPOSAL_FIELDS_REQUIRED" } };
   }
 
@@ -2548,12 +2576,16 @@ async function createCouncilProposal(auth, body) {
       proposal_type: proposalType,
       title,
       body: proposalBody,
-      status: "open",
+      status: targetStatus,
       created_by: String(auth.user.roblox_id),
       created_by_name: auth.user.roblox_username || auth.user.roblox_display_name || String(auth.user.roblox_id),
       opens_at: opensAt.toISOString(),
       closes_at: closesAt.toISOString(),
       duration_hours: durationHours,
+      authors,
+      co_authors: coAuthors,
+      legal_format: legalFormat,
+      amendment_iteration: 0,
       eligible_snapshot: roleSnapshot.snapshot,
       counting_eligible_count: roleSnapshot.countingEligibleCount,
       majority_count: roleSnapshot.majorityCount
@@ -2708,12 +2740,145 @@ function normalizeTimelineEntry(entry) {
   };
 }
 
-async function loadTimelineEntries(includeDrafts = false) {
-  const statusFilter = includeDrafts ? "" : "status=eq.published&";
-  const entries = await supabaseRest(
-    `group_timeline_entries?${statusFilter}select=*&order=start_date.asc,display_order.asc,created_at.asc`
+const MONTH_MAP = {
+  jan: 0, january: 0,
+  feb: 1, february: 1,
+  mar: 2, march: 2,
+  apr: 3, april: 3,
+  may: 4,
+  jun: 5, june: 5,
+  jul: 6, july: 6,
+  aug: 7, august: 7,
+  sep: 8, sept: 8, september: 8,
+  oct: 9, october: 9,
+  nov: 10, november: 10,
+  dec: 11, december: 11
+};
+
+function parseFlexibleDate(raw) {
+  if (!raw || typeof raw !== "string") return null;
+  const str = raw.trim();
+  if (!str) return null;
+
+  // 1. American numeric: M/D/YY, M/D/YYYY, MM/DD/YY, MM/DD/YYYY, or with dashes
+  const usNumericMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (usNumericMatch) {
+    const month = parseInt(usNumericMatch[1], 10) - 1;
+    const day = parseInt(usNumericMatch[2], 10);
+    let year = parseInt(usNumericMatch[3], 10);
+    if (year < 100) {
+      year += year < 50 ? 2000 : 1900;
+    }
+    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+      return new Date(Date.UTC(year, month, day)).getTime();
+    }
+  }
+
+  // 2. Day of month year: e.g. "3rd of September 2026", "3 September 2026", "3rd September 2026"
+  const dmyMatch = str.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([A-Za-z]+)(?:,)?\s+(\d{2,4})/i);
+  if (dmyMatch) {
+    const day = parseInt(dmyMatch[1], 10);
+    const monthKey = dmyMatch[2].toLowerCase();
+    let year = parseInt(dmyMatch[3], 10);
+    if (year < 100) {
+      year += year < 50 ? 2000 : 1900;
+    }
+    if (MONTH_MAP[monthKey] !== undefined && day >= 1 && day <= 31) {
+      return new Date(Date.UTC(year, MONTH_MAP[monthKey], day)).getTime();
+    }
+  }
+
+  // 3. Month day year: e.g. "September 3rd 2026", "September 3, 2026", "Sep 3 2026"
+  const mdyMatch = str.match(/^([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,)?\s+(\d{2,4})/i);
+  if (mdyMatch) {
+    const monthKey = mdyMatch[1].toLowerCase();
+    const day = parseInt(mdyMatch[2], 10);
+    let year = parseInt(mdyMatch[3], 10);
+    if (year < 100) {
+      year += year < 50 ? 2000 : 1900;
+    }
+    if (MONTH_MAP[monthKey] !== undefined && day >= 1 && day <= 31) {
+      return new Date(Date.UTC(year, MONTH_MAP[monthKey], day)).getTime();
+    }
+  }
+
+  // 4. Month year: e.g. "September 2026", "Sep 2026"
+  const myMatch = str.match(/^([A-Za-z]+)\s+(\d{2,4})$/i);
+  if (myMatch) {
+    const monthKey = myMatch[1].toLowerCase();
+    let year = parseInt(myMatch[2], 10);
+    if (year < 100) {
+      year += year < 50 ? 2000 : 1900;
+    }
+    if (MONTH_MAP[monthKey] !== undefined) {
+      return new Date(Date.UTC(year, MONTH_MAP[monthKey], 1)).getTime();
+    }
+  }
+
+  // 5. Star Wars / Galactic BTC / ATC era check
+  const btcMatch = str.match(/^(\d+)\s*BTC$/i) || str.match(/^(\d+)\s*BBY$/i);
+  if (btcMatch) {
+    const num = parseInt(btcMatch[1], 10);
+    return -1000000000000000 - num;
+  }
+  const atcMatch = str.match(/^(\d+)\s*ATC$/i) || str.match(/^(\d+)\s*ABY$/i);
+  if (atcMatch) {
+    const num = parseInt(atcMatch[1], 10);
+    return -1000000000000000 + 1000000 + num;
+  }
+
+  // 6. ISO Date check: YYYY-MM-DD or YYYY/MM/DD
+  const isoMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (isoMatch) {
+    const year = parseInt(isoMatch[1], 10);
+    const month = parseInt(isoMatch[2], 10) - 1;
+    const day = parseInt(isoMatch[3], 10);
+    return new Date(Date.UTC(year, month, day)).getTime();
+  }
+
+  // 7. Plain 4-digit year
+  const yearMatch = str.match(/^(\d{4})$/);
+  if (yearMatch) {
+    return new Date(Date.UTC(parseInt(yearMatch[1], 10), 0, 1)).getTime();
+  }
+
+  const parsed = Date.parse(str);
+  if (!isNaN(parsed)) return parsed;
+
+  return null;
+}
+
+function parseDateToIso(str) {
+  const ts = parseFlexibleDate(str);
+  if (!ts || ts < 0) return null;
+  return new Date(ts).toISOString().slice(0, 10);
+}
+
+function getEntryTimestamp(entry) {
+  if (!entry) return 0;
+  return (
+    parseFlexibleDate(entry.dateLabel || entry.date_label) ??
+    parseFlexibleDate(entry.startDate || entry.start_date) ??
+    parseFlexibleDate(entry.endDate || entry.end_date) ??
+    parseFlexibleDate(entry.createdAt || entry.created_at) ??
+    0
   );
-  return (entries || []).map(normalizeTimelineEntry);
+}
+
+async function loadTimelineEntries() {
+  const entries = await supabaseRest(
+    "group_timeline_entries?select=*&order=start_date.asc,display_order.asc,created_at.asc"
+  );
+  const normalized = (entries || []).map(normalizeTimelineEntry);
+  return normalized.sort((a, b) => {
+    const timeA = getEntryTimestamp(a);
+    const timeB = getEntryTimestamp(b);
+    if (timeA !== timeB) return timeA - timeB;
+    const orderA = Number.isFinite(Number(a.displayOrder)) ? Number(a.displayOrder) : 0;
+    const orderB = Number.isFinite(Number(b.displayOrder)) ? Number(b.displayOrder) : 0;
+    if (orderA !== orderB) return orderA - orderB;
+    return (a.id || "").localeCompare(b.id || "");
+  });
 }
 
 async function writeTimelineEntry(auth, body) {
@@ -2731,16 +2896,21 @@ async function writeTimelineEntry(auth, body) {
     return { ok: false, status: 400, payload: { ok: false, reason: "TIMELINE_FIELDS_REQUIRED" } };
   }
 
+  const dateLabel = requireString(body.dateLabel || body.date_label);
+  const explicitStartDate = body.startDate || body.start_date || null;
+  const inferredStartDate = parseDateToIso(dateLabel);
+  const startDate = explicitStartDate || inferredStartDate || null;
+
   const payload = {
     title,
     body: entryBody,
     category,
-    date_label: requireString(body.dateLabel || body.date_label),
-    start_date: body.startDate || body.start_date || null,
+    date_label: dateLabel,
+    start_date: startDate,
     end_date: body.endDate || body.end_date || null,
     image_path: requireString(body.imagePath || body.image_path),
     image_alt: requireString(body.imageAlt || body.image_alt || title),
-    status: ["draft", "published", "archived"].includes(body.status) ? body.status : "published",
+    status: "published",
     display_order: Number.isFinite(Number(body.displayOrder)) ? Number(body.displayOrder) : 0,
     created_by: String(auth.user.roblox_id),
     created_by_name: auth.user.roblox_username || auth.user.roblox_display_name || String(auth.user.roblox_id),

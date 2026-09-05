@@ -106,7 +106,7 @@ function inList(values) {
 
 async function loadPublishedGoogleHandbooks() {
   const resources = await supabaseRest(
-    "registry_resources?resource_type=eq.handbook&status=eq.published&select=id,division_key,slug,title,created_at,updated_at&order=updated_at.desc"
+    "registry_resources?resource_type=eq.handbook&select=id,division_key,slug,title,created_at,updated_at&order=updated_at.desc"
   );
 
   if (!resources?.length) return [];

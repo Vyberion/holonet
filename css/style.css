@@ -85,8 +85,8 @@ body::before {
       var(--scanline) 2px,
       var(--scanline) 4px
     );
-  pointer-events: none;
-  z-index: 3500;
+  pointer-events: none !important;
+  z-index: 9900 !important;
   animation: scanlines 6s linear infinite;
 }
 
@@ -99,7 +99,7 @@ body::after {
     radial-gradient(ellipse 60% 50% at 50% 50%, var(--theme-body-glow-a) 0%, transparent 65%),
     radial-gradient(ellipse 100% 100% at 50% 0%, var(--theme-body-glow-b) 0%, transparent 60%);
   pointer-events: none;
-  z-index: 3500;
+  z-index: 0;
   animation: pulseGlow 5s ease-in-out infinite;
 }
 

@@ -558,15 +558,17 @@
     }
 
     .nav-item--dropdown.dropdown-open .nav-dropdown-menu {
-      max-height: 120px;
+      max-height: 480px;
       padding: 4px 0 8px;
       pointer-events: auto;
       transform: none;
     }
 
     .nav-dropdown-link {
-      justify-content: flex-start;
-      padding: 12px 24px 12px 52px;
+      justify-content: flex-start !important;
+      text-align: left !important;
+      align-items: flex-start !important;
+      padding: 12px 24px 12px 36px !important;
     }
   }
 .account-icon {

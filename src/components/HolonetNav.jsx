@@ -39,6 +39,8 @@ function clearCachedAccess() {
 function currentPageKey(pathname = "/") {
   const segments = String(pathname || "/").split("/").filter(Boolean);
   if (segments[0] === "archives" && segments[1]) return `archives-${segments[1]}`;
+  if (segments[0] === "council" && segments[1]) return `council-${segments[1]}`;
+  if (segments[0] === "divisions" || segments[0] === "departments" || segments[0] === "disciplines" || segments[0] === "domains") return "divisions";
 
   const page = segments.length === 0 ? "home" : segments[0].replace(".html", "") || "home";
   return page === "index" ? "home" : page;
@@ -107,6 +109,9 @@ function NavLink({ href, page, prefix, label, account = false, children, activeP
 }
 
 function formatNavHref(path, hostname = "") {
+  if (!path || path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
   if (!hostname || hostname.includes("discordsays.com") || hostname.includes("localhost")) {
     return path;
   }
@@ -213,7 +218,18 @@ export function HolonetNav() {
     }
   });
 
-  const codexDropdown = canViewDrafts ? [{ href: getHref("/statutes"), page: "statutes", label: "Statutes" }] : null;
+  const domainsSubItems = [
+    { href: divisionLockedHref("highranks"), page: "instructors", label: "Instructors" },
+    { href: divisionLockedHref("dhg"), page: "dhg", label: "Guards" },
+    { href: divisionLockedHref("reavers"), page: "reavers", label: "Reavers" },
+    { href: divisionLockedHref("inquisitors"), page: "inquisitors", label: "Inquisitors" },
+    { href: divisionLockedHref("dreadmasters"), page: "dreadmasters", label: "Dread Masters" }
+  ];
+
+  const councilSubItems = [
+    { href: divisionLockedHref("darkCouncil", "docket"), page: "council-docket", label: "Docket" },
+    { href: divisionLockedHref("darkCouncil", "floor"), page: "council-floor", label: "Floor" }
+  ];
 
   const centerLinks = [
     { href: getHref("/"), page: "home", prefix: "00", label: "Home" },
@@ -222,7 +238,10 @@ export function HolonetNav() {
       page: "codex",
       prefix: "01",
       label: "Codex",
-      dropdown: codexDropdown?.length ? codexDropdown : null
+      dropdown: [
+        { href: getHref("/doctrine"), page: "doctrine", label: "Doctrine" },
+        { href: getHref("/hierarchy"), page: "hierarchy", label: "Hierarchy", preload: preloadHierarchyImages }
+      ]
     },
     {
       href: getHref("/archives"),
@@ -230,19 +249,19 @@ export function HolonetNav() {
       prefix: "02",
       label: "Archives",
       dropdown: [
+        { href: getHref("/timeline"), page: "timeline", label: "Timeline" },
         { href: getHref("/emperors"), page: "emperors", label: "Emperors" },
-        { href: getHref("/cots"), page: "cots", label: "Champion" }
+        { href: getHref("/cots"), page: "cots", label: "COTS" }
       ]
     },
-    { href: getHref("/hierarchy"), page: "hierarchy", prefix: "03", label: "Hierarchy", preload: preloadHierarchyImages },
     {
-      href: getHref("/registry"),
-      page: "registry",
-      prefix: "04",
-      label: "Registry",
-      dropdown: registrySubItems.length ? registrySubItems : null
+      href: getHref("/divisions"),
+      page: "divisions",
+      prefix: "03",
+      label: "Divisions",
+      dropdown: domainsSubItems
     },
-    { href: getHref("/powerbases"), page: "powerbases", prefix: "05", label: "Powerbases" }
+    { href: getHref("/powerbases"), page: "powerbases", prefix: "04", label: "Powerbases" }
   ];
 
   useEffect(() => {

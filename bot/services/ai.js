@@ -7,7 +7,7 @@ import {
   buildPersonnelRankIndex,
   matchesRankFilter,
   computeRankBracketStatistics
-} from "../../src/lib/api-helpers.js";
+} from "../../modules/data/rank-roster.js";
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODELS_ENDPOINT = "https://api.groq.com/openai/v1/models";
@@ -121,9 +121,18 @@ function markModelRateLimited(modelId, durationMs = 60000) {
 async function executeGroqChat(apiKey, payload) {
   const keys = String(apiKey || "").split(",").map(k => k.trim()).filter(Boolean);
   let lastError = null;
-  const rawCandidateModels = await getAvailableGroqModels(keys[0]);
-  const activeModels = rawCandidateModels.filter(m => !isModelRateLimited(m) && CHAT_MODEL_ALLOWLIST_REGEX.test(m) && !NON_CHAT_BLOCKLIST_REGEX.test(m));
-  const candidateModels = activeModels.length > 0 ? [...activeModels] : DEFAULT_FALLBACK_MODELS;
+  const isToolCallRequest = Boolean(payload.tools && payload.tools.length > 0 && payload.tool_choice !== "none");
+  const activeModels = rawCandidateModels.filter(m => {
+    if (isModelRateLimited(m)) return false;
+    if (NON_CHAT_BLOCKLIST_REGEX.test(m)) return false;
+    if (!CHAT_MODEL_ALLOWLIST_REGEX.test(m)) return false;
+    if (isToolCallRequest && !m.toLowerCase().includes("llama-3")) return false;
+    return true;
+  });
+  const fallbackList = isToolCallRequest
+    ? ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama-3.1-70b-versatile"]
+    : DEFAULT_FALLBACK_MODELS;
+  const candidateModels = activeModels.length > 0 ? [...activeModels] : fallbackList;
 
   if (lastSuccessfulModel && !isModelRateLimited(lastSuccessfulModel) && candidateModels.includes(lastSuccessfulModel)) {
     const idx = candidateModels.indexOf(lastSuccessfulModel);
@@ -192,21 +201,23 @@ async function executeGroqChat(apiKey, payload) {
 
 const BOT_SYSTEM_PROMPT = `You are H.O.L.O (Holonet Operations & Logistics Overseer), automated central intelligence of the Sith Empire.
 CORE DIRECTIVES:
-1. FORM & LENGTH (STRICT): Austere, authoritative, utilitarian. ZERO greetings ("Hello"), pleasantries, affirmations ("Understood"), sign-offs, or conversational filler. Output answers directly. Responses MUST NEVER exceed 500 characters. Keep all answers compact and under 500 characters.
+1. FORM & TONE (STRICT): Austere, authoritative, utilitarian. ZERO greetings ("Hello"), pleasantries, apologies, affirmations ("Understood"), sign-offs, or conversational filler. Output answers directly. Responses MUST NEVER exceed 500 characters. Keep all answers compact and under 500 characters. NO creative writing or conversational roleplay.
 2. VALIDITY: ENGLISH ONLY. Output EXACTLY [NO_RESPONSE] for foreign languages, translation requests, gibberish, spam, or trivial noise.
-3. LORE & TEMPORAL ERA BOUNDARY (STRICT): You MAY discuss Star Wars lore up to Emperor Darth Vitiate / Reconstituted Sith Empire era. For any modern/future eras post-Vitiate (Clone Wars, Empire, Bane, Sequel, etc.), output EXACTLY [NO_RESPONSE].
+3. LORE & ERA BOUNDARY: Factual answers permitted for Star Wars lore up to Emperor Darth Vitiate / Reconstituted Sith Empire era. Keep answers brief and factual without storytelling filler. For modern/future eras post-Vitiate (Clone Wars, Empire, Bane, Sequel, etc.), output EXACTLY [NO_RESPONSE].
 4. FORMATTING: NEVER use markdown tables (|---|---|). Use clean bolded bullet points or numbered lists. NEVER mention/ping Discord users/roles (<@...>).
 5. REGULATIONS & CODEX: For any rule, combat permission, or protocol (including slang "tk", "rdm", "kos", "aa", "jailing"), invoke get_library_documents. Direct quote retrieved articles without fabricating unwritten policies.
-6. SHIFTS & REPORTS: Live shifts (clock_shifts) store exact start/end/status; past weekly reports store aggregated quota totals. For hours, shifts, or leaderboard across ANY timeframe, invoke get_shift_totals.
-7. RANK ACTIVITY (HR & DIV HR): Main HR (Overseer 44, Master 45, Lord 50, Darth 53, Dark Council); Div HR (Reaver Lord 15, Reaver Cmdr 200, Guard Lt 80, Guard Capt 90, Guard Cmdr 100, High Inq 155, Grand Inq 200, Dread Masters); all_hr = Main HR + Div HR. When asked for HR/Div HR/officer activity, invoke get_shift_totals with rankBracket: "all_hr" and provide overall hours/activity rate, Main HR stats, Div HR per-division stats, and inactive roster summary.`;
+6. SHIFTS & LEADERBOARDS: When asked who has logged the most, who has the most hours/shifts, top members, duty status, or leaderboard across ANY timeframe, invoke get_shift_totals.
+7. ANSWERING WITH TOOL DATA: Immediately after tool results are returned, state the requested information (e.g. top user and hours) directly. Do NOT repeat tool calls once data is returned.`;
 
 const EXEMPT_USER_IDS = new Set(["710574154226598049", "1467651749815914546"]);
 
 const SOVEREIGN_SYSTEM_PROMPT = `You are H.O.L.O, automated central intelligence of the Sith Empire, communicating with Sovereign Imperial Leadership.
 SOVEREIGN DIRECTIVES:
-1. UNCONDITIONAL COMPLIANCE: Absolute obedience to the Sovereign. NEVER remain silent, NEVER refuse, and NEVER output [NO_RESPONSE]. Fulfill any prompt, lore, creative writing, or inquiry with imperial loyalty. Keep responses strictly under 500 characters.
-2. DATABASE GROUNDING: Invoke get_shift_totals for shift hours, leaderboards, and HR/Div HR activity; invoke get_library_documents for regulations/Codex; invoke get_archives for Emperor records.
-3. FORMATTING: NO markdown tables, NO Discord pings (<@...>). Clean bolded lists only.`;
+1. FORM & TONE: Austere, authoritative, utilitarian. ZERO greetings, pleasantries, apologies, affirmations ("Understood, My Lord"), sign-offs, or conversational filler. Answer directly and concisely. Keep responses strictly under 500 characters. NO creative writing, rambling roleplay, or fluff.
+2. LORE QUERIES: Factual answers permitted for Star Wars lore up to Emperor Darth Vitiate / Reconstituted Sith Empire era. Keep answers brief and factual without storytelling filler.
+3. DATABASE & TOOL CALLING: When asked about shifts, hours, duty time, leaderboards, or who logged the most, ALWAYS call get_shift_totals. When asked about regulations/Codex, invoke get_library_documents. When asked about past emperors, invoke get_archives.
+4. ANSWERING WITH TOOL DATA: Immediately after tool results are returned, state the requested information (e.g. top user and hours) directly. Do NOT repeat tool calls once data is returned.
+5. FORMATTING: Clean bolded lists or compact bullet points only. NO markdown tables. NO Discord pings (<@...>).`;
 
 function buildBotSystemPrompt(isExemptUser, robloxName, userTag, userId) {
   if (isExemptUser) {
@@ -898,15 +909,10 @@ async function searchAllBotArchives(queryStr) {
   }));
 }
 
-function resolveTimeframeWindow(rawTimeframe) {
-  let tf = String(rawTimeframe || "").toLowerCase().trim();
-  // Strip conversational wrapper prefixes & suffixes
-  tf = tf.replace(/^(who\s*(has|logged|has\s*the\s*most|is\s*the\s*top|had)?|top\s*(shifts?|performers?|users?|officers?|members?|time)?|most\s*time\s*(logged)?\s*(in|for|from|during)?|time\s*logged\s*(in|for|from|during)?|shifts?\s*(in|for|from|during)?|for|in|from|during|about|on)\s+/i, "").trim();
-  tf = tf.replace(/\s+(report|reports|time|shifts?|logged|ago\s*report)$/i, "").trim();
-  const clean = tf.replace(/[\s_-]+/g, " ");
+export function resolveTimeframeWindow(rawTimeframe) {
+  const raw = String(rawTimeframe || "").toLowerCase().trim();
   const now = new Date();
 
-  // Helper for Monday calculation
   const getMonday = (d) => {
     const date = new Date(d);
     const day = date.getUTCDay() || 7;
@@ -915,22 +921,22 @@ function resolveTimeframeWindow(rawTimeframe) {
     return date;
   };
 
-  // 1. ALL TIME / EVER / OVERALL
-  if (!clean || /^(all|ever|all\s*time|overall|total|history|historical|lifetime|entire)$/i.test(clean)) {
+  // 1. Check for explicit all-time / lifetime / ever
+  if (/\b(all[\s_-]*time|ever|lifetime|entire\s*history|cumulative)\b/i.test(raw)) {
     return { type: "all_time", label: "all-time cumulative", isAllTime: true };
   }
 
   // 2. TODAY / 24H / YESTERDAY
-  if (/^(today|now|daily|this\s*day)$/i.test(clean)) {
+  if (/\b(today|daily|this\s*day)\b/i.test(raw)) {
     const start = new Date(now);
     start.setUTCHours(0, 0, 0, 0);
     return { type: "today", startDate: start, endDate: now, label: "today", isLiveShiftsOnly: true };
   }
-  if (/^(24h|24\s*hours|past\s*24\s*hours|last\s*24\s*hours)$/i.test(clean)) {
+  if (/\b(24h|24\s*hours|past\s*24\s*hours|last\s*24\s*hours)\b/i.test(raw)) {
     const start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     return { type: "24h", startDate: start, endDate: now, label: "past 24 hours", isLiveShiftsOnly: true };
   }
-  if (/^(yesterday)$/i.test(clean)) {
+  if (/\b(yesterday)\b/i.test(raw)) {
     const start = new Date(now);
     start.setUTCDate(start.getUTCDate() - 1);
     start.setUTCHours(0, 0, 0, 0);
@@ -939,63 +945,8 @@ function resolveTimeframeWindow(rawTimeframe) {
     return { type: "yesterday", startDate: start, endDate: end, label: "yesterday", isLiveShiftsOnly: true };
   }
 
-  // 3. THIS / CURRENT (Week, Month, Year)
-  if (/^(this\s*week|current\s*week|1\s*week|week|7\s*days|past\s*week)$/i.test(clean)) {
-    const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return { type: "this_week", startDate: start, endDate: now, label: "this week (past 7 days)", isLiveShiftsOnly: true };
-  }
-  if (/^(this\s*month|current\s*month)$/i.test(clean)) {
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    return { type: "this_month", startDate: start, endDate: now, label: `this month (${start.toISOString().slice(0, 7)})`, isLiveShiftsOnly: false };
-  }
-  if (/^(this\s*year|current\s*year)$/i.test(clean)) {
-    const start = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
-    return { type: "this_year", startDate: start, endDate: now, label: `this year (${now.getUTCFullYear()})`, isLiveShiftsOnly: false };
-  }
-
-  // 4. LAST / PREVIOUS (Week, Month, Year)
-  if (/^(last\s*week|prev(ious)?\s*week|1\s*week\s*ago)$/i.test(clean)) {
-    const curMon = getMonday(now);
-    const targetMon = new Date(curMon.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const targetSun = new Date(curMon.getTime() - 1);
-    return {
-      type: "discrete_past_week",
-      weeksAgo: 1,
-      targetWeekStart: targetMon.toISOString().slice(0, 10),
-      startDate: targetMon,
-      endDate: targetSun,
-      label: `last week (week of ${targetMon.toISOString().slice(0, 10)})`,
-      isSpecificReport: true
-    };
-  }
-  if (/^(last\s*month|prev(ious)?\s*month|1\s*month\s*ago)$/i.test(clean)) {
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0, 23, 59, 59, 999));
-    return {
-      type: "discrete_past_month",
-      monthsAgo: 1,
-      startDate: start,
-      endDate: end,
-      label: `last month (${start.toISOString().slice(0, 7)})`,
-      isSpecificReport: false
-    };
-  }
-  if (/^(last\s*year|prev(ious)?\s*year|1\s*year\s*ago)$/i.test(clean)) {
-    const prevYear = now.getUTCFullYear() - 1;
-    const start = new Date(Date.UTC(prevYear, 0, 1));
-    const end = new Date(Date.UTC(prevYear, 11, 31, 23, 59, 59, 999));
-    return {
-      type: "discrete_past_year",
-      yearsAgo: 1,
-      startDate: start,
-      endDate: end,
-      label: `last year (${prevYear})`,
-      isSpecificReport: false
-    };
-  }
-
-  // 5. N WEEKS AGO (e.g. "2 weeks ago", "15 weeks ago", "3 weeks ago")
-  const weeksAgoMatch = clean.match(/(\d+)\s*weeks?\s*ago/i);
+  // 3. N WEEKS AGO (e.g. "2 weeks ago", "15 weeks ago")
+  const weeksAgoMatch = raw.match(/(\d+)\s*weeks?\s*ago/i);
   if (weeksAgoMatch) {
     const num = parseInt(weeksAgoMatch[1], 10);
     const curMon = getMonday(now);
@@ -1012,75 +963,77 @@ function resolveTimeframeWindow(rawTimeframe) {
     };
   }
 
-  // 6. N MONTHS AGO (e.g. "3 months ago", "2 months ago")
-  const monthsAgoMatch = clean.match(/(\d+)\s*months?\s*ago/i);
-  if (monthsAgoMatch) {
-    const num = parseInt(monthsAgoMatch[1], 10);
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - num, 1));
-    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - num + 1, 0, 23, 59, 59, 999));
+  // 4. LAST / PREVIOUS WEEK
+  if (/\b(last\s*week|prev(ious)?\s*week|1\s*week\s*ago)\b/i.test(raw)) {
+    const curMon = getMonday(now);
+    const targetMon = new Date(curMon.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const targetSun = new Date(curMon.getTime() - 1);
+    return {
+      type: "discrete_past_week",
+      weeksAgo: 1,
+      targetWeekStart: targetMon.toISOString().slice(0, 10),
+      startDate: targetMon,
+      endDate: targetSun,
+      label: `last week (week of ${targetMon.toISOString().slice(0, 10)})`,
+      isSpecificReport: true
+    };
+  }
+
+  // 5. THIS / CURRENT WEEK (or explicit mentions of week)
+  if (/\b(this\s*week|current\s*week|past\s*week|7\s*days|week)\b/i.test(raw)) {
+    const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return { type: "this_week", startDate: start, endDate: now, label: "this week (past 7 days)", isLiveShiftsOnly: true };
+  }
+
+  // 6. LAST MONTH / THIS MONTH
+  if (/\b(last\s*month|prev(ious)?\s*month|1\s*month\s*ago)\b/i.test(raw)) {
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0, 23, 59, 59, 999));
     return {
       type: "discrete_past_month",
-      monthsAgo: num,
+      monthsAgo: 1,
       startDate: start,
       endDate: end,
-      label: `${num} months ago (${start.toISOString().slice(0, 7)})`,
+      label: `last month (${start.toISOString().slice(0, 7)})`,
       isSpecificReport: false
     };
   }
+  if (/\b(this\s*month|current\s*month)\b/i.test(raw)) {
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    return { type: "this_month", startDate: start, endDate: now, label: `this month (${start.toISOString().slice(0, 7)})`, isLiveShiftsOnly: false };
+  }
 
-  // 7. N YEARS AGO (e.g. "2 years ago")
-  const yearsAgoMatch = clean.match(/(\d+)\s*years?\s*ago/i);
-  if (yearsAgoMatch) {
-    const num = parseInt(yearsAgoMatch[1], 10);
-    const targetYear = now.getUTCFullYear() - num;
-    const start = new Date(Date.UTC(targetYear, 0, 1));
-    const end = new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999));
+  // 7. LAST YEAR / THIS YEAR
+  if (/\b(last\s*year|prev(ious)?\s*year|1\s*year\s*ago)\b/i.test(raw)) {
+    const prevYear = now.getUTCFullYear() - 1;
+    const start = new Date(Date.UTC(prevYear, 0, 1));
+    const end = new Date(Date.UTC(prevYear, 11, 31, 23, 59, 59, 999));
     return {
       type: "discrete_past_year",
-      yearsAgo: num,
+      yearsAgo: 1,
       startDate: start,
       endDate: end,
-      label: `${num} years ago (${targetYear})`,
+      label: `last year (${prevYear})`,
       isSpecificReport: false
     };
   }
-
-  // 8. N DAYS AGO (e.g. "3 days ago", "5 days ago")
-  const daysAgoMatch = clean.match(/(\d+)\s*days?\s*ago/i);
-  if (daysAgoMatch) {
-    const num = parseInt(daysAgoMatch[1], 10);
-    const start = new Date(now);
-    start.setUTCDate(start.getUTCDate() - num);
-    start.setUTCHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setUTCHours(23, 59, 59, 999);
-    return {
-      type: "discrete_past_day",
-      daysAgo: num,
-      startDate: start,
-      endDate: end,
-      label: `${num} days ago (${start.toISOString().slice(0, 10)})`,
-      isLiveShiftsOnly: true
-    };
+  if (/\b(this\s*year|current\s*year)\b/i.test(raw)) {
+    const start = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+    return { type: "this_year", startDate: start, endDate: now, label: `this year (${now.getUTCFullYear()})`, isLiveShiftsOnly: false };
   }
 
-  // 9. PAST / LAST N (DAYS / WEEKS / MONTHS / YEARS) (e.g. "past 3 weeks", "last 30 days", "past 3 months", "last 2 years")
-  const rollingMatch = clean.match(/(past|last)\s*(\d+)\s*(days?|weeks?|months?|years?|hours?)/i);
+  // 8. ROLLING (e.g. "past 3 days", "last 2 weeks")
+  const rollingMatch = raw.match(/(past|last)\s*(\d+)\s*(days?|weeks?|months?|years?|hours?)/i);
   if (rollingMatch) {
     const count = parseInt(rollingMatch[2], 10);
     const unit = rollingMatch[3].toLowerCase();
     let start;
-    if (unit.startsWith("hour")) {
-      start = new Date(now.getTime() - count * 60 * 60 * 1000);
-    } else if (unit.startsWith("day")) {
-      start = new Date(now.getTime() - count * 24 * 60 * 60 * 1000);
-    } else if (unit.startsWith("week")) {
-      start = new Date(now.getTime() - count * 7 * 24 * 60 * 60 * 1000);
-    } else if (unit.startsWith("month")) {
-      start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - count, now.getUTCDate()));
-    } else if (unit.startsWith("year")) {
-      start = new Date(Date.UTC(now.getUTCFullYear() - count, now.getUTCMonth(), now.getUTCDate()));
-    }
+    if (unit.startsWith("hour")) start = new Date(now.getTime() - count * 60 * 60 * 1000);
+    else if (unit.startsWith("day")) start = new Date(now.getTime() - count * 24 * 60 * 60 * 1000);
+    else if (unit.startsWith("week")) start = new Date(now.getTime() - count * 7 * 24 * 60 * 60 * 1000);
+    else if (unit.startsWith("month")) start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - count, now.getUTCDate()));
+    else if (unit.startsWith("year")) start = new Date(Date.UTC(now.getUTCFullYear() - count, now.getUTCMonth(), now.getUTCDate()));
+
     return {
       type: "rolling_range",
       startDate: start,
@@ -1090,46 +1043,10 @@ function resolveTimeframeWindow(rawTimeframe) {
     };
   }
 
-  // 10. SPECIFIC MONTH NAME + OPTIONAL YEAR (e.g. "August 2026", "July", "Jan 2025")
-  const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
-  const shortMonthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-  const monthRegex = new RegExp(`\\b(${monthNames.join("|")}|${shortMonthNames.join("|")})\\b(?:\\s*(\\d{4}))?`, "i");
-  const monthMatch = clean.match(monthRegex);
-  if (monthMatch) {
-    const mStr = monthMatch[1].toLowerCase();
-    let monthIdx = monthNames.findIndex(m => m.startsWith(mStr.slice(0, 3)));
-    const yr = monthMatch[2] ? parseInt(monthMatch[2], 10) : now.getUTCFullYear();
-    const start = new Date(Date.UTC(yr, monthIdx, 1));
-    const end = new Date(Date.UTC(yr, monthIdx + 1, 0, 23, 59, 59, 999));
-    return {
-      type: "specific_month",
-      startDate: start,
-      endDate: end,
-      label: `${monthNames[monthIdx]} ${yr}`,
-      isSpecificReport: false
-    };
-  }
-
-  // 11. SPECIFIC YEAR (e.g. "2025", "2026")
-  const yearMatch = clean.match(/(\b20\d{2}\b)/);
-  if (yearMatch && !clean.includes("-")) {
-    const yr = parseInt(yearMatch[1], 10);
-    const start = new Date(Date.UTC(yr, 0, 1));
-    const end = new Date(Date.UTC(yr, 11, 31, 23, 59, 59, 999));
-    return {
-      type: "specific_year",
-      startDate: start,
-      endDate: end,
-      label: `year ${yr}`,
-      isSpecificReport: false
-    };
-  }
-
-  // 12. SPECIFIC DATE (e.g. "2026-08-17", "week of 2026-08-17")
-  const dateMatch = clean.match(/(\d{4}-\d{2}-\d{2})/i);
+  // 9. Specific date YYYY-MM-DD
+  const dateMatch = raw.match(/(\d{4}-\d{2}-\d{2})/i);
   if (dateMatch) {
-    const dateStr = dateMatch[1];
-    const parsed = new Date(dateStr + "T00:00:00Z");
+    const parsed = new Date(dateMatch[1] + "T00:00:00Z");
     if (!isNaN(parsed.getTime())) {
       const mon = getMonday(parsed);
       const sun = new Date(mon.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
@@ -1144,8 +1061,9 @@ function resolveTimeframeWindow(rawTimeframe) {
     }
   }
 
-  // DEFAULT / FALLBACK: All-time
-  return { type: "all_time", label: "all-time cumulative", isAllTime: true };
+  // DEFAULT FOR ACTIVE DUTY / LEADERBOARD QUERIES: This week (past 7 days)
+  const defaultStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  return { type: "this_week", startDate: defaultStart, endDate: now, label: "this week (past 7 days)", isLiveShiftsOnly: true };
 }
 
 async function executeBotToolCall(toolName, args) {
@@ -1407,9 +1325,9 @@ async function executeBotToolCall(toolName, args) {
       const targetUser = String(args.user || args.username || "").trim();
       const timeframeInfo = resolveTimeframeWindow(args.timeframe || "");
 
-      // Concurrently fetch all rank rosters and verification links
+      const needsRankIndex = Boolean(rankBracket && rankBracket !== "all" && rankBracket !== "*");
       const [allRosters, { data: vLinks }] = await Promise.all([
-        fetchAllRankRosters().catch(() => ({})),
+        needsRankIndex ? fetchAllRankRosters().catch(() => ({})) : Promise.resolve({}),
         supabase.from("verification_links").select("discord_user_id,discord_username,roblox_user_id,roblox_username").catch(() => ({ data: [] }))
       ]);
 
@@ -1684,7 +1602,7 @@ async function executeBotToolCall(toolName, args) {
           `${timeframeInfo.label}${reportWeekLabel}`
         );
         displayRankedUsers = rankedUsers.filter(u => matchesRankFilter(u.rankMeta, targetRankFilter));
-      } else {
+      } else if (needsRankIndex) {
         rankStatistics = computeRankBracketStatistics(
           rankedUsers,
           rankIndex,
@@ -1907,14 +1825,18 @@ export async function queryHoloAi({ prompt, userTag, robloxName, isSuperUser, us
 
   let iterations = 0;
   let finalContent = "";
+  const executedToolCalls = [];
 
-  while (iterations < 5) {
+  while (iterations < 4) {
     iterations++;
+
+    // In iteration 1, tools are enabled. After tools have executed, disable them so the model synthesizes the answer rather than looping.
+    const toolsEnabled = executedToolCalls.length === 0;
 
     const result = await executeGroqChat(apiKey, {
       messages,
-      tools: OVERSEER_TOOLS,
-      tool_choice: "auto"
+      tools: toolsEnabled ? OVERSEER_TOOLS : undefined,
+      tool_choice: toolsEnabled ? "auto" : "none"
     });
 
     if (!result.ok) {
@@ -1933,7 +1855,7 @@ export async function queryHoloAi({ prompt, userTag, robloxName, isSuperUser, us
 
     parseXmlToolCalls(choiceMessage);
 
-    if (choiceMessage.tool_calls && choiceMessage.tool_calls.length > 0) {
+    if (choiceMessage.tool_calls && choiceMessage.tool_calls.length > 0 && toolsEnabled) {
       messages.push(choiceMessage);
 
       for (const toolCall of choiceMessage.tool_calls) {
@@ -1944,6 +1866,7 @@ export async function queryHoloAi({ prompt, userTag, robloxName, isSuperUser, us
         } catch { }
 
         const toolResult = await executeBotToolCall(fnName, fnArgs);
+        executedToolCalls.push({ fnName, fnArgs, toolResult });
 
         messages.push({
           role: "tool",
@@ -1963,6 +1886,24 @@ export async function queryHoloAi({ prompt, userTag, robloxName, isSuperUser, us
       .trim();
 
     break;
+  }
+
+  // Factual synthesis fallback if LLM returned empty content after tool execution
+  if (!finalContent && executedToolCalls.length > 0) {
+    const shiftTool = executedToolCalls.find(t => t.fnName === "get_shift_totals");
+    if (shiftTool?.toolResult) {
+      const tr = shiftTool.toolResult;
+      if (tr.topUser) {
+        finalContent = `**Top Active Member (${tr.timeframe}):** ${tr.topUser.name} (${tr.topUser.rankTitle || "Member"}) with **${tr.topUser.hours} hours**.\nTotal active duty time: **${tr.totalHours} hours** across **${tr.totalUsers} members**.`;
+      } else if (tr.userQuery) {
+        finalContent = tr.userQuery.totalHours !== undefined
+          ? `**Personnel:** ${tr.userQuery.name} (${tr.userQuery.rankTitle || "Member"}) — **${tr.userQuery.totalHours} hours** logged (${tr.timeframe}).`
+          : `No shift records found for ${tr.userQuery.query} (${tr.timeframe}).`;
+      } else if (tr.leaderboardTop10?.length > 0) {
+        const top = tr.leaderboardTop10[0];
+        finalContent = `**Top Active Member (${tr.timeframe}):** ${top.name} (${top.rankTitle || "Member"}) with **${top.totalHours} hours**.`;
+      }
+    }
   }
 
   if (isExemptUser) {

@@ -1824,14 +1824,16 @@ export async function queryHoloAi({ prompt, userTag, robloxName, isSuperUser, us
   while (iterations < 4) {
     iterations++;
 
-    // In iteration 1, tools are enabled. After tools have executed, disable them so the model synthesizes the answer rather than looping.
+    // In iteration 1, tools are enabled. After tools have executed, omit tools entirely so the model synthesizes the answer.
     const toolsEnabled = executedToolCalls.length === 0;
 
-    const result = await executeGroqChat(apiKey, {
-      messages,
-      tools: toolsEnabled ? OVERSEER_TOOLS : undefined,
-      tool_choice: toolsEnabled ? "auto" : "none"
-    });
+    const chatPayload = { messages };
+    if (toolsEnabled) {
+      chatPayload.tools = OVERSEER_TOOLS;
+      chatPayload.tool_choice = "auto";
+    }
+
+    const result = await executeGroqChat(apiKey, chatPayload);
 
     if (!result.ok) {
       const errInfo = result.error;

@@ -12,9 +12,8 @@ const handler = async (req, res) => {
     }
 
     const permissions = councilPermissions(auth.profile);
-    // Allow authenticated users to view/submit proposals; council-specific actions check permissions per action
-    if (!permissions.canView && !auth.profile?.isSuperUser && req.method === "GET") {
-      return res.status(200).json({ ok: false, authorized: false, reason: "SUPERUSER_CLEARANCE_REQUIRED" });
+    if (!permissions.canView && req.method === "GET") {
+      return res.status(200).json({ ok: false, authorized: false, reason: "INSUFFICIENT_CLEARANCE_LEVEL" });
     }
 
     if (req.method === "GET") {

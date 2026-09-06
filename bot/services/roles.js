@@ -200,9 +200,11 @@ export function inferScope(profile) {
   if (Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) > 0) return "darkCouncil";
   if ([44, 45, 50, 53].includes(highRankValue)) return "highranks";
 
+  // Only count actual division members (hr and below) — 2ic/1ic/overseer are overseers, not division rank-and-file
+  const DIVISION_MEMBER_TIERS = new Set(["member", "nco", "hr"]);
   const divisionScope = (config.scopes.divisionOrder || [])
+    .filter(scope => DIVISION_MEMBER_TIERS.has(profile?.divisions?.[scope]))
     .map(scope => ({ scope, weight: divisionTierWeight(profile?.divisions?.[scope] || "none") }))
-    .filter(item => item.weight > 0)
     .sort((a, b) => b.weight - a.weight)[0]?.scope;
 
   if (divisionScope) return divisionScope;

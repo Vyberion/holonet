@@ -459,6 +459,8 @@ function buildDivisionModal(divDef, sessionId, existingData = null) {
 
 function buildInspectionContainers(session, unixTimestamp = null, isPreview = false) {
   const timestamp = unixTimestamp || Math.floor(Date.now() / 1000);
+  const commanderPing = session?.userId ? `<@${session.userId}>` : "Commander";
+  const footerText = `-# \\- ${commanderPing} • <t:${timestamp}:S>`;
   const containers = [];
 
   // Container 1: Results
@@ -498,8 +500,8 @@ function buildInspectionContainers(session, unixTimestamp = null, isPreview = fa
 
   // Image 1
   resultsComponents.push(mediaGalleryV2(session.image1Url));
-  // Timestamp
-  resultsComponents.push(textDisplayV2(`-# \\- The Emperor's Wrath • <t:${timestamp}:S>`));
+  // Timestamp / Commander footer
+  resultsComponents.push(textDisplayV2(footerText));
 
   containers.push(containerV2(resultsComponents, 10813440));
 
@@ -536,7 +538,7 @@ function buildInspectionContainers(session, unixTimestamp = null, isPreview = fa
           textDisplayV2(notesBlocks.join("\n\n")),
           separatorV2(),
           mediaGalleryV2(session.image2Url),
-          textDisplayV2(`-# \\- The Emperor's Wrath • <t:${timestamp}:S>`)
+          textDisplayV2(footerText)
         ];
         containers.push(containerV2(notesComponents, 10813440));
       }
@@ -575,7 +577,7 @@ function buildInspectionContainers(session, unixTimestamp = null, isPreview = fa
       }
 
       notesComponents.push(mediaGalleryV2(session.image2Url));
-      notesComponents.push(textDisplayV2(`-# \\- The Emperor's Wrath • <t:${timestamp}:S>`));
+      notesComponents.push(textDisplayV2(footerText));
       containers.push(containerV2(notesComponents, 10813440));
     }
   }
@@ -1006,7 +1008,8 @@ export async function handleButton(interaction) {
       components: messageComponents,
       allowedMentions: {
         parse: allowedParse,
-        roles: session.selectedRoleIds || []
+        roles: session.selectedRoleIds || [],
+        users: session.userId ? [session.userId] : []
       }
     });
 

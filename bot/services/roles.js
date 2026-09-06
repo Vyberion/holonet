@@ -392,8 +392,9 @@ export async function syncMemberRoles(member, actorDiscordId = member.id) {
   return { ...verified, added: add, removed: remove, roleIds: wanted, nickname, nicknameUpdated };
 }
 
-export function divisionTierWeight(tier) {
-  return { none: 0, member: 1, nco: 2, co: 3, "2ic": 4, "1ic": 5, overseer: 6 }[tier] || 0;
+export function divisionTierWeight(tier, scope = null) {
+  const actualTier = (typeof tier === "object" && scope) ? (tier?.divisions?.[scope] || "none") : tier;
+  return { none: 0, member: 1, nco: 2, hr: 3, co: 3, "2ic": 4, "1ic": 5, overseer: 6 }[actualTier] || 0;
 }
 
 export function canAdjustTime(actorProfile, targetProfile, targetScope, sameUser = false) {

@@ -9,6 +9,14 @@ export function rosterDefinitionForDivision(division) {
   return ROBLOX_GROUPS.DIVISIONS[division];
 }
 
+export function clearRosterCache(division = null) {
+  if (division) {
+    rosterCache.delete(division);
+  } else {
+    rosterCache.clear();
+  }
+}
+
 export async function fetchDivisionRoster(division) {
   const cached = rosterCache.get(division);
   if (cached && (Date.now() - cached.timestamp < ROSTER_CACHE_TTL_MS)) {
@@ -23,30 +31,52 @@ export async function fetchDivisionRoster(division) {
   );
   if (allowedRanks.size === 0) return [];
 
-  const allowedRoleNames = new Set(
-    Object.entries(definition.ranks || {}).map(([, cfg]) => {
-      const name = typeof cfg === "object" ? cfg.value : cfg;
-      return String(name || "").toLowerCase();
-    }).filter(Boolean)
-  );
-
   try {
     const rolesResponse = await fetch(`https://groups.roblox.com/v1/groups/${definition.groupId}/roles`, {
-      signal: AbortSignal.timeout(4000)
+      signal: AbortSignal.timeout(10000)
     });
     if (!rolesResponse.ok) throw new Error("ROBLOX_ROLES_LOOKUP_FAILED");
     const rolesPayload = await rolesResponse.json();
 
-    const targetRoles = (rolesPayload.roles || []).filter(role => {
-      if (!allowedRanks.has(Number(role.rank))) return false;
-      if (role.name === "Guest") return false;
-      if (allowedRoleNames.size > 0) {
-        const configuredRank = definition.ranks?.[String(Number(role.rank))];
-        const expectedName = typeof configuredRank === "object" ? configuredRank.value : configuredRank;
-        if (expectedName && role.name.toLowerCase() !== expectedName.toLowerCase()) return false;
-      }
+    // 1. Initial filter: only allowed ranks, excluding Guest (rank 0), base joining role, and default "Member" role
+    const candidateRoles = (rolesPayload.roles || []).filter(role => {
+      const rankNum = Number(role.rank);
+      if (!allowedRanks.has(rankNum)) return false;
+      if (rankNum === 0 || role.name === "Guest") return false;
+      if (role.isBase === true) return false;
+      if (role.name.toLowerCase() === "member") return false;
       return true;
     });
+
+    // 2. Group candidate roles by rank to disambiguate if multiple roles share a rank (e.g. Reavers rank 1)
+    const rolesByRank = new Map();
+    for (const role of candidateRoles) {
+      const rankNum = Number(role.rank);
+      if (!rolesByRank.has(rankNum)) {
+        rolesByRank.set(rankNum, []);
+      }
+      rolesByRank.get(rankNum).push(role);
+    }
+
+    const targetRoles = [];
+    for (const [rankNum, roles] of rolesByRank.entries()) {
+      if (roles.length === 1) {
+        targetRoles.push(roles[0]);
+      } else {
+        const configuredRank = definition.ranks?.[String(rankNum)];
+        const expectedName = String(typeof configuredRank === "object" ? configuredRank.value : configuredRank || "").toLowerCase();
+        const matched = roles.find(r => expectedName && (
+          r.name.toLowerCase() === expectedName ||
+          r.name.toLowerCase().includes(expectedName) ||
+          expectedName.includes(r.name.toLowerCase())
+        ));
+        if (matched) {
+          targetRoles.push(matched);
+        } else {
+          targetRoles.push(...roles);
+        }
+      }
+    }
 
     const members = [];
     const seenRobloxIds = new Set();
@@ -59,7 +89,7 @@ export async function fetchDivisionRoster(division) {
         url.searchParams.set("sortOrder", "Asc");
         if (cursor) url.searchParams.set("cursor", cursor);
 
-        const response = await fetch(url, { signal: AbortSignal.timeout(4000) });
+        const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
         if (!response.ok) break;
         const payload = await response.json();
 
@@ -91,7 +121,9 @@ export async function fetchDivisionRoster(division) {
       } while (cursor);
     }
 
-    rosterCache.set(division, { timestamp: Date.now(), data: members });
+    if (members.length > 0) {
+      rosterCache.set(division, { timestamp: Date.now(), data: members });
+    }
     return members;
   } catch (err) {
     console.warn(`[rank-roster] Warning: Roster lookup failed for ${division}:`, err?.message);

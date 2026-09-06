@@ -1335,24 +1335,46 @@ async function fetchDivisionRoster(division) {
     if (!rolesResponse.ok) return [];
     const rolesPayload = await rolesResponse.json();
 
-    // Build a set of expected role names from the config for precise matching
-    const allowedRoleNames = new Set(
-      Object.entries(definition.ranks || {}).map(([, cfg]) => {
-        const name = typeof cfg === "object" ? cfg.value : cfg;
-        return String(name || "").toLowerCase();
-      }).filter(Boolean)
-    );
-
-    const targetRoles = (rolesPayload.roles || []).filter(role => {
-      if (!allowedRanks.has(Number(role.rank))) return false;
-      if (role.name === "Guest") return false;
-      if (allowedRoleNames.size > 0) {
-        const configuredRank = definition.ranks?.[String(Number(role.rank))];
-        const expectedName = typeof configuredRank === "object" ? configuredRank.value : configuredRank;
-        if (expectedName && role.name.toLowerCase() !== expectedName.toLowerCase()) return false;
-      }
+    // 1. Initial filter: only allowed ranks, excluding Guest (rank 0), base joining role, and default "Member" role
+    const candidateRoles = (rolesPayload.roles || []).filter(role => {
+      const rankNum = Number(role.rank);
+      if (!allowedRanks.has(rankNum)) return false;
+      if (rankNum === 0 || role.name === "Guest") return false;
+      if (role.isBase === true) return false;
+      if (role.name.toLowerCase() === "member") return false;
       return true;
     });
+
+    // 2. Group candidate roles by rank to disambiguate if multiple roles share a rank (e.g. Reavers rank 1)
+    const rolesByRank = new Map();
+    for (const role of candidateRoles) {
+      const rankNum = Number(role.rank);
+      if (!rolesByRank.has(rankNum)) {
+        rolesByRank.set(rankNum, []);
+      }
+      rolesByRank.get(rankNum).push(role);
+    }
+
+    const targetRoles = [];
+    for (const [rankNum, roles] of rolesByRank.entries()) {
+      if (roles.length === 1) {
+        targetRoles.push(roles[0]);
+      } else {
+        const configuredRank = definition.ranks?.[String(rankNum)];
+        const expectedName = String(typeof configuredRank === "object" ? configuredRank.value : configuredRank || "").toLowerCase();
+        const matched = roles.find(r => expectedName && (
+          r.name.toLowerCase() === expectedName ||
+          r.name.toLowerCase().includes(expectedName) ||
+          expectedName.includes(r.name.toLowerCase())
+        ));
+        if (matched) {
+          targetRoles.push(matched);
+        } else {
+          targetRoles.push(...roles);
+        }
+      }
+    }
+
     const members = [];
     const seenRobloxIds = new Set();
 

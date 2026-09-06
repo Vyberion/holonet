@@ -83,7 +83,7 @@ function scopeLabel(scope) {
 }
 
 function divisionTierAtLeast(profile, division, requiredTier) {
-  return DIVISION_TIERS.indexOf(profile?.divisions?.[division] || "none") >= DIVISION_TIERS.indexOf(requiredTier);
+  return divisionTierWeight(profile?.divisions?.[division] || "none") >= divisionTierWeight(requiredTier);
 }
 
 export function hasDarkCouncilRank(profile, roleKey) {
@@ -193,7 +193,7 @@ async function loadScopeLeaderboard(scope) {
   const now = Date.now();
   const totals = new Map();
   for (const shift of rows) {
-    const userId = String(shift.discord_user_id || robloxToDiscord.get(String(shift.roblox_user_id)) || "");
+    const userId = String(shift.discord_user_id || robloxToDiscord.get(String(shift.roblox_user_id)) || shift.roblox_username || shift.roblox_user_id || "");
     if (userId) totals.set(userId, (totals.get(userId) || 0) + shiftTotalSeconds(shift, now));
   }
 
@@ -222,27 +222,22 @@ async function replyScopeLeaderboard(interaction, scope, page = 0, update = fals
 
   const rawRows = await loadScopeLeaderboard(scope);
 
-  let validRows = rawRows;
-  if (scope !== "all" && interaction.guild) {
-    validRows = [];
-    const missingIds = rawRows.map(r => r.discordUserId).filter(id => !interaction.guild.members.cache.has(id));
-    if (missingIds.length > 0) {
-      await interaction.guild.members.fetch({ user: missingIds }).catch(() => null);
-    }
-    for (const row of rawRows) {
-      const member = interaction.guild.members.cache.get(row.discordUserId);
-      if (member && isMemberInScope(member, scope)) {
-        validRows.push(row);
-      }
-    }
-  }
+  const validRows = rawRows;
 
   const totalPages = Math.max(1, Math.ceil(validRows.length / LEADERBOARD_PAGE_SIZE));
   const safePage = Math.min(Math.max(0, page), totalPages - 1);
   const pageRows = validRows.slice(safePage * LEADERBOARD_PAGE_SIZE, (safePage + 1) * LEADERBOARD_PAGE_SIZE);
 
   const payload = {
-    embeds: [embed(`${scopeLabel(scope)} Leaderboard`, pageRows.length ? pageRows.map((row, index) => `**Rank:** ${safePage * LEADERBOARD_PAGE_SIZE + index + 1}\n**User:** <@${row.discordUserId}>\n**Total time:** ${formatDurationLong(row.totalSeconds)}`).join("\n\n") : "No shifts recorded.")],
+    embeds: [embed(
+      `${scopeLabel(scope)} Leaderboard`,
+      pageRows.length
+        ? pageRows.map((row, index) => {
+            const userDisplay = /^\d+$/.test(row.discordUserId) ? `<@${row.discordUserId}>` : row.discordUserId;
+            return `**Rank:** ${safePage * LEADERBOARD_PAGE_SIZE + index + 1}\n**User:** ${userDisplay}\n**Total time:** ${formatDurationLong(row.totalSeconds)}`;
+          }).join("\n\n")
+        : "No shifts recorded."
+    )],
     components: [leaderboardRow(scope, safePage, totalPages)]
   };
 

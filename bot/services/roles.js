@@ -196,9 +196,8 @@ export function canVoteEmperor(profile) {
 export function inferScope(profile) {
   const highRankValue = Number(profile?.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0);
 
-  const tierWeight = { none: 0, member: 1, nco: 2, co: 3, "2ic": 4, "1ic": 5, overseer: 6 };
   const divisionScope = (config.scopes.divisionOrder || [])
-    .map(scope => ({ scope, weight: tierWeight[profile.divisions?.[scope] || "none"] || 0 }))
+    .map(scope => ({ scope, weight: divisionTierWeight(profile?.divisions?.[scope] || "none") }))
     .filter(item => item.weight > 0)
     .sort((a, b) => b.weight - a.weight)[0]?.scope;
 
@@ -265,10 +264,19 @@ export function getExclusiveScopeRoles(targetScope) {
 
 export function isMemberInScope(member, scope) {
   if (scope === "all") return true;
-  if (!member) return false;
+  if (!member || !member.roles?.cache) return false;
   
   const exclusiveRoles = getExclusiveScopeRoles(scope);
-  return exclusiveRoles.some(roleId => member.roles.cache.has(roleId));
+  if (exclusiveRoles.some(roleId => member.roles.cache.has(roleId))) return true;
+
+  const targetRoles = new Set();
+  addRolesForScope(scope, targetRoles);
+  const sharedRoles = new Set(["1134214563013853215", "1046546991360004136", "1130513164807708793"]);
+  for (const roleId of targetRoles) {
+    if (!sharedRoles.has(roleId) && member.roles.cache.has(roleId)) return true;
+  }
+
+  return false;
 }
 
 export async function getVerifiedProfile(discordUserId) {
@@ -314,20 +322,6 @@ export async function syncMemberRoles(member, actorDiscordId = member.id) {
 
   if (remove.length) await member.roles.remove(remove, "Holonet role sync");
   if (add.length) await member.roles.add(add, "Holonet role sync");
-
-  // Wipe clock shifts for division scopes when a member loses division roles
-  const divisionScopes = ["reavers", "dhg", "inquisitors", "dreadmasters", "highranks", "darkCouncil"];
-  for (const scope of divisionScopes) {
-    const scopeRoleIds = getExclusiveScopeRoles(scope);
-    const hadRole = scopeRoleIds.some(id => currentRoleIds.includes(id));
-    const hasRoleNow = scopeRoleIds.some(id => wanted.includes(id));
-    if (hadRole && !hasRoleNow) {
-      await supabase.from("clock_shifts").delete().eq("discord_user_id", member.id).eq("scope", scope);
-      if (verified?.profile?.robloxId) {
-        await supabase.from("clock_shifts").delete().eq("roblox_user_id", String(verified.profile.robloxId)).eq("scope", scope);
-      }
-    }
-  }
 
   if (!verified) {
     let nicknameUpdated = false;

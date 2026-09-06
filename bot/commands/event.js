@@ -281,54 +281,58 @@ const DEFAULT_INSP_IMG2 = "https://cdn.discordapp.com/attachments/12118684144154
 const INSPECTION_DIVISIONS = [
   {
     key: "dhg",
+    shortName: "DHG",
     name: "Dark Honor Guard",
     signet: "<:SignetDarkHonorGuard:1344016887868293220>",
     sections: [
-      { name: "Activity", defaultOutOf: 100, weight: 10, prefillOutOf: true },
+      { name: "Activity", defaultOutOf: 100, weight: 10 },
       { name: "Codex", defaultOutOf: 0, weight: 20 },
       { name: "Enforcement", defaultOutOf: 0, weight: 20 },
       { name: "Guarding", defaultOutOf: 0, weight: 20 },
       { name: "Combat", defaultOutOf: 0, weight: 20 },
-      { name: "Formations", defaultOutOf: 40, weight: 10, prefillOutOf: true }
+      { name: "Formations", defaultOutOf: 40, weight: 10 }
     ]
   },
   {
     key: "reavers",
+    shortName: "Reavers",
     name: "Reavers",
     signet: "<:SignetReaver:1344017589835403284>",
     sections: [
-      { name: "Activity", defaultOutOf: 100, weight: 10, prefillOutOf: true },
+      { name: "Activity", defaultOutOf: 100, weight: 10 },
       { name: "Codex", defaultOutOf: 0, weight: 10 },
       { name: "Assassinations", defaultOutOf: 0, weight: 30 },
       { name: "Combat", defaultOutOf: 0, weight: 30 },
-      { name: "Formations", defaultOutOf: 40, weight: 20, prefillOutOf: true }
+      { name: "Formations", defaultOutOf: 40, weight: 20 }
     ]
   },
   {
     key: "dreadmasters",
+    shortName: "Dread Masters",
     name: "Dread Masters",
     signet: "<:SignetDreadMasters:1344020119428403210>",
     sections: [
-      { name: "Activity", defaultOutOf: 100, weight: 10, prefillOutOf: true },
+      { name: "Activity", defaultOutOf: 100, weight: 10 },
       { name: "Codex", defaultOutOf: 0, weight: 20 },
       { name: "Lore", defaultOutOf: 0, weight: 20 },
       { name: "Dread Lore", defaultOutOf: 0, weight: 20 },
       { name: "Combat", defaultOutOf: 0, weight: 10 },
-      { name: "Formations", defaultOutOf: 40, weight: 20, prefillOutOf: true }
+      { name: "Formations", defaultOutOf: 40, weight: 20 }
     ]
   },
   {
     key: "inquisitors",
+    shortName: "Inquisitorius",
     name: "Inquisitorius",
     signet: "<:SignetInquisitor:1344440346284916818>",
     classified: true,
     redactedLink: "https://discord.com/channels/1058209353515139263/1058213293178753024",
     sections: [
-      { name: "Activity", defaultOutOf: 100, weight: 10, prefillOutOf: true },
+      { name: "Activity", defaultOutOf: 100, weight: 10 },
       { name: "Combat", defaultOutOf: 0, weight: 10 },
-      { name: "Mocks", defaultOutOf: 100, weight: 40, prefillOutOf: true },
+      { name: "Mocks", defaultOutOf: 100, weight: 40 },
       { name: "Codex", defaultOutOf: 0, weight: 30 },
-      { name: "Formations", defaultOutOf: 40, weight: 10, prefillOutOf: true }
+      { name: "Formations", defaultOutOf: 40, weight: 10 }
     ]
   }
 ];
@@ -421,26 +425,18 @@ function buildDivisionModal(divDef, sessionId, existingData = null) {
     .setCustomId(`insp_modal:${divDef.key}:${sessionId}`)
     .setTitle(`${divDef.name} Scores`);
 
-  let prefillScores = "";
+  let initialScores = "";
   if (existingData?.rawScoresText) {
-    prefillScores = existingData.rawScoresText;
+    initialScores = existingData.rawScoresText;
   } else {
-    prefillScores = divDef.sections.map(s => {
-      if (s.name === "Formations") {
-        return `${s.name}: 0/${s.defaultOutOf}`;
-      }
-      if (s.prefillOutOf) {
-        return `${s.name}: /${s.defaultOutOf}`;
-      }
-      return `${s.name}: `;
-    }).join("\n");
+    initialScores = divDef.sections.map(s => `${s.name}: `).join("\n");
   }
 
   const scoresInput = new TextInputBuilder()
     .setCustomId("insp_scores_input")
     .setLabel("Scores (achieved/total)")
     .setStyle(TextInputStyle.Paragraph)
-    .setValue(prefillScores)
+    .setValue(initialScores)
     .setRequired(true);
 
   const notesInput = new TextInputBuilder()

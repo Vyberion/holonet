@@ -457,7 +457,7 @@ function buildDivisionModal(divDef, sessionId, existingData = null) {
   return modal;
 }
 
-function buildInspectionContainers(session, unixTimestamp = null) {
+function buildInspectionContainers(session, unixTimestamp = null, isPreview = false) {
   const timestamp = unixTimestamp || Math.floor(Date.now() / 1000);
   const containers = [];
 
@@ -506,27 +506,59 @@ function buildInspectionContainers(session, unixTimestamp = null) {
   // Container 2: Notes
   const hasAnyNotes = INSPECTION_DIVISIONS.some(d => !d.classified && Boolean((session.divisions[d.key]?.notes || "").trim()));
   if (hasAnyNotes) {
-    const notesBlocks = [];
-    for (const divDef of INSPECTION_DIVISIONS) {
-      const data = session.divisions[divDef.key];
-      if (!data) continue;
-      const notesText = (data.notes || "").trim();
-      if (divDef.classified) {
-        notesBlocks.push(`### ${divDef.signet} ${divDef.name}\n>>> - [[REDACTED]](${divDef.redactedLink})`);
-      } else if (notesText) {
-        notesBlocks.push(`### ${divDef.signet} ${divDef.name}\n>>> - ${notesText}`);
+    if (isPreview) {
+      // In preview dashboard, format notes cleanly in a single textDisplay using single '>' to prevent blockquote swallowing
+      const notesBlocks = [];
+      for (const divDef of INSPECTION_DIVISIONS) {
+        const data = session.divisions[divDef.key];
+        if (!data) continue;
+        const notesText = (data.notes || "").trim();
+        if (divDef.classified) {
+          notesBlocks.push(`### ${divDef.signet} ${divDef.name}\n> - [[REDACTED]](${divDef.redactedLink})`);
+        } else if (notesText) {
+          const lines = notesText.split("\n").map(l => `> - ${l}`).join("\n");
+          notesBlocks.push(`### ${divDef.signet} ${divDef.name}\n${lines}`);
+        }
       }
-    }
 
-    if (notesBlocks.length > 0) {
-      const notesComponents = [
-        textDisplayV2("# Notes"),
-        separatorV2(),
-        textDisplayV2(notesBlocks.join("\n\n")),
-        separatorV2(),
-        mediaGalleryV2(session.image2Url),
-        textDisplayV2(`-# \\- The Emperor's Wrath • <t:${timestamp}:S>`)
-      ];
+      if (notesBlocks.length > 0) {
+        const notesComponents = [
+          textDisplayV2("# Notes"),
+          separatorV2(),
+          textDisplayV2(notesBlocks.join("\n\n")),
+          separatorV2(),
+          mediaGalleryV2(session.image2Url),
+          textDisplayV2(`-# \\- The Emperor's Wrath • <t:${timestamp}:S>`)
+        ];
+        containers.push(containerV2(notesComponents, 10813440));
+      }
+    } else {
+      // For channel post, use discrete components with individual separators matching the template JSON
+      const notesComponents = [];
+      notesComponents.push(textDisplayV2("# Notes"));
+      notesComponents.push(separatorV2());
+
+      for (const divDef of INSPECTION_DIVISIONS) {
+        const data = session.divisions[divDef.key];
+        if (!data) continue;
+        const notesText = (data.notes || "").trim();
+        if (divDef.classified) {
+          notesComponents.push(textDisplayV2(
+            `### ${divDef.signet} ${divDef.name}\n` +
+            `>>> - [[REDACTED]](${divDef.redactedLink})`
+          ));
+          notesComponents.push(separatorV2());
+        } else if (notesText) {
+          notesComponents.push(textDisplayV2(
+            `### ${divDef.signet} ${divDef.name}\n` +
+            `>>> - ${notesText}`
+          ));
+          notesComponents.push(separatorV2());
+        }
+      }
+
+      notesComponents.push(mediaGalleryV2(session.image2Url));
+      notesComponents.push(textDisplayV2(`-# \\- The Emperor's Wrath • <t:${timestamp}:S>`));
       containers.push(containerV2(notesComponents, 10813440));
     }
   }
@@ -535,7 +567,7 @@ function buildInspectionContainers(session, unixTimestamp = null) {
 }
 
 function renderInspectionSummaryPreview(sessionId, session) {
-  const containers = buildInspectionContainers(session);
+  const containers = buildInspectionContainers(session, null, true);
 
   const targetChannelId = session.targetChannelId || "1046538242788438067";
   const rolePingsText = session.selectedRoleIds?.length > 0

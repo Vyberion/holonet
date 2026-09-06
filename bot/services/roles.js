@@ -196,14 +196,16 @@ export function canVoteEmperor(profile) {
 export function inferScope(profile) {
   const highRankValue = Number(profile?.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0);
 
+  // High command takes priority — they should never appear in a division leaderboard
+  if (Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) > 0) return "darkCouncil";
+  if ([44, 45, 50, 53].includes(highRankValue)) return "highranks";
+
   const divisionScope = (config.scopes.divisionOrder || [])
     .map(scope => ({ scope, weight: divisionTierWeight(profile?.divisions?.[scope] || "none") }))
     .filter(item => item.weight > 0)
     .sort((a, b) => b.weight - a.weight)[0]?.scope;
 
   if (divisionScope) return divisionScope;
-  if (Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) > 0) return "darkCouncil";
-  if ([44, 45, 50, 53].includes(highRankValue)) return "highranks";
 
   return "";
 }

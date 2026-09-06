@@ -4,7 +4,6 @@ import { routeInteraction } from "./commands/index.js";
 import { botErrorPayload } from "./services/bot-errors.js";
 import { componentsV2Message, containerV2, ephemeral, errorEmbed, textDisplayV2 } from "./services/discord-ui.js";
 import { syncClockPanels } from "./services/clock-panels.js";
-import { healMisattributedShifts } from "./services/clock.js";
 import { startShiftReminderLoop } from "./services/shift-reminders.js";
 import { syncStoredPowerbaseRosters } from "./services/powerbase-api.js";
 import { registerRoleConnectionMetadata } from "./services/discord-linked-roles.js";
@@ -218,7 +217,6 @@ client.once(Events.ClientReady, () => {
   client.user.setPresence({ status: "dnd" });
   syncStoredClockPanels();
   syncPowerbaseRostersOnStartup();
-  healMisattributedShifts().catch(() => null);
   startShiftReminderLoop(client);
   registerRoleConnectionMetadata().catch(err => {
     console.warn("Linked role metadata registration on startup warning:", err?.message || err);

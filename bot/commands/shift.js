@@ -75,6 +75,7 @@ export const commands = [
       .setDescription("View shift time for a scope leaderboard or specific user")
       .addStringOption(option => addScopeChoices(option.setName("scope").setDescription("Leaderboard scope")))
       .addUserOption(option => option.setName("user").setDescription("Discord user")))
+    .addSubcommand(subcommand => subcommand.setName("heal").setDescription("Fix misattributed shifts (admin only)"))
 ];
 
 function addScopeChoices(option) { return option.addChoices(...SCOPE_CHOICES); }
@@ -161,9 +162,6 @@ function shiftTotalSeconds(shift, now = Date.now()) {
 }
 
 async function loadScopeLeaderboard(scope) {
-  if (scope !== "all") {
-    await healMisattributedShifts().catch(() => null);
-  }
   const rows = [];
   const pageSize = 1000;
 
@@ -172,7 +170,7 @@ async function loadScopeLeaderboard(scope) {
       .from("clock_shifts")
       .select("discord_user_id,roblox_user_id,scope,status,started_at,ended_at,duration_seconds,adjustment_seconds")
       .range(from, from + pageSize - 1);
-    if (scope !== "all") query = query.ilike("scope", scope);
+    if (scope !== "all") query = query.eq("scope", scope);
     const { data, error } = await query;
     if (error) throw error;
     rows.push(...(data || []));
@@ -436,6 +434,17 @@ export async function handleCommand(interaction) {
       if (error) throw error;
       const lines = (data || []).map(row => `<@${row.discord_user_id}> ${row.scope} active duration: ${formatDuration(shiftTotalSeconds(row))}`);
       await interaction.reply(ephemeral({ embeds: [embed("Active Shifts", lines.join("\n") || "No active shifts.")] }));
+      return true;
+    }
+
+    if (subcommand === "heal") {
+      if (!(await requireManager(interaction))) {
+        await interaction.reply(ephemeral({ embeds: [errorEmbed("You do not have clearance to run this.")] }));
+        return true;
+      }
+      await interaction.deferReply({ ephemeral: true });
+      await healMisattributedShifts();
+      await interaction.editReply({ embeds: [successEmbed("Heal Complete", "Misattributed shifts have been re-scoped to their correct divisions.")] });
       return true;
     }
 

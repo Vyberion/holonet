@@ -122,14 +122,6 @@ export async function adjustShiftTime(discordUser, minutes, overrideScope = null
     const shift = await latestShift(discordUserId);
     if (shift) scope = shift.scope;
   }
-  if (!scope && verified?.profile?.divisions) {
-    for (const [div, tier] of Object.entries(verified.profile.divisions)) {
-      if (tier && tier !== "none") {
-        scope = div;
-        break;
-      }
-    }
-  }
   if (!scope) scope = "reavers";
 
   const targetSeconds = Math.trunc(minutes * 60);
@@ -205,14 +197,6 @@ export async function setShiftTime(discordUser, minutes, overrideScope = null) {
   if (!scope && verified) {
     const shift = await latestShift(discordUserId);
     if (shift) scope = shift.scope;
-  }
-  if (!scope && verified?.profile?.divisions) {
-    for (const [div, tier] of Object.entries(verified.profile.divisions)) {
-      if (tier && tier !== "none") {
-        scope = div;
-        break;
-      }
-    }
   }
   if (!scope) scope = "reavers";
 

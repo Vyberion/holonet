@@ -516,7 +516,15 @@ function buildInspectionContainers(session, unixTimestamp = null, isPreview = fa
         if (divDef.classified) {
           notesBlocks.push(`### ${divDef.signet} ${divDef.name}\n> - [[REDACTED]](${divDef.redactedLink})`);
         } else if (notesText) {
-          const lines = notesText.split("\n").map(l => `> - ${l}`).join("\n");
+          const lines = notesText
+            .split("\n")
+            .map(l => l.trim())
+            .filter(Boolean)
+            .map(l => {
+              const clean = l.replace(/^[-•*]\s*/, "");
+              return `> - ${clean}`;
+            })
+            .join("\n");
           notesBlocks.push(`### ${divDef.signet} ${divDef.name}\n${lines}`);
         }
       }
@@ -549,9 +557,18 @@ function buildInspectionContainers(session, unixTimestamp = null, isPreview = fa
           ));
           notesComponents.push(separatorV2());
         } else if (notesText) {
+          const lines = notesText
+            .split("\n")
+            .map(l => l.trim())
+            .filter(Boolean)
+            .map(l => {
+              const clean = l.replace(/^[-•*]\s*/, "");
+              return `- ${clean}`;
+            })
+            .join("\n");
           notesComponents.push(textDisplayV2(
             `### ${divDef.signet} ${divDef.name}\n` +
-            `>>> - ${notesText}`
+            `>>> ${lines}`
           ));
           notesComponents.push(separatorV2());
         }

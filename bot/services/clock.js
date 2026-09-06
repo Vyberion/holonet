@@ -122,6 +122,14 @@ export async function adjustShiftTime(discordUser, minutes, overrideScope = null
     const shift = await latestShift(discordUserId);
     if (shift) scope = shift.scope;
   }
+  if (!scope && verified?.profile?.divisions) {
+    for (const [div, tier] of Object.entries(verified.profile.divisions)) {
+      if (tier && tier !== "none") {
+        scope = div;
+        break;
+      }
+    }
+  }
   if (!scope) scope = "reavers";
 
   const targetSeconds = Math.trunc(minutes * 60);
@@ -197,6 +205,14 @@ export async function setShiftTime(discordUser, minutes, overrideScope = null) {
   if (!scope && verified) {
     const shift = await latestShift(discordUserId);
     if (shift) scope = shift.scope;
+  }
+  if (!scope && verified?.profile?.divisions) {
+    for (const [div, tier] of Object.entries(verified.profile.divisions)) {
+      if (tier && tier !== "none") {
+        scope = div;
+        break;
+      }
+    }
   }
   if (!scope) scope = "reavers";
 
@@ -298,4 +314,47 @@ export async function saveClockPanel({ scope, channelId, messageId, createdBy })
     updated_at: new Date().toISOString()
   }, { onConflict: "scope,channel_id,message_id" });
   if (error) throw error;
+}
+
+export async function healMisattributedShifts() {
+  try {
+    const { data: shifts, error } = await supabase
+      .from("clock_shifts")
+      .select("id,discord_user_id,roblox_user_id,scope")
+      .in("scope", ["reavers", "highranks"]);
+    if (error || !shifts?.length) return;
+
+    for (const shift of shifts) {
+      const userId = shift.discord_user_id;
+      if (!userId) continue;
+      const verified = await getVerifiedProfile(userId).catch(() => null);
+      if (!verified?.profile) continue;
+
+      const profile = verified.profile;
+      const currentScope = (shift.scope || "").toLowerCase();
+
+      if (currentScope === "reavers") {
+        const reaverTier = profile.divisions?.reavers || "none";
+        if (reaverTier === "none") {
+          const actualScope = inferScope(profile);
+          if (actualScope && actualScope !== "reavers") {
+            await supabase.from("clock_shifts").update({ scope: actualScope }).eq("id", shift.id);
+            console.log(`[Heal] Shift ${shift.id} re-scoped from reavers to ${actualScope} for user ${userId}`);
+          }
+        }
+      } else if (currentScope === "highranks") {
+        const mainRank = Number(profile?.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0);
+        const isActuallyHighRank = [44, 45, 50, 53].includes(mainRank);
+        if (!isActuallyHighRank) {
+          const actualScope = inferScope(profile);
+          if (actualScope && actualScope !== "highranks") {
+            await supabase.from("clock_shifts").update({ scope: actualScope }).eq("id", shift.id);
+            console.log(`[Heal] Shift ${shift.id} re-scoped from highranks to ${actualScope} for user ${userId}`);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error("healMisattributedShifts error:", err);
+  }
 }

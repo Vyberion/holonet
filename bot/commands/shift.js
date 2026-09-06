@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from "discord.js";
-import { activeShift, adjustShiftTime, clockIn, clockOut, formatDuration, saveClockPanel, setShiftTime, shiftTotals } from "../services/clock.js";
+import { activeShift, adjustShiftTime, clockIn, clockOut, formatDuration, healMisattributedShifts, saveClockPanel, setShiftTime, shiftTotals } from "../services/clock.js";
 import { config } from "../config/index.js";
 import { postActivityLog } from "../services/activity-log.js";
 import { botErrorMessage } from "../services/bot-errors.js";
@@ -69,7 +69,8 @@ export const commands = [
       .setDescription("Add, remove, or set shift time for a user")
       .addStringOption(option => option.setName("type").setDescription("Add, remove, or set time").setRequired(true).addChoices({ name: "Add", value: "add" }, { name: "Remove", value: "remove" }, { name: "Set", value: "set" }))
       .addUserOption(option => option.setName("user").setDescription("User to adjust").setRequired(true))
-      .addIntegerOption(option => option.setName("minutes").setDescription("Number of minutes (leave empty for popup modal)").setRequired(false)))
+      .addIntegerOption(option => option.setName("minutes").setDescription("Number of minutes (leave empty for popup modal)").setRequired(false))
+      .addStringOption(option => addScopeChoices(option.setName("scope").setDescription("Division scope (optional, auto-detected if omitted)").setRequired(false))))
     .addSubcommand(subcommand => subcommand.setName("view")
       .setDescription("View shift time for a scope leaderboard or specific user")
       .addStringOption(option => addScopeChoices(option.setName("scope").setDescription("Leaderboard scope")))
@@ -160,6 +161,9 @@ function shiftTotalSeconds(shift, now = Date.now()) {
 }
 
 async function loadScopeLeaderboard(scope) {
+  if (scope !== "all") {
+    await healMisattributedShifts().catch(() => null);
+  }
   const rows = [];
   const pageSize = 1000;
 
@@ -168,7 +172,7 @@ async function loadScopeLeaderboard(scope) {
       .from("clock_shifts")
       .select("discord_user_id,roblox_user_id,scope,status,started_at,ended_at,duration_seconds,adjustment_seconds")
       .range(from, from + pageSize - 1);
-    if (scope !== "all") query = query.eq("scope", scope);
+    if (scope !== "all") query = query.ilike("scope", scope);
     const { data, error } = await query;
     if (error) throw error;
     rows.push(...(data || []));
@@ -346,7 +350,7 @@ async function replyShiftSummary(interaction) {
   await interaction.reply(ephemeral({ embeds: [embed("Shift Time", `${activeLines.join("\n")}\nTotal Time: ${formatDuration(totals.totalSeconds)}`)] }));
 }
 
-async function canAdjustTarget(interaction, targetUser) {
+async function canAdjustTarget(interaction, targetUser, targetScopeOverride = null) {
   if (targetUser.id === interaction.user.id) return { allowed: true };
   const actor = await getVerifiedProfile(interaction.user.id).catch(() => null);
   if (canManageBot(actor?.profile, interaction.member)) return { allowed: true };
@@ -354,7 +358,7 @@ async function canAdjustTarget(interaction, targetUser) {
   const target = await getVerifiedProfile(targetUser.id).catch(() => null);
   if (!actor || !target) return { allowed: false, reason: "Both users must be linked." };
 
-  const targetScope = inferScope(target.profile) || "reavers";
+  const targetScope = targetScopeOverride || inferScope(target.profile) || "reavers";
   return canAdjustTime(actor.profile, target.profile, targetScope, false)
     ? { allowed: true }
     : { allowed: false, reason: "You do not have clearance to adjust that user's time." };
@@ -477,8 +481,9 @@ export async function handleCommand(interaction) {
       const type = interaction.options.getString("type", true);
       const target = interaction.options.getUser("user", true);
       const explicitMinutes = interaction.options.getInteger("minutes");
+      const chosenScope = interaction.options.getString("scope", false);
 
-      const decision = await canAdjustTarget(interaction, target);
+      const decision = await canAdjustTarget(interaction, target, chosenScope);
       if (!decision.allowed) {
         await interaction.reply(ephemeral({ embeds: [errorEmbed(decision.reason)] }));
         return true;
@@ -488,9 +493,9 @@ export async function handleCommand(interaction) {
         const minutes = Math.max(0, explicitMinutes);
         let shift;
         if (type === "set") {
-          shift = await setShiftTime(target, minutes);
+          shift = await setShiftTime(target, minutes, chosenScope);
         } else {
-          shift = await adjustShiftTime(target, type === "add" ? minutes : -minutes);
+          shift = await adjustShiftTime(target, type === "add" ? minutes : -minutes, chosenScope);
         }
         const totals = await shiftTotals(target.id);
 
@@ -509,7 +514,7 @@ export async function handleCommand(interaction) {
         });
       } else {
         const modalTitle = type === "set" ? "Set Time" : `${type === "add" ? "Add" : "Remove"} Time`;
-        await interaction.showModal(textModal(`timeadjust:${type}:${target.id}`, modalTitle, [{ id: "minutes", label: "How many minutes?", placeholder: "10" }]));
+        await interaction.showModal(textModal(`timeadjust:${type}:${target.id}:${chosenScope || ""}`, modalTitle, [{ id: "minutes", label: "How many minutes?", placeholder: "10" }]));
       }
       return true;
     }
@@ -565,15 +570,16 @@ export async function handleButton(interaction) {
 
 export async function handleModal(interaction) {
   if (interaction.customId.startsWith("timeadjust:")) {
-    const [, action, targetId] = interaction.customId.split(":");
+    const [, action, targetId, modalScope] = interaction.customId.split(":");
+    const overrideScope = modalScope || null;
     const minutes = Math.max(0, Number(interaction.fields.getTextInputValue("minutes")) || 0);
     try {
       const targetUser = await interaction.client.users.fetch(targetId).catch(() => null);
       let shift;
       if (action === "set") {
-        shift = await setShiftTime(targetUser || targetId, minutes);
+        shift = await setShiftTime(targetUser || targetId, minutes, overrideScope);
       } else {
-        shift = await adjustShiftTime(targetUser || targetId, action === "add" ? minutes : -minutes);
+        shift = await adjustShiftTime(targetUser || targetId, action === "add" ? minutes : -minutes, overrideScope);
       }
       const totals = await shiftTotals(targetId);
       

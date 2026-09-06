@@ -350,10 +350,7 @@ export function canLogDivisionalInspections(profile) {
     return true;
   }
   const perms = Array.isArray(profile.permissions) ? profile.permissions : [];
-  if (perms.includes("inspections:write") || perms.includes("admin:access") || perms.includes("reports:write:all") || perms.includes("pages:view:all")) {
-    return true;
-  }
-  return false;
+  return perms.includes("inspections:write") || perms.includes("reports:write:all") || perms.includes("pages:view:all");
 }
 
 export function calculateInspectionGrade(score) {
@@ -429,6 +426,9 @@ function buildDivisionModal(divDef, sessionId, existingData = null) {
     prefillScores = existingData.rawScoresText;
   } else {
     prefillScores = divDef.sections.map(s => {
+      if (s.name === "Formations") {
+        return `${s.name}: 0/${s.defaultOutOf}`;
+      }
       if (s.prefillOutOf) {
         return `${s.name}: /${s.defaultOutOf}`;
       }
@@ -471,11 +471,11 @@ function buildInspectionContainers(session, unixTimestamp = null) {
   resultsComponents.push(separatorV2());
   resultsComponents.push(textDisplayV2(
     "### <:SignetEmperor:1344015526191562864> Results\n" +
-    ">>> - 90 - 100% - A\n" +
-    "- 80-90% - B\n" +
-    "- 70-80% - C\n" +
-    "- 60-70% - D\n" +
-    "- 0-60% - F"
+    "> - 90 - 100% - A\n" +
+    "> - 80-90% - B\n" +
+    "> - 70-80% - C\n" +
+    "> - 60-70% - D\n" +
+    "> - 0-60% - F"
   ));
   resultsComponents.push(separatorV2());
 
@@ -486,13 +486,19 @@ function buildInspectionContainers(session, unixTimestamp = null) {
         `### ${divDef.signet} ${divDef.name} - [REDACTED]\n` +
         `>>> - [REDACTED]\n`
       ));
-    } else {
-      const totalScore = data?.totalScore ?? 0;
-      const grade = data?.grade ?? "F";
-      const sectionLines = (data?.sections || []).map(s => `- ${s.name} - ${s.contribution}%`).join("\n");
+    } else if (data) {
+      const totalScore = data.totalScore ?? 0;
+      const grade = data.grade ?? "F";
+      const sectionLines = (data.sections || []).map(s => `- ${s.name} - ${s.contribution}%`).join("\n");
       resultsComponents.push(textDisplayV2(
         `### ${divDef.signet} ${divDef.name} - ${totalScore}% - ${grade}\n` +
         `>>> ${sectionLines}`
+      ));
+    } else {
+      const pendingLines = divDef.sections.map(s => `- ${s.name} - [Pending]%`).join("\n");
+      resultsComponents.push(textDisplayV2(
+        `### ${divDef.signet} ${divDef.name} - [Pending Score] - [Grade]\n` +
+        `>>> ${pendingLines}`
       ));
     }
     resultsComponents.push(separatorV2());
@@ -546,6 +552,21 @@ function renderInspectionSummaryPreview(sessionId, session) {
     ? session.selectedRoleIds.map(id => `<@&${id}>`).join(", ")
     : "None";
 
+  const allLogged = INSPECTION_DIVISIONS.every(d => Boolean(session.divisions[d.key]));
+
+  const statusLines = INSPECTION_DIVISIONS.map(d => {
+    const data = session.divisions[d.key];
+    if (d.classified) {
+      return data ? `• **${d.name}:** ✅ Logged (Classified)` : `• **${d.name}:** ⏳ *Pending Entry*`;
+    }
+    if (!data) return `• **${d.name}:** ⏳ *Pending Entry*`;
+    return `• **${d.name}:** ✅ ${data.totalScore}% (${data.grade})`;
+  }).join("\n");
+
+  const statusNote = allLogged
+    ? "\n\n✅ **All divisions logged! Ready to post.**"
+    : "\n\n⚠️ *Log each division below before posting.*";
+
   const channelSelect = new ChannelSelectMenuBuilder()
     .setCustomId(`insp_channel:${sessionId}`)
     .setPlaceholder("Select Target Channel")
@@ -563,14 +584,20 @@ function renderInspectionSummaryPreview(sessionId, session) {
     roleSelect.setDefaultRoles(session.selectedRoleIds);
   }
 
-  const redoSelect = new StringSelectMenuBuilder()
-    .setCustomId(`insp_redo:${sessionId}`)
-    .setPlaceholder("Redo a Division...")
-    .addOptions(INSPECTION_DIVISIONS.map(d => ({
-      label: `Redo ${d.name}`,
-      value: d.key,
-      description: `Re-enter scores/notes for ${d.name}`
-    })));
+  const divButtons = INSPECTION_DIVISIONS.map(d => {
+    const data = session.divisions[d.key];
+    const short = d.shortName || d.name;
+    let label = "";
+    if (data) {
+      label = d.classified ? `${short}: Logged` : `${short}: ${data.totalScore}% (${data.grade})`;
+    } else {
+      label = `Log ${short}`;
+    }
+    return new ButtonBuilder()
+      .setCustomId(`insp_open:${d.key}:${sessionId}`)
+      .setLabel(label)
+      .setStyle(data ? ButtonStyle.Success : ButtonStyle.Secondary);
+  });
 
   const everyoneBtn = new ButtonBuilder()
     .setCustomId(`insp_everyone:${sessionId}`)
@@ -585,7 +612,8 @@ function renderInspectionSummaryPreview(sessionId, session) {
   const postBtn = new ButtonBuilder()
     .setCustomId(`insp_post:${sessionId}`)
     .setLabel("Post Inspection")
-    .setStyle(ButtonStyle.Success);
+    .setStyle(allLogged ? ButtonStyle.Success : ButtonStyle.Secondary)
+    .setDisabled(!allLogged);
 
   const cancelBtn = new ButtonBuilder()
     .setCustomId(`insp_cancel:${sessionId}`)
@@ -593,10 +621,10 @@ function renderInspectionSummaryPreview(sessionId, session) {
     .setStyle(ButtonStyle.Danger);
 
   const controlsContainer = containerV2([
-    textDisplayV2(`### Inspection Review & Controls\n**Target Channel:** <#${targetChannelId}>\n**Pings:** ${rolePingsText}`),
+    textDisplayV2(`### Divisional Inspection Log\n**Target Channel:** <#${targetChannelId}>\n**Pings:** ${rolePingsText}\n\n**Log Status:**\n${statusLines}${statusNote}`),
     new ActionRowBuilder().addComponents(channelSelect),
     new ActionRowBuilder().addComponents(roleSelect),
-    new ActionRowBuilder().addComponents(redoSelect),
+    new ActionRowBuilder().addComponents(divButtons),
     new ActionRowBuilder().addComponents(everyoneBtn, editImagesBtn, postBtn, cancelBtn)
   ]);
 
@@ -610,7 +638,7 @@ async function handleLogInspections(interaction) {
   }
 
   if (!canLogDivisionalInspections(verified.profile)) {
-    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have permission to log Divisional Inspections.")])])));
+    return interaction.reply(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have permission to log Divisional Inspections. Requires Sith Overseer+, High Command, or Inspections Clearance.")])])));
   }
 
   const sessionId = `${interaction.user.id}_${Date.now()}`;
@@ -622,16 +650,14 @@ async function handleLogInspections(interaction) {
     pingEveryone: false,
     image1Url: DEFAULT_INSP_IMG1,
     image2Url: DEFAULT_INSP_IMG2,
-    divisions: {},
-    status: "wizard"
+    divisions: {}
   };
 
   globalThis.__inspectionSessionCache = globalThis.__inspectionSessionCache || new Map();
   globalThis.__inspectionSessionCache.set(sessionId, session);
 
-  const dhgDef = INSPECTION_DIVISIONS[0];
-  const modal = buildDivisionModal(dhgDef, sessionId);
-  await interaction.showModal(modal);
+  const payload = renderInspectionSummaryPreview(sessionId, session);
+  await interaction.reply(payload);
 }
 
 async function handleLogKaggath(interaction) {
@@ -903,6 +929,13 @@ export async function handleButton(interaction) {
     const verified = await getVerifiedProfile(interaction.user.id).catch(() => null);
     if (!verified || !canLogDivisionalInspections(verified.profile)) {
       return interaction.update(ephemeral(componentsV2Message([containerV2([textDisplayV2("You do not have clearance to post Divisional Inspections.")])])));
+    }
+
+    const unlogged = INSPECTION_DIVISIONS.filter(d => !session.divisions[d.key]);
+    if (unlogged.length > 0) {
+      return interaction.reply(ephemeral(componentsV2Message([containerV2([
+        textDisplayV2(`⚠️ Please log all divisions before posting. Remaining: **${unlogged.map(d => d.name).join(", ")}**`)
+      ])])));
     }
 
     const channelId = session.targetChannelId || "1046538242788438067";
@@ -1388,35 +1421,6 @@ export async function handleModal(interaction) {
       rawScoresText: scoresRaw
     };
 
-    if (session.status === "summary") {
-      return interaction.update(renderInspectionSummaryPreview(sessionId, session));
-    }
-
-    const currIdx = INSPECTION_DIVISIONS.findIndex(d => d.key === divKey);
-    const nextDef = INSPECTION_DIVISIONS[currIdx + 1];
-
-    if (nextDef) {
-      const nextBtn = new ButtonBuilder()
-        .setCustomId(`insp_open:${nextDef.key}:${sessionId}`)
-        .setLabel(`Enter ${nextDef.name} Scores & Notes ➔`)
-        .setStyle(ButtonStyle.Primary);
-
-      const cancelBtn = new ButtonBuilder()
-        .setCustomId(`insp_cancel:${sessionId}`)
-        .setLabel("Cancel")
-        .setStyle(ButtonStyle.Danger);
-
-      const card = containerV2([
-        textDisplayV2(`### ${divDef.signet} ${divDef.name} Saved!\n**Score:** ${parsed.totalScore}% (${parsed.grade})`),
-        separatorV2(),
-        textDisplayV2(`Next up: **${nextDef.name}**`),
-        new ActionRowBuilder().addComponents(nextBtn, cancelBtn)
-      ], 10813440);
-
-      return interaction.update(ephemeral(componentsV2Message([card])));
-    }
-
-    session.status = "summary";
     return interaction.update(renderInspectionSummaryPreview(sessionId, session));
   }
 

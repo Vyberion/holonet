@@ -461,91 +461,151 @@ function buildDivisionModal(divDef, sessionId, existingData = null) {
   return modal;
 }
 
-function buildInspectionContainers(session, unixTimestamp = null) {
+function buildInspectionContainers(session, unixTimestamp = null, isPreview = false) {
   const timestamp = unixTimestamp || Math.floor(Date.now() / 1000);
   const containers = [];
 
-  // Container 1: Results
-  const resultsComponents = [];
-  resultsComponents.push(textDisplayV2("# [Divisional Inspections](https://www.thesithorder.org/reports)"));
-  resultsComponents.push(separatorV2());
-  resultsComponents.push(textDisplayV2(
-    "### <:SignetEmperor:1344015526191562864> Results\n" +
-    "> - 90 - 100% - A\n" +
-    "> - 80-90% - B\n" +
-    "> - 70-80% - C\n" +
-    "> - 60-70% - D\n" +
-    "> - 0-60% - F"
-  ));
-  resultsComponents.push(separatorV2());
-
-  for (const divDef of INSPECTION_DIVISIONS) {
-    const data = session.divisions[divDef.key];
-    if (divDef.classified) {
-      resultsComponents.push(textDisplayV2(
-        `### ${divDef.signet} ${divDef.name} - [REDACTED]\n` +
-        `>>> - [REDACTED]\n`
-      ));
-    } else if (data) {
-      const totalScore = data.totalScore ?? 0;
-      const grade = data.grade ?? "F";
-      const sectionLines = (data.sections || []).map(s => `- ${s.name} - ${s.contribution}%`).join("\n");
-      resultsComponents.push(textDisplayV2(
-        `### ${divDef.signet} ${divDef.name} - ${totalScore}% - ${grade}\n` +
-        `>>> ${sectionLines}`
-      ));
-    } else {
-      const pendingLines = divDef.sections.map(s => `- ${s.name} - [Pending]%`).join("\n");
-      resultsComponents.push(textDisplayV2(
-        `### ${divDef.signet} ${divDef.name} - [Pending Score] - [Grade]\n` +
-        `>>> ${pendingLines}`
-      ));
-    }
+  if (isPreview) {
+    // In preview mode, optimize components to stay safely within Discord's 40-component limit
+    const resultsComponents = [];
+    const headerBlock =
+      "# [Divisional Inspections](https://www.thesithorder.org/reports)\n" +
+      "***\n" +
+      "### <:SignetEmperor:1344015526191562864> Results\n" +
+      "> - 90 - 100% - A\n" +
+      "> - 80-90% - B\n" +
+      "> - 70-80% - C\n" +
+      "> - 60-70% - D\n" +
+      "> - 0-60% - F";
+    resultsComponents.push(textDisplayV2(headerBlock));
     resultsComponents.push(separatorV2());
-  }
-
-  // Image 1
-  resultsComponents.push(mediaGalleryV2(session.image1Url));
-  // Timestamp
-  resultsComponents.push(textDisplayV2(`-# \\- The Emperor's Wrath • <t:${timestamp}:S>`));
-
-  containers.push(containerV2(resultsComponents, 10813440));
-
-  // Container 2: Notes
-  const hasAnyNotes = INSPECTION_DIVISIONS.some(d => !d.classified && Boolean((session.divisions[d.key]?.notes || "").trim()));
-  if (hasAnyNotes) {
-    const notesComponents = [];
-    notesComponents.push(textDisplayV2("# Notes"));
-    notesComponents.push(separatorV2());
 
     for (const divDef of INSPECTION_DIVISIONS) {
-      const notesText = (session.divisions[divDef.key]?.notes || "").trim();
+      const data = session.divisions[divDef.key];
       if (divDef.classified) {
-        notesComponents.push(textDisplayV2(
-          `### ${divDef.signet} ${divDef.name}\n` +
-          `>>> - [[REDACTED]](${divDef.redactedLink})`
+        resultsComponents.push(textDisplayV2(
+          `### ${divDef.signet} ${divDef.name} - [REDACTED]\n` +
+          `>>> - [REDACTED]`
         ));
-        notesComponents.push(separatorV2());
-      } else if (notesText) {
-        notesComponents.push(textDisplayV2(
-          `### ${divDef.signet} ${divDef.name}\n` +
-          `>>> - ${notesText}`
+      } else if (data) {
+        const totalScore = data.totalScore ?? 0;
+        const grade = data.grade ?? "F";
+        const sectionLines = (data.sections || []).map(s => `- ${s.name} - ${s.contribution}%`).join("\n");
+        resultsComponents.push(textDisplayV2(
+          `### ${divDef.signet} ${divDef.name} - ${totalScore}% - ${grade}\n` +
+          `>>> ${sectionLines}`
         ));
-        notesComponents.push(separatorV2());
+      } else {
+        const pendingLines = divDef.sections.map(s => `- ${s.name} - [Pending]%`).join("\n");
+        resultsComponents.push(textDisplayV2(
+          `### ${divDef.signet} ${divDef.name} - [Pending Score] - [Grade]\n` +
+          `>>> ${pendingLines}`
+        ));
       }
     }
 
-    notesComponents.push(mediaGalleryV2(session.image2Url));
-    notesComponents.push(textDisplayV2(`-# \\- The Emperor's Wrath • <t:${timestamp}:S>`));
+    resultsComponents.push(mediaGalleryV2(session.image1Url));
+    resultsComponents.push(textDisplayV2(`-# \\- The Emperor's Wrath • <t:${timestamp}:S>`));
+    containers.push(containerV2(resultsComponents, 10813440));
 
-    containers.push(containerV2(notesComponents, 10813440));
+    // Container 2: Notes
+    const hasAnyNotes = INSPECTION_DIVISIONS.some(d => !d.classified && Boolean((session.divisions[d.key]?.notes || "").trim()));
+    if (hasAnyNotes) {
+      const notesParts = ["# Notes\n***"];
+      for (const divDef of INSPECTION_DIVISIONS) {
+        const notesText = (session.divisions[divDef.key]?.notes || "").trim();
+        if (divDef.classified) {
+          notesParts.push(`### ${divDef.signet} ${divDef.name}\n>>> - [[REDACTED]](${divDef.redactedLink})`);
+        } else if (notesText) {
+          notesParts.push(`### ${divDef.signet} ${divDef.name}\n>>> - ${notesText}`);
+        }
+      }
+      const notesComponents = [
+        textDisplayV2(notesParts.join("\n***\n")),
+        mediaGalleryV2(session.image2Url),
+        textDisplayV2(`-# \\- The Emperor's Wrath • <t:${timestamp}:S>`)
+      ];
+      containers.push(containerV2(notesComponents, 10813440));
+    }
+  } else {
+    // Container 1: Results (Full discrete components for live posting)
+    const resultsComponents = [];
+    resultsComponents.push(textDisplayV2("# [Divisional Inspections](https://www.thesithorder.org/reports)"));
+    resultsComponents.push(separatorV2());
+    resultsComponents.push(textDisplayV2(
+      "### <:SignetEmperor:1344015526191562864> Results\n" +
+      "> - 90 - 100% - A\n" +
+      "> - 80-90% - B\n" +
+      "> - 70-80% - C\n" +
+      "> - 60-70% - D\n" +
+      "> - 0-60% - F"
+    ));
+    resultsComponents.push(separatorV2());
+
+    for (const divDef of INSPECTION_DIVISIONS) {
+      const data = session.divisions[divDef.key];
+      if (divDef.classified) {
+        resultsComponents.push(textDisplayV2(
+          `### ${divDef.signet} ${divDef.name} - [REDACTED]\n` +
+          `>>> - [REDACTED]\n`
+        ));
+      } else if (data) {
+        const totalScore = data.totalScore ?? 0;
+        const grade = data.grade ?? "F";
+        const sectionLines = (data.sections || []).map(s => `- ${s.name} - ${s.contribution}%`).join("\n");
+        resultsComponents.push(textDisplayV2(
+          `### ${divDef.signet} ${divDef.name} - ${totalScore}% - ${grade}\n` +
+          `>>> ${sectionLines}`
+        ));
+      } else {
+        const pendingLines = divDef.sections.map(s => `- ${s.name} - [Pending]%`).join("\n");
+        resultsComponents.push(textDisplayV2(
+          `### ${divDef.signet} ${divDef.name} - [Pending Score] - [Grade]\n` +
+          `>>> ${pendingLines}`
+        ));
+      }
+      resultsComponents.push(separatorV2());
+    }
+
+    resultsComponents.push(mediaGalleryV2(session.image1Url));
+    resultsComponents.push(textDisplayV2(`-# \\- The Emperor's Wrath • <t:${timestamp}:S>`));
+    containers.push(containerV2(resultsComponents, 10813440));
+
+    // Container 2: Notes
+    const hasAnyNotes = INSPECTION_DIVISIONS.some(d => !d.classified && Boolean((session.divisions[d.key]?.notes || "").trim()));
+    if (hasAnyNotes) {
+      const notesComponents = [];
+      notesComponents.push(textDisplayV2("# Notes"));
+      notesComponents.push(separatorV2());
+
+      for (const divDef of INSPECTION_DIVISIONS) {
+        const notesText = (session.divisions[divDef.key]?.notes || "").trim();
+        if (divDef.classified) {
+          notesComponents.push(textDisplayV2(
+            `### ${divDef.signet} ${divDef.name}\n` +
+            `>>> - [[REDACTED]](${divDef.redactedLink})`
+          ));
+          notesComponents.push(separatorV2());
+        } else if (notesText) {
+          notesComponents.push(textDisplayV2(
+            `### ${divDef.signet} ${divDef.name}\n` +
+            `>>> - ${notesText}`
+          ));
+          notesComponents.push(separatorV2());
+        }
+      }
+
+      notesComponents.push(mediaGalleryV2(session.image2Url));
+      notesComponents.push(textDisplayV2(`-# \\- The Emperor's Wrath • <t:${timestamp}:S>`));
+      containers.push(containerV2(notesComponents, 10813440));
+    }
   }
 
   return containers;
 }
 
 function renderInspectionSummaryPreview(sessionId, session) {
-  const containers = buildInspectionContainers(session);
+  const containers = buildInspectionContainers(session, null, true);
 
   const targetChannelId = session.targetChannelId || "1046538242788438067";
   const rolePingsText = session.selectedRoleIds?.length > 0

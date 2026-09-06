@@ -47,7 +47,7 @@ function inspectionTemplate(division) {
     dhg: [
       ["Activity", 100, 10],
       ["Combat", "", 20],
-      ["Jailing", "", 20],
+      ["Enforcement", "", 20],
       ["Guarding", "", 20],
       ["Codex", "", 20],
       ["Formations", 40, 10]
@@ -63,7 +63,7 @@ function inspectionTemplate(division) {
     inquisitors: [
       ["Activity", 100, 10],
       ["Combat", "", 10],
-      ["Mocks", "", 40],
+      ["Mocks", 100, 40],
       ["Codex", "", 30],
       ["Formations", 40, 10]
     ]
@@ -300,7 +300,7 @@ function renderInspectionCard(division, canInspect) {
       ${inspection?.notes ? `<p class="hub-summary">${escapeHtml(inspection.notes)}</p>` : ""}
       <div class="hub-card-actions">
         <button type="button" class="hub-write-btn" data-inspection-archive-toggle="${escapeHtml(division.id)}">VIEW ARCHIVE</button>
-        ${canInspect ? `<button type="button" class="hub-write-btn" data-inspection-write="${escapeHtml(division.id)}">WRITE INSPECTION</button>` : ""}
+        ${canInspect ? `<button type="button" class="hub-write-btn" data-inspection-write="${escapeHtml(division.id)}" style="display: none !important;" hidden aria-hidden="true">WRITE INSPECTION</button>` : ""}
       </div>
       <div class="overview-inspection-archive" data-inspection-archive-panel="${escapeHtml(division.id)}" hidden>
         <h4 class="overview-archive-title">Inspection Archive</h4>

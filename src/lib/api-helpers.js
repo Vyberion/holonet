@@ -1684,7 +1684,7 @@ export function inspectionSectionsFor(division, sections = []) {
     dhg: [
       { name: "Activity", outOf: 100, weightedPercentage: 10 },
       { name: "Combat", outOf: 0, weightedPercentage: 20 },
-      { name: "Jailing", outOf: 0, weightedPercentage: 20 },
+      { name: "Enforcement", outOf: 0, weightedPercentage: 20 },
       { name: "Guarding", outOf: 0, weightedPercentage: 20 },
       { name: "Codex", outOf: 0, weightedPercentage: 20 },
       { name: "Formations", outOf: 40, weightedPercentage: 10 }
@@ -1700,7 +1700,7 @@ export function inspectionSectionsFor(division, sections = []) {
     inquisitors: [
       { name: "Activity", outOf: 100, weightedPercentage: 10 },
       { name: "Combat", outOf: 0, weightedPercentage: 10 },
-      { name: "Mocks", outOf: 0, weightedPercentage: 40 },
+      { name: "Mocks", outOf: 100, weightedPercentage: 40 },
       { name: "Codex", outOf: 0, weightedPercentage: 30 },
       { name: "Formations", outOf: 40, weightedPercentage: 10 }
     ]
@@ -1716,6 +1716,7 @@ export function inspectionSectionsFor(division, sections = []) {
   return incoming.map(section => {
     let name = requireString(section.name);
     if (name.toLowerCase() === "attendance") name = "Activity";
+    if (name.toLowerCase() === "jailing") name = "Enforcement";
     const def = defaultMap.get(name) || {};
     return {
       name,

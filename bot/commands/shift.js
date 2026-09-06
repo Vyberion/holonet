@@ -443,8 +443,8 @@ export async function handleCommand(interaction) {
         return true;
       }
       await interaction.deferReply({ ephemeral: true });
-      await healMisattributedShifts();
-      await interaction.editReply({ embeds: [successEmbed("Heal Complete", "Misattributed shifts have been re-scoped to their correct divisions.")] });
+      const fixed = await healMisattributedShifts();
+      await interaction.editReply({ embeds: [successEmbed("Heal Complete", fixed > 0 ? `Fixed ${fixed} misattributed shift(s). Try the leaderboard again.` : "No misattributed shifts found.")] });
       return true;
     }
 

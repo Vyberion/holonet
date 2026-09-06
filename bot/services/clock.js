@@ -301,44 +301,27 @@ export async function saveClockPanel({ scope, channelId, messageId, createdBy })
 }
 
 export async function healMisattributedShifts() {
+  let fixed = 0;
   try {
     const { data: shifts, error } = await supabase
       .from("clock_shifts")
-      .select("id,discord_user_id,roblox_user_id,scope")
-      .in("scope", ["reavers", "highranks"]);
-    if (error || !shifts?.length) return;
+      .select("id,discord_user_id,scope");
+    if (error || !shifts?.length) return fixed;
 
     for (const shift of shifts) {
-      const userId = shift.discord_user_id;
-      if (!userId) continue;
-      const verified = await getVerifiedProfile(userId).catch(() => null);
+      if (!shift.discord_user_id) continue;
+      const verified = await getVerifiedProfile(shift.discord_user_id).catch(() => null);
       if (!verified?.profile) continue;
-
-      const profile = verified.profile;
-      const currentScope = (shift.scope || "").toLowerCase();
-
-      if (currentScope === "reavers") {
-        const reaverTier = profile.divisions?.reavers || "none";
-        if (reaverTier === "none") {
-          const actualScope = inferScope(profile);
-          if (actualScope && actualScope !== "reavers") {
-            await supabase.from("clock_shifts").update({ scope: actualScope }).eq("id", shift.id);
-            console.log(`[Heal] Shift ${shift.id} re-scoped from reavers to ${actualScope} for user ${userId}`);
-          }
-        }
-      } else if (currentScope === "highranks") {
-        const mainRank = Number(profile?.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0);
-        const isActuallyHighRank = [44, 45, 50, 53].includes(mainRank);
-        if (!isActuallyHighRank) {
-          const actualScope = inferScope(profile);
-          if (actualScope && actualScope !== "highranks") {
-            await supabase.from("clock_shifts").update({ scope: actualScope }).eq("id", shift.id);
-            console.log(`[Heal] Shift ${shift.id} re-scoped from highranks to ${actualScope} for user ${userId}`);
-          }
-        }
+      const correct = inferScope(verified.profile);
+      if (correct && correct !== shift.scope) {
+        await supabase.from("clock_shifts").update({ scope: correct }).eq("id", shift.id);
+        console.log(`[Heal] Shift ${shift.id}: ${shift.scope} → ${correct} for user ${shift.discord_user_id}`);
+        fixed++;
       }
     }
   } catch (err) {
     console.error("healMisattributedShifts error:", err);
   }
+  return fixed;
 }
+

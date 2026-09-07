@@ -8,6 +8,7 @@ import { canAdjustTime, canManageBot, divisionTierWeight, getVerifiedProfile, in
 import { setShiftRemindersEnabled } from "../services/shift-reminders.js";
 import { supabase } from "../services/supabase.js";
 import { ROBLOX_GROUPS } from "../../modules/data/roblox-config.js";
+import { fetchDivisionRoster } from "../../modules/data/rank-roster.js";
 import { checkResourceWriteAccess } from "../../modules/auth/permissions.js";
 
 const VERIFY_INSTRUCTIONS = "You are not linked yet. Use `/verify` or the verification panel.";
@@ -197,6 +198,41 @@ async function loadScopeLeaderboard(scope) {
   for (const shift of rows) {
     const userId = String(shift.discord_user_id || robloxToDiscord.get(String(shift.roblox_user_id)) || shift.roblox_username || shift.roblox_user_id || "");
     if (userId) totals.set(userId, (totals.get(userId) || 0) + shiftTotalSeconds(shift, now));
+  }
+
+  // For scoped leaderboards, filter to only include actual roster members
+  // This ensures Dark Councilors don't appear in division leaderboards
+  // and non-division-members don't appear in division leaderboards
+  if (scope !== "all") {
+    try {
+      const roster = await fetchDivisionRoster(scope);
+      if (roster.length > 0) {
+        const rosterRobloxIds = new Set(roster.map(m => String(m.robloxId)));
+
+        // Build Discord ID <-> Roblox ID mappings from verification_links
+        const { data: allLinks } = await supabase
+          .from("verification_links")
+          .select("discord_user_id,roblox_user_id");
+
+        const validUserIds = new Set();
+        (allLinks || []).forEach(l => {
+          if (l.roblox_user_id && rosterRobloxIds.has(String(l.roblox_user_id))) {
+            if (l.discord_user_id) validUserIds.add(String(l.discord_user_id));
+            validUserIds.add(String(l.roblox_user_id));
+          }
+        });
+        // Also include Roblox IDs directly (for users without Discord links)
+        rosterRobloxIds.forEach(id => validUserIds.add(id));
+
+        for (const [userId] of [...totals]) {
+          if (!validUserIds.has(userId)) {
+            totals.delete(userId);
+          }
+        }
+      }
+    } catch (rosterErr) {
+      console.warn(`[shift] Warning: Roster filtering failed for scope ${scope}:`, rosterErr?.message);
+    }
   }
 
   return [...totals.entries()]

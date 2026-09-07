@@ -159,3 +159,76 @@ test("computeRankBracketStatistics for all_hr", () => {
   assert.ok(stats.inactiveOfficers.some(o => o.username === "DarthMarr"));
   assert.ok(stats.inactiveOfficers.some(o => o.username === "OverseerHarkun"));
 });
+
+test("buildPersonnelRankIndex: Dark Council overseer should NOT appear in division roster data", () => {
+  // Simulate a case where a Dark Councilor (Darth Baras) also holds a Reaver rank
+  const mockRosters = {
+    darkCouncil: [
+      { robloxId: "201", username: "DarthBaras", displayName: "Baras", rank: 35, role: "Darth Baras" }
+    ],
+    highranks: [],
+    reavers: [
+      // This should NOT happen after fetchDivisionRoster excludes DC members,
+      // but the index should still handle it gracefully
+      { robloxId: "201", username: "DarthBaras", displayName: "Baras", rank: 200, role: "Reaver Commander" },
+      { robloxId: "202", username: "ReaverGrunt", displayName: "Grunt", rank: 5, role: "Reaver" }
+    ],
+    dhg: [],
+    inquisitors: [],
+    dreadmasters: []
+  };
+
+  const rankIndex = buildPersonnelRankIndex(mockRosters);
+  const baras = rankIndex.byRobloxId.get("201");
+
+  // Baras should be classified as Dark Council, not division
+  assert.ok(baras, "Baras should be in index");
+  assert.equal(baras.isDarkCouncil, true, "Baras should be marked as Dark Council");
+  assert.equal(baras.bracketLabel, "Dark Council", "Baras bracket should be Dark Council");
+  assert.equal(baras.dcRank, 35, "Baras DC rank should be 35");
+
+  // Grunt should be a normal Reaver
+  const grunt = rankIndex.byRobloxId.get("202");
+  assert.ok(grunt);
+  assert.equal(grunt.isDarkCouncil, false);
+});
+
+test("buildPersonnelRankIndex: DC rank 1 (base Member) should NOT count as Dark Council", () => {
+  const mockRosters = {
+    darkCouncil: [
+      // rank 1 is the base "Member" role, should NOT count as a real DC member
+      // In practice fetchDivisionRoster excludes these, but test the index behavior
+    ],
+    highranks: [],
+    reavers: [
+      { robloxId: "301", username: "RegularReaver", displayName: "Reaver1", rank: 5, role: "Reaver" }
+    ],
+    dhg: [],
+    inquisitors: [],
+    dreadmasters: []
+  };
+
+  const rankIndex = buildPersonnelRankIndex(mockRosters);
+  const reaver = rankIndex.byRobloxId.get("301");
+  assert.ok(reaver);
+  assert.equal(reaver.isDarkCouncil, false, "Regular Reaver should not be Dark Council");
+});
+
+test("matchesRankFilter: division members should not match DC filter", () => {
+  const mockRosters = {
+    darkCouncil: [],
+    highranks: [],
+    reavers: [
+      { robloxId: "401", username: "PureReaver", displayName: "PureReaver", rank: 15, role: "Reaver Lord" }
+    ],
+    dhg: [],
+    inquisitors: [],
+    dreadmasters: []
+  };
+
+  const rankIndex = buildPersonnelRankIndex(mockRosters);
+  const reaver = rankIndex.byRobloxId.get("401");
+  assert.ok(reaver);
+  assert.equal(matchesRankFilter(reaver, "dc"), false, "Reaver should not match DC filter");
+  assert.equal(matchesRankFilter(reaver, "reavers_hr"), true, "Reaver Lord should match reavers_hr");
+});

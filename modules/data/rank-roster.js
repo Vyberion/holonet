@@ -78,6 +78,9 @@ export async function fetchDivisionRoster(division) {
       }
     }
 
+    // Sort roles by rank descending so deduplication keeps the highest rank per user
+    targetRoles.sort((a, b) => Number(b.rank) - Number(a.rank));
+
     const members = [];
     const seenRobloxIds = new Set();
 
@@ -119,6 +122,56 @@ export async function fetchDivisionRoster(division) {
 
         cursor = payload.nextPageCursor || "";
       } while (cursor);
+    }
+
+    // For division rosters, exclude members who are Dark Council members (overseers)
+    const divisionKeys = Object.keys(ROBLOX_GROUPS.DIVISIONS);
+    if (divisionKeys.includes(division) && members.length > 0) {
+      try {
+        const dcGroupId = ROBLOX_GROUPS.DARK_COUNCIL.groupId;
+        const dcRolesResponse = await fetch(`https://groups.roblox.com/v1/groups/${dcGroupId}/roles`, {
+          signal: AbortSignal.timeout(10000)
+        });
+        if (dcRolesResponse.ok) {
+          const dcRolesPayload = await dcRolesResponse.json();
+          // Only ranks >= 15 are actual Dark Council seats (rank 1 is base "Member" role)
+          const dcActiveRoles = (dcRolesPayload.roles || []).filter(role => Number(role.rank) >= 15);
+          const dcMemberIds = new Set();
+
+          for (const dcRole of dcActiveRoles) {
+            let dcCursor = "";
+            do {
+              const dcUrl = new URL(`https://groups.roblox.com/v1/groups/${dcGroupId}/roles/${dcRole.id}/users`);
+              dcUrl.searchParams.set("limit", "100");
+              dcUrl.searchParams.set("sortOrder", "Asc");
+              if (dcCursor) dcUrl.searchParams.set("cursor", dcCursor);
+
+              const dcResponse = await fetch(dcUrl, { signal: AbortSignal.timeout(10000) });
+              if (!dcResponse.ok) break;
+              const dcPayload = await dcResponse.json();
+
+              (dcPayload.data || []).forEach(item => {
+                const uid = String(item.userId || item.id || "");
+                if (uid) dcMemberIds.add(uid);
+              });
+
+              dcCursor = dcPayload.nextPageCursor || "";
+            } while (dcCursor);
+          }
+
+          if (dcMemberIds.size > 0) {
+            const beforeCount = members.length;
+            const filtered = members.filter(m => !dcMemberIds.has(String(m.robloxId)));
+            members.length = 0;
+            members.push(...filtered);
+            if (members.length < beforeCount) {
+              console.log(`[rank-roster] Excluded ${beforeCount - members.length} Dark Council member(s) from ${division} roster`);
+            }
+          }
+        }
+      } catch (dcErr) {
+        console.warn(`[rank-roster] Warning: Dark Council cross-reference failed for ${division}:`, dcErr?.message);
+      }
     }
 
     if (members.length > 0) {

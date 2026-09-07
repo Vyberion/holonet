@@ -1375,6 +1375,9 @@ async function fetchDivisionRoster(division) {
       }
     }
 
+    // Sort roles by rank descending so deduplication keeps the highest rank per user
+    targetRoles.sort((a, b) => Number(b.rank) - Number(a.rank));
+
     const members = [];
     const seenRobloxIds = new Set();
 
@@ -1418,7 +1421,49 @@ async function fetchDivisionRoster(division) {
       } while (cursor);
     }
 
-    return members.filter(member => member.robloxId);
+    // For division rosters, exclude members who are Dark Council members (overseers)
+    const divisionKeys = Object.keys(ROBLOX_GROUPS.DIVISIONS);
+    const cleanMembers = members.filter(member => member.robloxId);
+    if (divisionKeys.includes(division) && cleanMembers.length > 0) {
+      try {
+        const dcGroupId = ROBLOX_GROUPS.DARK_COUNCIL.groupId;
+        const dcRolesResponse = await fetch(`https://groups.roblox.com/v1/groups/${dcGroupId}/roles`);
+        if (dcRolesResponse.ok) {
+          const dcRolesPayload = await dcRolesResponse.json();
+          const dcActiveRoles = (dcRolesPayload.roles || []).filter(role => Number(role.rank) >= 15);
+          const dcMemberIds = new Set();
+
+          for (const dcRole of dcActiveRoles) {
+            let dcCursor = "";
+            do {
+              const dcUrl = new URL(`https://groups.roblox.com/v1/groups/${dcGroupId}/roles/${dcRole.id}/users`);
+              dcUrl.searchParams.set("limit", "100");
+              dcUrl.searchParams.set("sortOrder", "Asc");
+              if (dcCursor) dcUrl.searchParams.set("cursor", dcCursor);
+
+              const dcResponse = await fetch(dcUrl).catch(() => null);
+              if (!dcResponse || !dcResponse.ok) break;
+              const dcPayload = await dcResponse.json().catch(() => ({}));
+
+              (dcPayload.data || []).forEach(item => {
+                const uid = String(item.userId || item.id || "");
+                if (uid) dcMemberIds.add(uid);
+              });
+
+              dcCursor = dcPayload.nextPageCursor || "";
+            } while (dcCursor);
+          }
+
+          if (dcMemberIds.size > 0) {
+            return cleanMembers.filter(m => !dcMemberIds.has(String(m.robloxId)));
+          }
+        }
+      } catch (dcErr) {
+        console.warn(`[legacy-api] Warning: DC cross-reference failed for ${division}:`, dcErr?.message);
+      }
+    }
+
+    return cleanMembers;
   } catch (err) {
     console.error("fetchDivisionRoster error:", err);
     return [];

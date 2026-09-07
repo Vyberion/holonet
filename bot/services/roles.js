@@ -196,8 +196,9 @@ export function canVoteEmperor(profile) {
 export function inferScope(profile) {
   const highRankValue = Number(profile?.groupRanks?.[ROBLOX_GROUPS.MAIN_GROUP.groupId] || 0);
 
-  // High command takes priority — they should never appear in a division leaderboard
-  if (Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) > 0) return "darkCouncil";
+  // Dark Council members (rank >= 15) always belong to the Dark Council scope
+  // Rank 1 is the base "Member" role auto-assigned when joining the group and does not count
+  if (Number(profile?.groupRanks?.[ROBLOX_GROUPS.DARK_COUNCIL.groupId] || 0) >= 15) return "darkCouncil";
   if ([44, 45, 50, 53].includes(highRankValue)) return "highranks";
 
   // Count division members and division commanders (member, nco, hr, 2ic, 1ic) — overseer is Dark Council overseer

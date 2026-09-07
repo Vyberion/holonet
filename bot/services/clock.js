@@ -31,7 +31,8 @@ export async function clockIn(discordUser, options = {}) {
   const verified = await getVerifiedProfile(discordUserId);
   if (!verified) throw new Error("DISCORD_NOT_LINKED");
 
-  const scope = options.scope || inferScope(verified.profile);
+  const inferred = inferScope(verified.profile);
+  const scope = (inferred === "darkCouncil") ? "darkCouncil" : (options.scope || inferred);
   if (!scope) throw new Error("NO_CLOCK_SCOPE");
   const isLate = Boolean(options.late);
   const lateMinutes = isLate ? Math.max(0, Number(options.lateMinutes) || 0) : 0;
@@ -117,7 +118,8 @@ export async function adjustShiftTime(discordUser, minutes, overrideScope = null
   const discordId = verified?.link?.discord_user_id ? String(verified.link.discord_user_id) : discordUserId;
   const robloxId = verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null;
 
-  let scope = overrideScope || (verified ? inferScope(verified.profile) : null);
+  const inferred = verified ? inferScope(verified.profile) : null;
+  let scope = (inferred === "darkCouncil") ? "darkCouncil" : (overrideScope || inferred);
   if (!scope && verified) {
     const shift = await latestShift(discordUserId);
     if (shift) scope = shift.scope;
@@ -193,7 +195,8 @@ export async function setShiftTime(discordUser, minutes, overrideScope = null) {
   const discordId = verified?.link?.discord_user_id ? String(verified.link.discord_user_id) : discordUserId;
   const robloxId = verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null;
 
-  let scope = overrideScope || (verified ? inferScope(verified.profile) : null);
+  const inferred = verified ? inferScope(verified.profile) : null;
+  let scope = (inferred === "darkCouncil") ? "darkCouncil" : (overrideScope || inferred);
   if (!scope && verified) {
     const shift = await latestShift(discordUserId);
     if (shift) scope = shift.scope;
@@ -236,17 +239,15 @@ export async function setShiftTime(discordUser, minutes, overrideScope = null) {
   return { scope, discord_user_id: discordId };
 }
 
-export async function shiftTotals(userIdentifier, scopes = null) {
-  const idStr = typeof userIdentifier === "object" ? String(userIdentifier?.id || "") : String(userIdentifier || "");
-  if (!idStr) return { rawSeconds: 0, adjustmentSeconds: 0, totalSeconds: 0, hasActiveShift: false };
-
+export async function shiftTotals(discordUserId, visibleScopes = []) {
+  const idStr = typeof discordUserId === "object" ? String(discordUserId?.id || "") : String(discordUserId || "");
   const verified = await getVerifiedProfile(idStr).catch(() => null);
   const discordId = verified?.link?.discord_user_id ? String(verified.link.discord_user_id) : idStr;
   const robloxId = verified?.link?.roblox_user_id ? String(verified.link.roblox_user_id) : null;
 
   let query = supabase
     .from("clock_shifts")
-    .select("duration_seconds,adjustment_seconds,status,started_at,discord_user_id,roblox_user_id");
+    .select("duration_seconds,adjustment_seconds,status,started_at,scope");
 
   if (robloxId && discordId) {
     query = query.or(`discord_user_id.eq.${discordId},roblox_user_id.eq.${robloxId}`);
@@ -254,32 +255,29 @@ export async function shiftTotals(userIdentifier, scopes = null) {
     query = query.or(`discord_user_id.eq.${discordId},roblox_user_id.eq.${discordId}`);
   }
 
-  if (Array.isArray(scopes) && scopes.length) query = query.in("scope", scopes);
-  else if (typeof scopes === "string" && scopes) query = query.eq("scope", scopes);
+  if (visibleScopes.length > 0 && !visibleScopes.includes("all")) {
+    query = query.in("scope", visibleScopes);
+  }
 
   const { data, error } = await query;
   if (error) throw error;
 
   const now = Date.now();
-  let total = 0;
+  let totalSeconds = 0;
+  let hasActiveShift = false;
 
-  for (const shift of (data || [])) {
-    if (shift.status === "active") {
-      total += Math.max(0, Math.floor((now - new Date(shift.started_at).getTime()) / 1000));
+  for (const row of (data || [])) {
+    if (row.status === "active") {
+      hasActiveShift = true;
+      const started = new Date(row.started_at).getTime();
+      totalSeconds += Math.max(0, Math.floor((now - started) / 1000));
     } else {
-      total += Number(shift.duration_seconds || 0);
+      totalSeconds += Number(row.duration_seconds || 0);
     }
-    total += Number(shift.adjustment_seconds || 0);
+    totalSeconds += Number(row.adjustment_seconds || 0);
   }
 
-  const finalTotal = Math.max(0, total);
-
-  return {
-    rawSeconds: finalTotal,
-    adjustmentSeconds: 0,
-    totalSeconds: finalTotal,
-    hasActiveShift: (data || []).some(shift => shift.status === "active")
-  };
+  return { totalSeconds: Math.max(0, totalSeconds), hasActiveShift };
 }
 
 export function formatDuration(seconds = 0) {
@@ -289,7 +287,7 @@ export function formatDuration(seconds = 0) {
   return `${hours}h ${minutes}m`;
 }
 
-export async function saveClockPanel({ scope, channelId, messageId, createdBy }) {
+export async function saveClockPanel(scope, channelId, messageId, createdBy) {
   const { error } = await supabase.from("clock_panels").upsert({
     scope,
     channel_id: channelId,
@@ -303,38 +301,63 @@ export async function saveClockPanel({ scope, channelId, messageId, createdBy })
 export async function healMisattributedShifts() {
   let fixed = 0;
   try {
-    const { data: shifts, error } = await supabase
-      .from("clock_shifts")
-      .select("id,discord_user_id,roblox_user_id,scope");
-    if (error || !shifts?.length) return fixed;
+    const pageSize = 1000;
+    const allShifts = [];
+
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabase
+        .from("clock_shifts")
+        .select("id,discord_user_id,roblox_user_id,scope")
+        .range(from, from + pageSize - 1);
+      if (error) throw error;
+      allShifts.push(...(data || []));
+      if (!data || data.length < pageSize) break;
+    }
+
+    if (!allShifts.length) return fixed;
+
+    const { data: links } = await supabase
+      .from("verification_links")
+      .select("discord_user_id,roblox_user_id");
+
+    const discordToRoblox = new Map();
+    const robloxToDiscord = new Map();
+    (links || []).forEach(l => {
+      if (l.discord_user_id && l.roblox_user_id) {
+        discordToRoblox.set(String(l.discord_user_id), String(l.roblox_user_id));
+        robloxToDiscord.set(String(l.roblox_user_id), String(l.discord_user_id));
+      }
+    });
 
     const profileCache = new Map();
 
-    for (const shift of shifts) {
-      let discordId = shift.discord_user_id ? String(shift.discord_user_id) : "";
-      if (!discordId && shift.roblox_user_id) {
-        const { data: link } = await supabase
-          .from("verification_links")
-          .select("discord_user_id")
-          .eq("roblox_user_id", String(shift.roblox_user_id))
-          .maybeSingle();
-        if (link?.discord_user_id) discordId = String(link.discord_user_id);
-      }
-      if (!discordId) continue;
+    for (const shift of allShifts) {
+      const discordId = shift.discord_user_id ? String(shift.discord_user_id) : (robloxToDiscord.get(String(shift.roblox_user_id)) || "");
+      const robloxId = shift.roblox_user_id ? String(shift.roblox_user_id) : (discordToRoblox.get(String(shift.discord_user_id)) || "");
+
+      const cacheKey = robloxId || discordId;
+      if (!cacheKey) continue;
 
       let verified;
-      if (profileCache.has(discordId)) {
-        verified = profileCache.get(discordId);
+      if (profileCache.has(cacheKey)) {
+        verified = profileCache.get(cacheKey);
       } else {
-        verified = await getVerifiedProfile(discordId).catch(() => null);
-        profileCache.set(discordId, verified);
+        if (discordId) {
+          verified = await getVerifiedProfile(discordId).catch(() => null);
+        }
+        if (!verified?.profile && robloxId) {
+          const { loadProfileForRoblox } = await import("./roblox.js");
+          const profile = await loadProfileForRoblox(robloxId).catch(() => null);
+          if (profile) verified = { link: { roblox_user_id: robloxId }, profile };
+        }
+        profileCache.set(cacheKey, verified);
       }
 
       if (!verified?.profile) continue;
       const correct = inferScope(verified.profile);
       if (correct && correct !== shift.scope) {
         await supabase.from("clock_shifts").update({ scope: correct }).eq("id", shift.id);
-        console.log(`[Heal] Shift ${shift.id}: ${shift.scope} → ${correct} for user ${discordId}`);
+        console.log(`[Heal] Shift ${shift.id}: ${shift.scope} → ${correct} for user ${cacheKey}`);
         fixed++;
       }
     }
@@ -343,4 +366,3 @@ export async function healMisattributedShifts() {
   }
   return fixed;
 }
-

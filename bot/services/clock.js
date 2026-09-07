@@ -305,17 +305,36 @@ export async function healMisattributedShifts() {
   try {
     const { data: shifts, error } = await supabase
       .from("clock_shifts")
-      .select("id,discord_user_id,scope");
+      .select("id,discord_user_id,roblox_user_id,scope");
     if (error || !shifts?.length) return fixed;
 
+    const profileCache = new Map();
+
     for (const shift of shifts) {
-      if (!shift.discord_user_id) continue;
-      const verified = await getVerifiedProfile(shift.discord_user_id).catch(() => null);
+      let discordId = shift.discord_user_id ? String(shift.discord_user_id) : "";
+      if (!discordId && shift.roblox_user_id) {
+        const { data: link } = await supabase
+          .from("verification_links")
+          .select("discord_user_id")
+          .eq("roblox_user_id", String(shift.roblox_user_id))
+          .maybeSingle();
+        if (link?.discord_user_id) discordId = String(link.discord_user_id);
+      }
+      if (!discordId) continue;
+
+      let verified;
+      if (profileCache.has(discordId)) {
+        verified = profileCache.get(discordId);
+      } else {
+        verified = await getVerifiedProfile(discordId).catch(() => null);
+        profileCache.set(discordId, verified);
+      }
+
       if (!verified?.profile) continue;
       const correct = inferScope(verified.profile);
       if (correct && correct !== shift.scope) {
         await supabase.from("clock_shifts").update({ scope: correct }).eq("id", shift.id);
-        console.log(`[Heal] Shift ${shift.id}: ${shift.scope} → ${correct} for user ${shift.discord_user_id}`);
+        console.log(`[Heal] Shift ${shift.id}: ${shift.scope} → ${correct} for user ${discordId}`);
         fixed++;
       }
     }
